@@ -38,6 +38,61 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
   
   import loamstream.TestHelpers.dummyJobDir
   
+  test("WithCommandResult") {
+    val commandResult0 = CommandResult(0)
+    val commandResult1 = CommandResult(42)
+    
+    val job = MockJob(JobStatus.Succeeded)
+    
+    def withResult(rOpt: Option[JobResult]): Execution = {
+      Execution.from(job = job, status = job.toReturn.jobStatus, result = rOpt, terminationReason = None)
+    }
+    
+    def doTest(rOpt: Option[JobResult], expected: Option[JobResult]): Unit = {
+      assert(Execution.WithCommandResult.unapply(withResult(rOpt)) === expected)
+    }
+    
+    val ex = new Exception with scala.util.control.NoStackTrace
+    
+    doTest(None, None)
+    doTest(Some(JobResult.CommandInvocationFailure(ex)), None)
+    doTest(Some(JobResult.FailureWithException(ex)), None)
+    doTest(Some(JobResult.Success), None)
+    doTest(Some(JobResult.Failure), None)
+    
+    doTest(Some(commandResult0), Some(commandResult0))
+    doTest(Some(commandResult1), Some(commandResult1))
+  }
+  
+  test("WithCommandInvocationFailure") {
+    val commandResult0 = CommandResult(0)
+    val commandResult1 = CommandResult(42)
+    
+    val job = MockJob(JobStatus.Succeeded)
+    
+    def withResult(rOpt: Option[JobResult]): Execution = {
+      Execution.from(job = job, status = job.toReturn.jobStatus, result = rOpt, terminationReason = None)
+    }
+    
+    def doTest(rOpt: Option[JobResult], expected: Option[JobResult]): Unit = {
+      assert(Execution.WithCommandInvocationFailure.unapply(withResult(rOpt)) === expected)
+    }
+    
+    doTest(None, None)
+    
+    val ex = new Exception with scala.util.control.NoStackTrace
+    
+    doTest(Some(JobResult.FailureWithException(ex)), None)
+    doTest(Some(JobResult.Success), None)
+    doTest(Some(JobResult.Failure), None)
+    doTest(Some(commandResult0), None)
+    doTest(Some(commandResult1), None)
+    
+    val cif = JobResult.CommandInvocationFailure(ex) 
+    
+    doTest(Some(cif), Some(cif))
+  }
+  
   test("guards") {
     val localSettings = LocalSettings
     val ugerSettings = {

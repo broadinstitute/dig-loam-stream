@@ -119,7 +119,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
         resources = Option(TestHelpers.ugerResources), 
         jobDir = Option(dummyJobDir), 
         outputs = outputs.toSet,
-        terminationReason = Some(TerminationReason.CpuTime(Some("TERM_CPULIMIT"))))
+        terminationReason = Some(TerminationReason.CpuTime))
 
     dao.insertExecutions(execution)
   }
@@ -248,7 +248,6 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           mockStatus,
           mockExitCode,
           Some(jobDir.toString),
-          None,
           None)
       
       assert(allExecutionRows.isEmpty)
@@ -266,8 +265,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       assert(recorded.status === mockStatus)
       assert(recorded.exitCode === mockExitCode)
       assert(recorded.jobDir === Some(jobDir.toString))
-      assert(recorded.terminationReasonType === None)
-      assert(recorded.rawTerminationReason === None)
+      assert(recorded.terminationReason === None)
     }
   }
   
@@ -287,8 +285,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           mockStatus,
           mockExitCode,
           Some(jobDir.toString),
-          Some(TerminationReason.Memory.Name),
-          Some("TERM_MEMLIMIT"))
+          Some(TerminationReason.Memory.name))
       
       assert(allExecutionRows.isEmpty)
 
@@ -305,8 +302,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       assert(recorded.status === mockStatus)
       assert(recorded.exitCode === mockExitCode)
       assert(recorded.jobDir === Some(jobDir.toString))
-      assert(recorded.terminationReasonType === Some(TerminationReason.Memory.Name))
-      assert(recorded.rawTerminationReason === Some("TERM_MEMLIMIT"))
+      assert(recorded.terminationReason === Some(TerminationReason.Memory.name))
     }
   }
 
@@ -359,7 +355,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           resources = Option(lsfResources),
           jobDir = Option(dummyJobDir), 
           outputs = Set.empty,
-          terminationReason = Some(TerminationReason.UserRequested(Some("FOO"))))
+          terminationReason = Some(TerminationReason.UserRequested))
 
       val succeeded = Execution(
           settings = googleSettings,

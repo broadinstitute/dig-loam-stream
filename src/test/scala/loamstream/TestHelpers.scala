@@ -275,4 +275,20 @@ object TestHelpers {
     //NB: Hard-coded timeout. :(  But at least it's no longer infinite! :)
     Await.result(f, 10.minutes)
   }
+  
+  //foobar => FoObAr, etc
+  def to1337Speak(s: String): String = {
+    val pairs = s.toUpperCase.zip(s.toLowerCase)
+    val z: (String, Boolean) = ("", true)
+    
+    val (result, _) = pairs.foldLeft(z) { (accTuple, pair) =>
+      val (acc, upper) = accTuple
+      val (uc, lc) = pair
+      val newLetter = if(upper) uc else lc
+      val newAcc = acc :+ newLetter
+      newAcc -> !upper
+    }
+    
+    result
+  }
 }

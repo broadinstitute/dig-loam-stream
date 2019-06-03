@@ -75,19 +75,18 @@ final class BacctAccountingClientTest extends FunSuite {
     doTest("", "blah blah", None)
     doTest("asdfasdf", "blah blah", None)
     
-    doTest("TERM_RUNLIMIT", "blah blah", Some(TerminationReason.RunTime(Some("TERM_RUNLIMIT"))))
+    doTest("TERM_RUNLIMIT", "blah blah", Some(TerminationReason.RunTime))
     
-    doTest("TERM_CPULIMIT", "blah blah", Some(TerminationReason.CpuTime(Some("TERM_CPULIMIT"))))
+    doTest("TERM_CPULIMIT", "blah blah", Some(TerminationReason.CpuTime))
     
-    doTest("TERM_OWNER", "blah blah", Some(TerminationReason.UserRequested(Some("TERM_OWNER"))))
-    doTest("TERM_FORCE_OWNER", "blah blah", Some(TerminationReason.UserRequested(Some("TERM_FORCE_OWNER"))))
+    doTest("TERM_OWNER", "blah blah", Some(TerminationReason.UserRequested))
+    doTest("TERM_FORCE_OWNER", "blah blah", Some(TerminationReason.UserRequested))
     
-    doTest("TERM_MEMLIMIT", "blah blah", Some(TerminationReason.Memory(Some("TERM_MEMLIMIT"))))
-    doTest("TERM_SWAP", "blah blah", Some(TerminationReason.Memory(Some("TERM_SWAP"))))
+    doTest("TERM_MEMLIMIT", "blah blah", Some(TerminationReason.Memory))
+    doTest("TERM_SWAP", "blah blah", Some(TerminationReason.Memory))
     
-    doTest("TERM_UNKNOWN", "blah blah", Some(TerminationReason.Unknown(Some("TERM_UNKNOWN"))))
-    
-    doTest("TERM_FOO", "blah blah", Some(TerminationReason.Unclassified(Some("TERM_FOO"))))
+    doTest("TERM_UNKNOWN", "blah blah", Some(TerminationReason.Unknown))
+    doTest("TERM_FOO", "blah blah", Some(TerminationReason.Unknown))
   }
   
   test("Parse actual bacct outpout - problematic output") {

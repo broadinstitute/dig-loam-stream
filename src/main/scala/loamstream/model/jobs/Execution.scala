@@ -10,6 +10,7 @@ import loamstream.model.execute.Resources.GoogleResources
 import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.execute.Resources.UgerResources
 import loamstream.model.execute.Resources.LsfResources
+import loamstream.model.jobs.JobResult.CommandResult
 
 /**
  * @author clint
@@ -66,6 +67,20 @@ final case class Execution(
 //TODO: Clean up and consolidate factory methods.  We probably don't need so many.  Maybe name them better too.
 object Execution extends Loggable {
 
+  object WithCommandResult {
+    def unapply(e: Execution): Option[CommandResult] = e.result match {
+      case Some(cr: CommandResult) => Some(cr)
+      case _ => None
+    }
+  }
+  
+  object WithCommandInvocationFailure {
+    def unapply(e: Execution): Option[JobResult.CommandInvocationFailure] = e.result match {
+      case Some(cif: JobResult.CommandInvocationFailure) => Some(cif)
+      case _ => None
+    }
+  }
+  
   // TODO Remove when dynamic statuses flow in
   // What does this mean? -Clint Dec 2017
   def apply(settings: Settings,

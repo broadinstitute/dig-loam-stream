@@ -22,16 +22,14 @@ final case class ExecutionRow(
     status: JobStatus, 
     exitCode: Int,
     jobDir: Option[String],
-    terminationReasonType: Option[String],
-    rawTerminationReason: Option[String]) {
+    terminationReason: Option[String]) {
   
   def toExecution(settings: Settings, resourcesOpt: Option[Resources], outputs: Set[StoreRecord]): Execution = {
     val commandResult = CommandResult(exitCode)
 
-    
     import Paths.{get => toPath}
     
-    val termReason = terminationReasonType.flatMap(TerminationReason.fromNameAndRawValue(_, rawTerminationReason))
+    val termReason = terminationReason.flatMap(TerminationReason.fromName)
     
     Execution(
         settings = settings,

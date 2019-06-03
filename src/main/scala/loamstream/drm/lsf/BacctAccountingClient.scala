@@ -198,22 +198,22 @@ object BacctAccountingClient {
   //See https://www.ibm.com/support/knowledgecenter/en/SSWRJV_10.1.0/lsf_command_ref/bacct.1.html
   private[lsf] def parseTerminationReason(lsfReason: String): TerminationReason = lsfReason.trim.toUpperCase match {
     //Job was killed after it reached LSF CPU usage limit (12)
-    case raw @ "TERM_CPULIMIT" => TerminationReason.CpuTime(Option(raw))
+    case "TERM_CPULIMIT" => TerminationReason.CpuTime
     
     //Job was killed by owner (14)
     //Job was killed by owner without time for cleanup (8)
-    case raw @ ("TERM_OWNER" | "TERM_FORCE_OWNER") => TerminationReason.UserRequested(Option(raw))
+    case ("TERM_OWNER" | "TERM_FORCE_OWNER") => TerminationReason.UserRequested
     
     //Job was killed after it reached LSF memory usage limit (16)
     //Job was killed after it reached LSF swap usage limit (20)
-    case raw @ ("TERM_MEMLIMIT" | "TERM_SWAP") => TerminationReason.Memory(Option(raw)) 
+    case ("TERM_MEMLIMIT" | "TERM_SWAP") => TerminationReason.Memory 
     
     //Job was killed after it reached LSF runtime limit (5)
-    case raw @ "TERM_RUNLIMIT" => TerminationReason.RunTime(Option(raw))
+    case "TERM_RUNLIMIT" => TerminationReason.RunTime
     
     //LSF cannot determine a termination reason. 0 is logged but "TERM_UNKNOWN is not displayed (0)
-    case raw @ "TERM_UNKNOWN" => TerminationReason.Unknown(Option(raw))
+    case "TERM_UNKNOWN" => TerminationReason.Unknown
     
-    case raw => TerminationReason.Unclassified(Option(raw))
+    case _ => TerminationReason.Unknown
   }
 }

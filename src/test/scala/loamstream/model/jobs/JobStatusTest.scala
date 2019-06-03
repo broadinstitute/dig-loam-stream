@@ -1,6 +1,7 @@
 package loamstream.model.jobs
 
 import org.scalatest.FunSuite
+import loamstream.TestHelpers
 
 /**
  * @author kyuksel
@@ -8,6 +9,21 @@ import org.scalatest.FunSuite
  */
 final class JobStatusTest extends FunSuite {
   import JobStatus._
+  
+  test("canStopExecution") {
+    assert(Succeeded.canStopExecution === false)
+    assert(Skipped.canStopExecution === false)
+    assert(Failed.canStopExecution === true)
+    assert(FailedWithException.canStopExecution === true)
+    assert(NotStarted.canStopExecution === false)
+    assert(Submitted.canStopExecution === false)
+    assert(Running.canStopExecution === false)
+    assert(Terminated.canStopExecution === true)
+    assert(Unknown.canStopExecution === false)
+    assert(CouldNotStart.canStopExecution === true)
+    assert(FailedPermanently.canStopExecution === true)
+    assert(WaitingForOutputs.canStopExecution === false)
+  }
   
   test("isPermanentFailure") {
     assert(Succeeded.isPermanentFailure === false)
@@ -115,21 +131,7 @@ final class JobStatusTest extends FunSuite {
   }
   
   test("fromString") {
-    //foobar => FoObAr, etc
-    def to1337Speak(s: String): String = {
-      val pairs = s.toUpperCase.zip(s.toLowerCase)
-      val z: (String, Boolean) = ("", true)
-      
-      val (result, _) = pairs.foldLeft(z) { (accTuple, pair) =>
-        val (acc, upper) = accTuple
-        val (uc, lc) = pair
-        val newLetter = if(upper) uc else lc
-        val newAcc = acc :+ newLetter
-        newAcc -> !upper
-      }
-      
-      result
-    }
+    import TestHelpers.to1337Speak
     
     def doTest(baseString: String, expected: Option[JobStatus]): Unit = {
       def actuallyDoTest(s: String): Unit = assert(fromString(s) === expected)

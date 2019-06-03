@@ -76,7 +76,7 @@ final class RunDataTest extends FunSuite {
     
     val localResources = LocalResources(Instant.now, Instant.now)
     
-    val termReason = TerminationReason.Memory()
+    val termReason = TerminationReason.Memory
     
     val jobDir = dummyJobDir
     
@@ -107,7 +107,7 @@ final class RunDataTest extends FunSuite {
     
     val localResources = LocalResources(Instant.now, Instant.now)
     
-    val termReason = TerminationReason.Memory()
+    val termReason = TerminationReason.Memory
     
     val jobDir = dummyJobDir
     
@@ -138,7 +138,7 @@ final class RunDataTest extends FunSuite {
     
     val localResources = LocalResources(Instant.now, Instant.now)
     
-    val termReason = TerminationReason.Memory()
+    val termReason = TerminationReason.Memory
     
     val jobDir = dummyJobDir
     
@@ -169,7 +169,7 @@ final class RunDataTest extends FunSuite {
     
     val localResources = LocalResources(Instant.now, Instant.now)
     
-    val termReason = TerminationReason.Memory()
+    val termReason = TerminationReason.Memory
     
     val jobDir = dummyJobDir
     
@@ -200,7 +200,7 @@ final class RunDataTest extends FunSuite {
     
     val localResources = LocalResources(Instant.now, Instant.now)
     
-    val termReason = TerminationReason.Memory()
+    val termReason = TerminationReason.Memory
     
     val jobDir = dummyJobDir
     
@@ -231,7 +231,7 @@ final class RunDataTest extends FunSuite {
     
     val localResources = LocalResources(Instant.now, Instant.now)
     
-    val termReason = TerminationReason.Memory()
+    val termReason = TerminationReason.Memory
     
     val jobDir = dummyJobDir
     

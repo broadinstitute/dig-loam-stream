@@ -131,10 +131,11 @@ final class RxExecuterTest extends FunSuite {
       assert(job3.executionCount === 0)
   
       assert(result(job1).isSuccess)
-      assert(result(job2).isFailure)
+      assert(result(job2).isFailure === false)
+      assert(result(job2).isSuccess === false)
       assert(result.get(job3) === None)
       
-      assert(result(job2).status === JobStatus.FailedPermanently)
+      assert(result(job2).status === JobStatus.CouldNotStart)
       
       assert(result(job2).result === None)
       

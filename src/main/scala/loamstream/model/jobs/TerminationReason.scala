@@ -9,56 +9,45 @@ import loamstream.util.Classes
  * 
  * An ADT for the reasons why a job was killed by the underlying system (Uger/LSF/Google) 
  */
-sealed abstract class TerminationReason(
-    val raw: Option[String], 
-    companion: TerminationReason.Companion[_]) {
+sealed abstract class TerminationReason {
   
   import TerminationReason._
   
-  final def name: String = companion.Name
+  //NB: This assumes implementations will be case objects
+  final def name: String = toString
   
-  final def isRunTime: Boolean = this.isInstanceOf[RunTime]
-  final def isCpuTime: Boolean = this.isInstanceOf[CpuTime]
-  final def isMemory: Boolean = this.isInstanceOf[Memory]
-  final def isUserRequested: Boolean = this.isInstanceOf[UserRequested]
-  final def isUnclassified: Boolean = this.isInstanceOf[Unclassified]
-  final def isUnknown: Boolean = this.isInstanceOf[Unknown]
+  //NB: Field's identifier needs to start with a capital letter for pattern-matching :\ 
+  private[TerminationReason] val Name: String = name.toLowerCase
+  
+  final def isRunTime: Boolean = this == RunTime
+  final def isCpuTime: Boolean = this == CpuTime
+  final def isMemory: Boolean = this == Memory
+  final def isUserRequested: Boolean = this == UserRequested
+  final def isUnknown: Boolean = this == Unknown
 }
 
 object TerminationReason {
-  abstract class Companion[A : ClassTag] {
-    val Name: String = Classes.simpleNameOf[A]
-  }
+  //A job was killed because it ran too long 
+  final case object RunTime extends TerminationReason
   
-  //A was killed because it ran too long 
-  final case class RunTime(override val raw: Option[String] = None) extends TerminationReason(raw, RunTime)
-  object RunTime extends Companion[RunTime]
+  //A job was killed because it used too much CPU time
+  final case object CpuTime extends TerminationReason
   
-  //A was killed because it used too much CPU time
-  final case class CpuTime(override val raw: Option[String] = None) extends TerminationReason(raw, CpuTime)
-  object CpuTime extends Companion[CpuTime]
+  //A job was killed because it used too much RAM
+  final case object Memory extends TerminationReason
   
-  //A was killed because it used too much RAM
-  final case class Memory(override val raw: Option[String] = None) extends TerminationReason(raw, Memory)
-  object Memory extends Companion[Memory]
+  //A job was killed because the user requested it (with ctrl-c, say)
+  final case object UserRequested extends TerminationReason
+
+  //A job was killed by the underlying environment, but we don't know why.
+  final case object Unknown extends TerminationReason
   
-  //A was killed because the user requested it (with ctrl-c, say)
-  final case class UserRequested(override val raw: Option[String] = None) extends TerminationReason(raw, UserRequested)
-  object UserRequested extends Companion[UserRequested]
-  
-  final case class Unclassified(override val raw: Option[String] = None) extends TerminationReason(raw, Unclassified)
-  object Unclassified extends Companion[Unclassified]
-  
-  final case class Unknown(override val raw: Option[String] = None) extends TerminationReason(raw, Unknown)
-  object Unknown extends Companion[Unknown]
-  
-  def fromNameAndRawValue(name: String, raw: Option[String]): Option[TerminationReason] = name match {
-    case RunTime.Name => Some(RunTime(raw))
-    case CpuTime.Name => Some(CpuTime(raw))
-    case Memory.Name => Some(Memory(raw))
-    case UserRequested.Name => Some(UserRequested(raw))
-    case Unclassified.Name => Some(Unclassified(raw))
-    case Unknown.Name => Some(Unknown(raw))
+  def fromName(name: String): Option[TerminationReason] = name.trim.toLowerCase match {
+    case RunTime.Name => Some(RunTime)
+    case CpuTime.Name => Some(CpuTime)
+    case Memory.Name => Some(Memory)
+    case UserRequested.Name => Some(UserRequested)
+    case Unknown.Name => Some(Unknown)
     case _ => None
   }
 }

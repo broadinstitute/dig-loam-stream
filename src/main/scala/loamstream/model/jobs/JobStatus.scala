@@ -14,19 +14,21 @@ sealed trait JobStatus {
   
   def isTerminal: Boolean
 
-  def isFinished: Boolean = isSuccess || isFailure || isTerminal
+  final def isFinished: Boolean = isSuccess || isFailure || isTerminal
 
-  def notFinished: Boolean = !isFinished
+  final def notFinished: Boolean = !isFinished
   
-  def isSkipped: Boolean = this == JobStatus.Skipped
+  final def isSkipped: Boolean = this == JobStatus.Skipped
   
-  def isPermanentFailure: Boolean = this == JobStatus.FailedPermanently
+  final def isPermanentFailure: Boolean = this == JobStatus.FailedPermanently
 
-  def isCouldNotStart: Boolean = this == JobStatus.CouldNotStart
+  final def isCouldNotStart: Boolean = this == JobStatus.CouldNotStart
   
-  def isRunning: Boolean = this == JobStatus.Running
+  final def isRunning: Boolean = this == JobStatus.Running
   
-  def notRunning: Boolean = !isRunning
+  final def notRunning: Boolean = !isRunning
+  
+  final def canStopExecution: Boolean = isFailure || isCouldNotStart
 }
 
 object JobStatus extends Loggable {

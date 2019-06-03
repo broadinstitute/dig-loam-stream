@@ -9,6 +9,21 @@ import org.scalatest.FunSuite
 final class JobStatusTest extends FunSuite {
   import JobStatus._
   
+  test("canStopExecution") {
+    assert(Succeeded.canStopExecution === false)
+    assert(Skipped.canStopExecution === false)
+    assert(Failed.canStopExecution === true)
+    assert(FailedWithException.canStopExecution === true)
+    assert(NotStarted.canStopExecution === false)
+    assert(Submitted.canStopExecution === false)
+    assert(Running.canStopExecution === false)
+    assert(Terminated.canStopExecution === true)
+    assert(Unknown.canStopExecution === false)
+    assert(CouldNotStart.canStopExecution === true)
+    assert(FailedPermanently.canStopExecution === true)
+    assert(WaitingForOutputs.canStopExecution === false)
+  }
+  
   test("isPermanentFailure") {
     assert(Succeeded.isPermanentFailure === false)
     assert(Skipped.isPermanentFailure === false)

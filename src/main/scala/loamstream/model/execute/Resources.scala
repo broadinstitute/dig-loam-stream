@@ -62,6 +62,10 @@ object Resources {
     final def withQueue(newQueue: Queue): DrmResources = withQueue(Option(newQueue))
     
     def withQueue(newQueueOpt: Option[Queue]): DrmResources
+    
+    override def toString: String = {
+      s"${getClass.getSimpleName}(${memory},${cpuTime},${node},${queue},${startTime},${endTime},...)"
+    }
   }
   
   object DrmResources {

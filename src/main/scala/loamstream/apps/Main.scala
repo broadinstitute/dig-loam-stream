@@ -240,11 +240,18 @@ object Main extends Loggable {
       def write(tuples: Iterable[(LJob, Execution)], dest: Path): Unit = {
         val sorted = tuples.toSeq.sortWith(executionTupleOrdering)
         
-        val lines = sorted.map {
-          case (j, e) => tabSeperate(j.id, j.name, e.status, e.jobDir.map(_.toAbsolutePath.toString).getOrElse(""))
+        def exitCodePart(e: Execution): String = e match {
+          case Execution.WithCommandResult(cr) => cr.exitCode.toString
+          case _ => "<not available>"
         }
         
-        val contents = (headerLine +: lines).mkString(System.lineSeparator())
+        def jobDirPart(e: Execution): String = e.jobDir.map(_.toAbsolutePath.toString).getOrElse("<not available>")
+        
+        val lines = sorted.map {
+          case (j, e) => tabSeperate(j.id, j.name, e.status, exitCodePart(e), jobDirPart(e))
+        }
+        
+        val contents = (headerLine +: lines).mkString(System.lineSeparator)
         
         Files.writeTo(dest)(contents)
       }

@@ -34,11 +34,15 @@ object QacctTestHelpers {
     Success(RunResults(fakeBinaryName, exitCode = exitCode, stdout = stdout, stderr = stderr))
   }
   
-  def expectedResources(expectedNode: String, expectedQueue: Queue): UgerResources = {
-    expectedResources(Option(expectedNode), Option(expectedQueue))
+  def expectedResources(expectedRawData: String, expectedNode: String, expectedQueue: Queue): UgerResources = {
+    expectedResources(expectedRawData, Option(expectedNode), Option(expectedQueue))
   }
 
-  def expectedResources(expectedNode: Option[String], expectedQueue: Option[Queue]): UgerResources = {
+  def expectedResources(
+      expectedRawData: String, 
+      expectedNode: Option[String], 
+      expectedQueue: Option[Queue]): UgerResources = {
+    
     val localTzOffset = ZonedDateTime.now.getOffset
     
     UgerResources(
@@ -47,7 +51,8 @@ object QacctTestHelpers {
       node = expectedNode,
       queue = expectedQueue,
       startTime = LocalDateTime.parse("2017-03-06T18:49:50.505").toInstant(localTzOffset),
-      endTime = LocalDateTime.parse("2017-03-06T18:49:57.464").toInstant(localTzOffset))
+      endTime = LocalDateTime.parse("2017-03-06T18:49:57.464").toInstant(localTzOffset),
+      raw = Option(expectedRawData))
   }
   
   //scalastyle:off method.length

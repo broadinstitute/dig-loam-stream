@@ -84,12 +84,12 @@ final class FileSystemExecutionRecorderTest extends FunSuite {
   test("resourcesToString - DRM resources") {
     val endTime = Instant.now
     
-    def doTest(makeResources: DrmResources.ResourcesMaker): Unit = {
+    def doTest[R <: DrmResources](makeResources: DrmResources.ResourcesMaker[R]): Unit = {
       def doTestWith(nodeOpt: Option[String], queueOpt: Option[Queue]): Unit = {
         val memoryPerCore = Memory.inGb(1.23)
         val cpuTime = CpuTime.inSeconds(345)
         
-        val resources = makeResources(memoryPerCore, cpuTime, nodeOpt, queueOpt, startTime, endTime)
+        val resources = makeResources(memoryPerCore, cpuTime, nodeOpt, queueOpt, startTime, endTime, Some("fofofofo"))
         
         val actual = resourcesToString(resources)
         

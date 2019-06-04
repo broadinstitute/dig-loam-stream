@@ -16,6 +16,8 @@ import loamstream.util.Files
  * May 22, 2019
  */
 object FileSystemExecutionRecorder extends ExecutionRecorder {
+  import FileSystemExecutionRecorder._
+  
   override def record(jobOracle: JobOracle, executionTuples: Iterable[(LJob, Execution)]): Unit = {
     for {
       (job, execution) <- executionTuples
@@ -28,10 +30,15 @@ object FileSystemExecutionRecorder extends ExecutionRecorder {
       
       Files.writeTo(settingsFilePath)(settingsToString(execution.settings))
       
-      execution.resources.foreach { rs =>
-        val accountingFilePath = FileSystemExecutionRecorder.makeAccountingFilePath(jobDir)
-      
-        Files.writeTo(accountingFilePath)(resourcesToString(rs))
+      for {
+        rs <- execution.resources
+        accountingSummaryFile = makeAccountingSummaryFilePath(jobDir)
+        _ = Files.writeTo(accountingSummaryFile)(resourcesToString(rs))
+        rawResourceData <- rs.raw
+      } {
+        val accountingFile = makeAccountingFilePath(jobDir)
+        
+        Files.writeTo(accountingFile)(rawResourceData)
       }
     }
   }
@@ -41,6 +48,8 @@ object FileSystemExecutionRecorder extends ExecutionRecorder {
   private[execute] def makeSettingsFilePath(dir: Path): Path = pathWithExtension(dir, "settings")
   
   private[execute] def makeAccountingFilePath(dir: Path): Path = pathWithExtension(dir, "accounting")
+  
+  private[execute] def makeAccountingSummaryFilePath(dir: Path): Path = pathWithExtension(dir, "accounting-summary")
   
   private object Keys {
     val settingsType = "settings-type"
@@ -76,7 +85,7 @@ object FileSystemExecutionRecorder extends ExecutionRecorder {
     val resourceSpecificTuples: Seq[(String, Any)] = resources match {
       case _: LocalResources => Nil
       case g: GoogleResources => Seq(Keys.cluster -> g.cluster)
-      case DrmResources(memory, cpuTime, nodeOpt, queueOpt, _, _) => {
+      case DrmResources(memory, cpuTime, nodeOpt, queueOpt, _, _, _) => {
         Seq(
           Keys.memory -> memory.value.toString,
           Keys.cpuTime -> cpuTime.duration.toString,

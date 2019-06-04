@@ -56,7 +56,8 @@ final class QacctAccountingClient(
         node = nodeOpt,
         queue = queueOpt,
         startTime = start,
-        endTime = end)
+        endTime = end,
+        raw = Some(output.mkString(System.lineSeparator)))
     }
   }
   

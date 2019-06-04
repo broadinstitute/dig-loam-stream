@@ -21,6 +21,8 @@ sealed trait Resources {
   def startTime: Instant
 
   def endTime: Instant
+  
+  def raw: Option[String] = None
 
   //TODO: Maybe java.time.Duration instead?
   final def elapsedTime: Duration = {
@@ -63,9 +65,10 @@ object Resources {
   }
   
   object DrmResources {
-    type ResourcesMaker = (Memory, CpuTime, Option[String], Option[Queue], Instant, Instant) => DrmResources
+    type ResourcesMaker[R <: DrmResources] = 
+      (Memory, CpuTime, Option[String], Option[Queue], Instant, Instant, Option[String]) => R
     
-    type FieldsTuple = (Memory, CpuTime, Option[String], Option[Queue], Instant, Instant)
+    type FieldsTuple = (Memory, CpuTime, Option[String], Option[Queue], Instant, Instant, Option[String])
     
     def unapply(r: Resources): Option[FieldsTuple] = r match {
       case u: UgerResources => UgerResources.unapply(u)
@@ -80,7 +83,8 @@ object Resources {
       node: Option[String],
       queue: Option[Queue],
       startTime: Instant,
-      endTime: Instant) extends DrmResources {
+      endTime: Instant,
+      override val raw: Option[String] = None) extends DrmResources {
     
     override def withNode(newNodeOpt: Option[String]): DrmResources = copy(node = newNodeOpt)
     
@@ -93,7 +97,8 @@ object Resources {
       node: Option[String],
       queue: Option[Queue],
       startTime: Instant,
-      endTime: Instant) extends DrmResources {
+      endTime: Instant,
+      override val raw: Option[String] = None) extends DrmResources {
     
     override def withNode(newNodeOpt: Option[String]): DrmResources = copy(node = newNodeOpt)
     

@@ -75,7 +75,9 @@ final class QacctAccountingClientTest extends FunSuite {
     assert(mockClient.timesGetQacctOutputForInvoked === 1)
     assert(mockClient.timesGetResourceUsageInvoked === 1)
     
-    assert(actualResources === expectedResources(expectedNode, expectedQueue))
+    val expectedRawData = actualQacctOutput(Option(expectedQueue), Option(expectedNode)).mkString("\n")
+    
+    assert(actualResources === expectedResources(expectedRawData, expectedNode, expectedQueue))
   }
   
   test("retries - never works") {
@@ -113,13 +115,15 @@ final class QacctAccountingClientTest extends FunSuite {
     
     var timesQacctInvoked = 0
     
+    val expectedRawData = actualQacctOutput(Option(expectedQueue), Option(expectedNode))
+    
     def invokeQacct(jobId: String): Try[RunResults] = {
       timesQacctInvoked += 1
       
       if(timesQacctInvoked < 3) {
         Tries.failure("")
       } else {
-        successfulRun(stdout = actualQacctOutput(Some(expectedQueue), Some(expectedNode)))
+        successfulRun(stdout = expectedRawData)
       }
     }
     
@@ -130,13 +134,15 @@ final class QacctAccountingClientTest extends FunSuite {
     assert(mockClient.timesGetQacctOutputForInvoked === 0)
     assert(mockClient.timesGetResourceUsageInvoked === 0)
     
-    assert(mockClient.getResourceUsage(jobId).get === expectedResources(expectedNode, expectedQueue))
+    val expected = expectedResources(expectedRawData.mkString("\n"), expectedNode, expectedQueue)
+    
+    assert(mockClient.getResourceUsage(jobId).get === expected)
     
     //Should have retried twice
     assert(mockClient.timesGetQacctOutputForInvoked === 3)
     assert(mockClient.timesGetResourceUsageInvoked === 1)
     
-    assert(mockClient.getResourceUsage(jobId).get === expectedResources(expectedNode, expectedQueue))
+    assert(mockClient.getResourceUsage(jobId).get === expected)
     
     //should have memoized results, and not retried any more
     assert(mockClient.timesGetQacctOutputForInvoked === 3)
@@ -144,43 +150,53 @@ final class QacctAccountingClientTest extends FunSuite {
   }
 
   test("getResourceUsage - no node to find") {
+    val expectedQueue = Option(Queue("broad"))
+    
+    val expectedRawData = actualQacctOutput(expectedQueue, None)
+    
     val mockClient = new MockQacctAccountingClient(_ => 
-      successfulRun(stdout = actualQacctOutput(Some(Queue("broad")), None))
+      successfulRun(stdout = expectedRawData)
     )
 
     val jobId = "12345"
-
-    val expected = expectedResources(None, Some(Queue("broad")))
+    
+    val expected = expectedResources(expectedRawData.mkString("\n"), None, expectedQueue)
     
     assert(mockClient.getResourceUsage(jobId).get === expected)
     
-    assert(expected.queue === Some(Queue("broad")))
+    assert(expected.queue === expectedQueue)
     assert(expected.node === None)
   }
 
   test("getResourceUsage - no queue to find") {
+    val expectedNode = Option("foo.example.com")
+    
+    val expectedRawData = actualQacctOutput(None, expectedNode)
+    
     val mockClient = new MockQacctAccountingClient(_ => 
-      successfulRun(stdout = actualQacctOutput(None, Some("foo.example.com")))
+      successfulRun(stdout = expectedRawData)
     )
 
     val jobId = "12345"
-
-    val expected = expectedResources(Some("foo.example.com"), None)
+    
+    val expected = expectedResources(expectedRawData.mkString("\n"), expectedNode, None)
     
     assert(mockClient.getResourceUsage(jobId).get === expected)
     
     assert(expected.queue === None)
-    assert(expected.node === Some("foo.example.com"))
+    assert(expected.node === expectedNode)
   }
 
   test("getResourceUsage - neither queue nor node present") {
+    val expectedRawData = actualQacctOutput(None, None)
+    
     val mockClient = new MockQacctAccountingClient(_ => 
-      successfulRun(stdout = actualQacctOutput(None, None))
+      successfulRun(stdout = expectedRawData)
     )
 
     val jobId = "12345"
 
-    val expected = expectedResources(None, None)
+    val expected = expectedResources(expectedRawData.mkString("\n"), None, None)
     
     assert(mockClient.getResourceUsage(jobId).get === expected)
     

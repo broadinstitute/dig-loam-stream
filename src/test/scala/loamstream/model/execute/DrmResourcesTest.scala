@@ -21,10 +21,12 @@ final class DrmResourcesTest extends FunSuite {
 
   private val now = Instant.now
 
-  private type ResourceMaker[R] = (Memory, CpuTime, Option[String], Option[Queue], Instant, Instant) => R
+  private val rawResourceData = "lalala lalala blah lalala"
   
+  import DrmResources.ResourcesMaker
+
   test("elapsedTime") {
-    def doTest[R <: DrmResources](makeResources: ResourceMaker[R]): Unit = {
+    def doTest[R <: DrmResources](makeResources: ResourcesMaker[R]): Unit = {
       //Elapsed time is zero
       val tookNoTime = makeResources(
         Memory.inGb(1),
@@ -32,7 +34,8 @@ final class DrmResourcesTest extends FunSuite {
         None,
         None,
         now,
-        now)
+        now,
+        Some(rawResourceData))
   
       assert(tookNoTime.elapsedTime === 0.seconds)
   
@@ -43,7 +46,8 @@ final class DrmResourcesTest extends FunSuite {
           None,
           None,
           now,
-          now.plusMillis(offsetInMillis))
+          now.plusMillis(offsetInMillis),
+          Some(rawResourceData))
   
         assert(resources.elapsedTime === offsetInMillis.milliseconds)
       }
@@ -59,14 +63,15 @@ final class DrmResourcesTest extends FunSuite {
   }
 
   test("withNode/withQueue") {
-    def doTest[R <: DrmResources](makeResources: ResourceMaker[R]): Unit = {
+    def doTest[R <: DrmResources](makeResources: ResourcesMaker[R]): Unit = {
       val r = UgerResources(
         memory = Memory.inGb(1),
         cpuTime = CpuTime(42.seconds),
         node = None,
         queue = None,
         startTime = now,
-        endTime = now)
+        endTime = now,
+        raw = Some(rawResourceData))
   
       val withNode = r.withNode("foo.example.com")
   

@@ -1,6 +1,5 @@
 package loamstream.model.jobs
 
-import loamstream.model.execute.Environment
 import loamstream.model.execute.Resources
 import loamstream.model.execute.Settings
 import loamstream.model.jobs.commandline.CommandLineJob
@@ -11,6 +10,7 @@ import loamstream.model.execute.Resources.GoogleResources
 import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.execute.Resources.UgerResources
 import loamstream.model.execute.Resources.LsfResources
+import loamstream.model.jobs.JobResult.CommandResult
 
 /**
  * @author clint
@@ -18,25 +18,23 @@ import loamstream.model.execute.Resources.LsfResources
  * date: Sep 22, 2016
  */
 final case class Execution(
-    env: Environment,
     cmd: Option[String] = None,
+    settings: Settings,
     status: JobStatus,
     result: Option[JobResult] = None,
     resources: Option[Resources] = None,
     outputs: Set[StoreRecord] = Set.empty,
-    outputStreams: Option[OutputStreams]/*,
-    terminationReason: Option[TerminationReason] = None*/) {
+    outputStreams: Option[OutputStreams],
+    terminationReason: Option[TerminationReason]) {
 
   require(
       environmentAndResourcesMatch, 
-      s"Environment type and resources must match, but got ${env.tpe} and $resources")
+      s"Environment type and resources must match, but got ${settings.envType} and $resources")
   
   def isSuccess: Boolean = status.isSuccess
   def isFailure: Boolean = status.isFailure
-
-  def settings: Settings = env.settings
   
-  private def environmentAndResourcesMatch: Boolean = (env.tpe, resources) match {
+  private def environmentAndResourcesMatch: Boolean = (settings.envType, resources) match {
     case (_, None) => true
     case (EnvironmentType.Local, Some(_: LocalResources)) => true
     case (EnvironmentType.Google, Some(_: GoogleResources)) => true
@@ -69,38 +67,54 @@ final case class Execution(
 //TODO: Clean up and consolidate factory methods.  We probably don't need so many.  Maybe name them better too.
 object Execution extends Loggable {
 
+  object WithCommandResult {
+    def unapply(e: Execution): Option[CommandResult] = e.result match {
+      case Some(cr: CommandResult) => Some(cr)
+      case _ => None
+    }
+  }
+  
+  object WithCommandInvocationFailure {
+    def unapply(e: Execution): Option[JobResult.CommandInvocationFailure] = e.result match {
+      case Some(cif: JobResult.CommandInvocationFailure) => Some(cif)
+      case _ => None
+    }
+  }
+  
   // TODO Remove when dynamic statuses flow in
   // What does this mean? -Clint Dec 2017
-  def apply(env: Environment,
+  def apply(settings: Settings,
             cmd: String,
             result: JobResult,
             outputStreams: OutputStreams,
             outputs: StoreRecord*): Execution = {
     
     Execution(
-        env = env, 
-        cmd = Option(cmd), 
+        cmd = Option(cmd),
+        settings = settings,
         status = result.toJobStatus, 
         result = Option(result), 
         resources = None, 
         outputs = outputs.toSet,
-        outputStreams = Option(outputStreams))
+        outputStreams = Option(outputStreams),
+        terminationReason = None)
   }
 
-  def fromOutputs(env: Environment,
+  def fromOutputs(settings: Settings,
                   cmd: String,
                   result: JobResult,
                   outputStreams: OutputStreams,
                   outputs: Set[DataHandle]): Execution = {
     
     apply(
-        env = env, 
-        cmd = Option(cmd), 
+        cmd = Option(cmd),
+        settings = settings,
         status = result.toJobStatus, 
         result = Option(result), 
         resources = None, 
         outputs = outputs.map(_.toStoreRecord),
-        outputStreams = Option(outputStreams))
+        outputStreams = Option(outputStreams),
+        terminationReason = None)
   }
 
   def from(
@@ -108,8 +122,8 @@ object Execution extends Loggable {
       status: JobStatus, 
       result: Option[JobResult] = None, 
       outputStreams: Option[OutputStreams] = None,
-      resources: Option[Resources] = None/*,
-      terminationReason: Option[TerminationReason] = None*/): Execution = {
+      resources: Option[Resources] = None,
+      terminationReason: Option[TerminationReason]): Execution = {
     
     val commandLine: Option[String] = job match {
       case clj: CommandLineJob => Option(clj.commandLineString)
@@ -119,13 +133,13 @@ object Execution extends Loggable {
     val outputRecords = job.outputs.map(_.toStoreRecord)
     
     Execution(
-      env = job.executionEnvironment,
+      settings = job.initialSettings,
       cmd = commandLine,
       status = status,
       result = result,
       resources = resources, 
       outputs = outputRecords,
-      outputStreams = outputStreams/*,
-      terminationReason = terminationReason*/)
+      outputStreams = outputStreams,
+      terminationReason = terminationReason)
   }
 }

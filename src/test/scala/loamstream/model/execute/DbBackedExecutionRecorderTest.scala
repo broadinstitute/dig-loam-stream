@@ -59,13 +59,14 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
         assert(executions === Set.empty)
   
         val e = Execution(
-            env = mockEnv, 
+            settings = mockUgerSettings,
             cmd = command, 
             status = status, 
             result = result, 
             resources = Option(mockResources),
             outputStreams = None,
-            outputs = Set.empty[StoreRecord])
+            outputs = Set.empty[StoreRecord],
+            terminationReason = None)
 
         assert(e.isCommandExecution === false)
         
@@ -93,13 +94,14 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
       assert(cr.isSuccess)
 
       val e = Execution(
-          env = mockEnv, 
+          settings = mockUgerSettings,
           cmd = Option(mockCmd), 
           status = cr.toJobStatus, 
           result = Option(cr), 
           resources = Option(mockResources),
           outputStreams = Some(dummyOutputStreams),
-          outputs = Set.empty[StoreRecord])
+          outputs = Set.empty[StoreRecord],
+          terminationReason = None)
 
       recorder.record(Seq(e))
 
@@ -118,13 +120,14 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
       assert(cr.isFailure)
 
       val e = Execution(
-          env = mockEnv, 
+          settings = mockUgerSettings,
           cmd = Option(mockCmd), 
           status = cr.toJobStatus, 
           result = Option(cr),
           resources = Option(mockResources),
           outputStreams = Some(dummyOutputStreams),
-          outputs = Set.empty)
+          outputs = Set.empty,
+          terminationReason = None)
 
       recorder.record(Seq(e))
 
@@ -142,7 +145,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
 
       assert(cr.isSuccess)
 
-      val e = Execution.fromOutputs(mockEnv, mockCmd, cr, dummyOutputStreams, Set(o0, o1, o2))
+      val e = Execution.fromOutputs(mockUgerSettings, mockCmd, cr, dummyOutputStreams, Set(o0, o1, o2))
       val withHashedOutputs = e.withStoreRecords(Set(cachedOutput0, cachedOutput1, cachedOutput2))
 
       recorder.record(Seq(e))
@@ -161,13 +164,13 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
 
       assert(cr.isFailure)
 
-      val e = Execution.fromOutputs(mockEnv, mockCmd, cr, dummyOutputStreams, Set[DataHandle](o0, o1, o2))
+      val e = Execution.fromOutputs(mockUgerSettings, mockCmd, cr, dummyOutputStreams, Set[DataHandle](o0, o1, o2))
 
       recorder.record(Seq(e))
 
       val expected = Set(
           Execution(
-              env = mockEnv, 
+              settings = mockUgerSettings, 
               cmd = mockCmd, 
               result = CommandResult(42),
               outputStreams = e.outputStreams.get,

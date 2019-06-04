@@ -6,7 +6,6 @@ import loamstream.TestHelpers
 import loamstream.compiler.LoamEngine
 import loamstream.compiler.LoamPredef
 import loamstream.model.execute.DrmSettings
-import loamstream.model.execute.Environment
 import loamstream.model.execute.GoogleSettings
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.commandline.CommandLineJob
@@ -19,6 +18,8 @@ import loamstream.drm.DrmSystem
 import loamstream.model.execute.EnvironmentType
 import loamstream.model.execute.UgerDrmSettings
 import loamstream.model.execute.LsfDrmSettings
+import loamstream.model.execute.LocalSettings
+import loamstream.model.execute.Settings
 
 /**
  * @author clint
@@ -43,10 +44,10 @@ final class LoamEnvironmentTest extends FunSuite with Loggable {
     
     assert(executable.jobs.size === 1)
     assert(commandLineFrom(job) === "foo")
-    assert(job.executionEnvironment === Environment.Local)
+    assert(job.initialSettings === LocalSettings)
   }
   
-  private def makeGraph(env: Environment): (LoamScriptContext => Any) => LoamGraph = env.tpe match {
+  private def makeGraph(settings: Settings): (LoamScriptContext => Any) => LoamGraph = settings.envType match {
     case EnvironmentType.Uger => TestHelpers.makeGraph(DrmSystem.Uger)(_)
     case EnvironmentType.Lsf => TestHelpers.makeGraph(DrmSystem.Lsf)(_)
     case _ => TestHelpers.makeGraph(_)
@@ -57,13 +58,13 @@ final class LoamEnvironmentTest extends FunSuite with Loggable {
   }
   
   test("Set EE") {
-    def doTest(env: Environment): Unit = {
-      val methodName = env.toString.toLowerCase
+    def doTest(settings: Settings): Unit = {
+      val methodName = settings.toString.toLowerCase
       
-      val graph = makeGraph(env) { implicit context => 
+      val graph = makeGraph(settings) { implicit context => 
         import LoamCmdTool._
       
-        envFn(env) {
+        envFn(settings) {
           cmd"foo"
         }
       }
@@ -74,22 +75,22 @@ final class LoamEnvironmentTest extends FunSuite with Loggable {
       
       assert(executable.jobs.size === 1)
       assert(commandLineFrom(job) === "foo")  
-      assert(job.executionEnvironment === env)
+      assert(job.initialSettings === settings)
     }
     
-    doTest(Environment.Local)
+    doTest(LocalSettings)
     doTest {
-      Environment.Uger(UgerDrmSettings(Cpus(2), Memory.inGb(3), CpuTime.inHours(4), Option(UgerDefaults.queue), None))
+      UgerDrmSettings(Cpus(2), Memory.inGb(3), CpuTime.inHours(4), Option(UgerDefaults.queue), None)
     }
-    doTest(Environment.Lsf(LsfDrmSettings(Cpus(3), Memory.inGb(4), CpuTime.inHours(5), None, None)))
-    doTest(Environment.Google(GoogleSettings(clusterId)))
+    doTest(LsfDrmSettings(Cpus(3), Memory.inGb(4), CpuTime.inHours(5), None, None))
+    doTest(GoogleSettings(clusterId))
   }
   
   test("Multiple EEs") {
-    def doTest(drmSystem: DrmSystem, env1: Environment, env2: Environment, env3: Environment ): Unit = {
-      val methodName1 = env1.toString.toLowerCase
-      val methodName2 = env2.toString.toLowerCase
-      val methodName3 = env3.toString.toLowerCase
+    def doTest(drmSystem: DrmSystem, env1: Settings, env2: Settings, env3: Settings): Unit = {
+      val methodName1 = env1.envType.toString.toLowerCase
+      val methodName2 = env2.envType.toString.toLowerCase
+      val methodName3 = env3.envType.toString.toLowerCase
       
       val graph = makeGraph(drmSystem) { implicit context => 
         import LoamCmdTool._
@@ -123,47 +124,45 @@ final class LoamEnvironmentTest extends FunSuite with Loggable {
       
       assert(jobs.size === 5)
         
-      assert(foo.executionEnvironment === env1)
-      assert(bar.executionEnvironment === env1)
+      assert(foo.initialSettings === env1)
+      assert(bar.initialSettings === env1)
       
-      assert(baz.executionEnvironment === env2)
+      assert(baz.initialSettings === env2)
       
-      assert(blerg.executionEnvironment === env3)
-      assert(zerg.executionEnvironment === env3)
+      assert(blerg.initialSettings === env3)
+      assert(zerg.initialSettings === env3)
     }
     
-    import Environment._
+    val ugerSettings = TestHelpers.defaultUgerSettings
+    val lsfSettings = TestHelpers.defaultLsfSettings
+    val googleSettings = GoogleSettings(clusterId)
     
-    val ugerEnv = Uger(TestHelpers.defaultUgerSettings)
-    val lsfEnv = Lsf(TestHelpers.defaultLsfSettings)
-    val googleEnv = Google(GoogleSettings(clusterId))
+    doTest(DrmSystem.Uger, LocalSettings, ugerSettings, googleSettings)
+    doTest(DrmSystem.Uger, googleSettings, ugerSettings, LocalSettings)
+    doTest(DrmSystem.Uger, LocalSettings, LocalSettings, LocalSettings)
+    doTest(DrmSystem.Uger, googleSettings, googleSettings, googleSettings)
+    doTest(DrmSystem.Uger, ugerSettings, ugerSettings, ugerSettings)
+    doTest(DrmSystem.Uger, googleSettings, ugerSettings, ugerSettings)
+    doTest(DrmSystem.Uger, ugerSettings, LocalSettings, LocalSettings)
+    doTest(DrmSystem.Uger, LocalSettings, ugerSettings, LocalSettings)
     
-    doTest(DrmSystem.Uger, Local, ugerEnv, googleEnv)
-    doTest(DrmSystem.Uger, googleEnv, ugerEnv, Local)
-    doTest(DrmSystem.Uger, Local, Local, Local)
-    doTest(DrmSystem.Uger, googleEnv, googleEnv, googleEnv)
-    doTest(DrmSystem.Uger, ugerEnv, ugerEnv, ugerEnv)
-    doTest(DrmSystem.Uger, googleEnv, ugerEnv, ugerEnv)
-    doTest(DrmSystem.Uger, ugerEnv, Local, Local)
-    doTest(DrmSystem.Uger, Local, ugerEnv, Local)
-    
-    doTest(DrmSystem.Lsf, Local, lsfEnv, googleEnv)
-    doTest(DrmSystem.Lsf, googleEnv, lsfEnv, Local)
-    doTest(DrmSystem.Lsf, Local, Local, Local)
-    doTest(DrmSystem.Lsf, googleEnv, googleEnv, googleEnv)
-    doTest(DrmSystem.Lsf, lsfEnv, lsfEnv, lsfEnv)
-    doTest(DrmSystem.Lsf, googleEnv, lsfEnv, lsfEnv)
-    doTest(DrmSystem.Lsf, lsfEnv, Local, Local)
-    doTest(DrmSystem.Lsf, Local, lsfEnv, Local)
+    doTest(DrmSystem.Lsf, LocalSettings, lsfSettings, googleSettings)
+    doTest(DrmSystem.Lsf, googleSettings, lsfSettings, LocalSettings)
+    doTest(DrmSystem.Lsf, LocalSettings, LocalSettings, LocalSettings)
+    doTest(DrmSystem.Lsf, googleSettings, googleSettings, googleSettings)
+    doTest(DrmSystem.Lsf, lsfSettings, lsfSettings, lsfSettings)
+    doTest(DrmSystem.Lsf, googleSettings, lsfSettings, lsfSettings)
+    doTest(DrmSystem.Lsf, lsfSettings, LocalSettings, LocalSettings)
+    doTest(DrmSystem.Lsf, LocalSettings, lsfSettings, LocalSettings)
   }
   
-  private def envFn[A](env: Environment)(block: => A)(implicit context: LoamScriptContext): A = env match {
-    case Environment.Local => LoamPredef.local(block)
-    case Environment.Google(_) => LoamPredef.google(block)
-    case Environment.Uger(settings) => {
+  private def envFn[A](settings: Settings)(block: => A)(implicit context: LoamScriptContext): A = settings match {
+    case LocalSettings => LoamPredef.local(block)
+    case GoogleSettings(_) => LoamPredef.google(block)
+    case settings: DrmSettings if settings.envType.isUger => {
       LoamPredef.ugerWith(settings.cores.value, settings.memoryPerCore.gb, settings.maxRunTime.hours)(block)
     }
-    case Environment.Lsf(settings) => {
+    case settings: DrmSettings if settings.envType.isLsf => {
       LoamPredef.drmWith(settings.cores.value, settings.memoryPerCore.gb, settings.maxRunTime.hours)(block)
     }
   }

@@ -20,7 +20,6 @@ import loamstream.googlecloud.HailConfig
 import loamstream.loam.LoamGraph
 import loamstream.loam.LoamProjectContext
 import loamstream.loam.LoamScriptContext
-import loamstream.model.execute.Environment
 import loamstream.model.execute.Resources
 import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.execute.RxExecuter
@@ -51,6 +50,9 @@ import loamstream.drm.DrmSystem
 import loamstream.model.execute.UgerDrmSettings
 import loamstream.model.execute.LsfDrmSettings
 import loamstream.conf.CompilationConfig
+import loamstream.model.jobs.TerminationReason
+import loamstream.model.execute.Settings
+import loamstream.model.execute.LocalSettings
 
 /**
   * @author clint
@@ -122,39 +124,50 @@ object TestHelpers {
   
   lazy val googleResources: GoogleResources = GoogleResources("some-cluster-id", Instant.now, Instant.now)
 
-  val env: Environment = Environment.Local
-
   def runDataFrom(
       job: LJob,
+      settings: Settings,
       status: JobStatus,
       result: Option[JobResult] = None,
       resources: Option[Resources] = None,
-      outputStreams: Option[OutputStreams] = None): RunData = RunData(job, status, result, resources, outputStreams)
+      outputStreams: Option[OutputStreams] = None,
+      terminationReasonOpt: Option[TerminationReason] = None): RunData = {
+    
+    RunData(job, settings, status, result, resources, outputStreams, terminationReasonOpt)
+  }
   
   def executionFrom(status: JobStatus,
                     result: Option[JobResult] = None,
                     resources: Option[Resources] = None,
                     outputStreams: Option[OutputStreams] = None): Execution = {
     Execution(
-        env = env,
+        settings = LocalSettings,
         cmd = None,
-        status,
-        result,
-        resources,
-        Set.empty[StoreRecord],
-        outputStreams)
+        status = status,
+        result = result,
+        resources = resources,
+        outputs = Set.empty[StoreRecord],
+        outputStreams = outputStreams,
+        terminationReason = None)
   }
 
-  def runDataFromStatus(job: LJob, status: JobStatus, resources: Option[Resources] = None): RunData = {
-    runDataFrom(job, status, result = None, resources)
-  }
+  def runDataFromStatus(
+      job: LJob, 
+      settings: Settings, 
+      status: JobStatus, 
+      resources: Option[Resources] = None): RunData = runDataFrom(job, settings, status, result = None, resources)
   
   def executionFromStatus(status: JobStatus, resources: Option[Resources] = None): Execution = {
     executionFrom(status, result = None, resources)
   }
 
-  def runDataFromResult(job: LJob, result: JobResult, resources: Option[Resources] = None): RunData = {
-    runDataFrom(job, result.toJobStatus, Option(result), resources)
+  def runDataFromResult(
+      job: LJob,
+      settings: Settings,
+      result: JobResult, 
+      resources: Option[Resources] = None): RunData = {
+    
+    runDataFrom(job, settings, result.toJobStatus, Option(result), resources)
   }
   
   def executionFromResult(result: JobResult, resources: Option[Resources] = None): Execution = {
@@ -250,5 +263,21 @@ object TestHelpers {
 
     //NB: Hard-coded timeout. :(  But at least it's no longer infinite! :)
     Await.result(f, 10.minutes)
+  }
+  
+  //foobar => FoObAr, etc
+  def to1337Speak(s: String): String = {
+    val pairs = s.toUpperCase.zip(s.toLowerCase)
+    val z: (String, Boolean) = ("", true)
+    
+    val (result, _) = pairs.foldLeft(z) { (accTuple, pair) =>
+      val (acc, upper) = accTuple
+      val (uc, lc) = pair
+      val newLetter = if(upper) uc else lc
+      val newAcc = acc :+ newLetter
+      newAcc -> !upper
+    }
+    
+    result
   }
 }

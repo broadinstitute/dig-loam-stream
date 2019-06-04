@@ -4,7 +4,6 @@ import org.scalatest.FunSuite
 
 import loamstream.compiler.LoamEngine
 import loamstream.compiler.LoamPredef
-import loamstream.model.execute.Environment
 import loamstream.model.execute.DrmSettings
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
@@ -65,12 +64,7 @@ final class UgerConfigIsPropagatedToJobsTest extends FunSuite {
           expectedQueue, 
           Some(ContainerParams("library/foo:1.2.3")))
       
-      val expectedEnv = drmSystem match {
-        case DrmSystem.Uger => Environment.Uger(expectedSettings)
-        case DrmSystem.Lsf => Environment.Lsf(expectedSettings)
-      }
-      
-      assert(jobs.head.executionEnvironment === expectedEnv)
+      assert(jobs.head.initialSettings === expectedSettings)
     }
     
     doTest(DrmSystem.Uger)
@@ -97,12 +91,12 @@ final class UgerConfigIsPropagatedToJobsTest extends FunSuite {
       
       assert(jobs.size === 1)
       
-      val expectedEnv = drmSystem match {
-        case DrmSystem.Uger => Environment.Uger(TestHelpers.defaultUgerSettings)
-        case DrmSystem.Lsf => Environment.Lsf(TestHelpers.defaultLsfSettings)
+      val expectedSettings: DrmSettings = drmSystem match {
+        case DrmSystem.Uger => TestHelpers.defaultUgerSettings
+        case DrmSystem.Lsf => TestHelpers.defaultLsfSettings
       }
       
-      assert(jobs.head.executionEnvironment === expectedEnv)
+      assert(jobs.head.initialSettings === expectedSettings)
     }
     
     doTest(DrmSystem.Uger)
@@ -129,12 +123,12 @@ final class UgerConfigIsPropagatedToJobsTest extends FunSuite {
       
       assert(jobs.size === 1)
       
-      val expectedEnv = drmSystem match {
-        case DrmSystem.Uger => Environment.Uger(TestHelpers.defaultUgerSettings)
-        case DrmSystem.Lsf => Environment.Lsf(TestHelpers.defaultLsfSettings)
+      val expectedSettings: DrmSettings = drmSystem match {
+        case DrmSystem.Uger => TestHelpers.defaultUgerSettings
+        case DrmSystem.Lsf => TestHelpers.defaultLsfSettings
       }
       
-      assert(jobs.head.executionEnvironment === expectedEnv)
+      assert(jobs.head.initialSettings === expectedSettings)
     }
     
     doTest(DrmSystem.Uger)

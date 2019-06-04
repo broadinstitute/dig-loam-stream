@@ -6,7 +6,6 @@ import loamstream.conf.UgerConfig
 import loamstream.drm.uger.UgerDefaults
 import loamstream.loam.LoamScriptContext
 import loamstream.model.execute.DrmSettings
-import loamstream.model.execute.Environment
 import loamstream.model.execute.UgerDrmSettings
 import loamstream.model.execute.LsfDrmSettings
 
@@ -17,17 +16,11 @@ import loamstream.model.execute.LsfDrmSettings
 sealed trait DrmSystem {
   def name: String
   
-  def makeEnvironment(settings: DrmSettings): Environment
-  
   def defaultQueue: Option[Queue]
   
   def config(scriptContext: LoamScriptContext): DrmConfig
   
   def settingsFromConfig(scriptContext: LoamScriptContext): DrmSettings
-  
-  final def makeBasicEnvironment(scriptContext: LoamScriptContext) : Environment = {
-    makeEnvironment(settingsFromConfig(scriptContext))
-  }
   
   def settingsMaker: DrmSettings.SettingsMaker
 }
@@ -35,8 +28,6 @@ sealed trait DrmSystem {
 object DrmSystem {
   final case object Uger extends DrmSystem {
     override def name: String = toString
-    
-    override def makeEnvironment(settings: DrmSettings): Environment = Environment.Uger(settings)
     
     override def defaultQueue: Option[Queue] = Option(UgerDefaults.queue)
     
@@ -51,8 +42,6 @@ object DrmSystem {
   
   final case object Lsf extends DrmSystem {
     override def name: String = toString
-    
-    override def makeEnvironment(settings: DrmSettings): Environment = Environment.Lsf(settings)
     
     override def defaultQueue: Option[Queue] = None
     

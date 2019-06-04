@@ -7,10 +7,10 @@ import org.scalatest.FunSuite
 import loamstream.TestHelpers
 import loamstream.conf.ExecutionConfig
 import loamstream.loam.LoamCmdTool
-import loamstream.model.execute.Environment
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.util.Files
 import loamstream.util.Paths
+import loamstream.model.execute.LocalSettings
 
 
 /**
@@ -145,7 +145,7 @@ final class LoamEngineTest extends FunSuite {
     val localEngine = LoamEngine.default(localConfig)
     
     def job(commandLine: String) = {
-      CommandLineJob(commandLineString = commandLine, executionEnvironment = Environment.Local)
+      CommandLineJob(commandLineString = commandLine, initialSettings = LocalSettings)
     }
     
     val j0 = job("foo")

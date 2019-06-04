@@ -14,7 +14,6 @@ import loamstream.drm.DrmSubmissionResult
 import loamstream.drm.DrmTaskArray
 import loamstream.drm.Queue
 import loamstream.model.execute.DrmSettings
-import loamstream.model.execute.Environment
 import loamstream.model.execute.LsfDrmSettings
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.model.quantities.CpuTime
@@ -161,7 +160,7 @@ final class BsubJobSubmitterTest extends FunSuite {
   private def commandLineJob(commandLine: String) = CommandLineJob(
       commandLineString = commandLine,
       workDir = path("."),
-      executionEnvironment = Environment.Lsf(settings))
+      initialSettings = settings)
     
   private val job0 = commandLineJob("asdf")
   private val job1 = commandLineJob("echo 42")

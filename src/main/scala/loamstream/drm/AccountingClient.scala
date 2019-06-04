@@ -11,6 +11,7 @@ import loamstream.util.Processes
 import loamstream.util.Tries
 import loamstream.util.Loops
 import loamstream.model.execute.Resources.DrmResources
+import loamstream.model.jobs.TerminationReason
 
 /**
  * @author clint
@@ -20,4 +21,13 @@ import loamstream.model.execute.Resources.DrmResources
  */
 trait AccountingClient {
   def getResourceUsage(jobId: String): Try[DrmResources]
+  
+  def getTerminationReason(jobId: String): Try[Option[TerminationReason]]
+  
+  def getAccountingInfo(jobId: String): Try[AccountingInfo] = {
+    for {
+      rs <- getResourceUsage(jobId)
+      tr <- getTerminationReason(jobId)
+    } yield AccountingInfo(rs, tr)
+  }
 }

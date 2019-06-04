@@ -37,13 +37,14 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
     val lastModified = Paths.lastModifiedTime(p)
 
     val e = Execution(
-        env = mockEnv,
+        settings = mockUgerSettings,
         cmd = Option(mockCmd),
         status = JobStatus.fromExitCode(exitCode),
         result = Option(JobResult.CommandResult(exitCode)),
         resources = Some(mockResources),
         outputStreams = Some(TestHelpers.dummyOutputStreams),
-        outputs = Set(cachedOutput(p, hash, lastModified)))
+        outputs = Set(cachedOutput(p, hash, lastModified)),
+        terminationReason = None)
     
     store(e)
     
@@ -119,7 +120,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
       dependencies: Set[JobNode] = Set.empty)(body: => Any): MockJob = {
     
     new MockJob.FromJobFn(
-        toReturnFn = job => TestHelpers.runDataFromResult(job, JobResult.CommandResult(0)), 
+        toReturnFn = job => TestHelpers.runDataFromResult(job, LocalSettings, JobResult.CommandResult(0)), 
         name = name, 
         dependencies = dependencies,
         inputs = inputs,

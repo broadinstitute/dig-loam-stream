@@ -22,7 +22,6 @@ import loamstream.loam.LoamCmdTool
 import loamstream.loam.LoamGraph
 import loamstream.loam.LoamScriptContext
 import loamstream.model.execute.DrmSettings
-import loamstream.model.execute.Environment
 import loamstream.model.execute.EnvironmentType
 import loamstream.model.jobs.DataHandle
 import loamstream.model.jobs.JobNode
@@ -40,6 +39,8 @@ import loamstream.util.Observables
 
 import rx.lang.scala.Observable
 import rx.lang.scala.schedulers.IOScheduler
+import loamstream.model.execute.LocalSettings
+import loamstream.model.execute.Settings
 
 
 /**
@@ -450,16 +451,10 @@ final class DrmChunkRunnerTest extends FunSuite {
         case DrmSystem.Lsf => None
       }
       
-      def makeEnv(settings: DrmSettings): Environment = drmSystem match {
-        case DrmSystem.Uger => Environment.Uger(settings)
-        case DrmSystem.Lsf => Environment.Lsf(settings)
-      }
- 
       val expectedSettings = drmSystem.settingsMaker(Cpus(4), Memory.inGb(16), CpuTime.inHours(5), queueOpt, None)
-      val expectedEnv = makeEnv(expectedSettings)
       
-      assert(jobs(0).job.executionEnvironment === expectedEnv)
-      assert(jobs(1).job.executionEnvironment === expectedEnv)
+      assert(jobs(0).job.initialSettings === expectedSettings)
+      assert(jobs(1).job.initialSettings === expectedSettings)
       
       val mockJobSubmitter = new MockJobSubmitter
       
@@ -531,11 +526,6 @@ final class DrmChunkRunnerTest extends FunSuite {
       }
     }
     
-    def makeEnv(drmSystem: DrmSystem, settings: DrmSettings): Environment = drmSystem match {
-      case DrmSystem.Uger => Environment.Uger(settings)
-      case DrmSystem.Lsf => Environment.Lsf(settings)
-    }
-    
     def doTest(drmSystem: DrmSystem): Unit = {
      
       val (graph, tool0, tool1, tool2, tool3) = makeGraphAndTools(drmSystem)
@@ -552,18 +542,15 @@ final class DrmChunkRunnerTest extends FunSuite {
       val expectedSettings0 = drmSystem.settingsMaker(Cpus(4), Memory.inGb(16), CpuTime.inHours(5), queueOpt, None)
       val expectedSettings1 = drmSystem.settingsMaker(Cpus(7), Memory.inGb(9), CpuTime.inHours(11), queueOpt, None)
       
-      val expectedEnv0 = makeEnv(drmSystem, expectedSettings0)
-      val expectedEnv1 = makeEnv(drmSystem, expectedSettings1)
-      
       def findJob(tool: LoamCmdTool): CommandLineJob = {
         jobs.iterator.map(_.asInstanceOf[CommandLineJob]).find(_.commandLineString == tool.commandLine).get
       }
       
-      assert(findJob(tool0).executionEnvironment === expectedEnv0)
-      assert(findJob(tool1).executionEnvironment === expectedEnv0)
+      assert(findJob(tool0).initialSettings === expectedSettings0)
+      assert(findJob(tool1).initialSettings === expectedSettings0)
       
-      assert(findJob(tool2).executionEnvironment === expectedEnv1)
-      assert(findJob(tool3).executionEnvironment === expectedEnv1)
+      assert(findJob(tool2).initialSettings === expectedSettings1)
+      assert(findJob(tool3).initialSettings === expectedSettings1)
       
       val mockJobSubmitter = new MockJobSubmitter
       
@@ -645,7 +632,7 @@ object DrmChunkRunnerTest {
 
     override def commandLineString: String = name //NB: The content of the command line is unimportant
     
-    override val executionEnvironment: Environment = Environment.Local
+    override val initialSettings: Settings = LocalSettings
     
     override def dependencies: Set[JobNode] = Set.empty
 
@@ -656,10 +643,12 @@ object DrmChunkRunnerTest {
     override def execute(implicit context: ExecutionContext): Future[RunData] = {
       val runData = RunData(
           job = this, 
+          settings = LocalSettings,
           jobStatus = DrmStatus.toJobStatus(statusesToReturn.last), 
           jobResult = None, 
           resourcesOpt = None, 
-          outputStreamsOpt = None)
+          outputStreamsOpt = None,
+          terminationReasonOpt = None)
       
       Future.successful(runData)
     }

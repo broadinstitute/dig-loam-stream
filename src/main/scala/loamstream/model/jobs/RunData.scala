@@ -2,6 +2,7 @@ package loamstream.model.jobs
 
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.model.execute.Resources
+import loamstream.model.execute.Settings
 
 /**
  * @author clint
@@ -16,13 +17,18 @@ import loamstream.model.execute.Resources
  */
 final case class RunData(
     job: LJob,
+    settings: Settings,
     jobStatus: JobStatus, 
     jobResult: Option[JobResult],
     resourcesOpt: Option[Resources] = None, 
-    outputStreamsOpt: Option[OutputStreams] = None) {
+    outputStreamsOpt: Option[OutputStreams] = None,
+    terminationReasonOpt: Option[TerminationReason]) {
 
   override def toString: String = {
-    s"${getClass.getSimpleName}(Job#${job.id}, $jobStatus, $jobResult, $resourcesOpt, $outputStreamsOpt)"
+    val name = getClass.getSimpleName
+    val id = job.id
+    
+    s"${name}(Job#$id, $settings, $jobStatus, $jobResult, $resourcesOpt, $outputStreamsOpt, $terminationReasonOpt)"
   }
   
   def withResources(r: Resources): RunData = copy(resourcesOpt = Some(r))
@@ -38,13 +44,14 @@ final case class RunData(
     val ultimateStatus = RunData.determineJobStatus(jobStatus)
     
     Execution(
-      env = job.executionEnvironment,
+      settings = settings,
       cmd = cmdOpt,
       status = ultimateStatus,
       result = jobResult,
       resources = resourcesOpt,
       outputs = job.outputs.map(_.toStoreRecord),
-      outputStreams = outputStreamsOpt)
+      outputStreams = outputStreamsOpt,
+      terminationReason = terminationReasonOpt)
   }
 }
 

@@ -6,7 +6,6 @@ import loamstream.conf.DrmConfig
 import loamstream.conf.ExecutionConfig
 import loamstream.model.execute.ChunkRunnerFor
 import loamstream.model.execute.DrmSettings
-import loamstream.model.execute.Environment
 import loamstream.model.execute.EnvironmentType
 import loamstream.model.execute.ExecuterHelpers
 import loamstream.model.execute.Resources.DrmResources
@@ -25,6 +24,7 @@ import loamstream.util.Observables
 import loamstream.util.Terminable
 import loamstream.util.Throwables
 import rx.lang.scala.Observable
+import loamstream.model.jobs.TerminationReason
 
 
 /**
@@ -147,9 +147,8 @@ final case class DrmChunkRunner(
   private[drm] def subChunksBySettings(jobs: Seq[CommandLineJob]): Map[DrmSettings, Seq[CommandLineJob]] = {
     import loamstream.util.Maps.Implicits._
     
-    jobs.groupBy(_.executionEnvironment).collectKeys { 
-      case Environment.Uger(ugerSettings) => ugerSettings
-      case Environment.Lsf(lsfSettings) => lsfSettings
+    jobs.groupBy(_.initialSettings).collectKeys { 
+      case drmSettings: DrmSettings => drmSettings
     }
   }
 }
@@ -175,15 +174,15 @@ object DrmChunkRunner extends Loggable {
     }
   }
   
-  private[drm] def getResourceUsageFor(accountingClient: AccountingClient)(jobId: String): Option[DrmResources] = {
-    val resourcesAttempt = accountingClient.getResourceUsage(jobId)
+  private[drm] def getAccountingInfoFor(accountingClient: AccountingClient)(jobId: String): Option[AccountingInfo] = {
+    val infoAttempt = accountingClient.getAccountingInfo(jobId)
         
     //For side effect only
-    resourcesAttempt.recover {
+    infoAttempt.recover {
       case e => warn(s"Error invoking accounting client for job with DRM id '$jobId': ${e.getMessage}", e)
     }
     
-    resourcesAttempt.toOption
+    infoAttempt.toOption
   }
   
   private[drm] def toRunData(
@@ -191,11 +190,11 @@ object DrmChunkRunner extends Loggable {
       wrapper: DrmJobWrapper, 
       jobId: String)(s: DrmStatus): RunData = {
     
-    val resourcesOpt: Option[DrmResources] = {
+    val infoOpt: Option[AccountingInfo] = {
       if(s.isFinished) {
         debug(s"${simpleNameOf[DrmStatus]} is finished, determining execution node and queue: $s")
         
-        getResourceUsageFor(accountingClient)(jobId)
+        getAccountingInfoFor(accountingClient)(jobId)
       } else {
         debug(s"${simpleNameOf[DrmStatus]} is NOT finished, NOT determining execution node and queue: $s")
         
@@ -205,10 +204,12 @@ object DrmChunkRunner extends Loggable {
     
     RunData(
         job = wrapper.commandLineJob,
+        settings = wrapper.drmSettings,
         jobStatus = toJobStatus(s),
         jobResult = toJobResult(s),
-        resourcesOpt = resourcesOpt,
-        outputStreamsOpt = Option(wrapper.outputStreams))
+        resourcesOpt = infoOpt.map(_.resources),
+        outputStreamsOpt = Option(wrapper.outputStreams),
+        terminationReasonOpt = infoOpt.flatMap(_.terminationReasonOpt))
   }
   
   private[drm] def toRunDatas(
@@ -269,10 +270,12 @@ object DrmChunkRunner extends Loggable {
     val execution: DrmJobWrapper => RunData = { jobWrapper =>
       RunData(
           job = jobWrapper.commandLineJob, 
+          settings = jobWrapper.drmSettings,
           jobStatus = status, 
           jobResult = Option(result), 
           resourcesOpt = None, 
-          outputStreamsOpt = Option(jobWrapper.outputStreams))
+          outputStreamsOpt = Option(jobWrapper.outputStreams),
+          terminationReasonOpt = None)
     }
 
     import loamstream.util.Maps.Implicits._

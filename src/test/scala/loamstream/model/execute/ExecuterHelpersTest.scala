@@ -69,10 +69,11 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
   
   test("updateWithException") {
     val execution = Execution(
-        env = Environment.Local,
+        settings = LocalSettings,
         status = JobStatus.Running,
         result = None,
-        outputStreams = None)
+        outputStreams = None,
+        terminationReason = None)
         
     val e = new Exception with scala.util.control.NoStackTrace
     
@@ -247,7 +248,12 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
       import scala.concurrent.duration._
       import scala.concurrent.ExecutionContext.Implicits.global
       
-      val runData = RunData(mockJob, JobStatus.Succeeded, Some(JobResult.Success))
+      val runData = RunData(
+          mockJob, 
+          LocalSettings, 
+          JobStatus.Succeeded, 
+          Some(JobResult.Success), 
+          terminationReasonOpt = None)
       
       withFileMonitor(new FileMonitor(10.0, 0.seconds)) { fileMonitor => 
         val f = waitForOutputsAndMakeExecution(runData, fileMonitor)
@@ -273,11 +279,8 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
         makeOut0: Path => Path,
         makeOut1: Path => Path): Unit = TestHelpers.withWorkDir(getClass.getSimpleName) { outDir =>
     
-      val out0 = makeOut0(outDir)
-      val out1 = makeOut1(outDir)
-      
-      val output0 = DataHandle.PathHandle(out0)
-      val output1 = DataHandle.PathHandle(out1)
+      val output0 = DataHandle.PathHandle(makeOut0(outDir))
+      val output1 = DataHandle.PathHandle(makeOut1(outDir))
       
       val mockJob = MockJob(
           toReturn = JobStatus.Succeeded,
@@ -295,7 +298,12 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
       import scala.concurrent.duration._
       import scala.concurrent.ExecutionContext.Implicits.global
 
-      val runData = RunData(mockJob, JobStatus.Succeeded, Some(JobResult.Success))
+      val runData = RunData(
+          mockJob, 
+          LocalSettings, 
+          JobStatus.Succeeded, 
+          Some(JobResult.Success), 
+          terminationReasonOpt = None)
       
       withFileMonitor(new FileMonitor(10.0, 5.seconds)) { fileMonitor => 
         val f = waitForOutputsAndMakeExecution(runData, fileMonitor)
@@ -333,11 +341,8 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
         makeOut0: Path => Path,
         makeOut1: Path => Path): Unit = TestHelpers.withWorkDir(getClass.getSimpleName) { outDir =>
     
-      val out0 = makeOut0(outDir)
-      val out1 = makeOut1(outDir)
-      
-      val output0 = DataHandle.PathHandle(out0)
-      val output1 = DataHandle.PathHandle(out1)
+      val output0 = DataHandle.PathHandle(makeOut0(outDir))
+      val output1 = DataHandle.PathHandle(makeOut1(outDir))
       
       val mockJob = MockJob(
           toReturn = JobStatus.Succeeded,
@@ -355,7 +360,12 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
       import scala.concurrent.duration._
       import scala.concurrent.ExecutionContext.Implicits.global
       
-      val runData = RunData(mockJob, JobStatus.Succeeded, Some(JobResult.Success))
+      val runData = RunData(
+          mockJob, 
+          LocalSettings,
+          JobStatus.Succeeded, 
+          Some(JobResult.Success), 
+          terminationReasonOpt = None)
       
       //NB: Don't wait for any amount of time
       withFileMonitor(new FileMonitor(10.0, 0.seconds)) { fileMonitor => 
@@ -392,7 +402,12 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
     import scala.concurrent.duration._
     import scala.concurrent.ExecutionContext.Implicits.global
     
-    val runData = RunData(mockJob, JobStatus.FailedPermanently, Some(JobResult.Failure))
+    val runData = RunData(
+        mockJob,
+        LocalSettings,
+        JobStatus.FailedPermanently, 
+        Some(JobResult.Failure), 
+        terminationReasonOpt = None)
     
     withFileMonitor(new FileMonitor(10.0, 5.seconds)) { fileMonitor => 
       val f = waitForOutputsAndMakeExecution(runData, fileMonitor)
@@ -433,7 +448,7 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
     
     val alreadyComplete = Future.successful(())
     
-    def fallbackExecution = Execution.from(mockJob, JobStatus.FailedPermanently)
+    def fallbackExecution = Execution.from(mockJob, JobStatus.FailedPermanently, terminationReason = None)
     
     import scala.concurrent.duration._
     import scala.concurrent.ExecutionContext.Implicits.global
@@ -456,7 +471,7 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
     
     val waitFuture = Future.failed(exception)
     
-    def fallbackExecution = Execution.from(mockJob, JobStatus.FailedPermanently)
+    def fallbackExecution = Execution.from(mockJob, JobStatus.FailedPermanently, terminationReason = None)
     
     import scala.concurrent.duration._
     

@@ -11,7 +11,6 @@ import loamstream.model.execute.EnvironmentType
 import loamstream.model.execute.Resources
 import loamstream.model.execute.Settings
 import java.nio.file.Paths
-import loamstream.model.execute.Environment
 import loamstream.model.execute.DrmSettings
 import loamstream.model.execute.LsfDrmSettings
 import loamstream.model.execute.UgerDrmSettings
@@ -93,12 +92,13 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
     val executionRow = {
       new ExecutionRow(
         id = dummyId, 
-        env = execution.env.tpe.name, 
+        env = execution.settings.envType.name, 
         cmd = execution.cmd.get,
         status = execution.status, 
         exitCode = commandResult.exitCode,
         stdoutPath = execution.outputStreams.get.stdout.toString,
-        stderrPath = execution.outputStreams.get.stderr.toString)
+        stderrPath = execution.outputStreams.get.stderr.toString,
+        terminationReason = execution.terminationReason.map(_.name))
     }
 
     import Implicits._
@@ -143,10 +143,10 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
   
   private def insertableExecutions(executions: Iterable[Execution]): Iterable[(Execution, CommandResult)] = {
     executions.collect {
-      case e @ Execution( _, _, _, Some(cr: CommandResult), _, _, _) => e -> cr
+      case e @ Execution.WithCommandResult(cr) => e -> cr
       //NB: Allow storing the failure to invoke a command; give this case DummyExitCode
-      case e @ Execution( _, _, _, Some(cr: CommandInvocationFailure), _, _, _) => {
-        // TODO: Better assign e -> JobResult.Failure?
+      case e @ Execution.WithCommandInvocationFailure(cif) => {
+        // TODO: Better to assign e -> JobResult.Failure?
         e -> CommandResult(JobResult.DummyExitCode)
       }
     }
@@ -299,15 +299,15 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
   }
 
   private def tieSettingsToExecution(execution: Execution, executionId: Int): SettingRow = {
-      SettingRow.fromEnvironment(execution.env, executionId)
+      SettingRow.fromSettings(execution.settings, executionId)
   }
   
   private def tieContainerParamsToExecution(
       execution: Execution, 
       executionId: Int): Option[ContainerSettingsRow] = {
     
-    execution.env match {
-      case Environment.Drm(drmSettings) => {
+    execution.settings match {
+      case drmSettings: DrmSettings => {
         ContainerSettingsRowCompanion.fromContainerParams(executionId, drmSettings)
       }
       case _ => None 

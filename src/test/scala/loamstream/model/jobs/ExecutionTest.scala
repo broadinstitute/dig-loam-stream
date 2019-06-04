@@ -9,7 +9,6 @@ import loamstream.TestHelpers
 import loamstream.drm.Queue
 import loamstream.drm.uger.UgerDefaults
 import loamstream.model.execute.DrmSettings
-import loamstream.model.execute.Environment
 import loamstream.model.execute.GoogleSettings
 import loamstream.model.execute.LocalSettings
 import loamstream.model.execute.ProvidesEnvAndResources
@@ -26,6 +25,7 @@ import loamstream.model.quantities.Memory
 import loamstream.util.TypeBox
 import loamstream.model.execute.UgerDrmSettings
 import loamstream.model.execute.LsfDrmSettings
+import loamstream.model.execute.Settings
 
 
 /**
@@ -38,6 +38,61 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
   
   import loamstream.TestHelpers.dummyOutputStreams
   
+  test("WithCommandResult") {
+    val commandResult0 = CommandResult(0)
+    val commandResult1 = CommandResult(42)
+    
+    val job = MockJob(JobStatus.Succeeded)
+    
+    def withResult(rOpt: Option[JobResult]): Execution = {
+      Execution.from(job = job, status = job.toReturn.jobStatus, result = rOpt, terminationReason = None)
+    }
+    
+    def doTest(rOpt: Option[JobResult], expected: Option[JobResult]): Unit = {
+      assert(Execution.WithCommandResult.unapply(withResult(rOpt)) === expected)
+    }
+    
+    val ex = new Exception with scala.util.control.NoStackTrace
+    
+    doTest(None, None)
+    doTest(Some(JobResult.CommandInvocationFailure(ex)), None)
+    doTest(Some(JobResult.FailureWithException(ex)), None)
+    doTest(Some(JobResult.Success), None)
+    doTest(Some(JobResult.Failure), None)
+    
+    doTest(Some(commandResult0), Some(commandResult0))
+    doTest(Some(commandResult1), Some(commandResult1))
+  }
+  
+  test("WithCommandInvocationFailure") {
+    val commandResult0 = CommandResult(0)
+    val commandResult1 = CommandResult(42)
+    
+    val job = MockJob(JobStatus.Succeeded)
+    
+    def withResult(rOpt: Option[JobResult]): Execution = {
+      Execution.from(job = job, status = job.toReturn.jobStatus, result = rOpt, terminationReason = None)
+    }
+    
+    def doTest(rOpt: Option[JobResult], expected: Option[JobResult]): Unit = {
+      assert(Execution.WithCommandInvocationFailure.unapply(withResult(rOpt)) === expected)
+    }
+    
+    doTest(None, None)
+    
+    val ex = new Exception with scala.util.control.NoStackTrace
+    
+    doTest(Some(JobResult.FailureWithException(ex)), None)
+    doTest(Some(JobResult.Success), None)
+    doTest(Some(JobResult.Failure), None)
+    doTest(Some(commandResult0), None)
+    doTest(Some(commandResult1), None)
+    
+    val cif = JobResult.CommandInvocationFailure(ex) 
+    
+    doTest(Some(cif), Some(cif))
+  }
+  
   test("guards") {
     val localSettings = LocalSettings
     val ugerSettings = {
@@ -47,11 +102,6 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
       LsfDrmSettings(Cpus(8), Memory.inGb(4), UgerDefaults.maxRunTime, Option(UgerDefaults.queue), None)
     }
     val googleSettings = GoogleSettings("some-cluster")
-
-    val localEnv: Environment = Environment.Local
-    val ugerEnv: Environment = Environment.Uger(ugerSettings)
-    val lsfEnv: Environment = Environment.Lsf(lsfSettings)
-    val googleEnv: Environment = Environment.Google(googleSettings)
 
     val localResources = LocalResources(Instant.ofEpochMilli(123), Instant.ofEpochMilli(456))
 
@@ -76,10 +126,10 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
         Instant.ofEpochMilli(1), 
         Instant.ofEpochMilli(72345))
       
-    def doTest(env: Environment, resources: Option[Resources], shouldThrow: Boolean): Unit = {
+    def doTest(settings: Settings, resources: Option[Resources], shouldThrow: Boolean): Unit = {
       type WrapperFn = (=> Any) => Unit
     
-      val noop: WrapperFn = { block => 
+      val justRun: WrapperFn = { block => 
         block 
         ()
       }
@@ -90,36 +140,37 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
         }
       }
     
-      val wrapperFn: WrapperFn = if(shouldThrow) interceptException else noop
+      val runOrInterceptExpectedExceptions: WrapperFn = if(shouldThrow) interceptException else justRun
     
-      wrapperFn {
+      runOrInterceptExpectedExceptions {
         val result = CommandResult(0)
       
         Execution(
-          env = env, 
+          settings = settings,
           cmd = Option(mockCmd),
           status = result.toJobStatus,
           result = Option(result),
           resources = resources,
           outputStreams = Option(dummyOutputStreams), 
-          outputs = Set.empty)
+          outputs = Set.empty,
+          terminationReason = None)
       }
     }
     
-    doTest(localEnv, Some(localResources), shouldThrow = false)
-    doTest(ugerEnv, Some(ugerResources), shouldThrow = false)
-    doTest(lsfEnv, Some(lsfResources), shouldThrow = false)
-    doTest(googleEnv, Some(googleResources), shouldThrow = false)
+    doTest(localSettings, Some(localResources), shouldThrow = false)
+    doTest(ugerSettings, Some(ugerResources), shouldThrow = false)
+    doTest(lsfSettings, Some(lsfResources), shouldThrow = false)
+    doTest(googleSettings, Some(googleResources), shouldThrow = false)
     
-    doTest(localEnv, None, shouldThrow = false)
-    doTest(ugerEnv, None, shouldThrow = false)
-    doTest(lsfEnv, None, shouldThrow = false)
-    doTest(googleEnv, None, shouldThrow = false)
+    doTest(localSettings, None, shouldThrow = false)
+    doTest(ugerSettings, None, shouldThrow = false)
+    doTest(lsfSettings, None, shouldThrow = false)
+    doTest(googleSettings, None, shouldThrow = false)
     
-    doTest(localEnv, Some(googleResources), shouldThrow = true)
-    doTest(ugerEnv, Some(localResources), shouldThrow = true)
-    doTest(lsfEnv, Some(ugerResources), shouldThrow = true)
-    doTest(googleEnv, Some(lsfResources), shouldThrow = true)
+    doTest(localSettings, Some(googleResources), shouldThrow = true)
+    doTest(ugerSettings, Some(localResources), shouldThrow = true)
+    doTest(lsfSettings, Some(ugerResources), shouldThrow = true)
+    doTest(googleSettings, Some(lsfResources), shouldThrow = true)
   }
   
   test("from(LJob, JobStatus, JobResult)") {
@@ -129,23 +180,23 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     val status0 = JobStatus.fromExitCode(result0.exitCode)
     val status1 = JobStatus.Succeeded
     
-    val job0 = CommandLineJob("foo", path("."), Environment.Uger(TestHelpers.defaultUgerSettings))
+    val job0 = CommandLineJob("foo", path("."), TestHelpers.defaultUgerSettings)
     val job1 = MockJob(status1)
     
     val outputStreamsOpt = Some(dummyOutputStreams)
     
-    val e0 = Execution.from(job0, status0, Option(result0), outputStreamsOpt)
-    val e1 = Execution.from(job1, status1)
+    val e0 = Execution.from(job0, status0, Option(result0), outputStreamsOpt, terminationReason = None)
+    val e1 = Execution.from(job1, status1, terminationReason = None)
     
     assert(e0.cmd === Some("foo"))
-    assert(e0.env.isUger)
+    assert(e0.settings.isUger)
     assert(e0.result === Some(result0))
     assert(e0.outputs === Set.empty)
     assert(e0.outputStreams === outputStreamsOpt)
     //TODO: Check settings field once it's no longer a placeholder 
     
     assert(e1.cmd === None)
-    assert(e1.env.isLocal)
+    assert(e1.settings.isLocal)
     assert(e1.status === status1)
     assert(e1.result === None)
     assert(e1.outputs === Set.empty)
@@ -156,26 +207,28 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
   test("isCommandExecution") {
     def assertIsCommandExecution(result: JobResult, cmd: Option[String] = Option(mockCmd)): Unit = {
       val execution = Execution(
-          env = mockEnv, 
+          settings = mockUgerSettings,
           cmd = cmd, 
           status = result.toJobStatus,
           result = Option(result),
           resources = None,
           outputStreams = Option(dummyOutputStreams),
-          outputs = Set.empty)
+          outputs = Set.empty,
+          terminationReason = None)
       
       assert(execution.isCommandExecution)
     }
     
     def assertIsNOTCommandExecution(result: JobResult, cmd: Option[String] = Option(mockCmd)): Unit = {
       val execution = Execution(
-          env = mockEnv, 
+          settings = mockUgerSettings,
           cmd = cmd, 
           status = result.toJobStatus,
           result = Option(result),
           resources = None,
           outputStreams = Option(dummyOutputStreams),
-          outputs = Set.empty)
+          outputs = Set.empty,
+          terminationReason = None)
       
       assert(!execution.isCommandExecution)
     }

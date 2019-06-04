@@ -6,9 +6,10 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import loamstream.util.Sequence
 import loamstream.util.ValueBox
-import loamstream.model.execute.Environment
 import loamstream.util.Futures
 import loamstream.model.execute.Resources
+import loamstream.model.execute.LocalSettings
+import loamstream.model.execute.Settings
 
 /**
  * @author clint
@@ -23,7 +24,7 @@ abstract class MockJob(
 
   def toReturn: RunData
   
-  override def executionEnvironment: Environment = TestHelpers.env
+  override def initialSettings: Settings = LocalSettings
   
   override def toString: String = {
     s"'$name'(#$id, returning $toReturn, ${dependencies.size} dependencies)"
@@ -93,7 +94,7 @@ object MockJob {
 
   def apply(jobResultToReturn: JobResult): MockJob = {
     new FromJobFn(
-        toReturnFn = job => runDataFromResult(job, jobResultToReturn),
+        toReturnFn = job => runDataFromResult(job, LocalSettings, jobResultToReturn),
         name = LJob.nextId().toString,
         dependencies = Set.empty,
         inputs = Set.empty,
@@ -106,8 +107,12 @@ object MockJob {
       resources: Option[Resources],
       outputStreams: Option[OutputStreams]): MockJob = {
     
+    def makeRunData(job: LJob) = {
+      runDataFrom(job, LocalSettings, jobResult.toJobStatus, Option(jobResult), resources, outputStreams)
+    }
+    
     new FromJobFn(
-        toReturnFn = job => runDataFrom(job, jobResult.toJobStatus, Option(jobResult), resources, outputStreams),
+        toReturnFn = makeRunData,
         name = LJob.nextId().toString,
         dependencies = Set.empty,
         inputs = Set.empty,
@@ -124,7 +129,7 @@ object MockJob {
       delay: Int = 0): MockJob = {
     
     new FromJobFn(
-        job => runDataFromStatus(job, toReturn),
+        job => runDataFromStatus(job, LocalSettings, toReturn),
         name,
         dependencies,
         inputs,

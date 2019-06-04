@@ -143,7 +143,7 @@ object ExecuterHelpers extends Loggable {
       doWaiting(
           waitForOutputsOnly(runData.job, fileMonitor), 
           runData.toExecution,
-          Execution.from(runData.job, JobStatus.Failed))
+          Execution.from(runData.job, JobStatus.Failed, terminationReason = None))
     } else {
       Future.successful(runData.toExecution)
     }

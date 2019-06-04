@@ -7,10 +7,10 @@ import scala.concurrent.Future
 
 import loamstream.TestHelpers
 import loamstream.model.execute.LocalSettings
-import loamstream.model.execute.Environment
 import loamstream.util.Futures
 import loamstream.util.Observables
 import loamstream.util.ValueBox
+import loamstream.model.execute.Settings
 
 
 /**
@@ -28,7 +28,7 @@ final case class RxMockJob(
 
   def toReturn: RunData = toReturnFn(this)
   
-  override def executionEnvironment: Environment = TestHelpers.env
+  override def initialSettings: Settings = LocalSettings
 
   private[this] val count = ValueBox(0)
 
@@ -97,9 +97,11 @@ object RxMockJob {
   private[this] def runDataFrom(job: LJob, outputs: Set[DataHandle], jobResult: JobResult): RunData = {
     RunData(
         job = job,
+        settings = LocalSettings,
         jobStatus = jobResult.toJobStatus,
         jobResult = Option(jobResult),
         resourcesOpt = None,
-        outputStreamsOpt = None)
+        outputStreamsOpt = None,
+        terminationReasonOpt = None)
   }
 }

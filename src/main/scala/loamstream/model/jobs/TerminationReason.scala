@@ -1,50 +1,53 @@
 package loamstream.model.jobs
 
+import scala.reflect.ClassTag
+import loamstream.util.Classes
+
 /**
  * @author clint
  * Apr 16, 2019
  * 
  * An ADT for the reasons why a job was killed by the underlying system (Uger/LSF/Google) 
  */
-sealed trait TerminationReason
-
-object TerminationReason {
-  //A was killed because it ran too long 
-  case object RunTime extends TerminationReason
-  //A was killed because it used too much CPU time
-  case object CpuTime extends TerminationReason
-  //A was killed because it used too much RAM
-  case object Memory extends TerminationReason
-  //A was killed because the user requested it (with ctrl-c, say)
-  case object UserRequested extends TerminationReason
+sealed abstract class TerminationReason {
   
-  val values: Set[TerminationReason] = Set(RunTime, CpuTime, Memory, UserRequested)
+  import TerminationReason._
+  
+  //NB: This assumes implementations will be case objects
+  final def name: String = toString
+  
+  //NB: Field's identifier needs to start with a capital letter for pattern-matching :\ 
+  private[TerminationReason] val Name: String = name.toLowerCase
+  
+  final def isRunTime: Boolean = this == RunTime
+  final def isCpuTime: Boolean = this == CpuTime
+  final def isMemory: Boolean = this == Memory
+  final def isUserRequested: Boolean = this == UserRequested
+  final def isUnknown: Boolean = this == Unknown
 }
 
-/*
- * LSF Termination reasons:
- * https://www.ibm.com/support/knowledgecenter/en/SSWRJV_10.1.0/lsf_command_ref/bacct.1.html
- * 
-TERM_CHKPNT: Job was killed after checkpointing (13)
-TERM_CWD_NOTEXIST: current working directory is not accessible or does not exist on the execution host (25)
-TERM_CPULIMIT: Job was killed after it reached LSF CPU usage limit (12)
-TERM_DEADLINE: Job was killed after deadline expires (6)
-TERM_EXTERNAL_SIGNAL: Job was killed by a signal external to LSF (17)
-TERM_FORCE_ADMIN: Job was killed by root or LSF administrator without time for cleanup (9)
-TERM_FORCE_OWNER: Job was killed by owner without time for cleanup (8)
-TERM_LOAD: Job was killed after load exceeds threshold (3)
-TERM_MEMLIMIT: Job was killed after it reached LSF memory usage limit (16)
-TERM_ORPHAN_SYSTEM: The orphan job was automatically terminated by LSF (27)
-TERM_OWNER: Job was killed by owner (14)
-TERM_PREEMPT: Job was killed after preemption (1)
-TERM_PROCESSLIMIT: Job was killed after it reached LSF process limit (7)
-TERM_REMOVE_HUNG_JOB: Job was removed from LSF system after it reached a job runtime limit (26)
-TERM_REQUEUE_ADMIN: Job was killed and requeued by root or LSF administrator (11)
-TERM_REQUEUE_OWNER: Job was killed and requeued by owner (10)
-TERM_RUNLIMIT: Job was killed after it reached LSF runtime limit (5)
-TERM_SWAP: Job was killed after it reached LSF swap usage limit (20)
-TERM_THREADLIMIT: Job was killed after it reached LSF thread limit (21)
-TERM_UNKNOWN: LSF cannot determine a termination reason. 0 is logged but TERM_UNKNOWN is not displayed (0)
-TERM_WINDOW: Job was killed after queue run window closed (2)
-TERM_ZOMBIE: Job exited while LSF is not available (19)
- */
+object TerminationReason {
+  //A job was killed because it ran too long 
+  final case object RunTime extends TerminationReason
+  
+  //A job was killed because it used too much CPU time
+  final case object CpuTime extends TerminationReason
+  
+  //A job was killed because it used too much RAM
+  final case object Memory extends TerminationReason
+  
+  //A job was killed because the user requested it (with ctrl-c, say)
+  final case object UserRequested extends TerminationReason
+
+  //A job was killed by the underlying environment, but we don't know why.
+  final case object Unknown extends TerminationReason
+  
+  def fromName(name: String): Option[TerminationReason] = name.trim.toLowerCase match {
+    case RunTime.Name => Some(RunTime)
+    case CpuTime.Name => Some(CpuTime)
+    case Memory.Name => Some(Memory)
+    case UserRequested.Name => Some(UserRequested)
+    case Unknown.Name => Some(Unknown)
+    case _ => None
+  }
+}

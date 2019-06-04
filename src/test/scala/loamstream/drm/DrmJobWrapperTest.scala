@@ -11,7 +11,6 @@ import loamstream.conf.SingularityConfig
 import loamstream.drm.lsf.LsfPathBuilder
 import loamstream.drm.uger.UgerPathBuilder
 import loamstream.model.execute.DrmSettings
-import loamstream.model.execute.Environment
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.util.BashScript.Implicits.BashPath
 import loamstream.drm.uger.UgerScriptBuilderParams
@@ -22,6 +21,7 @@ import loamstream.conf.DrmConfig
 import loamstream.conf.ExecutionConfig
 import loamstream.conf.UgerConfig
 import loamstream.conf.LsfConfig
+import loamstream.model.execute.LocalSettings
 
 /**
  * @author clint
@@ -105,7 +105,7 @@ final class DrmJobWrapperTest extends FunSuite {
     doTest(LsfPathBuilder, lsfSettings)
   }
 
-  private def makeJob(commandLine: String) = CommandLineJob(commandLine, Paths.get("."), Environment.Local)
+  private def makeJob(commandLine: String) = CommandLineJob(commandLine, Paths.get("."), LocalSettings)
 
   test("drmStdOutPath") {
     def doTest(pathBuilder: PathBuilder): Unit = {

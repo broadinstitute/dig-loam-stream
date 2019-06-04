@@ -11,12 +11,13 @@ import loamstream.drm.ContainerParams
 import loamstream.loam.LoamGraph.StoreLocation
 import loamstream.loam.LoamScriptContext
 import loamstream.model.Store
-import loamstream.model.execute.Environment
 import loamstream.model.execute.GoogleSettings
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
 import loamstream.util.Loggable
+import loamstream.model.execute.Settings
+import loamstream.model.execute.LocalSettings
 
 /** Predefined symbols in Loam scripts */
 object LoamPredef extends Loggable {
@@ -69,19 +70,19 @@ object LoamPredef extends Loggable {
     inDir[T](Paths.get(path))(expr)
   }
 
-  private[this] def runIn[A](env: Environment)(expr: => A)(implicit scriptContext: LoamScriptContext): A = {
-    val oldEnv = scriptContext.executionEnvironment
+  private[this] def runWith[A](settings: Settings)(expr: => A)(implicit scriptContext: LoamScriptContext): A = {
+    val oldSettings = scriptContext.settings
     
     try {
-      scriptContext.executionEnvironment = env
+      scriptContext.settings = settings
       expr
     } finally {
-      scriptContext.executionEnvironment = oldEnv
+      scriptContext.settings = oldSettings
     }
   }
   
   def local[A](expr: => A)(implicit scriptContext: LoamScriptContext): A = {
-    runIn(Environment.Local)(expr)(scriptContext)
+    runWith(LocalSettings)(expr)(scriptContext)
   }
 
   @deprecated("uger { ... } blocks are deprecated; use drm { ... } instead.", "")
@@ -94,9 +95,9 @@ object LoamPredef extends Loggable {
         loamConfig.drmSystem.isDefined, 
         "A DRM system (Uger or LSF) must be specified on the command-line to run jobs in a DRM environment")
     
-    val env = loamConfig.drmSystem.get.makeBasicEnvironment(scriptContext)
+    val settings = loamConfig.drmSystem.get.settingsFromConfig(scriptContext)
     
-    runIn(env)(expr)(scriptContext)
+    runWith(settings)(expr)(scriptContext)
   }
   
   /**
@@ -158,13 +159,13 @@ object LoamPredef extends Loggable {
         drmSystem.defaultQueue,
         containerParamsOpt)
     
-    runIn(drmSystem.makeEnvironment(settings))(expr)(scriptContext)
+    runWith(settings)(expr)(scriptContext)
   }
   
   def google[A](expr: => A)(implicit scriptContext: LoamScriptContext): A = {
     val settings = GoogleSettings(scriptContext.googleConfig.clusterId) 
     
-    runIn(Environment.Google(settings))(expr)(scriptContext)
+    runWith(settings)(expr)(scriptContext)
   }
 
   /**

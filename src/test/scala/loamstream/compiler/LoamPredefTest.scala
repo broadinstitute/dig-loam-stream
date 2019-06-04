@@ -42,12 +42,6 @@ final class LoamPredefTest extends FunSuite {
     doSettingsTest(scriptContext, TestHelpers.defaultUgerSettings, LocalSettings, LoamPredef.local)
   }
   
-  test("uger") {
-    implicit val scriptContext = newScriptContext(DrmSystem.Uger)
-    
-    doSettingsTest(scriptContext, LocalSettings, TestHelpers.defaultUgerSettings, LoamPredef.uger)
-  }
-  
   test("drm") {
     {
       implicit val scriptContext = newScriptContext(DrmSystem.Uger)
@@ -60,26 +54,6 @@ final class LoamPredefTest extends FunSuite {
     
       doSettingsTest(scriptContext, LocalSettings, TestHelpers.defaultLsfSettings, LoamPredef.drm)
     }
-  }
-  
-  test("ugerWith - defaults") {
-    implicit val scriptContext = newScriptContext(DrmSystem.Uger)
-    
-    val ugerConfig = scriptContext.ugerConfig
-    
-    assert(ugerConfig.defaultCores !== UgerDefaults.cores)
-    assert(ugerConfig.defaultMemoryPerCore !== UgerDefaults.memoryPerCore)
-    assert(ugerConfig.defaultMaxRunTime !== UgerDefaults.maxRunTime)
-    
-    //Make sure defaults come from LoamConfig
-    val expectedSettings = DrmSystem.Uger.settingsMaker(
-        ugerConfig.defaultCores,
-        ugerConfig.defaultMemoryPerCore,
-        ugerConfig.defaultMaxRunTime,
-        Option(UgerDefaults.queue),
-        None)
-    
-    doSettingsTest(scriptContext, LocalSettings, expectedSettings, LoamPredef.ugerWith())
   }
   
   test("drmWith - defaults - Uger") {
@@ -120,25 +94,6 @@ final class LoamPredefTest extends FunSuite {
         None)
     
     doSettingsTest(scriptContext, LocalSettings, expectedSettings, LoamPredef.drmWith())
-  }
-  
-  test("ugerWith - non-defaults") {
-    implicit val scriptContext = newScriptContext(DrmSystem.Uger)
-    
-    import TestHelpers.path
-    
-    val expectedSettings = UgerDrmSettings(
-        cores = Cpus(2), 
-        memoryPerCore = Memory.inGb(4), 
-        maxRunTime = CpuTime.inHours(6), 
-        queue = Option(UgerDefaults.queue),
-        None)
-    
-    doSettingsTest(
-        scriptContext, 
-        LocalSettings, 
-        expectedSettings, 
-        LoamPredef.ugerWith(2, 4, 6))
   }
   
   test("drmWith - non-defaults") {

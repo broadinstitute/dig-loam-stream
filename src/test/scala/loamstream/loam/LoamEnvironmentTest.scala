@@ -159,10 +159,7 @@ final class LoamEnvironmentTest extends FunSuite with Loggable {
   private def envFn[A](settings: Settings)(block: => A)(implicit context: LoamScriptContext): A = settings match {
     case LocalSettings => LoamPredef.local(block)
     case GoogleSettings(_) => LoamPredef.google(block)
-    case settings: DrmSettings if settings.envType.isUger => {
-      LoamPredef.ugerWith(settings.cores.value, settings.memoryPerCore.gb, settings.maxRunTime.hours)(block)
-    }
-    case settings: DrmSettings if settings.envType.isLsf => {
+    case settings: DrmSettings => {
       LoamPredef.drmWith(settings.cores.value, settings.memoryPerCore.gb, settings.maxRunTime.hours)(block)
     }
   }

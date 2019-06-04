@@ -199,70 +199,18 @@ object Main extends Loggable {
       case Right(jobsToExecutions) => {
         listResults(jobsToExecutions)
         
-        writeIndexFiles(config.executionConfig, jobsToExecutions)
+        IndexFiles.writeIndexFiles(config.executionConfig, jobsToExecutions)
     
         describeExecutions(jobsToExecutions.values)
       }
     }
     
-    //NB: Order (LJob, Execution) tuples based on the Executions' start times (if any).
-    //If no start time is present (for jobs where Resources couldn't be - or weren't - 
-    //determined, like Skipped jobs, those jobs/Executions come first.
-    private def executionTupleOrdering(a: (LJob, Execution), b: (LJob, Execution)): Boolean = {
-      val (_, executionA) = a
-      val (_, executionB) = b
-      
-      (executionA.resources, executionB.resources) match {
-        case (Some(resourcesA), Some(resourcesB)) => {
-          resourcesA.startTime.toEpochMilli < resourcesB.startTime.toEpochMilli
-        }
-        case (_, None) => false
-        case _ => true
-      }
-    }
-    
     private def listResults(jobsToExecutions: Map[LJob, Execution]): Unit = {
       for {
-        (job, execution) <- jobsToExecutions.toSeq.sortWith(executionTupleOrdering)
+        (job, execution) <- jobsToExecutions.toSeq.sortWith(Orderings.executionTupleOrdering)
       } {
         info(s"${execution.status}\t(${execution.result}):\tRan $job got $execution")
       }
-    }
-    
-    private def writeIndexFiles(
-        executionConfig: ExecutionConfig, 
-        jobsToExecutions: Map[LJob, Execution]): Unit = {
-      
-      def tabSeperate[A](as: A*): String = as.mkString("\t")
-      
-      val headerLine = tabSeperate("JOB_ID", "JOB_NAME", "JOB_STATUS", "JOB_DIR")
-      
-      def write(tuples: Iterable[(LJob, Execution)], dest: Path): Unit = {
-        val sorted = tuples.toSeq.sortWith(executionTupleOrdering)
-        
-        def exitCodePart(e: Execution): String = e match {
-          case Execution.WithCommandResult(cr) => cr.exitCode.toString
-          case _ => "<not available>"
-        }
-        
-        def jobDirPart(e: Execution): String = e.jobDir.map(_.toAbsolutePath.toString).getOrElse("<not available>")
-        
-        val lines = sorted.map {
-          case (j, e) => tabSeperate(j.id, j.name, e.status, exitCodePart(e), jobDirPart(e))
-        }
-        
-        val contents = (headerLine +: lines).mkString(System.lineSeparator)
-        
-        Files.writeTo(dest)(contents)
-      }
-      
-      import loamstream.util.Maps.Implicits._
-      
-      def makePath(fileName: String) = executionConfig.logDir.resolve(fileName)
-      
-      write(jobsToExecutions, makePath("all-jobs.tsv"))
-      
-      write(jobsToExecutions.filterValues(_.isFailure), makePath("failed-jobs.tsv"))
     }
     
     private def describeExecutions(executions: Iterable[Execution]): Unit = {

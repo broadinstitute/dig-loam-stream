@@ -123,7 +123,7 @@ object Execution extends Loggable {
       result: Option[JobResult] = None, 
       jobDir: Option[Path] = None,
       resources: Option[Resources] = None,
-      terminationReason: Option[TerminationReason]): Execution = {
+      terminationReason: Option[TerminationReason] = None): Execution = {
     
     val commandLine: Option[String] = job match {
       case clj: CommandLineJob => Option(clj.commandLineString)

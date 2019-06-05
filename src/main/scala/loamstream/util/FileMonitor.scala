@@ -10,6 +10,7 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.Future
 import scala.concurrent.Promise
 import scala.util.Success
+import scala.util.Failure
 
 /**
  * @author clint
@@ -96,9 +97,7 @@ object FileMonitor extends Loggable {
       for {
         (file, timedOutWatcher) <- timedOutFilesAndWatchers
       } {
-        timedOutWatcher.completeWithFailure {
-          s"Timed out after ${timedOutWatcher.maxWaitTime} waiting for '${file}' to appear"
-        }
+        timedOutWatcher.completeWithFailure(timedOutWatcher.maxWaitTime, file)
       }
     }
   }
@@ -171,10 +170,16 @@ object FileMonitor extends Loggable {
       finally { promise.complete(Success(())) }
     }
 
-    def completeWithFailure(message: String): Unit = {
+    def completeWithFailure(message: String): Unit = doCompleteWithFailure(Tries.failure(message))
+    
+    def completeWithFailure(maxWaitTime: Duration, file: Path): Unit = {
+      doCompleteWithFailure(Failure(MissingFileTimeoutException(file, maxWaitTime)))
+    }
+    
+    private def doCompleteWithFailure(f: Failure[Unit]): Unit = {
       //NB: Make sure cleanup (stop()) happens BEFORE completing the promise
       try { stop() }
-      finally { promise.tryComplete(Tries.failure(message)) }
+      finally { promise.tryComplete(f) }
     }
   }
 }

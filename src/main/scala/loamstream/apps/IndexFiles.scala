@@ -6,6 +6,10 @@ import loamstream.conf.ExecutionConfig
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.LJob
 import loamstream.util.Files
+import loamstream.model.jobs.JobResult
+import loamstream.util.MissingFileTimeoutException
+import loamstream.util.Classes
+import loamstream.model.jobs.JobStatus
 
 /**
  * @author clint
@@ -30,8 +34,13 @@ object IndexFiles {
 
       def jobDirPart(e: Execution): String = e.jobDir.map(_.toAbsolutePath.toString).getOrElse("<not available>")
 
+      def jobStatusPart(e: Execution): String = e match {
+        case Execution.WithThrowable(e) => s"Failed due to exception: '${e.getMessage}'"
+        case _ => e.status.toString
+      }
+      
       val lines = sorted.map {
-        case (j, e) => tabSeperate(j.id, j.name, e.status, exitCodePart(e), jobDirPart(e))
+        case (j, e) => tabSeperate(j.id, j.name, jobStatusPart(e), exitCodePart(e), jobDirPart(e))
       }
 
       val contents = (headerLine +: lines).mkString(System.lineSeparator)

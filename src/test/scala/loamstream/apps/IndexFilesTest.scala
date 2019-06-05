@@ -89,11 +89,11 @@ final class IndexFilesTest extends FunSuite {
 JOB_ID${tab}JOB_NAME${tab}JOB_STATUS${tab}EXIT_CODE${tab}JOB_DIR
 ${j0.id}${tab}${j0.name}${tab}Succeeded${tab}0${tab}${p0.toAbsolutePath}
 ${j1.id}${tab}${j1.name}${tab}CouldNotStart${tab}<not available>${tab}<not available>
-${j2.id}${tab}${j2.name}${tab}Failed${tab}42${tab}${p2.toAbsolutePath}""".trim
+${j2.id}${tab}${j2.name}${tab}Failed${tab}42${tab}${p2.toAbsolutePath}""".trim ++ "\n"
 
       val expectedFailedJobsContent = s"""
 JOB_ID${tab}JOB_NAME${tab}JOB_STATUS${tab}EXIT_CODE${tab}JOB_DIR
-${j2.id}${tab}${j2.name}${tab}Failed${tab}42${tab}${p2.toAbsolutePath}""".trim
+${j2.id}${tab}${j2.name}${tab}Failed${tab}42${tab}${p2.toAbsolutePath}""".trim ++ "\n"
 
       assert(allJobsContent === expectedAllJobsContent)
 
@@ -135,7 +135,8 @@ ${j2.id}${tab}${j2.name}${tab}Failed${tab}42${tab}${p2.toAbsolutePath}""".trim
         
         val expectedFailedJobsContent = s"""
 JOB_ID${tab}JOB_NAME${tab}JOB_STATUS${tab}EXIT_CODE${tab}JOB_DIR
-${j1.id}${tab}${j1.name}${tab}Failed due to exception: 'foo'${tab}<not available>${tab}${p1.toAbsolutePath}""".trim
+${j1.id}${tab}${j1.name}${tab}Failed due to exception: 'foo'${tab}<not available>${tab}${p1.toAbsolutePath}""".trim ++ 
+"\n"
   
         val expectedAllJobsContent = expectedFailedJobsContent
   

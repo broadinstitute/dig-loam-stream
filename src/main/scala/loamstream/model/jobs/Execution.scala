@@ -11,6 +11,7 @@ import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.execute.Resources.UgerResources
 import loamstream.model.execute.Resources.LsfResources
 import loamstream.model.jobs.JobResult.CommandResult
+import loamstream.model.jobs.JobResult.FailureWithException
 
 /**
  * @author clint
@@ -77,6 +78,14 @@ object Execution extends Loggable {
   object WithCommandInvocationFailure {
     def unapply(e: Execution): Option[JobResult.CommandInvocationFailure] = e.result match {
       case Some(cif: JobResult.CommandInvocationFailure) => Some(cif)
+      case _ => None
+    }
+  }
+  
+  object WithThrowable {
+    def unapply(e: Execution): Option[Throwable] = e.result match {
+      case Some(JobResult.CommandInvocationFailure(e)) => Some(e)
+      case Some(JobResult.FailureWithException(e)) => Some(e)
       case _ => None
     }
   }

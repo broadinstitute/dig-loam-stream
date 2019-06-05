@@ -93,6 +93,32 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     doTest(Some(cif), Some(cif))
   }
   
+  test("WithThrowable") {
+    val commandResult0 = CommandResult(0)
+    val commandResult1 = CommandResult(42)
+    
+    val job = MockJob(JobStatus.Succeeded)
+    
+    def withResult(rOpt: Option[JobResult]): Execution = {
+      Execution.from(job = job, status = job.toReturn.jobStatus, result = rOpt, terminationReason = None)
+    }
+    
+    def doTest(rOpt: Option[JobResult], expected: Option[Throwable]): Unit = {
+      assert(Execution.WithThrowable.unapply(withResult(rOpt)) === expected)
+    }
+    
+    doTest(None, None)
+    
+    val ex = new Exception with scala.util.control.NoStackTrace
+    
+    doTest(Some(JobResult.FailureWithException(ex)), Some(ex))
+    doTest(Some(JobResult.CommandInvocationFailure(ex)), Some(ex))
+    doTest(Some(JobResult.Success), None)
+    doTest(Some(JobResult.Failure), None)
+    doTest(Some(commandResult0), None)
+    doTest(Some(commandResult1), None)
+  }
+  
   test("guards") {
     val localSettings = LocalSettings
     val ugerSettings = {

@@ -1,14 +1,15 @@
 package loamstream.drm
 
-import loamstream.model.jobs.commandline.CommandLineJob
-import loamstream.util.Files
+import java.nio.file.{ Files => JFiles }
 import java.nio.file.Path
-import loamstream.util.BashScript.Implicits._
-import loamstream.util.Loggable
-import loamstream.conf.ExecutionConfig
+
 import loamstream.conf.DrmConfig
+import loamstream.conf.ExecutionConfig
 import loamstream.model.execute.DrmSettings
 import loamstream.model.jobs.JobOracle
+import loamstream.model.jobs.commandline.CommandLineJob
+import loamstream.util.{ Files => LFiles }
+import loamstream.util.Loggable
 
 
 /**
@@ -39,11 +40,11 @@ final case class DrmTaskArray(
     for {
       jobDir <- drmJobs.map(_.jobDir)
     } {
-      java.nio.file.Files.createDirectories(jobDir)
+      JFiles.createDirectories(jobDir)
       
       val drmScriptInJobDir = jobDir.resolve("drm-script.sh")
       
-      java.nio.file.Files.copy(drmScript, drmScriptInJobDir)
+      LFiles.copyAndOverwrite(drmScript, drmScriptInJobDir)
     }
     
     drmScript
@@ -54,14 +55,10 @@ final case class DrmTaskArray(
    * the given prefix and suffix to generate its name.
    */
   private[drm] def createScriptFileIn(directory: Path)(contents: String): Path = {
-    createScriptFile(contents, Files.tempFile(".sh", directory.toFile))
+    createScriptFile(contents, LFiles.tempFile(".sh", directory.toFile))
   }
 
-  private[drm] def createScriptFile(contents: String, file: Path): Path = {
-    Files.writeTo(file)(contents)
-
-    file
-  }
+  private[drm] def createScriptFile(contents: String, file: Path): Path = LFiles.writeTo(file)(contents)
 }
 
 object DrmTaskArray {

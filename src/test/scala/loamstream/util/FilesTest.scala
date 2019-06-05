@@ -17,6 +17,45 @@ import loamstream.TestHelpers
 final class FilesTest extends FunSuite {
   import Paths.Implicits._
   import TestHelpers.path
+  import java.nio.file.Files.exists
+  
+  test("copyAndOverwrite") {
+    TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
+      val foo = workDir / "foo"
+      val bar = workDir / "bar"
+      
+      assert(exists(foo) === false)
+      assert(exists(bar) === false)
+      
+      Files.writeTo(foo)("lalala")
+      
+      assert(exists(foo) === true)
+      assert(exists(bar) === false)
+      
+      Files.copyAndOverwrite(foo, bar)
+      
+      assert(exists(foo) === true)
+      assert(exists(bar) === true)
+      
+      assert(Files.readFrom(foo) === "lalala")
+      assert(Files.readFrom(bar) === "lalala")
+      
+      Files.writeTo(foo)("asdf")
+      
+      assert(Files.readFrom(foo) === "asdf")
+      assert(Files.readFrom(bar) === "lalala")
+      
+      Files.copyAndOverwrite(foo, bar)
+      
+      assert(Files.readFrom(foo) === "asdf")
+      assert(Files.readFrom(bar) === "asdf")
+      
+      Files.copyAndOverwrite(foo, bar)
+      
+      assert(Files.readFrom(foo) === "asdf")
+      assert(Files.readFrom(bar) === "asdf")
+    }
+  }
   
   test("tempFile in default temporary-file directory") {
     val path = Files.tempFile("foo")

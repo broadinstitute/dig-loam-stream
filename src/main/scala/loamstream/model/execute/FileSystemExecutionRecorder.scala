@@ -7,9 +7,11 @@ import loamstream.drm.ContainerParams
 import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.execute.Resources.GoogleResources
 import loamstream.model.execute.Resources.DrmResources
+import java.nio.file.{Files => JFiles}
 import java.nio.file.Path
 import loamstream.util.Paths
-import loamstream.util.Files
+import loamstream.util.{Files => LFiles}
+
 
 /**
  * @author clint
@@ -24,21 +26,21 @@ object FileSystemExecutionRecorder extends ExecutionRecorder {
     } {
       val jobDir = jobOracle.dirFor(job)
       
-      java.nio.file.Files.createDirectories(jobDir)
+      JFiles.createDirectories(jobDir)
       
       val settingsFilePath = makeSettingsFilePath(jobDir)
       
-      Files.writeTo(settingsFilePath)(settingsToString(execution.settings))
+      LFiles.writeTo(settingsFilePath)(settingsToString(execution.settings))
       
       for {
         rs <- execution.resources
         accountingSummaryFile = makeAccountingSummaryFilePath(jobDir)
-        _ = Files.writeTo(accountingSummaryFile)(resourcesToString(rs))
+        _ = LFiles.writeTo(accountingSummaryFile)(resourcesToString(rs))
         rawResourceData <- rs.raw
       } {
         val accountingFile = makeAccountingFilePath(jobDir)
         
-        Files.writeTo(accountingFile)(rawResourceData)
+        LFiles.writeTo(accountingFile)(rawResourceData)
       }
     }
   }

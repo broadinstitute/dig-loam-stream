@@ -97,7 +97,7 @@ object FileMonitor extends Loggable {
         (file, timedOutWatcher) <- timedOutFilesAndWatchers
       } {
         timedOutWatcher.completeWithFailure {
-          s"Timed out after ${timedOutWatcher.maxWaitTime} for '${file}' to appear"
+          s"Timed out after ${timedOutWatcher.maxWaitTime} waiting for '${file}' to appear"
         }
       }
     }

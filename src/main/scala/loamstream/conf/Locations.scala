@@ -25,7 +25,8 @@ trait Locations {
 
 object Locations {
   
-  import java.nio.file.Files.createDirectories
+  import Predef.{identity => createDirectories}
+  //import java.nio.file.Files.createDirectories
   import java.nio.file.Paths.{ get => path }
   import loamstream.util.Paths.Implicits._
   

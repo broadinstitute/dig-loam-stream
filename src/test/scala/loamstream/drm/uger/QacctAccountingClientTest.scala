@@ -22,6 +22,8 @@ final class QacctAccountingClientTest extends FunSuite {
   import QacctTestHelpers.expectedResources
   import QacctTestHelpers.successfulRun
   import scala.concurrent.duration._
+
+  val newline = scala.util.Properties.lineSeparator
   
   test("toInstant - problematic dates") {
     val localTzOffset = ZonedDateTime.now.getOffset
@@ -75,7 +77,7 @@ final class QacctAccountingClientTest extends FunSuite {
     assert(mockClient.timesGetQacctOutputForInvoked === 1)
     assert(mockClient.timesGetResourceUsageInvoked === 1)
     
-    val expectedRawData = actualQacctOutput(Option(expectedQueue), Option(expectedNode)).mkString("\n")
+    val expectedRawData = actualQacctOutput(Option(expectedQueue), Option(expectedNode)).mkString(newline)
     
     assert(actualResources === expectedResources(expectedRawData, expectedNode, expectedQueue))
   }
@@ -134,7 +136,7 @@ final class QacctAccountingClientTest extends FunSuite {
     assert(mockClient.timesGetQacctOutputForInvoked === 0)
     assert(mockClient.timesGetResourceUsageInvoked === 0)
     
-    val expected = expectedResources(expectedRawData.mkString("\n"), expectedNode, expectedQueue)
+    val expected = expectedResources(expectedRawData.mkString(newline), expectedNode, expectedQueue)
     
     assert(mockClient.getResourceUsage(jobId).get === expected)
     
@@ -160,7 +162,7 @@ final class QacctAccountingClientTest extends FunSuite {
 
     val jobId = "12345"
     
-    val expected = expectedResources(expectedRawData.mkString("\n"), None, expectedQueue)
+    val expected = expectedResources(expectedRawData.mkString(newline), None, expectedQueue)
     
     assert(mockClient.getResourceUsage(jobId).get === expected)
     
@@ -179,7 +181,7 @@ final class QacctAccountingClientTest extends FunSuite {
 
     val jobId = "12345"
     
-    val expected = expectedResources(expectedRawData.mkString("\n"), expectedNode, None)
+    val expected = expectedResources(expectedRawData.mkString(newline), expectedNode, None)
     
     assert(mockClient.getResourceUsage(jobId).get === expected)
     
@@ -196,7 +198,7 @@ final class QacctAccountingClientTest extends FunSuite {
 
     val jobId = "12345"
 
-    val expected = expectedResources(expectedRawData.mkString("\n"), None, None)
+    val expected = expectedResources(expectedRawData.mkString(newline), None, None)
     
     assert(mockClient.getResourceUsage(jobId).get === expected)
     

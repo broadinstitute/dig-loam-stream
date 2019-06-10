@@ -68,7 +68,7 @@ object JobDirs {
     private[this] val lock = new AnyRef
     
     private[this] val ids: Iterator[String] = {
-      val alphabet = "abcdefghijklmnopqrstuvwxyz".toUpperCase
+      val alphabet = 'A' to 'Z'
 
       def is = Iterator.iterate(0)(_ + 1)
       def alphabetIter = alphabet.iterator.map(_.toString)

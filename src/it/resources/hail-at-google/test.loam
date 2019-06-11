@@ -20,7 +20,7 @@ local {
 }
 
 google {
-  hail"""src/it/resources/hail_test.py --
+  hail"""src/it/resources/hail-at-google/hail_test.py --
     --input ${input_google}
     --output ${output_google}"""
     .in(input_google)

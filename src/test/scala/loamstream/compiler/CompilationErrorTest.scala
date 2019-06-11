@@ -127,7 +127,5 @@ object CompilationErrorTest {
     override def length : Int = ???
     override def offsetToLine(offset: Int): Int = ???
     override def lineToOffset(index : Int): Int = ???
-    override def lineCount: Int = ???
-    override def lines(start: Int,end: Int): Iterator[String] = ???
   }
 }

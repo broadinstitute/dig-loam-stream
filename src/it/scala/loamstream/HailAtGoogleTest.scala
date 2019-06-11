@@ -30,8 +30,7 @@ final class HailAtGoogleTest extends FunSuite {
     
     Main.main(Array(
         "--conf", "src/it/resources/hail-at-google/loamstream.conf",
-        "--loams", "src/it/resources/hail-at-google/test.loam"
-        ))
+        "--loams", "src/it/resources/hail-at-google/test.loam"))
         
     assert(exists(expectedOutput))
   }

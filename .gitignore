@@ -4,6 +4,10 @@ bin/
 .eclipse
 .idea
 .idea_modules/
+.bloop/
+.metals/
+null/
+project/.bloop/
 projectFilesBackup/
 /lib/
 /logs/

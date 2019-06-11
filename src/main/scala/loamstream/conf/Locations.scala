@@ -25,7 +25,6 @@ trait Locations {
 
 object Locations {
   
-  import java.nio.file.Files.createDirectories
   import java.nio.file.Paths.{ get => path }
   import loamstream.util.Paths.Implicits._
   
@@ -39,19 +38,19 @@ object Locations {
     lsfDir: Path = Default.lsfDir) extends Locations
   
   object Default extends Locations {
-    override val loamstreamDir: Path = createDirectories(path("./.loamstream"))
+    override val loamstreamDir: Path = path("./.loamstream")
 
-    private[this] val jobDir: Path = createDirectories((loamstreamDir / "jobs").normalize)
+    private[this] val jobDir: Path = (loamstreamDir / "jobs").normalize
     
-    override val jobDataDir: Path = createDirectories(jobDir / "data")
+    override val jobDataDir: Path = jobDir / "data"
 
-    override val logDir: Path = createDirectories((loamstreamDir / "logs").normalize)
+    override val logDir: Path = (loamstreamDir / "logs").normalize
 
     override val dryRunOutputFile: Path = (logDir / "joblist").normalize
 
-    override val dbDir: Path = createDirectories(loamstreamDir / "db")
+    override val dbDir: Path = loamstreamDir / "db"
 
-    override lazy val ugerDir = createDirectories((loamstreamDir / "uger").normalize)
-    override lazy val lsfDir = createDirectories((loamstreamDir / "lsf").normalize)
+    override lazy val ugerDir = (loamstreamDir / "uger").normalize
+    override lazy val lsfDir = (loamstreamDir / "lsf").normalize
   }
 }

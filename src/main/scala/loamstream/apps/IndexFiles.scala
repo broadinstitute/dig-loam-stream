@@ -36,7 +36,7 @@ object IndexFiles {
     val csvFormat = CSVFormat.DEFAULT.
         withHeader("JOB_ID", "JOB_NAME", "JOB_STATUS", "EXIT_CODE", "JOB_DIR").
         withDelimiter('\t').
-        withRecordSeparator('\n')
+        withRecordSeparator(scala.util.Properties.lineSeparator)
     
     val toRow = Row.tupled
     

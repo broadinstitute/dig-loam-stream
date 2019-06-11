@@ -15,6 +15,7 @@ object Paths {
     final implicit class PathHelpers(val path: Path) extends AnyVal {
       def /(next: String): Path = path.resolve(next)
       def /(next: Try[String]): Try[Path] = next.map(/)
+      
       //scalastyle:off spaces.before.plus
       def +(next: String): Path = JPaths.get(s"${path.toString}$next")
       def +(next: Try[String]): Try[Path] = next.map(this.+)
@@ -24,7 +25,7 @@ object Paths {
     final implicit class PathAttemptHelpers(val attempt: Try[Path]) extends AnyVal {
       def /(next: String): Try[Path] = attempt.map(_ / next)
       def /(next: Try[String]): Try[Path] = attempt.flatMap(_ / next)
-  
+      
       def +(next: String): Try[Path] = attempt.map(_ + next)
       def +(next: Try[String]): Try[Path] = attempt.flatMap(_ + next)
     }
@@ -52,4 +53,12 @@ object Paths {
   import BashScript.Implicits._
   
   def normalize(p: Path): String = normalizePath(p).render
+  
+  //NB: Basically anything path-separator-related
+  private[this] val specialChars: Set[Char] = Set('/', ':', '\\', '$')
+  
+  def mungePathRelatedChars(s: String): String = s.map {
+    case ch if ch.isWhitespace || specialChars.contains(ch) => '_'
+    case ch => ch      
+  }
 }

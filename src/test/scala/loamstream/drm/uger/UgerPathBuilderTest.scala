@@ -18,7 +18,7 @@ final class UgerPathBuilderTest extends FunSuite {
   import loamstream.TestHelpers.path
   import loamstream.util.BashScript.Implicits._
   
-  private val workDir = Locations.ugerDir
+  private val workDir = Locations.Default.ugerDir
 
   private val ugerConfig = UgerConfig(maxNumJobs = 42)
   

@@ -22,7 +22,8 @@ import loamstream.util.Paths
  */
 final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao with ProvidesEnvAndResources {
 
-  import loamstream.TestHelpers.path
+  import TestHelpers.path
+  import TestHelpers.dummyJobDir
   
   private val nonexistentPath = path("non/existent/blah.txt")
 
@@ -63,7 +64,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
     }
   }
 
-  import loamstream.TestHelpers.dummyOutputStreams
+  import loamstream.TestHelpers.dummyJobDir
   import loamstream.model.jobs.JobResult._
 
   test("sanity check paths") {
@@ -112,23 +113,21 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
         val success = CommandResult(0)
         assert(success.isSuccess)
         
-        import TestHelpers.{ dummyOutputStreams => outputStreams }
-        
         val failedExec = Execution.fromOutputs(
             mockUgerSettings, 
             failedCommandLine, 
             failure, 
-            outputStreams, 
+            dummyJobDir, 
             failedJob.outputs)
         
         val successfulExec = Execution.fromOutputs(
             mockUgerSettings, 
             successfulCommandLine, 
             success, 
-            outputStreams, 
+            dummyJobDir, 
             successfulJob.outputs)
   
-        recorder.record(Seq(failedExec, successfulExec))
+        recorder.record(TestHelpers.DummyJobOracle, Seq(failedJob -> failedExec, successfulJob -> successfulExec))
       }
       
       //Doesn't need to be re-run
@@ -157,13 +156,17 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
         val success = CommandResult(0)
         assert(success.isSuccess)
         
-        val failedExec = Execution.fromOutputs(mockUgerSettings, mockCmd, failure, dummyOutputStreams, Set(o0))
+        val failedExec = Execution.fromOutputs(mockUgerSettings, mockCmd, failure, dummyJobDir, Set(o0))
         
         val successfulExec = {
-          Execution.fromOutputs(mockUgerSettings, mockCmd, success, dummyOutputStreams, Set(o1, nonExistentOutput))
+          Execution.fromOutputs(mockUgerSettings, mockCmd, success, dummyJobDir, Set(o1, nonExistentOutput))
         }
   
-        recorder.record(Seq(failedExec, successfulExec))
+        val executionTuples = {
+          Seq(MockJob(failure.toJobStatus) -> failedExec, MockJob(success.toJobStatus) -> successfulExec)
+        }
+        
+        recorder.record(TestHelpers.DummyJobOracle, executionTuples)
       }
 
       // Missing record:  'hasDifferentHash' --> false
@@ -241,13 +244,17 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
         val success = CommandResult(0)
         assert(success.isSuccess)
 
-        val failedExec = Execution.fromOutputs(mockUgerSettings, mockCmd, failure, dummyOutputStreams, Set(o0))
+        val failedExec = Execution.fromOutputs(mockUgerSettings, mockCmd, failure, dummyJobDir, Set(o0))
         
         val successfulExec = {
-          Execution.fromOutputs(mockUgerSettings, mockCmd, success, dummyOutputStreams, Set(o1, nonExistentOutput))
+          Execution.fromOutputs(mockUgerSettings, mockCmd, success, dummyJobDir, Set(o1, nonExistentOutput))
         }
   
-        recorder.record(Seq(failedExec, successfulExec))
+        val executionTuples = {
+          Seq(MockJob(failure.toJobStatus) -> failedExec, MockJob(success.toJobStatus) -> successfulExec)
+        }
+        
+        recorder.record(TestHelpers.DummyJobOracle, executionTuples)
       }
 
       // Missing record:  'hasDifferentHash' --> false
@@ -329,7 +336,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
     }
 
     def execution(cmd: String, outputs: Set[DataHandle]): Execution = {
-      Execution.fromOutputs(mockUgerSettings, cmd, CommandResult(0), dummyOutputStreams, outputs)
+      Execution.fromOutputs(mockUgerSettings, cmd, CommandResult(0), dummyJobDir, outputs)
     }
 
     val cmd0 = "cmd0"
@@ -344,16 +351,18 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       val recorder = new DbBackedExecutionRecorder(dao)
 
-      recorder.record(Iterable(execution(cmd0, outputs)))
+      val cmdLineJob0 = cmdLineJob(cmd0, outputs)
+      
+      recorder.record(TestHelpers.DummyJobOracle, Iterable(cmdLineJob0 -> execution(cmd0, outputs)))
 
       assert(filter.findCommandLineInDb(o0.location) === Some(cmd0))
       assert(filter.findCommandLineInDb(o1.location) === Some(cmd0))
 
-      val cmdLineJob0 = cmdLineJob(cmd0, outputs)
-
       assert(filter.hasNewCommandLine(cmdLineJob0) === false)
 
-      recorder.record(Iterable(execution(cmd1, Set[DataHandle](o2))))
+      recorder.record(
+          TestHelpers.DummyJobOracle, 
+          Iterable(cmdLineJob(cmd1, Set(o2)) -> execution(cmd1, Set[DataHandle](o2))))
       
       val cmdLineJob1 = cmdLineJob("cmd1-altered", Set(o2))
 

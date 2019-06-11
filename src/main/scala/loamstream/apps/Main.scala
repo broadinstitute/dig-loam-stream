@@ -32,6 +32,7 @@ import loamstream.conf.DrmConfig
 import loamstream.db.slick.DbDescriptor
 import loamstream.conf.ExecutionConfig
 import loamstream.conf.Locations
+import loamstream.util.Files
 
 
 /**
@@ -60,7 +61,6 @@ object Main extends Loggable {
       case Right(compileOnly: CompileOnly) => run.doCompileOnly(compileOnly)
       case Right(dryRun: DryRun) => run.doDryRun(dryRun)
       case Right(real: RealRun) => run.doRealRun(real)
-      case Right(clean: Clean) => run.doClean(clean)
       case Left(message) => cli.printHelp(message)
       case _ => cli.printHelp()
     }
@@ -86,38 +86,6 @@ object Main extends Loggable {
   }
   
   private[apps] final class Run extends Loggable {
-  
-    def configForClean(clean: Intent.Clean): LoamConfig = {
-      AppWiring.loamConfigFrom(clean.confFile, drmSystemOpt = None, shouldValidateGraph = false)
-    }
-    
-    def doClean(clean: Intent.Clean): Unit = actuallyDoClean(clean, configForClean(clean))
-    
-    def actuallyDoClean(clean: Intent.Clean, config: LoamConfig): Unit = {
-      def delete(p: Path): Unit = {
-        info(s"Deleting '${p.toAbsolutePath}'...")
-        
-        FileUtils.deleteQuietly(p.toFile)
-      }
-      
-      if(clean.db) {
-        delete(config.executionConfig.dbDir)
-      }
-      
-      if(clean.logs) {
-        delete(config.executionConfig.logDir)
-        
-        delete(config.executionConfig.jobOutputDir)
-      }
-      
-      if(clean.scripts) {
-        config.ugerConfig.map(_.scriptDir).foreach(delete)
-        config.lsfConfig.map(_.scriptDir).foreach(delete)
-        
-        config.ugerConfig.map(_.workDir).foreach(delete)
-        config.lsfConfig.map(_.workDir).foreach(delete)
-      }
-    }
     
     private def compile(loamEngine: LoamEngine, loams: Seq[Path]): LoamCompiler.Result = {
       val compilationResultShot = loamEngine.compileFiles(loams)
@@ -206,8 +174,8 @@ object Main extends Loggable {
         val runResults = shutdownAfter(wiring) {
           wiring.loamRunner.run(project)
         }
-  
-        describeRunResults(runResults)
+        
+        describeRunResults(loamEngine.config, runResults)
       } catch {
         case e: DrmaaException => warn(s"Unexpected DRMAA exception: ${e.getClass.getName}", e)
       }
@@ -223,38 +191,23 @@ object Main extends Loggable {
       })
     }
     
-    private def describeRunResults(runResults: Either[LoamCompiler.Result, Map[LJob, Execution]]): Unit = {
-      runResults match {
-        case Left(compilationResults) => {
-          compilationResults.errors.foreach(e => error(s"Compilation error: $e"))
-        }
-        case Right(jobsToExecutions) => {
-          listResults(jobsToExecutions)
-      
-          describeExecutions(jobsToExecutions.values)
-        }
+    private def describeRunResults(
+        config: LoamConfig, 
+        runResults: Either[LoamCompiler.Result, Map[LJob, Execution]]): Unit = runResults match {
+
+      case Left(compilationResults) => compilationResults.errors.foreach(e => error(s"Compilation error: $e"))
+      case Right(jobsToExecutions) => {
+        listResults(jobsToExecutions)
+        
+        IndexFiles.writeIndexFiles(config.executionConfig, jobsToExecutions)
+    
+        describeExecutions(jobsToExecutions.values)
       }
     }
     
     private def listResults(jobsToExecutions: Map[LJob, Execution]): Unit = {
-      //NB: Order (LJob, Execution) tuples based on the Executions' start times (if any).
-      //If no start time is present (for jobs where Resources couldn't be - or weren't - 
-      //determined, like Skipped jobs, those jobs/Executions come first. 
-      def ordering(a: (LJob, Execution), b: (LJob, Execution)): Boolean = {
-        val (_, executionA) = a
-        val (_, executionB) = b
-        
-        (executionA.resources, executionB.resources) match {
-          case (Some(resourcesA), Some(resourcesB)) => {
-            resourcesA.startTime.toEpochMilli < resourcesB.startTime.toEpochMilli
-          }
-          case (_, None) => false
-          case _ => true
-        }
-      }
-      
       for {
-        (job, execution) <- jobsToExecutions.toSeq.sortWith(ordering)
+        (job, execution) <- jobsToExecutions.toSeq.sortWith(Orderings.executionTupleOrdering)
       } {
         info(s"${execution.status}\t(${execution.result}):\tRan $job got $execution")
       }

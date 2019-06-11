@@ -27,13 +27,13 @@ object ResourceRow {
     case LocalResources(startTime, endTime) => {
       LocalResourceRow(executionId, Timestamp.from(startTime), Timestamp.from(endTime))
     }
-    case UgerResources(mem, cpu, node, queue, startTime, endTime) => {
+    case UgerResources(mem, cpu, node, queue, startTime, endTime, raw) => {
       UgerResourceRow(executionId, mem.kb, cpu.seconds, node, queue.map(_.name),
-        Timestamp.from(startTime), Timestamp.from(endTime))
+        Timestamp.from(startTime), Timestamp.from(endTime), raw)
     }
-    case LsfResources(mem, cpu, node, queue, startTime, endTime) => {
+    case LsfResources(mem, cpu, node, queue, startTime, endTime, raw) => {
       LsfResourceRow(executionId, mem.kb, cpu.seconds, node, queue.map(_.name),
-        Timestamp.from(startTime), Timestamp.from(endTime))
+        Timestamp.from(startTime), Timestamp.from(endTime), raw)
     }
     case GoogleResources(cluster, startTime, endTime) => {
       GoogleResourceRow(executionId, cluster, Timestamp.from(startTime), Timestamp.from(endTime))
@@ -57,7 +57,7 @@ final case class LocalResourceRow(executionId: Int,
 
 private[slick] object DrmResourceRow {
   type ResourceMaker[R <: DrmResources] = 
-    (Memory, CpuTime, Option[String], Option[Queue], Instant, Instant) => R
+    (Memory, CpuTime, Option[String], Option[Queue], Instant, Instant, Option[String]) => R
 }
 
 private[slick] abstract class DrmResourceRow[R <: DrmResources](
@@ -70,6 +70,7 @@ private[slick] abstract class DrmResourceRow[R <: DrmResources](
   def queue: Option[String]
   def startTime: Timestamp
   def endTime: Timestamp
+  def raw: Option[String]
   
   override def toResources: Resources = {
     import scala.concurrent.duration._
@@ -80,7 +81,8 @@ private[slick] abstract class DrmResourceRow[R <: DrmResources](
         node, 
         queue.map(Queue(_)), 
         startTime.toInstant, 
-        endTime.toInstant)
+        endTime.toInstant,
+        raw)
   }
 }
 
@@ -91,7 +93,8 @@ final case class UgerResourceRow(
     node: Option[String],
     queue: Option[String],
     startTime: Timestamp,
-    endTime: Timestamp) extends DrmResourceRow[UgerResources](UgerResources.apply) {
+    endTime: Timestamp,
+    raw: Option[String]) extends DrmResourceRow[UgerResources](UgerResources.apply) {
 
   override def insertOrUpdate(tables: Tables): tables.driver.api.DBIO[Int] = {
     import tables.driver.api._
@@ -107,7 +110,8 @@ final case class LsfResourceRow(
     node: Option[String],
     queue: Option[String],
     startTime: Timestamp,
-    endTime: Timestamp) extends DrmResourceRow[LsfResources](LsfResources.apply) {
+    endTime: Timestamp,
+    raw: Option[String]) extends DrmResourceRow[LsfResources](LsfResources.apply) {
 
   override def insertOrUpdate(tables: Tables): tables.driver.api.DBIO[Int] = {
     import tables.driver.api._

@@ -24,6 +24,7 @@ import loamstream.drm.uger.UgerDefaults
 import loamstream.drm.lsf.LsfScriptBuilderParams
 import loamstream.conf.Locations
 import loamstream.model.execute.LocalSettings
+import loamstream.model.jobs.LJob
 
 /**
  * @author clint
@@ -84,9 +85,12 @@ final class DrmTaskArrayTest extends FunSuite {
       
       val drmConfig = ugerConfig.copy(workDir = workDir)
       
+      val jobOracle = TestHelpers.InDirJobOracle(workDir)
+      
       val taskArray = {
         DrmTaskArray.fromCommandLineJobs(
             executionConfig, 
+            jobOracle,
             defaultUgerSettings, 
             drmConfig, 
             pathBuilder, 
@@ -144,8 +148,10 @@ final class DrmTaskArrayTest extends FunSuite {
     def doTest(pathBuilder: PathBuilder): Unit = {
       import TestHelpers.defaultUgerSettings
       
+      val jobOracle = TestHelpers.DummyJobOracle
+      
       val taskArray = {
-        DrmTaskArray.fromCommandLineJobs(executionConfig, defaultUgerSettings, ugerConfig, pathBuilder, jobs)
+        DrmTaskArray.fromCommandLineJobs(executionConfig, jobOracle, defaultUgerSettings, ugerConfig, pathBuilder, jobs)
       }
   
       assert(taskArray.size === 3)
@@ -164,11 +170,20 @@ final class DrmTaskArrayTest extends FunSuite {
       
       import TestHelpers.defaultUgerSettings
       
-      val taskArray = {
-        DrmTaskArray.fromCommandLineJobs(executionConfig, defaultUgerSettings, drmConfig, pathBuilder, jobs)
+      TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
+       
+        val jobOracle = TestHelpers.InDirJobOracle(workDir)
+        
+        val taskArray = DrmTaskArray.fromCommandLineJobs(
+            executionConfig, 
+            jobOracle, 
+            defaultUgerSettings, 
+            drmConfig, 
+            pathBuilder, 
+            jobs)
+  
+        assert(taskArray.scriptContents === (new ScriptBuilder(scriptBuilderParams)).buildFrom(taskArray))
       }
-
-      assert(taskArray.scriptContents === (new ScriptBuilder(scriptBuilderParams)).buildFrom(taskArray))
     }
     
     doTest(ugerConfig)
@@ -183,20 +198,42 @@ final class DrmTaskArrayTest extends FunSuite {
 
       import TestHelpers.defaultUgerSettings
       
-      val taskArray = {
-        DrmTaskArray.fromCommandLineJobs(executionConfig, defaultUgerSettings, drmConfig, pathBuilder, jobs)
-      }
+      val jobOracle = TestHelpers.InDirJobOracle(drmConfig.workDir)
+
+      val arrayName = "blahblahblah"
+      
+      val taskArray = DrmTaskArray.fromCommandLineJobs(
+          executionConfig, 
+          jobOracle, 
+          defaultUgerSettings, 
+          drmConfig, 
+          pathBuilder, 
+          jobs,
+          jobName = arrayName)
   
       assert(taskArray.scriptContents === (new ScriptBuilder(scriptBuilderParams)).buildFrom(taskArray))
   
-      assert(taskArray.drmScriptFile.getParent === drmConfig.scriptDir)
+      assert(taskArray.drmScriptFile.getParent === drmConfig.workDir)
   
       assert(Files.readFrom(taskArray.drmScriptFile) === taskArray.scriptContents)
+      
+      def scriptFileFor(j: LJob): Path = jobOracle.dirFor(j).resolve("drm-script.sh")
+      
+      assert(Files.readFrom(scriptFileFor(j0)) === taskArray.scriptContents)
+      assert(Files.readFrom(scriptFileFor(j1)) === taskArray.scriptContents)
+      assert(Files.readFrom(scriptFileFor(j2)) === taskArray.scriptContents)
     }
     
-    val scriptDir = TestHelpers.getWorkDir(getClass.getSimpleName)
+    TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
+      doTest(UgerConfig(workDir = workDir, maxNumJobs = 99))
+      //Run the test again, to make sure script files are overwritten without errors 
+      doTest(UgerConfig(workDir = workDir, maxNumJobs = 99))
+    }
     
-    doTest(UgerConfig(scriptDir = scriptDir, maxNumJobs = 99))
-    doTest(LsfConfig(scriptDir = scriptDir, maxNumJobs = 99))
+    TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
+      doTest(LsfConfig(workDir = workDir, maxNumJobs = 99))
+      //Run the test again, to make sure script files are overwritten without errors
+      doTest(LsfConfig(workDir = workDir, maxNumJobs = 99))
+    }
   }
 }

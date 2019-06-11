@@ -25,8 +25,6 @@ import java.nio.file.Paths
 sealed trait DrmConfig {
   def workDir: Path 
   
-  def scriptDir: Path
-  
   def maxNumJobs: Int
   
   def defaultCores: Cpus
@@ -48,8 +46,7 @@ sealed trait DrmConfig {
   * @author Kaan Yuksel
   */
 final case class UgerConfig(
-    workDir: Path = Locations.ugerDir,
-    scriptDir: Path = Locations.ugerScriptDir,
+    workDir: Path = Locations.Default.ugerDir,
     maxNumJobs: Int = UgerDefaults.maxConcurrentJobs,
     defaultCores: Cpus = UgerDefaults.cores,
     defaultMemoryPerCore: Memory = UgerDefaults.memoryPerCore,
@@ -109,8 +106,7 @@ object UgerConfig extends ConfigParser[UgerConfig] with Loggable {
   * @author clint
   */
 final case class LsfConfig(
-    workDir: Path = Locations.lsfDir,
-    scriptDir: Path = Locations.lsfScriptDir,
+    workDir: Path = Locations.Default.lsfDir,
     maxNumJobs: Int = LsfDefaults.maxConcurrentJobs,
     defaultCores: Cpus = LsfDefaults.cores,
     defaultMemoryPerCore: Memory = LsfDefaults.memoryPerCore,

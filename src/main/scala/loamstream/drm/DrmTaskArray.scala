@@ -1,13 +1,15 @@
 package loamstream.drm
 
-import loamstream.model.jobs.commandline.CommandLineJob
-import loamstream.util.Files
+import java.nio.file.{ Files => JFiles }
 import java.nio.file.Path
-import loamstream.util.BashScript.Implicits._
-import loamstream.util.Loggable
-import loamstream.conf.ExecutionConfig
+
 import loamstream.conf.DrmConfig
+import loamstream.conf.ExecutionConfig
 import loamstream.model.execute.DrmSettings
+import loamstream.model.jobs.JobOracle
+import loamstream.model.jobs.commandline.CommandLineJob
+import loamstream.util.{ Files => LFiles }
+import loamstream.util.Loggable
 
 
 /**
@@ -26,15 +28,27 @@ final case class DrmTaskArray(
   lazy val scriptContents: String = (new ScriptBuilder(drmConfig.scriptBuilderParams)).buildFrom(this)
 
   //NB: Side-effecting
-  lazy val drmScriptFile: Path = writeDrmScriptFile()
+  lazy val drmScriptFile: Path = writeDrmScriptFiles()
 
-  private def writeDrmScriptFile(): Path = {
-    val drmWorkDir = drmConfig.scriptDir
+  private def writeDrmScriptFiles(): Path = {
+    val drmWorkDir = drmConfig.workDir
+    
+    LFiles.createDirsIfNecessary(drmWorkDir)
 
     val drmScript = createScriptFileIn(drmWorkDir)(scriptContents)
 
     trace(s"Made script '$drmScript' from ${drmJobs.map(_.commandChunk(this))}")
 
+    for {
+      jobDir <- drmJobs.map(_.jobDir)
+    } {
+      JFiles.createDirectories(jobDir)
+      
+      val drmScriptInJobDir = jobDir.resolve("drm-script.sh")
+      
+      LFiles.copyAndOverwrite(drmScript, drmScriptInJobDir)
+    }
+    
     drmScript
   }
 
@@ -43,14 +57,10 @@ final case class DrmTaskArray(
    * the given prefix and suffix to generate its name.
    */
   private[drm] def createScriptFileIn(directory: Path)(contents: String): Path = {
-    createScriptFile(contents, Files.tempFile(".sh", directory.toFile))
+    createScriptFile(contents, LFiles.tempFile(".sh", directory.toFile))
   }
 
-  private[drm] def createScriptFile(contents: String, file: Path): Path = {
-    Files.writeTo(file)(contents)
-
-    file
-  }
+  private[drm] def createScriptFile(contents: String, file: Path): Path = LFiles.writeTo(file)(contents)
 }
 
 object DrmTaskArray {
@@ -69,6 +79,7 @@ object DrmTaskArray {
 
   def fromCommandLineJobs(
       executionConfig: ExecutionConfig,
+      jobOracle: JobOracle,
       drmSettings: DrmSettings,
       drmConfig: DrmConfig,
       pathBuilder: PathBuilder,
@@ -79,7 +90,9 @@ object DrmTaskArray {
       //Uger task array indices start from 1
       val indexInTaskArray = i + 1
 
-      DrmJobWrapper(executionConfig, drmSettings, pathBuilder, commandLineJob, indexInTaskArray)
+      val jobDir = jobOracle.dirFor(commandLineJob)
+      
+      DrmJobWrapper(executionConfig, drmSettings, pathBuilder, commandLineJob, jobDir, indexInTaskArray)
     }
 
     val scriptBuilderParams = drmConfig.scriptBuilderParams

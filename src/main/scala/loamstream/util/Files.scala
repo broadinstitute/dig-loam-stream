@@ -23,6 +23,7 @@ import scala.io.Source
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
+import java.nio.file.StandardCopyOption
 
 /**
   * @author clint
@@ -32,12 +33,15 @@ object Files {
   private[util] val tempFilePrefix = "loamstream"
 
   /**
+   * Copy src to dest, overwriting dest if it exists   
+   */
+  def copyAndOverwrite(src: Path, dest: Path): Unit = JFiles.copy(src, dest, StandardCopyOption.REPLACE_EXISTING)
+  
+  /**
     * Creates an empty file in the *default temporary-file* directory, using
     * the given prefix and suffix to generate its name.
     */
-  def tempFile(suffix: String): Path = {
-    File.createTempFile(tempFilePrefix, suffix).toPath.toAbsolutePath
-  }
+  def tempFile(suffix: String): Path = File.createTempFile(tempFilePrefix, suffix).toPath.toAbsolutePath
 
   /**
     * Creates an empty file in the *specified* directory, using
@@ -59,7 +63,7 @@ object Files {
   def createDirsIfNecessary(directory: Path): Unit = {
     val dir = directory.toFile
 
-    if (! dir.exists) dir.mkdirs()
+    if (! dir.exists) { dir.mkdirs() }
 
     require(dir.exists)
   }
@@ -91,8 +95,10 @@ object Files {
     }
   }
 
-  def writeTo(file: Path)(contents: String): Unit = {
+  def writeTo(file: Path)(contents: String): Path = {
     doWriteTo(JFiles.newBufferedWriter(file, StandardCharsets.UTF_8), contents)
+    
+    file
   }
 
   def readFrom(file: Path): String = readFromAsUtf8(file)

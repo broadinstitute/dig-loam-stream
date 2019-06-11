@@ -36,7 +36,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
   private val p0 = Paths.get("foo/bar/baz")
   private val p1 = Paths.get("nuh")
   
-  import loamstream.TestHelpers.dummyOutputStreams
+  import loamstream.TestHelpers.dummyJobDir
   
   test("WithCommandResult") {
     val commandResult0 = CommandResult(0)
@@ -91,6 +91,32 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     val cif = JobResult.CommandInvocationFailure(ex) 
     
     doTest(Some(cif), Some(cif))
+  }
+  
+  test("WithThrowable") {
+    val commandResult0 = CommandResult(0)
+    val commandResult1 = CommandResult(42)
+    
+    val job = MockJob(JobStatus.Succeeded)
+    
+    def withResult(rOpt: Option[JobResult]): Execution = {
+      Execution.from(job = job, status = job.toReturn.jobStatus, result = rOpt, terminationReason = None)
+    }
+    
+    def doTest(rOpt: Option[JobResult], expected: Option[Throwable]): Unit = {
+      assert(Execution.WithThrowable.unapply(withResult(rOpt)) === expected)
+    }
+    
+    doTest(None, None)
+    
+    val ex = new Exception with scala.util.control.NoStackTrace
+    
+    doTest(Some(JobResult.FailureWithException(ex)), Some(ex))
+    doTest(Some(JobResult.CommandInvocationFailure(ex)), Some(ex))
+    doTest(Some(JobResult.Success), None)
+    doTest(Some(JobResult.Failure), None)
+    doTest(Some(commandResult0), None)
+    doTest(Some(commandResult1), None)
   }
   
   test("guards") {
@@ -151,7 +177,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
           status = result.toJobStatus,
           result = Option(result),
           resources = resources,
-          outputStreams = Option(dummyOutputStreams), 
+          jobDir = Option(dummyJobDir), 
           outputs = Set.empty,
           terminationReason = None)
       }
@@ -183,16 +209,16 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     val job0 = CommandLineJob("foo", path("."), TestHelpers.defaultUgerSettings)
     val job1 = MockJob(status1)
     
-    val outputStreamsOpt = Some(dummyOutputStreams)
+    val jobDirOpt = Some(dummyJobDir)
     
-    val e0 = Execution.from(job0, status0, Option(result0), outputStreamsOpt, terminationReason = None)
+    val e0 = Execution.from(job0, status0, Option(result0), jobDirOpt, terminationReason = None)
     val e1 = Execution.from(job1, status1, terminationReason = None)
     
     assert(e0.cmd === Some("foo"))
     assert(e0.settings.isUger)
     assert(e0.result === Some(result0))
     assert(e0.outputs === Set.empty)
-    assert(e0.outputStreams === outputStreamsOpt)
+    assert(e0.jobDir === jobDirOpt)
     //TODO: Check settings field once it's no longer a placeholder 
     
     assert(e1.cmd === None)
@@ -200,7 +226,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     assert(e1.status === status1)
     assert(e1.result === None)
     assert(e1.outputs === Set.empty)
-    assert(e1.outputStreams === None)
+    assert(e1.jobDir === None)
     //TODO: Check settings field once it's no longer a placeholder
   }
 
@@ -212,7 +238,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
           status = result.toJobStatus,
           result = Option(result),
           resources = None,
-          outputStreams = Option(dummyOutputStreams),
+          jobDir = Option(dummyJobDir),
           outputs = Set.empty,
           terminationReason = None)
       
@@ -226,7 +252,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
           status = result.toJobStatus,
           result = Option(result),
           resources = None,
-          outputStreams = Option(dummyOutputStreams),
+          jobDir = Option(dummyJobDir),
           outputs = Set.empty,
           terminationReason = None)
       

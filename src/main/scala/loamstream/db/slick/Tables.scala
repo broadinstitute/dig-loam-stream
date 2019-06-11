@@ -116,8 +116,7 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
     //NB: Specify the length of this column so that we hopefully don't get a too-small VARCHAR,
     //and instead some DB-specific column type appropriate for strings thousands of chars long.
     def cmd = column[String]("CMD", O.Length(maxStringColumnLength))
-    def stdoutPath = column[String]("STDOUT_PATH", O.Length(maxStringColumnLength))
-    def stderrPath = column[String]("STDERR_PATH", O.Length(maxStringColumnLength))
+    def jobDir = column[Option[String]]("JOB_DIR", O.Length(maxStringColumnLength))
     def exitCode = column[Int]("EXIT_CODE")
     def status = column[JobStatus]("STATUS")
     def terminationReason = column[Option[String]]("TERM_REASON")
@@ -125,7 +124,7 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
     //NB: Required by Slick to define the mapping between DB columns and case class fields.
     //It's unlikely devs will need to call it directly.
     override def * = {
-      (id, env, cmd, status, exitCode, stdoutPath, stderrPath, terminationReason) <> 
+      (id, env, cmd, status, exitCode, jobDir, terminationReason) <> 
           (ExecutionRow.tupled, ExecutionRow.unapply)
     }
   }
@@ -195,13 +194,17 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
     def queue = column[Option[String]]("QUEUE")
     def startTime = column[Timestamp]("START_TIME")
     def endTime = column[Timestamp]("END_TIME")
+    //NB: Specify the length of this column so that we hopefully don't get a too-small VARCHAR,
+    //and instead some DB-specific column type appropriate for strings thousands of chars long.
+    def raw = column[Option[String]]("RAW_DATA", O.Length(maxStringColumnLength))
   }
   
   final class UgerResources(tag: Tag) extends DrmResourcesTable[UgerResourceRow](tag, Names.ugerResources) {
     //NB: Required by Slick to define the mapping between DB columns and case class fields.
     //It's unlikely devs will need to call it directly.
     override def * = {
-      (executionId, mem, cpu, node, queue, startTime, endTime) <> (UgerResourceRow.tupled, UgerResourceRow.unapply)
+      (executionId, mem, cpu, node, queue, startTime, endTime, raw) <> 
+          (UgerResourceRow.tupled, UgerResourceRow.unapply)
     }
   }
   
@@ -209,7 +212,8 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
     //NB: Required by Slick to define the mapping between DB columns and case class fields.
     //It's unlikely devs will need to call it directly.
     override def * = {
-      (executionId, mem, cpu, node, queue, startTime, endTime) <> (LsfResourceRow.tupled, LsfResourceRow.unapply)
+      (executionId, mem, cpu, node, queue, startTime, endTime, raw) <> 
+          (LsfResourceRow.tupled, LsfResourceRow.unapply)
     }
   }
 

@@ -10,6 +10,7 @@ import loamstream.util.{BashScript, CanBeClosed, Futures, Loggable, TimeUtils}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
+import java.nio.file.Path
 
 /**
  * @author clint
@@ -23,12 +24,13 @@ object LocalJobStrategy extends Loggable {
 
   def execute(
     job: LJob,
+    jobDir: Path,
     processLogger: ToFilesProcessLogger)(implicit context: ExecutionContext): Future[RunData] = {
 
     require(canBeRun(job), s"Expected job to be one we can run locally, but got $job")
     
     job match {
-      case commandLineJob: CommandLineJob => executeCommandLineJob(commandLineJob, processLogger)
+      case commandLineJob: CommandLineJob => executeCommandLineJob(commandLineJob, jobDir, processLogger)
       case localJob: LocalJob             => executeLocalJob(localJob)
     }
   }
@@ -37,6 +39,7 @@ object LocalJobStrategy extends Loggable {
 
   private def executeCommandLineJob(
     commandLineJob: CommandLineJob,
+    jobDir: Path,
     processLogger: ToFilesProcessLogger)(implicit context: ExecutionContext): Future[RunData] = {
     
     Futures.runBlocking {
@@ -61,7 +64,7 @@ object LocalJobStrategy extends Loggable {
           jobStatus = jobStatus, 
           jobResult = Some(jobResult), 
           resourcesOpt = Some(LocalResources(start, end)), 
-          outputStreamsOpt = Some(outputStreams),
+          jobDirOpt = Some(jobDir),
           terminationReasonOpt = None)
     }
   }

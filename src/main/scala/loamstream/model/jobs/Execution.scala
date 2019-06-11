@@ -11,6 +11,7 @@ import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.execute.Resources.UgerResources
 import loamstream.model.execute.Resources.LsfResources
 import loamstream.model.jobs.JobResult.CommandResult
+import loamstream.model.jobs.JobResult.FailureWithException
 
 /**
  * @author clint
@@ -24,7 +25,7 @@ final case class Execution(
     result: Option[JobResult] = None,
     resources: Option[Resources] = None,
     outputs: Set[StoreRecord] = Set.empty,
-    outputStreams: Option[OutputStreams],
+    jobDir: Option[Path],
     terminationReason: Option[TerminationReason]) {
 
   require(
@@ -81,12 +82,20 @@ object Execution extends Loggable {
     }
   }
   
+  object WithThrowable {
+    def unapply(e: Execution): Option[Throwable] = e.result match {
+      case Some(JobResult.CommandInvocationFailure(e)) => Some(e)
+      case Some(JobResult.FailureWithException(e)) => Some(e)
+      case _ => None
+    }
+  }
+  
   // TODO Remove when dynamic statuses flow in
   // What does this mean? -Clint Dec 2017
   def apply(settings: Settings,
             cmd: String,
             result: JobResult,
-            outputStreams: OutputStreams,
+            jobDir: Path,
             outputs: StoreRecord*): Execution = {
     
     Execution(
@@ -96,14 +105,14 @@ object Execution extends Loggable {
         result = Option(result), 
         resources = None, 
         outputs = outputs.toSet,
-        outputStreams = Option(outputStreams),
+        jobDir = Option(jobDir),
         terminationReason = None)
   }
 
   def fromOutputs(settings: Settings,
                   cmd: String,
                   result: JobResult,
-                  outputStreams: OutputStreams,
+                  jobDir: Path,
                   outputs: Set[DataHandle]): Execution = {
     
     apply(
@@ -113,7 +122,7 @@ object Execution extends Loggable {
         result = Option(result), 
         resources = None, 
         outputs = outputs.map(_.toStoreRecord),
-        outputStreams = Option(outputStreams),
+        jobDir = Option(jobDir),
         terminationReason = None)
   }
 
@@ -121,9 +130,9 @@ object Execution extends Loggable {
       job: LJob, 
       status: JobStatus, 
       result: Option[JobResult] = None, 
-      outputStreams: Option[OutputStreams] = None,
+      jobDir: Option[Path] = None,
       resources: Option[Resources] = None,
-      terminationReason: Option[TerminationReason]): Execution = {
+      terminationReason: Option[TerminationReason] = None): Execution = {
     
     val commandLine: Option[String] = job match {
       case clj: CommandLineJob => Option(clj.commandLineString)
@@ -139,7 +148,7 @@ object Execution extends Loggable {
       result = result,
       resources = resources, 
       outputs = outputRecords,
-      outputStreams = outputStreams,
+      jobDir = jobDir,
       terminationReason = terminationReason)
   }
 }

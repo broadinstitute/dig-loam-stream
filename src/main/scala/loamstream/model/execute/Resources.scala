@@ -21,6 +21,8 @@ sealed trait Resources {
   def startTime: Instant
 
   def endTime: Instant
+  
+  def raw: Option[String] = None
 
   //TODO: Maybe java.time.Duration instead?
   final def elapsedTime: Duration = {
@@ -60,6 +62,23 @@ object Resources {
     final def withQueue(newQueue: Queue): DrmResources = withQueue(Option(newQueue))
     
     def withQueue(newQueueOpt: Option[Queue]): DrmResources
+    
+    override def toString: String = {
+      s"${getClass.getSimpleName}(${memory},${cpuTime},${node},${queue},${startTime},${endTime},...)"
+    }
+  }
+  
+  object DrmResources {
+    type ResourcesMaker[R <: DrmResources] = 
+      (Memory, CpuTime, Option[String], Option[Queue], Instant, Instant, Option[String]) => R
+    
+    type FieldsTuple = (Memory, CpuTime, Option[String], Option[Queue], Instant, Instant, Option[String])
+    
+    def unapply(r: Resources): Option[FieldsTuple] = r match {
+      case u: UgerResources => UgerResources.unapply(u)
+      case l: LsfResources => LsfResources.unapply(l)
+      case _ => None
+    }
   }
   
   final case class UgerResources(
@@ -68,7 +87,8 @@ object Resources {
       node: Option[String],
       queue: Option[Queue],
       startTime: Instant,
-      endTime: Instant) extends DrmResources {
+      endTime: Instant,
+      override val raw: Option[String] = None) extends DrmResources {
     
     override def withNode(newNodeOpt: Option[String]): DrmResources = copy(node = newNodeOpt)
     
@@ -81,7 +101,8 @@ object Resources {
       node: Option[String],
       queue: Option[Queue],
       startTime: Instant,
-      endTime: Instant) extends DrmResources {
+      endTime: Instant,
+      override val raw: Option[String] = None) extends DrmResources {
     
     override def withNode(newNodeOpt: Option[String]): DrmResources = copy(node = newNodeOpt)
     

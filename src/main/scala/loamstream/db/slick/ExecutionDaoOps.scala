@@ -96,8 +96,7 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
         cmd = execution.cmd.get,
         status = execution.status, 
         exitCode = commandResult.exitCode,
-        stdoutPath = execution.outputStreams.get.stdout.toString,
-        stderrPath = execution.outputStreams.get.stderr.toString,
+        jobDir = execution.jobDir.map(_.toString),
         terminationReason = execution.terminationReason.map(_.name))
     }
 

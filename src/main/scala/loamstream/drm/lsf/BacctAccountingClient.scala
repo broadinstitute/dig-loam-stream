@@ -45,22 +45,22 @@ final class BacctAccountingClient(
     bacctOutput.collectFirst { case Regexes.termReason(r) => r }.map(parseTerminationReason)
   }
   
-  private def toResources(mungedBacctOutput: Seq[String]): Try[LsfResources] = {
+  private def toResources(rawBacctOutput: Seq[String]): Try[LsfResources] = {
     /*
      * Documentation on bacct's output format:
      * https://www.ibm.com/support/knowledgecenter/en/SSWRJV_10.1.0/lsf_command_ref/bacct.1.html
      */
-    val node = mungedBacctOutput.collectFirst { case Regexes.node(n) => n }
+    val node = rawBacctOutput.collectFirst { case Regexes.node(n) => n }
     
-    val queue = mungedBacctOutput.collectFirst { case Regexes.queue(q) => q }.map(Queue(_))
+    val queue = rawBacctOutput.collectFirst { case Regexes.queue(q) => q }.map(Queue(_))
     
-    val dataLineOpt = mungedBacctOutput.sliding(2).collectFirst {
+    val dataLineOpt = rawBacctOutput.sliding(2).collectFirst {
       case Seq(firstLine, nextLine) if isHeaderLine(firstLine) => nextLine.trim
     }
     
-    val dataLineAttempt = Options.toTry(dataLineOpt)(s"Couldn't find data line in bacct output: '$mungedBacctOutput'")
+    val dataLineAttempt = Options.toTry(dataLineOpt)(s"Couldn't find data line in bacct output: '$rawBacctOutput'")
     
-    dataLineAttempt.flatMap(parseDataLine(mungedBacctOutput, node, queue))
+    dataLineAttempt.flatMap(parseDataLine(rawBacctOutput, node, queue))
   }
 }
 
@@ -76,11 +76,11 @@ object BacctAccountingClient {
   //CPU_T     WAIT     TURNAROUND   STATUS     HOG_FACTOR    MEM    SWAP
   //0.02        0              0     exit         0.0000     0M      0M
   def parseDataLine(
-      mungedBacctOutput: Seq[String], 
+      rawBacctOutput: Seq[String], 
       node: Option[String], 
       queue: Option[Queue])(line: String): Try[LsfResources] = {
     
-    val parts = line.split("\\s+")
+    val parts = line.trim.split("\\s+")
       
     def tryToGet(i: Int, message: => String): Try[String] = {
       if(parts.isDefinedAt(i)) Success(parts(i)) else Tries.failure(message)
@@ -92,8 +92,8 @@ object BacctAccountingClient {
     for {
       memory <- tryToGet(memIndex, s"Couldn't parse memory usage from bacct line '$line'").flatMap(parseMemory(line))
       cpuTime <- tryToGet(cpuTimeIndex, s"Couldn't parse cpu time usage from bacct line '$line'").flatMap(parseCpuTime)
-      startTime <- parseStartTime(mungedBacctOutput)
-      endTime <- parseEndTime(mungedBacctOutput)
+      startTime <- parseStartTime(rawBacctOutput)
+      endTime <- parseEndTime(rawBacctOutput)
       
     } yield {
       LsfResources(
@@ -102,11 +102,12 @@ object BacctAccountingClient {
         node = node,
         queue = queue,
         startTime = startTime,
-        endTime = endTime)
+        endTime = endTime,
+        raw = Some(rawBacctOutput.mkString("\n")))
     }
   }
   
-  private def isHeaderLine(s: String): Boolean = s.startsWith("CPU_T")
+  private def isHeaderLine(s: String): Boolean = s.trim.startsWith("CPU_T")
   
   //NB: assume megabytes or gigabytes; the LSF documentation doesn't describe what units are possible. :(
   private[lsf] def parseMemory(line: String)(s: String): Try[Memory] = {
@@ -127,18 +128,18 @@ object BacctAccountingClient {
    */
   private def parseCpuTime(s: String): Try[CpuTime] = Try(CpuTime.inSeconds(s.toDouble))
   
-  private[lsf] def parseStartTime(mungedBacctOutput: Seq[String]): Try[Instant] = {
-    parseTimestamp(mungedBacctOutput)(Regexes.startTime, "start")
+  private[lsf] def parseStartTime(rawBacctOutput: Seq[String]): Try[Instant] = {
+    parseTimestamp(rawBacctOutput)(Regexes.startTime, "start")
   }
   
-  private[lsf] def parseEndTime(mungedBacctOutput: Seq[String]): Try[Instant] = {
-    parseTimestamp(mungedBacctOutput)(Regexes.endTime, "end")
+  private[lsf] def parseEndTime(rawBacctOutput: Seq[String]): Try[Instant] = {
+    parseTimestamp(rawBacctOutput)(Regexes.endTime, "end")
   }
   
-  private def parseTimestamp(mungedBacctOutput: Seq[String])(regex: Regex, fieldType: String): Try[Instant] = {
-    val dateOpt = mungedBacctOutput.collectFirst { case regex(v) => v }
+  private def parseTimestamp(rawBacctOutput: Seq[String])(regex: Regex, fieldType: String): Try[Instant] = {
+    val dateOpt = rawBacctOutput.collectFirst { case regex(v) => v }
     
-    def failureMessage = s"Couldn't parse $fieldType timestamp from bacct output '$mungedBacctOutput'"
+    def failureMessage = s"Couldn't parse $fieldType timestamp from bacct output '$rawBacctOutput'"
     
     val dateStringAttempt = Options.toTry(dateOpt)(failureMessage)
     

@@ -7,9 +7,11 @@ import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.StoreRecord
 import loamstream.model.jobs.JobResult.CommandResult
-import loamstream.TestHelpers.dummyOutputStreams
+import loamstream.TestHelpers.dummyJobDir
 import loamstream.TestHelpers.path
 import loamstream.model.jobs.DataHandle
+import loamstream.model.jobs.MockJob
+import loamstream.TestHelpers
 
 /**
  * @author clint
@@ -42,7 +44,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
 
       assert(executions === Set.empty)
 
-      recorder.record(Nil)
+      recorder.record(TestHelpers.DummyJobOracle, Nil)
 
       assert(executions === Set.empty)
     }
@@ -58,19 +60,21 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
   
         assert(executions === Set.empty)
   
+        val job = MockJob(status)
+        
         val e = Execution(
             settings = mockUgerSettings,
             cmd = command, 
             status = status, 
             result = result, 
             resources = Option(mockResources),
-            outputStreams = None,
+            jobDir = None,
             outputs = Set.empty[StoreRecord],
             terminationReason = None)
 
         assert(e.isCommandExecution === false)
         
-        recorder.record(Seq(e))
+        recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
   
         assert(executions === Set.empty)
       }
@@ -93,17 +97,19 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
 
       assert(cr.isSuccess)
 
+      val job = MockJob(cr.toJobStatus)
+      
       val e = Execution(
           settings = mockUgerSettings,
           cmd = Option(mockCmd), 
           status = cr.toJobStatus, 
           result = Option(cr), 
           resources = Option(mockResources),
-          outputStreams = Some(dummyOutputStreams),
+          jobDir = Some(dummyJobDir),
           outputs = Set.empty[StoreRecord],
           terminationReason = None)
 
-      recorder.record(Seq(e))
+      recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
 
       assertEqualFieldsFor(executions, Set(e))
     }
@@ -119,17 +125,19 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
 
       assert(cr.isFailure)
 
+      val job = MockJob(cr.toJobStatus)
+      
       val e = Execution(
           settings = mockUgerSettings,
           cmd = Option(mockCmd), 
           status = cr.toJobStatus, 
           result = Option(cr),
           resources = Option(mockResources),
-          outputStreams = Some(dummyOutputStreams),
+          jobDir = Some(dummyJobDir),
           outputs = Set.empty,
           terminationReason = None)
 
-      recorder.record(Seq(e))
+      recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
 
       assertEqualFieldsFor(executions, Set(e))
     }
@@ -145,10 +153,13 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
 
       assert(cr.isSuccess)
 
-      val e = Execution.fromOutputs(mockUgerSettings, mockCmd, cr, dummyOutputStreams, Set(o0, o1, o2))
+      val job = MockJob(cr.toJobStatus)
+      
+      val e = Execution.fromOutputs(mockUgerSettings, mockCmd, cr, dummyJobDir, Set(o0, o1, o2))
+
       val withHashedOutputs = e.withStoreRecords(Set(cachedOutput0, cachedOutput1, cachedOutput2))
 
-      recorder.record(Seq(e))
+      recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
 
       assertEqualFieldsFor(executions, Set(withHashedOutputs))
     }
@@ -164,16 +175,18 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
 
       assert(cr.isFailure)
 
-      val e = Execution.fromOutputs(mockUgerSettings, mockCmd, cr, dummyOutputStreams, Set[DataHandle](o0, o1, o2))
+      val job = MockJob(cr.toJobStatus)
+      
+      val e = Execution.fromOutputs(mockUgerSettings, mockCmd, cr, dummyJobDir, Set[DataHandle](o0, o1, o2))
 
-      recorder.record(Seq(e))
+      recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
 
       val expected = Set(
           Execution(
               settings = mockUgerSettings, 
               cmd = mockCmd, 
               result = CommandResult(42),
-              outputStreams = e.outputStreams.get,
+              jobDir = e.jobDir.get,
               outputs = failedOutput0, failedOutput1, failedOutput2))
       
       assertEqualFieldsFor(executions, expected)

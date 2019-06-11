@@ -72,7 +72,7 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
         settings = LocalSettings,
         status = JobStatus.Running,
         result = None,
-        outputStreams = None,
+        jobDir = None,
         terminationReason = None)
         
     val e = new Exception with scala.util.control.NoStackTrace

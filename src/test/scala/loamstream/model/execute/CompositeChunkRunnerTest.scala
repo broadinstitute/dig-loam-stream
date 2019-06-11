@@ -11,6 +11,8 @@ import loamstream.model.jobs.MockJob
 import loamstream.model.jobs.RunData
 import rx.lang.scala.Observable
 import loamstream.util.Observables
+import loamstream.TestHelpers
+import loamstream.model.jobs.JobOracle
 
 /**
  * @author clint
@@ -61,16 +63,16 @@ final class CompositeChunkRunnerTest extends FunSuite {
     
     //Should throw if we can't run all the given jobs
     intercept[Exception] {
-      runner.run(Set(job2, job3), neverRestart)
+      runner.run(Set(job2, job3), TestHelpers.DummyJobOracle, neverRestart)
     }
     
     intercept[Exception] {
-      runner.run(Set(job1, job4), neverRestart)
+      runner.run(Set(job1, job4), TestHelpers.DummyJobOracle, neverRestart)
     }
     
     import Observables.Implicits._
     
-    val futureResults = runner.run(Set(job1, job2), neverRestart).lastAsFuture
+    val futureResults = runner.run(Set(job1, job2), TestHelpers.DummyJobOracle, neverRestart).lastAsFuture
     
     val expected = Map(job1 -> JobStatus.Succeeded, job2 -> JobStatus.Failed)
     
@@ -88,8 +90,9 @@ object CompositeChunkRunnerTest {
     
     private val delegate = local(1)
     
-    override def run(jobs: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
-      delegate.run(jobs, shouldRestart)
-    }
+    override def run(
+        jobs: Set[LJob], 
+        jobOracle: JobOracle, 
+        shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = delegate.run(jobs, jobOracle, shouldRestart)
   }
 }

@@ -26,6 +26,8 @@ final class BacctAccountingClientTest extends FunSuite {
       stdout: Seq[String] = Nil,
       stderr: Seq[String] = Nil): Try[RunResults] = Success(RunResults(binaryName, exitCode, stdout, stderr))
   
+  private def asTrimmedLines(s: String): Seq[String] = s.split("\\n").map(_.trim)
+      
   test("Parse actual bacct outpout - bad input") {
     def doTest(bacctOutput: Seq[String]): Unit = {
       val mockInvoker = new RetryingCommandInvoker[String](0, "MOCK", _ => runResultsAttempt(stdout = bacctOutput))
@@ -42,7 +44,7 @@ final class BacctAccountingClientTest extends FunSuite {
     
     val mockInvoker = new RetryingCommandInvoker[String](0, "MOCK", _ => runResultsAttempt(stdout = splitOutput))
     
-    val actual = (new BacctAccountingClient(mockInvoker)).getResourceUsage("someJobId")
+    val actual = (new BacctAccountingClient(mockInvoker)).getResourceUsage("someJobId").get
     
     val now = ZonedDateTime.now
     
@@ -56,14 +58,24 @@ final class BacctAccountingClientTest extends FunSuite {
             Option("ebi6-054"),
             Option(Queue("research-rh7")),
             ZonedDateTime.parse(s"${currentYear}-04-18T22:32:01.00${systemTimeZoneOffSet}").toInstant,
-            ZonedDateTime.parse(s"${currentYear}-04-18T23:34:12.00${systemTimeZoneOffSet}").toInstant)
+            ZonedDateTime.parse(s"${currentYear}-04-18T23:34:12.00${systemTimeZoneOffSet}").toInstant,
+            raw = Option(actualOutput))
     
-    assert(actual.get === expected)
+    assert(actual.memory === expected.memory)
+    assert(actual.cpuTime === expected.cpuTime)
+    assert(actual.node === expected.node)
+    assert(actual.queue === expected.queue)
+    assert(actual.startTime === expected.startTime)
+    assert(actual.endTime === expected.endTime)
+    
+    assert(asTrimmedLines(actual.raw.get) === asTrimmedLines(expected.raw.get))
   }
   
   test("getTerminationReason - happy path") {
     def doTest(lsfReason: String, lsfDesc: String, expected: Option[TerminationReason]): Unit = {
-      val splitOutput = actualOutputWithTerminationReason(lsfReason, lsfDesc).split("\\n")
+      val rawOutput = actualOutputWithTerminationReason(lsfReason, lsfDesc)
+      
+      val splitOutput = rawOutput.split("\\n")
       
       val mockInvoker = new RetryingCommandInvoker[String](0, "MOCK", _ => runResultsAttempt(stdout = splitOutput))
       
@@ -94,7 +106,7 @@ final class BacctAccountingClientTest extends FunSuite {
     
     val mockInvoker = new RetryingCommandInvoker[String](0, "MOCK", _ => runResultsAttempt(stdout = splitOutput))
     
-    val actual = (new BacctAccountingClient(mockInvoker)).getResourceUsage("someJobId")
+    val actual = (new BacctAccountingClient(mockInvoker)).getResourceUsage("someJobId").get
     
     val now = ZonedDateTime.now
     
@@ -108,9 +120,17 @@ final class BacctAccountingClientTest extends FunSuite {
             Option("ebi5-153"),
             Option(Queue("research-rh7")),
             ZonedDateTime.parse(s"${currentYear}-05-01T22:42:24.00${systemTimeZoneOffSet}").toInstant,
-            ZonedDateTime.parse(s"${currentYear}-05-01T22:42:46.00${systemTimeZoneOffSet}").toInstant)
+            ZonedDateTime.parse(s"${currentYear}-05-01T22:42:46.00${systemTimeZoneOffSet}").toInstant,
+            raw = Option(problematicOutput))
     
-    assert(actual.get === expected)
+    assert(actual.memory === expected.memory)
+    assert(actual.cpuTime === expected.cpuTime)
+    assert(actual.node === expected.node)
+    assert(actual.queue === expected.queue)
+    assert(actual.startTime === expected.startTime)
+    assert(actual.endTime === expected.endTime)
+    
+    assert(asTrimmedLines(actual.raw.get) === asTrimmedLines(expected.raw.get))
   }
   
   test("parseMemory") {
@@ -172,7 +192,7 @@ final class BacctAccountingClientTest extends FunSuite {
   
   // scalastyle:off line.size.limit
   private val actualOutput = """
-    Accounting information about jobs that are: 
+Accounting information about jobs that are: 
   - submitted by all users.
   - accounted on all projects.
   - completed normally or exited
@@ -206,11 +226,9 @@ SUMMARY:      ( time unit: second )
  Average expansion factor of a job:  0.00 ( turnaround time / run time )
  Maximum expansion factor of a job:  0.00
  Minimum expansion factor of a job:  0.00
- Total Run time consumed:         0      Average Run time consumed:       0
-    """
+ Total Run time consumed:         0      Average Run time consumed:       0""".trim
 
   private def actualOutputWithTerminationReason(termReason: String, termDesc: String): String = s"""
-
 Accounting information about jobs that are: 
   - submitted by all users.
   - accounted on all projects.
@@ -246,11 +264,10 @@ SUMMARY:      ( time unit: second )
  Maximum expansion factor of a job:  2.00
  Minimum expansion factor of a job:  2.00
  Total Run time consumed:         0      Average Run time consumed:       0
- Maximum Run time of a job:       0      Minimum Run time of a job:       0
-    """
+ Maximum Run time of a job:       0      Minimum Run time of a job:       0""".trim
   
   private val problematicOutput = """
-    Accounting information about jobs that are:
+Accounting information about jobs that are:
    - submitted by all users.
    - accounted on all projects.
    - completed normally or exited
@@ -285,7 +302,6 @@ SUMMARY:      ( time unit: second )
    Maximum expansion factor of a job:  1.05
    Minimum expansion factor of a job:  1.05
    Total Run time consumed:        22      Average Run time consumed:      22
-   Maximum Run time of a job:      22      Minimum Run time of a job:      22
-   """
+   Maximum Run time of a job:      22      Minimum Run time of a job:      22""".trim
   // scalastyle:on line.size.limit
 }

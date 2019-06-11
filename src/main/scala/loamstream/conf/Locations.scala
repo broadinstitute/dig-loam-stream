@@ -1,31 +1,56 @@
 package loamstream.conf
 
-import java.nio.file.Paths
 import java.nio.file.Path
 
 /**
  * @author clint
  * Dec 17, 2018
- * 
+ *
  * An object containing the location of various things: output files, default log dir, etc.
  */
+trait Locations {
+  def loamstreamDir: Path
+
+  def jobDataDir: Path
+  
+  def logDir: Path
+
+  def dryRunOutputFile: Path
+
+  def dbDir: Path
+
+  def ugerDir: Path
+  def lsfDir: Path
+}
+
 object Locations {
   
-  import java.nio.file.Files.createDirectories
+  import java.nio.file.Paths.{ get => path }
+  import loamstream.util.Paths.Implicits._
   
-  val loamstreamDir: Path = createDirectories(Paths.get("./.loamstream"))
+  final case class Literal(
+    loamstreamDir: Path = Default.loamstreamDir,
+    jobDataDir: Path = Default.jobDataDir,
+    logDir: Path = Default.logDir,
+    dryRunOutputFile: Path = Default.dryRunOutputFile,
+    dbDir: Path = Default.dbDir,
+    ugerDir: Path = Default.ugerDir,
+    lsfDir: Path = Default.lsfDir) extends Locations
   
-  val logDir: Path = createDirectories(loamstreamDir.resolve("logs").normalize)
+  object Default extends Locations {
+    override val loamstreamDir: Path = path("./.loamstream")
+
+    private[this] val jobDir: Path = (loamstreamDir / "jobs").normalize
     
-  val dryRunOutputFile: Path = logDir.resolve("joblist").normalize
-    
-  val jobOutputDir: Path = createDirectories(loamstreamDir.resolve("job-outputs").normalize)
-  
-  val dbDir: Path = createDirectories(loamstreamDir.resolve("db"))
-  
-  lazy val ugerDir = createDirectories(loamstreamDir.resolve("uger").normalize)
-  lazy val lsfDir = createDirectories(loamstreamDir.resolve("lsf").normalize)
-  
-  lazy val ugerScriptDir: Path = createDirectories(ugerDir.resolve("scripts").normalize)
-  lazy val lsfScriptDir: Path = createDirectories(lsfDir.resolve("scripts").normalize)
+    override val jobDataDir: Path = jobDir / "data"
+
+    override val logDir: Path = (loamstreamDir / "logs").normalize
+
+    override val dryRunOutputFile: Path = (logDir / "joblist").normalize
+
+    override val dbDir: Path = loamstreamDir / "db"
+
+    override lazy val ugerDir = (loamstreamDir / "uger").normalize
+    override lazy val lsfDir = (loamstreamDir / "lsf").normalize
+  }
 }

@@ -15,6 +15,10 @@ import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
 import loamstream.util.BashScript.Implicits.BashPath
 import loamstream.model.execute.LocalSettings
+import loamstream.model.jobs.JobOracle
+import java.nio.file.Path
+import loamstream.model.jobs.LJob
+import loamstream.util.Files
 
 /**
  * Created by kyuksel on 2/29/2016.
@@ -28,6 +32,7 @@ object ScriptBuilderTest {
 final class ScriptBuilderTest extends FunSuite {
 
   import ScriptBuilderTest.EnrichedString
+  import TestHelpers.path
 
   test("A shell script is generated out of a CommandLineJob, and can be used to submit a UGER job") {
     def doTest(drmSystem: DrmSystem, containerParamsOpt: Option[ContainerParams]): Unit = {
@@ -38,13 +43,22 @@ final class ScriptBuilderTest extends FunSuite {
           defaultQueue(drmSystem),
           containerParamsOpt)
   
-      val jobs = Seq(getShapeItCommandLineJob(0), getShapeItCommandLineJob(1), getShapeItCommandLineJob(2))
+      val discriminators @ (d0, d1, d2) = (0, 1, 2)
+          
+      val jobs = Seq(getShapeItCommandLineJob(d0), getShapeItCommandLineJob(d1), getShapeItCommandLineJob(d2))
       val jobName = DrmTaskArray.makeJobName()
       
       val config = drmConfig(drmSystem)
       
+      def makePath(s: String): Path = path(s"foo/bar/baz/$s")
+      
+      val jobOracle: JobOracle = new JobOracle {
+        override def dirOptFor(job: LJob): Option[Path] = Some(makePath(job.id.toString))
+      }
+      
       val taskArray = DrmTaskArray.fromCommandLineJobs(
           ExecutionConfig.default,
+          jobOracle,
           drmSettings,
           config, 
           pathBuilder(drmSystem), 
@@ -56,17 +70,17 @@ final class ScriptBuilderTest extends FunSuite {
       }
   
       val jobIds: (String, String, String) = (jobs(0).id.toString, jobs(1).id.toString, jobs(2).id.toString)
-      val discriminators = (0, 1, 2)
       
       val expectedScriptContents = expectedScriptAsString(
+        makePath,
         config, 
         jobName, 
         discriminators, 
         jobIds, 
         drmSystem, 
         containerParamsOpt).withNormalizedLineBreaks
-  
-      assert(scriptContents == expectedScriptContents)
+        
+      assert(scriptContents === expectedScriptContents)
     }
     
     val containerParams = ContainerParams("library/foo:1.23")
@@ -115,7 +129,7 @@ final class ScriptBuilderTest extends FunSuite {
 
     val commandLineString = getShapeItCommandLineString(shapeItExecutable, vcf, map, hap, samples, log, numThreads)
 
-    CommandLineJob(commandLineString, shapeItWorkDir, LocalSettings)
+    CommandLineJob(commandLineString, shapeItWorkDir, LocalSettings, nameOpt = Some(discriminator.toString))
   }
 
   private def getShapeItCommandLineTokens(
@@ -156,6 +170,7 @@ final class ScriptBuilderTest extends FunSuite {
 
   // scalastyle:off method.length
   private def expectedScriptAsString(
+      makeJobDir: String => Path,
       drmConfig: DrmConfig,
       jobName: String, 
       discriminators: (Int, Int, Int), 
@@ -167,7 +182,9 @@ final class ScriptBuilderTest extends FunSuite {
     val (jobId0, jobId1, jobId2) = jobIds
 
     val drmOutputDir = drmConfig.workDir.toAbsolutePath.render
-    val finalOutputDir = path(".loamstream/job-outputs").toAbsolutePath.render
+    val finalOutputDir0 = makeJobDir(jobId0).toAbsolutePath.render
+    val finalOutputDir1 = makeJobDir(jobId1).toAbsolutePath.render
+    val finalOutputDir2 = makeJobDir(jobId2).toAbsolutePath.render
 
     val sixSpaces = "      "
 
@@ -208,12 +225,17 @@ ${singularityPrefix}/some/shapeit/executable -V /some/vcf/file.$discriminator0 -
 
 LOAMSTREAM_JOB_EXIT_CODE=$$?
 
-stdoutDestPath="$finalOutputDir/${jobId0}.stdout"
-stderrDestPath="$finalOutputDir/${jobId0}.stderr"
+origStdoutPath="${drmOutputDir}/${jobName}.1.stdout"
+origStderrPath="${drmOutputDir}/${jobName}.1.stderr"
 
-mkdir -p $finalOutputDir
-mv $drmOutputDir/${jobName}.1.stdout $$stdoutDestPath || echo "Couldn't move DRM std out log $drmOutputDir/${jobName}.1.stdout; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
-mv $drmOutputDir/${jobName}.1.stderr $$stderrDestPath || echo "Couldn't move DRM std err log $drmOutputDir/${jobName}.1.stderr; it's likely the job wasn't submitted successfully" > $$stderrDestPath
+stdoutDestPath="$finalOutputDir0/stdout"
+stderrDestPath="$finalOutputDir0/stderr"
+
+jobDir="$finalOutputDir0"
+
+mkdir -p $$jobDir
+mv $$origStdoutPath $$stdoutDestPath || echo "Couldn't move DRM std out log $$origStdoutPath; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
+mv $$origStderrPath $$stderrDestPath || echo "Couldn't move DRM std err log $$origStderrPath; it's likely the job wasn't submitted successfully" > $$stderrDestPath
 
 exit $$LOAMSTREAM_JOB_EXIT_CODE
 
@@ -223,12 +245,17 @@ ${singularityPrefix}/some/shapeit/executable -V /some/vcf/file.$discriminator1 -
 
 LOAMSTREAM_JOB_EXIT_CODE=$$?
 
-stdoutDestPath="$finalOutputDir/${jobId1}.stdout"
-stderrDestPath="$finalOutputDir/${jobId1}.stderr"
+origStdoutPath="${drmOutputDir}/${jobName}.2.stdout"
+origStderrPath="${drmOutputDir}/${jobName}.2.stderr"
 
-mkdir -p $finalOutputDir
-mv $drmOutputDir/${jobName}.2.stdout $$stdoutDestPath || echo "Couldn't move DRM std out log $drmOutputDir/${jobName}.2.stdout; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
-mv $drmOutputDir/${jobName}.2.stderr $$stderrDestPath || echo "Couldn't move DRM std err log $drmOutputDir/${jobName}.2.stderr; it's likely the job wasn't submitted successfully" > $$stderrDestPath
+stdoutDestPath="$finalOutputDir1/stdout"
+stderrDestPath="$finalOutputDir1/stderr"
+
+jobDir="$finalOutputDir1"
+
+mkdir -p $$jobDir
+mv $$origStdoutPath $$stdoutDestPath || echo "Couldn't move DRM std out log $$origStdoutPath; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
+mv $$origStderrPath $$stderrDestPath || echo "Couldn't move DRM std err log $$origStderrPath; it's likely the job wasn't submitted successfully" > $$stderrDestPath
 
 exit $$LOAMSTREAM_JOB_EXIT_CODE
 
@@ -238,12 +265,17 @@ ${singularityPrefix}/some/shapeit/executable -V /some/vcf/file.$discriminator2 -
 
 LOAMSTREAM_JOB_EXIT_CODE=$$?
 
-stdoutDestPath="$finalOutputDir/${jobId2}.stdout"
-stderrDestPath="$finalOutputDir/${jobId2}.stderr"
+origStdoutPath="${drmOutputDir}/${jobName}.3.stdout"
+origStderrPath="${drmOutputDir}/${jobName}.3.stderr"
 
-mkdir -p $finalOutputDir
-mv $drmOutputDir/${jobName}.3.stdout $$stdoutDestPath || echo "Couldn't move DRM std out log $drmOutputDir/${jobName}.3.stdout; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
-mv $drmOutputDir/${jobName}.3.stderr $$stderrDestPath || echo "Couldn't move DRM std err log $drmOutputDir/${jobName}.3.stderr; it's likely the job wasn't submitted successfully" > $$stderrDestPath
+stdoutDestPath="$finalOutputDir2/stdout"
+stderrDestPath="$finalOutputDir2/stderr"
+
+jobDir="$finalOutputDir2"
+
+mkdir -p $$jobDir
+mv $$origStdoutPath $$stdoutDestPath || echo "Couldn't move DRM std out log $$origStdoutPath; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
+mv $$origStderrPath $$stderrDestPath || echo "Couldn't move DRM std err log $$origStderrPath; it's likely the job wasn't submitted successfully" > $$stderrDestPath
 
 exit $$LOAMSTREAM_JOB_EXIT_CODE
 

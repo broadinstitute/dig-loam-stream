@@ -19,6 +19,7 @@ final class RunDataTest extends FunSuite {
   import JobStatus.FailedPermanently
   import JobStatus.WaitingForOutputs
   import TestHelpers.path
+  import TestHelpers.dummyJobDir
   
   private val dummyCommandLine = "foo --bar --baz"
   
@@ -77,13 +78,15 @@ final class RunDataTest extends FunSuite {
     
     val termReason = TerminationReason.Memory
     
+    val jobDir = dummyJobDir
+    
     val runData = RunData(
         job = j,
         settings = LocalSettings,
         jobStatus = Succeeded, 
         jobResult = Some(JobResult.Success),
         resourcesOpt = Some(localResources),
-        outputStreamsOpt = Some(OutputStreams(path("foo"), path("bar"))),
+        jobDirOpt = Some(jobDir),
         terminationReasonOpt = Some(termReason))
         
     val expected = Execution(
@@ -93,7 +96,7 @@ final class RunDataTest extends FunSuite {
         result = Some(JobResult.Success),
         resources = Option(localResources),
         outputs = Set.empty,
-        outputStreams = Some(OutputStreams(path("foo"), path("bar"))),
+        jobDir = Some(jobDir),
         terminationReason = Some(termReason))
     
     assert(runData.toExecution === expected)
@@ -106,13 +109,15 @@ final class RunDataTest extends FunSuite {
     
     val termReason = TerminationReason.Memory
     
+    val jobDir = dummyJobDir
+    
     val runData = RunData(
         job = j,
         settings = LocalSettings,
         jobStatus = FailedPermanently, 
         jobResult = Some(JobResult.Failure),
         resourcesOpt = Some(localResources),
-        outputStreamsOpt = Some(OutputStreams(path("foo"), path("bar"))),
+        jobDirOpt = Some(jobDir),
         terminationReasonOpt = Some(termReason))
         
     val expected = Execution(
@@ -122,7 +127,7 @@ final class RunDataTest extends FunSuite {
         result = Some(JobResult.Failure),
         resources = Option(localResources),
         outputs = Set.empty,
-        outputStreams = Some(OutputStreams(path("foo"), path("bar"))),
+        jobDir = Some(jobDir),
         terminationReason = Some(termReason))
     
     assert(runData.toExecution === expected)
@@ -135,13 +140,15 @@ final class RunDataTest extends FunSuite {
     
     val termReason = TerminationReason.Memory
     
+    val jobDir = dummyJobDir
+    
     val runData = RunData(
         job = j,
         settings = LocalSettings,
         jobStatus = WaitingForOutputs, 
         jobResult = None,
         resourcesOpt = Some(localResources),
-        outputStreamsOpt = Some(OutputStreams(path("foo"), path("bar"))),
+        jobDirOpt = Some(jobDir),
         terminationReasonOpt = Some(termReason))
         
     val expected = Execution(
@@ -151,7 +158,7 @@ final class RunDataTest extends FunSuite {
         result = None,
         resources = Option(localResources),
         outputs = Set.empty,
-        outputStreams = Some(OutputStreams(path("foo"), path("bar"))),
+        jobDir = Some(jobDir),
         terminationReason = Some(termReason))
     
     assert(runData.toExecution === expected)
@@ -164,13 +171,15 @@ final class RunDataTest extends FunSuite {
     
     val termReason = TerminationReason.Memory
     
+    val jobDir = dummyJobDir
+    
     val runData = RunData(
         job = clj,
         settings = LocalSettings,
         jobStatus = Succeeded, 
         jobResult = Some(JobResult.Success),
         resourcesOpt = Some(localResources),
-        outputStreamsOpt = Some(OutputStreams(path("foo"), path("bar"))),
+        jobDirOpt = Some(jobDir),
         terminationReasonOpt = Some(termReason))
         
     val expected = Execution(
@@ -180,7 +189,7 @@ final class RunDataTest extends FunSuite {
         result = Some(JobResult.Success),
         resources = Option(localResources),
         outputs = Set.empty,
-        outputStreams = Some(OutputStreams(path("foo"), path("bar"))),
+        jobDir = Some(jobDir),
         terminationReason = Some(termReason))
     
     assert(runData.toExecution === expected)
@@ -193,13 +202,15 @@ final class RunDataTest extends FunSuite {
     
     val termReason = TerminationReason.Memory
     
+    val jobDir = dummyJobDir
+    
     val runData = RunData(
         job = clj,
         settings = LocalSettings,
         jobStatus = FailedPermanently, 
         jobResult = Some(JobResult.Failure),
         resourcesOpt = Some(localResources),
-        outputStreamsOpt = Some(OutputStreams(path("foo"), path("bar"))),
+        jobDirOpt = Some(jobDir),
         terminationReasonOpt = Some(termReason))
         
     val expected = Execution(
@@ -209,7 +220,7 @@ final class RunDataTest extends FunSuite {
         result = Some(JobResult.Failure),
         resources = Option(localResources),
         outputs = Set.empty,
-        outputStreams = Some(OutputStreams(path("foo"), path("bar"))),
+        jobDir = Some(jobDir),
         terminationReason = Some(termReason))
     
     assert(runData.toExecution === expected)
@@ -222,13 +233,15 @@ final class RunDataTest extends FunSuite {
     
     val termReason = TerminationReason.Memory
     
+    val jobDir = dummyJobDir
+    
     val runData = RunData(
         job = clj,
         settings = LocalSettings,
         jobStatus = WaitingForOutputs, 
         jobResult = None,
         resourcesOpt = Some(localResources),
-        outputStreamsOpt = Some(OutputStreams(path("foo"), path("bar"))),
+        jobDirOpt = Some(jobDir),
         terminationReasonOpt = Some(termReason))
         
     val expected = Execution(
@@ -238,7 +251,7 @@ final class RunDataTest extends FunSuite {
         result = None,
         resources = Option(localResources),
         outputs = Set.empty,
-        outputStreams = Some(OutputStreams(path("foo"), path("bar"))),
+        jobDir = Some(jobDir),
         terminationReason = Some(termReason))
     
     assert(runData.toExecution === expected)

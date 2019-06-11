@@ -63,7 +63,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
   private def noExecutions: Boolean = dao.allExecutions.isEmpty
 
-  import loamstream.TestHelpers.dummyOutputStreams
+  import loamstream.TestHelpers.dummyJobDir
 
   private def store(cmd: String, paths: Path*): Execution = {
     val outputs = paths.map { path =>
@@ -81,7 +81,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           status = result.toJobStatus,
           result = Option(result),
           resources = Option(TestHelpers.lsfResources),
-          outputStreams = Option(dummyOutputStreams),
+          jobDir = Option(dummyJobDir),
           outputs = outputs.toSet,
           terminationReason = None)
     }
@@ -117,7 +117,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
         status = result.toJobStatus,
         result = Option(result), 
         resources = Option(TestHelpers.ugerResources), 
-        outputStreams = Option(dummyOutputStreams), 
+        jobDir = Option(dummyJobDir), 
         outputs = outputs.toSet,
         terminationReason = Some(TerminationReason.CpuTime))
 
@@ -239,7 +239,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       assert(noOutputs)
       assert(noExecutions)
 
-      val outputStreams = dummyOutputStreams
+      val jobDir = dummyJobDir
 
       val toInsert = new ExecutionRow(
           dummyId,
@@ -247,8 +247,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           mockCmd,
           mockStatus,
           mockExitCode,
-          outputStreams.stdout.toString,
-          outputStreams.stderr.toString,
+          Some(jobDir.toString),
           None)
       
       assert(allExecutionRows.isEmpty)
@@ -265,8 +264,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       assert(recorded.cmd === mockCmd)
       assert(recorded.status === mockStatus)
       assert(recorded.exitCode === mockExitCode)
-      assert(recorded.stdoutPath === outputStreams.stdout.toString)
-      assert(recorded.stderrPath === outputStreams.stderr.toString)
+      assert(recorded.jobDir === Some(jobDir.toString))
       assert(recorded.terminationReason === None)
     }
   }
@@ -278,7 +276,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       assert(noOutputs)
       assert(noExecutions)
 
-      val outputStreams = dummyOutputStreams
+      val jobDir = dummyJobDir
 
       val toInsert = new ExecutionRow(
           dummyId,
@@ -286,8 +284,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           mockCmd,
           mockStatus,
           mockExitCode,
-          outputStreams.stdout.toString,
-          outputStreams.stderr.toString,
+          Some(jobDir.toString),
           Some(TerminationReason.Memory.name))
       
       assert(allExecutionRows.isEmpty)
@@ -304,8 +301,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       assert(recorded.cmd === mockCmd)
       assert(recorded.status === mockStatus)
       assert(recorded.exitCode === mockExitCode)
-      assert(recorded.stdoutPath === outputStreams.stdout.toString)
-      assert(recorded.stderrPath === outputStreams.stderr.toString)
+      assert(recorded.jobDir === Some(jobDir.toString))
       assert(recorded.terminationReason === Some(TerminationReason.Memory.name))
     }
   }
@@ -347,7 +343,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           status = CommandResult(42).toJobStatus,
           result = Option(CommandResult(42)),
           resources = Option(localResources),
-          outputStreams = Option(dummyOutputStreams), 
+          jobDir = Option(dummyJobDir), 
           outputs = Set(output0),
           terminationReason = None)
 
@@ -357,7 +353,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           status = CommandResult(1).toJobStatus,
           result = Option(CommandResult(1)),
           resources = Option(lsfResources),
-          outputStreams = Option(dummyOutputStreams), 
+          jobDir = Option(dummyJobDir), 
           outputs = Set.empty,
           terminationReason = Some(TerminationReason.UserRequested))
 
@@ -367,7 +363,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           status = CommandResult(0).toJobStatus,
           result = Option(CommandResult(0)),
           resources = Option(googleResources),
-          outputStreams = Option(dummyOutputStreams),
+          jobDir = Option(dummyJobDir),
           outputs = Set(output1, output2),
           terminationReason = None)
 
@@ -387,7 +383,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
             status = CommandResult(42).toJobStatus, 
             result = Option(CommandResult(42)),
             resources = Option(localResources),
-            outputStreams = failed0.outputStreams, 
+            jobDir = failed0.jobDir, 
             outputs = Set(StoreRecord(output0.loc)),
             terminationReason = None)
       }
@@ -410,7 +406,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
             mockUgerSettings,
             mockCmd,
             JobResult.CommandInvocationFailure(new Exception),
-            dummyOutputStreams,
+            dummyJobDir,
             output0.toStoreRecord)
   
         assert(failed.isFailure)
@@ -424,7 +420,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
             mockUgerSettings,
             mockCmd,
             CommandResult(JobResult.DummyExitCode),
-            failed.outputStreams.get,
+            failed.jobDir.get,
             failedOutput(output0.path))
   
         assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0))
@@ -447,7 +443,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
               status = JobResult.Failure.toJobStatus,
               result = Option(JobResult.Failure),
               resources = None,
-              outputStreams = Option(dummyOutputStreams), 
+              jobDir = Option(dummyJobDir), 
               outputs = Set(output0.toStoreRecord),
               terminationReason = None)
   
@@ -485,15 +481,15 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
         val output1 = cachedOutput(path1, hash1)
         val output2 = cachedOutput(path2, hash2)
   
-        val ex0 = Execution(ugerSettings, mockCmd, CommandResult(42), dummyOutputStreams, output0)
-        val ex1 = Execution(ugerSettings, mockCmd, CommandResult(0), dummyOutputStreams, output1, output2)
+        val ex0 = Execution(ugerSettings, mockCmd, CommandResult(42), dummyJobDir, output0)
+        val ex1 = Execution(ugerSettings, mockCmd, CommandResult(0), dummyJobDir, output1, output2)
         val ex2 = Execution(
             settings = ugerSettings,
             cmd = Option(mockCmd), 
             status = CommandResult(1).toJobStatus, 
             result = Option(CommandResult(1)),
             resources = Option(resources),
-            outputStreams = Option(dummyOutputStreams), 
+            jobDir = Option(dummyJobDir), 
             outputs = Set.empty,
             terminationReason = None)
   
@@ -505,7 +501,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   
         dao.insertExecutions(ex0)
   
-        val expected0 = Execution(ugerSettings, mockCmd, CommandResult(42), ex0.outputStreams.get, failedOutput(path0))
+        val expected0 = Execution(ugerSettings, mockCmd, CommandResult(42), ex0.jobDir.get, failedOutput(path0))
   
         assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0))
         assertEqualFieldsFor(dao.findExecution(output0), Some(expected0))
@@ -629,7 +625,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
             status = result.toJobStatus,
             result = Option(result),
             resources = Option(resources),
-            outputStreams = Option(dummyOutputStreams), 
+            jobDir = Option(dummyJobDir), 
             outputs = Set(output0),
             terminationReason = None)
             

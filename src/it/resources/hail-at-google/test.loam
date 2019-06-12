@@ -16,7 +16,7 @@ val output_google: Store = store(googleCloudUri / "output.tsv")
 val output_local: Store = store(workDir / "output.tsv")
 
 local {    
-  googleCopy(input_local, input_google)
+  googleCopy(input_local, input_google).tag("copy-input-to-google")
 }
 
 google {
@@ -29,5 +29,5 @@ google {
 }
 
 local {    
-  googleCopy(output_google, output_local)
+  googleCopy(output_google, output_local).tag("copy-result-to-local")
 }

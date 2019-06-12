@@ -293,6 +293,10 @@ object RxExecuter extends Loggable {
             }
           }
           
+          trace(
+            s"Done waiting for outputs, transitioning job $job with execution $execution " +
+            s"to final status '$finalStatus'")
+          
           job.transitionTo(finalStatus)
         }
       }

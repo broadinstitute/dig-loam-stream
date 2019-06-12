@@ -60,7 +60,7 @@ object LocalJobStrategy extends Loggable {
       
       RunData(
           job = commandLineJob,
-          settings = LocalSettings,
+          settings = commandLineJob.initialSettings,
           jobStatus = jobStatus, 
           jobResult = Some(jobResult), 
           resourcesOpt = Some(LocalResources(start, end)), 

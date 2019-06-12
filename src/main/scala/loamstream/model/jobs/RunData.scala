@@ -4,6 +4,7 @@ import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.model.execute.Resources
 import loamstream.model.execute.Settings
 import java.nio.file.Path
+import loamstream.model.execute.Resources.LocalResources
 
 /**
  * @author clint
@@ -32,6 +33,8 @@ final case class RunData(
     s"${name}(Job#$id, $settings, $jobStatus, $jobResult, $resourcesOpt, $jobDirOpt, $terminationReasonOpt)"
   }
   
+  def withSettings(s: Settings): RunData = copy(settings = s)
+  
   def withResources(r: Resources): RunData = copy(resourcesOpt = Some(r))
   
   private[jobs] def cmdOpt: Option[String] = job match { 
@@ -57,6 +60,13 @@ final case class RunData(
 }
 
 object RunData {
+  object WithLocalResources {
+    def unapply(runData: RunData): Option[LocalResources] = runData.resourcesOpt match {
+      case Some(lrs: LocalResources) => Some(lrs)
+      case _ => None
+    }
+  }
+  
   private[jobs] def determineJobStatus(status: JobStatus): JobStatus = status match {
     case JobStatus.WaitingForOutputs => JobStatus.Succeeded
     case _ => status

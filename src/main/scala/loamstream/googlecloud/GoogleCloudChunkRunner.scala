@@ -26,6 +26,8 @@ import rx.lang.scala.Observable
 import rx.lang.scala.schedulers.ExecutionContextScheduler
 import rx.lang.scala.Scheduler
 import loamstream.model.jobs.JobOracle
+import loamstream.model.execute.LocalSettings
+import loamstream.model.execute.GoogleSettings
 
 /**
  * @author clint
@@ -123,14 +125,27 @@ final case class GoogleCloudChunkRunner(
   }
 }
 
-object GoogleCloudChunkRunner {
+object GoogleCloudChunkRunner extends Loggable {
   private[googlecloud] def addCluster(cluster: String)
                                      (jobsAndExecutions: Map[LJob, RunData]): Map[LJob, RunData] = {
     jobsAndExecutions.map {
-      case (job, runData @ RunData(_, _, _, _, Some(localResources: LocalResources), _, _)) => {
+      case (job, runData @ RunData.WithLocalResources(localResources: LocalResources)) => {
         val googleResources = GoogleResources.fromClusterAndLocalResources(cluster, localResources)
         
-        job -> runData.withResources(googleResources)
+        //Make sure we've got Google settings
+        //TODO: Why weren't the settings GoogleSettings to begin with?
+        val newSettings = runData.settings match {
+          case LocalSettings => {
+            val googleSettings = GoogleSettings(cluster)
+            
+            debug(s"Munging LocalSettings to ${googleSettings}, grumble grumble")
+            
+            googleSettings
+          }
+          case settings => settings
+        }
+        
+        job -> runData.withResources(googleResources).withSettings(newSettings)
       }
       case tuple => tuple
     }

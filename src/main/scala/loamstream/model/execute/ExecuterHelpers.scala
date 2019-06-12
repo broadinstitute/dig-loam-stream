@@ -131,7 +131,7 @@ object ExecuterHelpers extends Loggable {
       result
     } catch {
       case NonFatal(e) => {
-        trace("Making fallback execution...")
+        trace(s"Making fallback execution due to ${e.getClass.getName}...", e)
         
         val result = executionInCaseOfFailure
         

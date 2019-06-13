@@ -1,10 +1,15 @@
 package loamstream
 
-import org.scalatest.FunSuite
-import loamstream.util.Paths.Implicits._
-import loamstream.util.{Files => LFiles}
-import loamstream.apps.Main
 import java.nio.file.Files.exists
+
+import scala.io.Source
+
+import org.scalatest.FunSuite
+
+import loamstream.apps.Main
+import loamstream.util.CanBeClosed
+import loamstream.util.{ Files => LFiles }
+import loamstream.util.Paths.Implicits.PathHelpers
 
 /**
  * @author clint
@@ -31,7 +36,12 @@ final class HailAtGoogleTest extends FunSuite {
     Main.main(Array(
         "--conf", "src/it/resources/hail-at-google/loamstream.conf",
         "--loams", "src/it/resources/hail-at-google/test.loam"))
-        
-    assert(exists(expectedOutput))
+    
+    val outputLines = CanBeClosed.enclosed(Source.fromFile(expectedOutput.toFile)) {
+      _.getLines.map(_.trim).toIndexedSeq
+    }
+       
+    assert(outputLines(0) === "AFR     AMR     EUR     EAS     SAS     TOTAL")
+    assert(outputLines(1) === "347     901     10045   324     75      11692")
   }
 }

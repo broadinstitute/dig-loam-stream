@@ -390,15 +390,6 @@ final class DrmChunkRunnerTest extends FunSuite {
         JobStatus.Failed)
   }
   
-  private def envFn[A]
-      (drmSystem: DrmSystem)
-      (cores: Int, mem: Int, maxRunTime: Int)
-      (block: => A)(implicit context: LoamScriptContext): A = drmSystem match {
-
-    case DrmSystem.Uger => LoamPredef.ugerWith(cores, mem, maxRunTime)(block)
-    case DrmSystem.Lsf => LoamPredef.drmWith(cores, mem, maxRunTime)(block)
-  }
-  
   test("DRM config is propagated to DRMAA client - 2 jobs, same settings") {
     
     def makeGraph(drmSystem: DrmSystem): LoamGraph = {
@@ -410,7 +401,7 @@ final class DrmChunkRunnerTest extends FunSuite {
         val b = store("b.txt")
         val c = store("c.txt")
       
-        envFn(drmSystem)(cores = 4, mem = 16, maxRunTime = 5) {
+        drmWith(cores = 4, mem = 16, maxRunTime = 5) {
           cmd"cp $a $b".in(a).out(b)
           cmd"cp $a $c".in(a).out(c)
         }
@@ -492,11 +483,11 @@ final class DrmChunkRunnerTest extends FunSuite {
       val d = store("d.txt")
       val e = store("e.txt")
     
-      val (tool0, tool1) = envFn(drmSystem)(cores = 4, mem = 16, maxRunTime = 5) {
+      val (tool0, tool1) = drmWith(cores = 4, mem = 16, maxRunTime = 5) {
         (cmd"cp $a $b".in(a).out(b)) -> (cmd"cp $a $c".in(a).out(c))
       }
       
-      val (tool2, tool3) = envFn(drmSystem)(cores = 7, mem = 9, maxRunTime = 11) {
+      val (tool2, tool3) = drmWith(cores = 7, mem = 9, maxRunTime = 11) {
         (cmd"cp $a $d".in(a).out(d)) -> (cmd"cp $a $e".in(a).out(e))
       }
       

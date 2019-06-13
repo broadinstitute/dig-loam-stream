@@ -81,7 +81,7 @@ final class DbBackedJobFilter(
   }
 
   private[execute] def hasNewCommandLine(job: LJob): Boolean = job match {
-    case CommandLineJob(newCommandLine, outputs) if outputs.nonEmpty => {
+    case CommandLineJob.WithCommandLineAndOutputs(newCommandLine, outputs) if outputs.nonEmpty => {
       val recordedCommandLine = findCommandLineInDb(outputs.head.location)
       
       recordedCommandLine != Some(newCommandLine)

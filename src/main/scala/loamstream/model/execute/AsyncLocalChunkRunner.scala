@@ -9,7 +9,7 @@ import loamstream.model.jobs.JobOracle
 import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.RunData
-import loamstream.model.jobs.commandline.ProcessLoggers
+import loamstream.util.ProcessLoggers
 import loamstream.util.Loggable
 import loamstream.util.Observables
 import loamstream.util.Throwables
@@ -67,7 +67,7 @@ object AsyncLocalChunkRunner extends Loggable {
     
     val jobDir = jobOracle.dirFor(job)
     
-    val processLogger = ProcessLoggers.forNamedJob(jobDir)
+    val processLogger = ProcessLoggers.toFilesInDir(jobDir)
     
     val result = LocalJobStrategy.execute(job, jobDir, processLogger)
 

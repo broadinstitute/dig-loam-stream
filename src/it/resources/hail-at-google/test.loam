@@ -1,0 +1,33 @@
+import loamstream.conf.DataConfig
+import loamstream.googlecloud.HailSupport._
+import loamstream.model.Store
+import loamstream.util.CanBeClosed.enclosed
+
+val dataConfig = loadConfig("dataConfig", "")
+
+val googleCloudUri = uri(dataConfig.getStr("googleCloudUri"))
+val workDir = path(dataConfig.getStr("workDir"))
+
+val resourcesDir = path("src/it/resources/hail-at-google")
+
+val input_local: Store = store(resourcesDir / "input.tsv")
+val input_google: Store = store(googleCloudUri / "input.tsv")
+val output_google: Store = store(googleCloudUri / "output.tsv")
+val output_local: Store = store(workDir / "output.tsv")
+
+local {    
+  googleCopy(input_local, input_google).tag("copy-input-to-google")
+}
+
+google {
+  hail"""${resourcesDir}/hail_test.py --
+    --input ${input_google}
+    --output ${output_google}"""
+    .in(input_google)
+    .out(output_google)
+    .tag(s"hail_test")
+}
+
+local {    
+  googleCopy(output_google, output_local).tag("copy-result-to-local")
+}

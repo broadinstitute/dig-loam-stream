@@ -29,7 +29,7 @@ object IntegrationTestHelpers {
       case cn => cn
     }
     
-    val subDirParts = Seq(s"${classNamePart}-${sequence.next()}") ++ subDir
+    val subDirParts = s"${classNamePart}-${sequence.next()}" +: subDir.toSeq
     
     val result = Paths.get("target", subDirParts: _*).toAbsolutePath
     

@@ -1,7 +1,7 @@
-package loamstream.model.jobs
+package loamstream.util
 
 import java.nio.file.Path
-import loamstream.util.Paths
+import loamstream.model.jobs.OutputStreams
 
 /**
  * @author clint

@@ -69,8 +69,10 @@ object CommandLineJob extends Loggable {
 
   val defaultExitValueChecker: Int => Boolean = mustBeZero
 
-  def unapply(job: LJob): Option[(String, Set[DataHandle])] = job match {
-    case clj: CommandLineJob => Some((clj.commandLineString, clj.outputs))
-    case _                   => None
+  object WithCommandLineAndOutputs {
+    def unapply(job: LJob): Option[(String, Set[DataHandle])] = job match {
+      case clj: CommandLineJob => Some((clj.commandLineString, clj.outputs))
+      case _                   => None
+    }
   }
 }

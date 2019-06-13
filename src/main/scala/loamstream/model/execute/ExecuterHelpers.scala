@@ -19,6 +19,7 @@ import loamstream.conf.LoamConfig
 import loamstream.util.Functions
 import scala.util.Try
 import loamstream.util.FileMonitor
+import scala.util.control.NonFatal
 
 /**
  * @author clint
@@ -120,10 +121,32 @@ object ExecuterHelpers extends Loggable {
       execution: => Execution,
       executionInCaseOfFailure: => Execution)(implicit context: ExecutionContext): Future[Execution] = {
     
-    lazy val executionToUse = Try(execution).getOrElse(executionInCaseOfFailure)
+    lazy val executionToUse = try {
+      trace("Making Execution from RunData...")
+      
+      val result = execution
+      
+      trace(s"Made $result from RunData")
+      
+      result
+    } catch {
+      case NonFatal(e) => {
+        trace(s"Making fallback execution due to ${e.getClass.getName}...", e)
+        
+        val result = executionInCaseOfFailure
+        
+        trace(s"Made fallback Execution: $result")
+        
+        result
+      }
+    }
     
     doWait.map { _ => executionToUse }.recover { 
-      case e => ExecuterHelpers.updateWithException(executionToUse, e)
+      case e => {
+        error(s"Error waiting for outputs and making Execution: ", e)
+        
+        ExecuterHelpers.updateWithException(executionToUse, e)
+      }
     }
   }
   

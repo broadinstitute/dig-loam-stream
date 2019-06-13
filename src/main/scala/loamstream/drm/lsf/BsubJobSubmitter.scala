@@ -49,14 +49,14 @@ final class BsubJobSubmitter private[lsf] (
           case Some(jobId) =>  makeSuccess(jobId, taskArray)
           case None => {
             logAndMakeFailure(r) { r =>
-              s"LSF Job submission failure: couldn't determine job ID from output of `${r.executable}`: ${r.stdout}"
+              s"LSF Job submission failure: couldn't determine job ID from output of `${r.commandLine}`: ${r.stdout}"
             }
           }
         }
       } 
       case r: RunResults.Unsuccessful => {
         logAndMakeFailure(r) { r =>
-          s"LSF Job submission failure: `${r.executable}` failed with status code ${r.exitCode}"
+          s"LSF Job submission failure: `${r.commandLine}` failed with status code ${r.exitCode}"
         }
       }
     }

@@ -6,7 +6,7 @@ import java.nio.file.Paths
 import org.ggf.drmaa.JobTemplate
 
 import loamstream.conf.ExecutionConfig
-import loamstream.model.jobs.LogFileNames
+import loamstream.util.LogFileNames
 import loamstream.model.jobs.OutputStreams
 import loamstream.model.jobs.commandline.HasCommandLine
 import loamstream.util.BashScript.Implicits._

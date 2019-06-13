@@ -6,11 +6,13 @@ package loamstream.util
  */
 sealed trait RunResults {
   
-  def executable: String
+  def commandLine: String
   
   def stdout: Seq[String]
   
   def stderr: Seq[String]
+  
+  def exitCode: Int
 
   final def logStdOutAndStdErr(
       headerMessage: String, 
@@ -19,8 +21,8 @@ sealed trait RunResults {
     def doLog(s: => String): Unit = logCtx.log(level, s)
     
     doLog(headerMessage)
-    stderr.foreach(line => doLog(s"${executable} <via stderr>: $line"))
-    stdout.foreach(line => doLog(s"${executable} <via stdout>: $line"))
+    stderr.foreach(line => doLog(s"'${commandLine}' <via stderr>: $line"))
+    stdout.foreach(line => doLog(s"'${commandLine}' <via stdout>: $line"))
   }
 }
 
@@ -30,10 +32,12 @@ object RunResults {
     else { Unsuccessful(executable, exitCode, stdout, stderr) }
   }
   
-  final case class Successful(executable: String, stdout: Seq[String], stderr: Seq[String]) extends RunResults
+  final case class Successful(commandLine: String, stdout: Seq[String], stderr: Seq[String]) extends RunResults {
+    override def exitCode: Int = 0
+  }
   
   final case class Unsuccessful(
-      executable: String, 
+      commandLine: String, 
       exitCode: Int, 
       stdout: Seq[String], 
       stderr: Seq[String]) extends RunResults

@@ -13,28 +13,25 @@ import scala.util.Failure
 object Processes extends Loggable {
   import scala.sys.process._
   
-  def runSync(executable: String, commandLineTokens: Seq[String]): Try[RunResults] = {
+  def runSync(commandLineTokens: Seq[String]): Try[RunResults] = {
     import scala.sys.process._
     
     //NB: Implicit conversion to ProcessBuilder :\ 
     val processBuilder: ProcessBuilder = commandLineTokens
     
-    runSync(executable, processBuilder)
+    runSync(commandLineTokens.mkString(" "), processBuilder)
   }
   
   def runSync(
-      executable: String, 
+      commandLine: String, 
       processBuilder: ProcessBuilder)(implicit logCtx: LogContext): Try[RunResults] = {
     
-    val stdOutBuffer: Buffer[String] = new ArrayBuffer
-    val stdErrBuffer: Buffer[String] = new ArrayBuffer
-    
-    val processLogger = ProcessLogger(stdOutBuffer += _, stdErrBuffer += _)
+    val processLogger = ProcessLoggers.buffering
     
     Try {
       val exitCode = processBuilder.!(processLogger)
     
-      RunResults(executable, exitCode, stdOutBuffer.toList, stdErrBuffer.toList)
+      RunResults(commandLine, exitCode, processLogger.stdOut, processLogger.stdErr)
     }
   }
 }

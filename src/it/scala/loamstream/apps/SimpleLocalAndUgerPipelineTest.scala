@@ -19,12 +19,12 @@ import loamstream.model.execute.EnvironmentType
  * @author clint
  * Jan 29, 2018
  */
-final class SimplePipelineTest extends FunSuite {
+final class SimpleLocalAndUgerPipelineTest extends FunSuite {
     
   import loamstream.cli.JobFilterIntent.{ DontFilterByName, RunEverything }
   import HashingStrategy.{ HashOutputs, DontHashOutputs }
-  import SimplePipelineTest.EnvironmentDescriptor
-  import SimplePipelineTest.EnvironmentDescriptor._
+  import SimpleLocalAndUgerPipelineTest._
+  import SimpleLocalAndUgerPipelineTest.EnvironmentDescriptor._
   
   test(s"A simple linear pipeline running locally should work") {
     doTest(Local, jobFilterIntent = RunEverything, hashingStrategy = HashOutputs)
@@ -159,7 +159,7 @@ final class SimplePipelineTest extends FunSuite {
   }
 }
 
-object SimplePipelineTest {
+object SimpleLocalAndUgerPipelineTest {
   private sealed abstract class EnvironmentDescriptor {
     def toFileNamePart: String
     

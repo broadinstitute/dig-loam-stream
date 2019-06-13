@@ -51,7 +51,7 @@ final class RetryingCommandInvoker[A](
     def invokeBinary(): Try[RunResults.Successful] = delegateFn(param) match {
       //Coerce invocations producing non-zero exit codes to Failures
       case Success(r: RunResults.Unsuccessful) => {
-        val msg = s"Error invoking ${r.executable} (exit code ${r.exitCode})"
+        val msg = s"Error invoking '${r.commandLine}' (exit code ${r.exitCode})"
         
         r.logStdOutAndStdErr(s"$msg; output streams follow:", Loggable.Level.warn)
         

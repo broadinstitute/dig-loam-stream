@@ -1,18 +1,13 @@
-package loamstream.model.jobs.commandline
+package loamstream.util
 
 import java.nio.file.Path
-import loamstream.util.Loggable
 import java.io.Writer
 import java.io.FileWriter
 import java.io.BufferedWriter
-import loamstream.util.Throwables
-import loamstream.util.LogContext
-import loamstream.util.Files
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.sys.process.ProcessLogger
 import loamstream.model.jobs.OutputStreams
-import loamstream.util.CanBeClosed
-import loamstream.util.Terminable
+import loamstream.model.jobs.commandline.CloseableProcessLogger
 
 /**
  * @author clint
@@ -64,7 +59,7 @@ object ToFilesProcessLogger {
     ToFilesProcessLogger(outputStreams.stdout, outputStreams.stderr)
   }
   
-  private[commandline] def makeNeededParentDirs(outputFile: Path): Unit = {
+  private[util] def makeNeededParentDirs(outputFile: Path): Unit = {
     Option(outputFile.normalize.getParent).foreach(Files.createDirsIfNecessary)
   }
   

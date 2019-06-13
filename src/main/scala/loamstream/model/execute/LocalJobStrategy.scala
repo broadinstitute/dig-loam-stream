@@ -1,16 +1,18 @@
 package loamstream.model.execute
 
 import java.nio.file.{Files => JFiles}
-
 import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.jobs.JobResult.CommandResult
 import loamstream.model.jobs.{JobStatus, LJob, LocalJob, OutputStreams, RunData}
-import loamstream.model.jobs.commandline.{CloseableProcessLogger, CommandLineJob, ToFilesProcessLogger}
+import loamstream.model.jobs.commandline.{CloseableProcessLogger, CommandLineJob}
+import loamstream.util.ToFilesProcessLogger
 import loamstream.util.{BashScript, CanBeClosed, Futures, Loggable, TimeUtils}
-
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 import java.nio.file.Path
+import loamstream.util.Processes
+import scala.util.Try
+import java.time.Instant
 
 /**
  * @author clint
@@ -51,41 +53,56 @@ object LocalJobStrategy extends Loggable {
         }
       }
       
-      val (jobStatus, jobResult) = exitValueAttempt match {
+      makeRunData(exitValueAttempt.flatten, start, end, commandLineJob, jobDir, processLogger)
+    }
+  }
+  
+  private[execute] def makeRunData(
+      exitValueAttempt: Try[Int], 
+      start: Instant, 
+      end: Instant, 
+      commandLineJob: CommandLineJob, 
+      jobDir: Path,
+      processLogger: ToFilesProcessLogger): RunData = {
+    
+    val (jobStatus, jobResult) = exitValueAttempt match {
         case Success(exitValue) => (JobStatus.fromExitCode(exitValue), CommandResult(exitValue))
         case Failure(e)         => ExecuterHelpers.statusAndResultFrom(e)
       }
       
-      val outputStreams = OutputStreams(processLogger.stdoutPath, processLogger.stderrPath)
-      
-      RunData(
-          job = commandLineJob,
-          settings = commandLineJob.initialSettings,
-          jobStatus = jobStatus, 
-          jobResult = Some(jobResult), 
-          resourcesOpt = Some(LocalResources(start, end)), 
-          jobDirOpt = Some(jobDir),
-          terminationReasonOpt = None)
-    }
+    val outputStreams = OutputStreams(processLogger.stdoutPath, processLogger.stderrPath)
+    
+    RunData(
+        job = commandLineJob,
+        settings = commandLineJob.initialSettings,
+        jobStatus = jobStatus, 
+        jobResult = Some(jobResult), 
+        resourcesOpt = Some(LocalResources(start, end)), 
+        jobDirOpt = Some(jobDir),
+        terminationReasonOpt = None)
   }
   
-  private def createWorkDirAndRun(job: CommandLineJob, processLogger: CloseableProcessLogger): Int = {
-    JFiles.createDirectories(job.workDir)
-
+  private def createWorkDirAndRun(job: CommandLineJob, processLogger: CloseableProcessLogger): Try[Int] = {
+    import scala.sys.process.ProcessBuilder
+    
     val commandLineString = job.commandLineString
-
-    val processBuilder: scala.sys.process.ProcessBuilder = {
-      BashScript.fromCommandLineString(commandLineString).processBuilder(job.workDir)
+    
+    val exitCodeAttempt = for {
+      _ <- Try(JFiles.createDirectories(job.workDir))
+      processBuilder = BashScript.fromCommandLineString(commandLineString).processBuilder(job.workDir)
+      runResults <- Processes.runSync(job.commandLineString, processBuilder)
+    } yield runResults.exitCode
+    
+    if(isTraceEnabled) {
+      exitCodeAttempt.foreach { exitCode =>
+        if (job.exitValueIsOk(exitCode)) {
+          trace(s"SUCCEEDED: '$commandLineString'")
+        } else {
+          trace(s"FAILED with $exitCode: '$commandLineString'")
+        }
+      }
     }
 
-    val exitValue = processBuilder.run(processLogger).exitValue
-
-    if (job.exitValueIsOk(exitValue)) {
-      trace(s"SUCCEEDED: $commandLineString")
-    } else {
-      trace(s"FAILED: $commandLineString")
-    }
-
-    exitValue
+    exitCodeAttempt
   }
 }

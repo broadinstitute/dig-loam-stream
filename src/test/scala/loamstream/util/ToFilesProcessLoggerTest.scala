@@ -1,12 +1,10 @@
-package loamstream.model.jobs.commandline
+package loamstream.util
 
-import scala.sys.process.ProcessLogger
-import org.scalatest.FunSuite
-import loamstream.TestHelpers
-import loamstream.util.Paths
-import loamstream.util.Files
-import loamstream.util.CanBeClosed
 import java.nio.file.Path
+
+import org.scalatest.FunSuite
+
+import loamstream.TestHelpers
 
 
 /**
@@ -88,7 +86,7 @@ final class ToFilesProcessLoggerTest extends FunSuite {
     val stdoutPath = workDir / "stdout"
     val stderrPath = workDir / "stderr"
     
-    import CanBeClosed.{enclosed => stopAfter }
+    import CanBeClosed.{ enclosed => stopAfter }
     
     stopAfter(ToFilesProcessLogger(stdoutPath, stderrPath))(f)
     

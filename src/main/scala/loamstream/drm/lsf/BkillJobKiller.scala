@@ -32,7 +32,7 @@ object BkillJobKiller {
   
   def fromExecutable(actualExecutable: String = "bkill"): BkillJobKiller = {
     val killJobs: InvocationFn = { () =>
-      Processes.runSync(actualExecutable, makeTokens(actualExecutable))
+      Processes.runSync(makeTokens(actualExecutable))
     }
     
     new BkillJobKiller(killJobs)

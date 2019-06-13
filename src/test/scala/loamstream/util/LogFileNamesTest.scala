@@ -1,8 +1,10 @@
-package loamstream.model.jobs
+package loamstream.util
+
+import java.nio.file.Path
 
 import org.scalatest.FunSuite
-import loamstream.TestHelpers
-import java.nio.file.Path
+
+import loamstream.model.jobs.MockJob
 
 /**
  * @author clint
@@ -10,8 +12,8 @@ import java.nio.file.Path
  */
 final class LogFileNamesTest extends FunSuite {
 
-  import JobStatus.Succeeded
-  import TestHelpers.path
+  import loamstream.TestHelpers.path
+  import loamstream.model.jobs.JobStatus.Succeeded
 
   private val outputDir = path("/w/x/y/z/")
 

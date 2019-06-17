@@ -1,0 +1,11 @@
+val a = store("A.txt").asInput
+val b = store("B.txt")
+val c = store("C.txt")
+
+drmWith(imageName = "bash-4.4.simg") {
+  cmd"cp $a $b".in(a).out(b).tag("a2b-singularity")
+}
+
+drm {
+  cmd"cp $b $c".in(b).out(c).tag("b2c-lsf")
+}

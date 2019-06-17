@@ -9,15 +9,15 @@ import scala.Vector
  */
 final class ThrowablesTest extends FunSuite {
   
-  type ParamTuple = (Loggable.Level.Value, String, Throwable)
+  type ParamTuple = (Loggable.Level, String, Throwable)
   
   private final class MockLogContext extends LogContext {
     
     val params: ValueBox[Seq[ParamTuple]] = ValueBox(Vector.empty)
     
-    override def log(level: Loggable.Level.Value, s: => String): Unit = ???
+    override def log(level: Loggable.Level, s: => String): Unit = ???
     
-    override def log(level: Loggable.Level.Value, s: => String, e: Throwable): Unit = {
+    override def log(level: Loggable.Level, s: => String, e: Throwable): Unit = {
       params.mutate(_ :+ (level, s, e))
     }
   }
@@ -89,7 +89,7 @@ final class ThrowablesTest extends FunSuite {
   }
   
   test("quietly - nothing thrown") {
-    def doTest(level: Loggable.Level.Value): Unit = {
+    def doTest(level: Loggable.Level): Unit = {
       implicit val logContext = new MockLogContext
     
       var x = 42
@@ -113,7 +113,7 @@ final class ThrowablesTest extends FunSuite {
   }
   
   test("quietly - something thrown") {
-    def doTest(level: Loggable.Level.Value): Unit = {
+    def doTest(level: Loggable.Level): Unit = {
       implicit val logContext = new MockLogContext
     
       var x = 42

@@ -11,8 +11,20 @@ import org.slf4j.{Logger, LoggerFactory}
   */
 object Loggable {
 
-  object Level extends Enumeration {
-    val trace, debug, info, warn, error = Value
+  sealed abstract class Level {
+    private val index: Int = Level.indices.next()
+    
+    def >=(that: Level): Boolean = this.index >= that.index
+  }
+  
+  object Level {
+    private val indices: Sequence[Int] = Sequence()
+    
+    case object trace extends Level()
+    case object debug extends Level
+    case object info extends Level
+    case object warn extends Level
+    case object error extends Level
   }
 
 }
@@ -24,7 +36,7 @@ trait Loggable extends LogContext {
   
   protected implicit val logContext: LogContext = this
   
-  override final def log(level: Level.Value, s: => String): Unit = level match {
+  override final def log(level: Level, s: => String): Unit = level match {
     case Level.trace => trace(s)
     case Level.debug => debug(s)
     case Level.info => info(s)
@@ -32,7 +44,7 @@ trait Loggable extends LogContext {
     case Level.error => error(s)
   }
 
-  override final def log(level: Level.Value, s: => String, e: Throwable): Unit = level match {
+  override final def log(level: Level, s: => String, e: Throwable): Unit = level match {
     case Level.trace => trace(s, e)
     case Level.debug => debug(s, e)
     case Level.info => info(s, e)

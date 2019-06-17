@@ -34,4 +34,27 @@ object Processes extends Loggable {
       RunResults(commandLine, exitCode, processLogger.stdOut, processLogger.stdErr)
     }
   }
+  
+  def runSync(
+      commandLine: String, 
+      streamOutput: Boolean = false, 
+      outputPrefix: String = "")(implicit logCtx: LogContext): Try[RunResults] = {
+    
+    import java.nio.file.Paths.{ get => path }
+    
+    Try {
+      val processBuilder = BashScript.fromCommandLineString(commandLine).processBuilder(path("."))
+    
+      val bufferingProcessLogger = ProcessLoggers.buffering
+      
+      val processLogger = {
+        if(streamOutput)  { new ProcessLoggers.PassThrough(outputPrefix)(logCtx) } 
+        else { bufferingProcessLogger }
+      }
+      
+      val exitCode = processBuilder.!(processLogger)
+    
+      RunResults(commandLine, exitCode, bufferingProcessLogger.stdOut, bufferingProcessLogger.stdErr)
+    }
+  }
 }

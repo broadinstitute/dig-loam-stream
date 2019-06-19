@@ -2,12 +2,14 @@ package loamstream.googlecloud
 
 import java.nio.file.Path
 
+import scala.concurrent.duration._
 import scala.util.Try
 
 import com.typesafe.config.Config
 import loamstream.conf.ValueReaders
 
 import GoogleCloudConfig.Defaults
+
 
 /**
   * @author clint
@@ -31,7 +33,8 @@ final case class GoogleCloudConfig(
     imageVersion: String = Defaults.imageVersion,
     scopes: String = Defaults.scopes,
     properties: String = Defaults.properties,
-    initializationActions: String = Defaults.initializationActions)
+    initializationActions: String = Defaults.initializationActions,
+    maxClusterIdleTime: Duration = Defaults.maxClusterIdleTime)
 
 object GoogleCloudConfig {
   object Defaults { // for creating a minimal cluster
@@ -52,6 +55,7 @@ object GoogleCloudConfig {
       "spark:spark.kryoserializer.buffer.max=1g,hdfs:dfs.replication=1"
     }
     val initializationActions: String = "gs://loamstream/hail/hail-init.sh"
+    val maxClusterIdleTime: Duration = 10.minutes
   }
 
   def fromConfig(config: Config): Try[GoogleCloudConfig] = {

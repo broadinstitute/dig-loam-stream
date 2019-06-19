@@ -6,6 +6,7 @@ import scala.util.Try
 import scala.util.Success
 import loamstream.util.Tries
 import loamstream.util.ExitCodes
+import scala.concurrent.duration.Duration
 
 /**
  * @author clint
@@ -93,7 +94,9 @@ object CloudSdkDataProcClient extends Loggable {
       "--properties",
       config.properties,
       "--initialization-actions",
-      config.initializationActions)
+      config.initializationActions,
+      "--max-idle",
+      toGoogleFormat(config.maxClusterIdleTime))
     
     val metadataPart: Seq[String] = config.metadata match {
       case Some(md) => Seq("--metadata", md)
@@ -105,10 +108,26 @@ object CloudSdkDataProcClient extends Loggable {
     gcloudTokens(config)("create")(tokens: _*)
   }
 
+  private[googlecloud] def toGoogleFormat(d: Duration): String = {
+    import scala.concurrent.duration._
+    
+    val coarsest = d.toCoarsest
+    
+    val timeUnitSuffix = coarsest.unit match {
+      case SECONDS => "s"
+      case MINUTES => "m"
+      case HOURS => "h"
+      case DAYS => "d"
+      case u => sys.error(s"Time unit ${u} not supported by Google; must be one of SECONDS, MINUTES, HOURS, or DAYS")
+    }
+    
+    s"${coarsest.length}${timeUnitSuffix}"
+  }
+  
   private[googlecloud] def gcloudTokens(config: GoogleCloudConfig)(verb: String)(args: String*): Seq[String] = {
     val gcloud = normalize(config.gcloudBinary)
 
-    gcloud +: "dataproc" +: "clusters" +: verb +: "--project" +: config.projectId +: args
+    gcloud +: "beta" +: "dataproc" +: "clusters" +: verb +: "--project" +: config.projectId +: args
   }
 
   private def runCommand(tokens: Seq[String]): Int = {

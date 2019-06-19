@@ -1,9 +1,13 @@
 package loamstream.googlecloud
 
-import org.scalatest.FunSuite
-import com.typesafe.config.ConfigFactory
 import java.nio.file.Paths
+
+import scala.concurrent.duration._
 import scala.util.Try
+
+import org.scalatest.FunSuite
+
+import com.typesafe.config.ConfigFactory
 
 /**
  * @author clint
@@ -28,6 +32,7 @@ final class GoogleCloudConfigTest extends FunSuite {
   private val properties = "p,r,o,p,s"
   private val initializationActions = "gs://example.com/foo.sh"
   private val metadata = "key=value"
+  private val maxClusterIdleTime = 42.hours
 
   test("fromConfig - defaults used") {
     val confString = s"""loamstream {
@@ -65,6 +70,7 @@ final class GoogleCloudConfigTest extends FunSuite {
     assert(gConfig.properties === Defaults.properties)
     assert(gConfig.initializationActions === Defaults.initializationActions)
     assert(gConfig.metadata === Defaults.metadata)
+    assert(gConfig.maxClusterIdleTime === Defaults.maxClusterIdleTime)
   }
 
   test("fromConfig - bad input") {
@@ -104,6 +110,7 @@ final class GoogleCloudConfigTest extends FunSuite {
           properties = "$properties"
           initializationActions = "$initializationActions"
           metadata = "$metadata"
+          maxClusterIdleTime = "$maxClusterIdleTime"
         }
       }"""
 
@@ -128,5 +135,6 @@ final class GoogleCloudConfigTest extends FunSuite {
     assert(gConfig.properties === properties)
     assert(gConfig.initializationActions === initializationActions)
     assert(gConfig.metadata === Some(metadata))
+    assert(gConfig.maxClusterIdleTime === maxClusterIdleTime)
   }
 }

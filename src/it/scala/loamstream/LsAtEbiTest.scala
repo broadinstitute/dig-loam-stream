@@ -1,20 +1,24 @@
 package loamstream
 
-import org.scalatest.FunSuite
-import scala.util.Try
-import loamstream.util.Processes
-import loamstream.util.Loggable
-import IntegrationTestHelpers.path
 import java.nio.file.Path
-import loamstream.util.ExitCodes
-import loamstream.util.Sequence
-import scala.util.Failure
+
 import scala.util.Success
+import scala.util.Try
+
+import org.scalatest.FunSuite
+
+import IntegrationTestHelpers.path
+import loamstream.util.BashScript
+import loamstream.util.ExitCodes
 import loamstream.util.Files
-import loamstream.util.RunResults
-import loamstream.util.Tries
+import loamstream.util.LogContext
+import loamstream.util.Loggable
 import loamstream.util.Paths
 import loamstream.util.Paths.Implicits.PathHelpers
+import loamstream.util.ProcessLoggers
+import loamstream.util.Processes
+import loamstream.util.RunResults
+import loamstream.util.Tries
 
 /**
  * @author clint
@@ -84,12 +88,6 @@ object LsAtEbiTest extends Loggable {
   
   private def toUnit[A](ignored: A): Unit = ()
   
-  private def runSync(commandLine: String, showOutput: Boolean = false): Try[RunResults] = {
-    info(s"Running: '$commandLine'")
-    
-    Processes.runSync(commandLine, showOutput)
-  }
-  
   private def copyToEbi(localFile: Path, remoteDest: Path): Try[Unit] = {
     val remoteHostAndPath = s"${ebiUserAtHost}:${remoteDest}"
     
@@ -150,5 +148,29 @@ object LsAtEbiTest extends Loggable {
   
   private def copyOutputFile(remoteOutputFile: Path, localDest: Path): Try[Path] = {
     copyFromEbi(remoteOutputFile, localDest)
+  }
+  
+  private def runSync(
+      commandLine: String, 
+      streamOutput: Boolean = false)(implicit logCtx: LogContext): Try[RunResults] = {
+    
+    import java.nio.file.Paths.{ get => path }
+
+    info(s"Running: '$commandLine'")
+    
+    Try {
+      val processBuilder = BashScript.fromCommandLineString(commandLine).processBuilder(path("."))
+    
+      val bufferingProcessLogger = ProcessLoggers.buffering
+      
+      val processLogger = {
+        if(streamOutput)  { new ProcessLoggers.PassThrough("LsAtEbiTest")(logCtx) } 
+        else { bufferingProcessLogger }
+      }
+      
+      val exitCode = processBuilder.!(processLogger)
+    
+      RunResults(commandLine, exitCode, bufferingProcessLogger.stdOut, bufferingProcessLogger.stdErr)
+    }
   }
 }

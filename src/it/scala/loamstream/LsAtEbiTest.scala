@@ -23,6 +23,25 @@ import loamstream.util.Tries
 /**
  * @author clint
  * Jun 12, 2019
+ * 
+ * Runs a simple pipeline at EBI.  The pipeline consists of 2 copy commands, one run in a minimal Singularity
+ * container and one not.
+ * 
+ * NB: Assumes EBI-specific values (particularly for host `mitigate` are in `diguser`'s `~/.ssh/config`.
+ * NB: Relies on new SSH key made according to EBI's instructions and authorized on the EBI side, stored in 
+ * `/humgen/diabetes/users/dig/loamstream/ci/jenkins/secrets/ebi-tests/ssh/`.
+ * 
+ * Outline of steps:
+ * - Deletes and re-creates a remote work dir
+ * - Copies a LS jar to EBI (assumes `assembly` has been run first)
+ * - Copies a minimal Singularity image to EBI
+ * - Copies needed input, conf, and loam files to EBI
+ * - Runs LS at EBI
+ * - Copies outputs back over from EBI
+ * - Validates outputs
+ * 
+ * NB: the above steps run as the user `cgilbert`.  This has some downsides, but was expedient and in line 
+ * with EBI's policies.
  */
 final class LsAtEbiTest extends FunSuite {
   import LsAtEbiTest._

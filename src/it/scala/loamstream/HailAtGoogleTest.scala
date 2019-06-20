@@ -41,7 +41,7 @@ final class HailAtGoogleTest extends FunSuite {
       _.getLines.map(_.trim).toIndexedSeq
     }
        
-    assert(outputLines(0) === "AFR     AMR     EUR     EAS     SAS     TOTAL")
-    assert(outputLines(1) === "347     901     10045   324     75      11692")
+    assert(outputLines(0) === "AFR\tAMR\tEUR\tEAS\tSAS\tTOTAL")
+    assert(outputLines(1) === "347\t901\t10045\t324\t75\t11692")
   }
 }

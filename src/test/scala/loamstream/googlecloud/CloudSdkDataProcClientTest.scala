@@ -106,9 +106,15 @@ final class CloudSdkDataProcClientTest extends FunSuite {
 
     val tokens = isClusterRunningTokens(config)
 
-    val expectedTokens = {
-      Seq(examplePath.render, "beta", "dataproc", "clusters", "describe", "--project", config.projectId, config.clusterId)
-    }
+    val expectedTokens = Seq(
+        examplePath.render, 
+        "beta", 
+        "dataproc", 
+        "clusters", 
+        "describe", 
+        "--project", 
+        config.projectId, 
+        config.clusterId)
     
     assert(tokens === expectedTokens)
   }
@@ -118,9 +124,15 @@ final class CloudSdkDataProcClientTest extends FunSuite {
 
     val tokens = deleteClusterTokens(config)
 
-    val expectedTokens = {
-      Seq(examplePath.render, "beta", "dataproc", "clusters", "delete", "--project", config.projectId, config.clusterId) 
-    }
+    val expectedTokens = Seq(
+        examplePath.render, 
+        "beta", 
+        "dataproc", 
+        "clusters", 
+        "delete", 
+        "--project", 
+        config.projectId, 
+        config.clusterId) 
     
     assert(tokens === expectedTokens)
   }

@@ -9,15 +9,15 @@ import scala.Vector
  */
 final class ThrowablesTest extends FunSuite {
   
-  type ParamTuple = (Loggable.Level.Value, String, Throwable)
+  type ParamTuple = (Loggable.Level, String, Throwable)
   
   private final class MockLogContext extends LogContext {
     
     val params: ValueBox[Seq[ParamTuple]] = ValueBox(Vector.empty)
     
-    override def log(level: Loggable.Level.Value, s: => String): Unit = ???
+    override def log(level: Loggable.Level, s: => String): Unit = ???
     
-    override def log(level: Loggable.Level.Value, s: => String, e: Throwable): Unit = {
+    override def log(level: Loggable.Level, s: => String, e: Throwable): Unit = {
       params.mutate(_ :+ (level, s, e))
     }
   }
@@ -85,11 +85,11 @@ final class ThrowablesTest extends FunSuite {
     
     assert(x === 42)
     
-    assert(logContext.params() === Vector((Loggable.Level.error, "foo", e)))
+    assert(logContext.params() === Vector((Loggable.Level.Error, "foo", e)))
   }
   
   test("quietly - nothing thrown") {
-    def doTest(level: Loggable.Level.Value): Unit = {
+    def doTest(level: Loggable.Level): Unit = {
       implicit val logContext = new MockLogContext
     
       var x = 42
@@ -105,15 +105,15 @@ final class ThrowablesTest extends FunSuite {
       assert(logContext.params() === Vector.empty)
     }
     
-    doTest(Loggable.Level.debug)
-    doTest(Loggable.Level.error)
-    doTest(Loggable.Level.info)
-    doTest(Loggable.Level.trace)
-    doTest(Loggable.Level.warn)
+    doTest(Loggable.Level.Debug)
+    doTest(Loggable.Level.Error)
+    doTest(Loggable.Level.Info)
+    doTest(Loggable.Level.Trace)
+    doTest(Loggable.Level.Warn)
   }
   
   test("quietly - something thrown") {
-    def doTest(level: Loggable.Level.Value): Unit = {
+    def doTest(level: Loggable.Level): Unit = {
       implicit val logContext = new MockLogContext
     
       var x = 42
@@ -131,10 +131,10 @@ final class ThrowablesTest extends FunSuite {
       assert(logContext.params() === Vector((level, "foo", e)))
     }
     
-    doTest(Loggable.Level.debug)
-    doTest(Loggable.Level.error)
-    doTest(Loggable.Level.info)
-    doTest(Loggable.Level.trace)
-    doTest(Loggable.Level.warn)
+    doTest(Loggable.Level.Debug)
+    doTest(Loggable.Level.Error)
+    doTest(Loggable.Level.Info)
+    doTest(Loggable.Level.Trace)
+    doTest(Loggable.Level.Warn)
   }
 }

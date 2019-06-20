@@ -11,33 +11,44 @@ import org.slf4j.{Logger, LoggerFactory}
   */
 object Loggable {
 
-  object Level extends Enumeration {
-    val trace, debug, info, warn, error = Value
+  sealed abstract class Level private[Level] (private val index: Int) {
+    final def >=(that: Level): Boolean = this.index >= that.index
+    
+    final def name: String = toString
   }
-
+  
+  object Level {
+    //scalastyle:off magic.number
+    case object Trace extends Level(0)
+    case object Debug extends Level(1)
+    case object Info extends Level(2)
+    case object Warn extends Level(3)
+    case object Error extends Level(4)
+    //scalastyle:on magic.number
+  }
 }
 
 trait Loggable extends LogContext {
   private[this] lazy val logger: Logger = LoggerFactory.getLogger(this.getClass.getName)
-
+  
   import Loggable.Level
   
   protected implicit val logContext: LogContext = this
   
-  override final def log(level: Level.Value, s: => String): Unit = level match {
-    case Level.trace => trace(s)
-    case Level.debug => debug(s)
-    case Level.info => info(s)
-    case Level.warn => warn(s)
-    case Level.error => error(s)
+  override final def log(level: Level, s: => String): Unit = level match {
+    case Level.Trace => trace(s)
+    case Level.Debug => debug(s)
+    case Level.Info => info(s)
+    case Level.Warn => warn(s)
+    case Level.Error => error(s)
   }
 
-  override final def log(level: Level.Value, s: => String, e: Throwable): Unit = level match {
-    case Level.trace => trace(s, e)
-    case Level.debug => debug(s, e)
-    case Level.info => info(s, e)
-    case Level.warn => warn(s, e)
-    case Level.error => error(s, e)
+  override final def log(level: Level, s: => String, e: Throwable): Unit = level match {
+    case Level.Trace => trace(s, e)
+    case Level.Debug => debug(s, e)
+    case Level.Info => info(s, e)
+    case Level.Warn => warn(s, e)
+    case Level.Error => error(s, e)
   }
 
   final def isTraceEnabled: Boolean = logger.isTraceEnabled

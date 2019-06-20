@@ -1,0 +1,3 @@
+#!/bin/sh
+
+scp -o proxycommand="ssh mitigate proxy %h" "$@"

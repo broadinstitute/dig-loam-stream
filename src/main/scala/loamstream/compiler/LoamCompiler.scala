@@ -35,8 +35,8 @@ object LoamCompiler extends Loggable {
   }
 
   final case class Settings(logCode: Boolean, logCodeOnError: Boolean) {
-    def logCodeForLevel(level: Loggable.Level.Value): Boolean = {
-      logCode || (logCodeOnError && (level >= Loggable.Level.warn))
+    def logCodeForLevel(level: Loggable.Level): Boolean = {
+      logCode || (logCodeOnError && (level >= Loggable.Level.Warn))
     }
   }
 
@@ -225,7 +225,7 @@ final class LoamCompiler(
   }
 
   private def logScripts(
-    logLevel: Loggable.Level.Value,
+    logLevel: Loggable.Level,
     project: LoamProject,
     graphBoxReceipt: DepositBox.Receipt): Unit = {
 
@@ -273,7 +273,7 @@ final class LoamCompiler(
     val lengthOfLine = 100
     val graphPrinter = GraphPrinter.byLine(lengthOfLine)
 
-    logScripts(Loggable.Level.trace, project, graphBoxReceipt)
+    logScripts(Loggable.Level.Trace, project, graphBoxReceipt)
 
     trace(s"""|[Start Graph]
               |${graphPrinter.print(graph)}

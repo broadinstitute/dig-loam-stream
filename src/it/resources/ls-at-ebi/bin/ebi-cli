@@ -1,0 +1,3 @@
+#!/bin/sh
+
+ssh -o proxycommand="ssh mitigate proxy %h" cgilbert@ebi-cli "$@"

@@ -36,7 +36,7 @@ object LoamCompiler extends Loggable {
 
   final case class Settings(logCode: Boolean, logCodeOnError: Boolean) {
     def logCodeForLevel(level: Loggable.Level): Boolean = {
-      logCode || (logCodeOnError && (level >= Loggable.Level.warn))
+      logCode || (logCodeOnError && (level >= Loggable.Level.Warn))
     }
   }
 
@@ -273,7 +273,7 @@ final class LoamCompiler(
     val lengthOfLine = 100
     val graphPrinter = GraphPrinter.byLine(lengthOfLine)
 
-    logScripts(Loggable.Level.trace, project, graphBoxReceipt)
+    logScripts(Loggable.Level.Trace, project, graphBoxReceipt)
 
     trace(s"""|[Start Graph]
               |${graphPrinter.print(graph)}

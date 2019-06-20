@@ -98,11 +98,11 @@ final class ProcessLoggersTest extends FunSuite {
       assert(logCtx.logEvents === expected)
     }
 
-    doTest(Loggable.Level.debug)
-    doTest(Loggable.Level.error)
-    doTest(Loggable.Level.info)
-    doTest(Loggable.Level.trace)
-    doTest(Loggable.Level.warn)
+    doTest(Loggable.Level.Debug)
+    doTest(Loggable.Level.Error)
+    doTest(Loggable.Level.Info)
+    doTest(Loggable.Level.Trace)
+    doTest(Loggable.Level.Warn)
   }
 
   test("&&") {

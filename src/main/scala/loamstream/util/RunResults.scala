@@ -16,7 +16,7 @@ sealed trait RunResults {
 
   final def logStdOutAndStdErr(
       headerMessage: String, 
-      level: Loggable.Level = Loggable.Level.error)(implicit logCtx: LogContext): Unit = {
+      level: Loggable.Level = Loggable.Level.Error)(implicit logCtx: LogContext): Unit = {
     
     def doLog(s: => String): Unit = logCtx.log(level, s)
     

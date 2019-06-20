@@ -53,7 +53,7 @@ final class RetryingCommandInvoker[A](
       case Success(r: RunResults.Unsuccessful) => {
         val msg = s"Error invoking '${r.commandLine}' (exit code ${r.exitCode})"
         
-        r.logStdOutAndStdErr(s"$msg; output streams follow:", Loggable.Level.warn)
+        r.logStdOutAndStdErr(s"$msg; output streams follow:", Loggable.Level.Warn)
         
         Tries.failure(msg)
       }

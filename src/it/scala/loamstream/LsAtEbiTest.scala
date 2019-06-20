@@ -52,7 +52,7 @@ object LsAtEbiTest extends Loggable {
   private val remoteBaseDir: Path = path("loamstream-integration-tests")
   
   private val ebiUser = "cgilbert"
-  private val ebiHost = "ebi-cli.ebi.ac.uk"
+  private val ebiHost = "ebi-cli"
   private val ebiUserAtHost = s"${ebiUser}@${ebiHost}"
   
   private val localResourceDir = path("src/it/resources/ls-at-ebi/")

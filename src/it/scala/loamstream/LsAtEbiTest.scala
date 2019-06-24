@@ -123,7 +123,12 @@ object LsAtEbiTest extends Loggable {
     
     def toFailureIfNeeded(runResults: RunResults): Try[Unit] = {
       if(ExitCodes.isSuccess(runResults.exitCode)) { Success(()) }
-      else { Tries.failure(s"Couldn't copy '${remoteSrc}' to '${localDest}'") }
+      else { 
+        val message = s"Couldn't copy '${remoteSrc}' to '${localDest}' (exit code ${runResults.exitCode}) " +
+        s"stderr follows: '${runResults.stderr.mkString(System.lineSeparator)}'"
+        
+        Tries.failure(message) 
+      }
     }
     
     runSync(s"${ebiScp} ${remoteHostAndPath} ${localDest}").flatMap(toFailureIfNeeded).map(_ => localDest)

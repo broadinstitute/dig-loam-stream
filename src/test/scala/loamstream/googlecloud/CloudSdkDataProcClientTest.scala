@@ -37,7 +37,7 @@ final class CloudSdkDataProcClientTest extends FunSuite {
     properties = "p,r,o,p,s",
     initializationActions = "gs://example.com/blah/foo.sh",
     metadata = None,
-    maxClusterIdleTime = 42.minutes)
+    maxClusterIdleTime = "42m")
     
   private val configWithMetadata = config.copy(metadata = Some("key=value"))
 
@@ -155,27 +155,6 @@ final class CloudSdkDataProcClientTest extends FunSuite {
     val expected = baseStartClusterTokens
 
     assert(tokens === expected)
-  }
-  
-  test("toGoogleFormat") {
-    import CloudSdkDataProcClient.toGoogleFormat
-    
-    intercept[Exception] {
-      toGoogleFormat(1.millisecond)
-    }
-    
-    intercept[Exception] {
-      toGoogleFormat(1.microsecond)
-    }
-    
-    intercept[Exception] {
-      toGoogleFormat(1.nanosecond)
-    }
-    
-    assert(toGoogleFormat(42.seconds) === "42s")
-    assert(toGoogleFormat(99.minutes) === "99m")
-    assert(toGoogleFormat(123.hours) === "123h")
-    assert(toGoogleFormat(17.days) === "17d")
   }
   
   private val baseStartClusterTokens: Seq[String] = Seq(

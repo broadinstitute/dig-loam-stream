@@ -57,7 +57,7 @@ final class GcsClientTest extends FunSuite {
       BlobMetadata("qc/all/out/CAMP.harmonized.ref.vds/rdd.parquet/_common_metadata", "Hhx9zWmOk0pIeF9FVPYrrA==", 1488559298507L),
       BlobMetadata("qc/all/out/CAMP.harmonized.ref.vds/rdd.parquet/_metadata", "G3S4lTwr09vTIHSszonoIQ==", 1488559297934L),
       BlobMetadata("qc/all/out/CAMP.harmonized.ref.vds/rdd.parquet/part-r-00000-92f95503-6af7-4f5f-9b7e-b6c8ecefb455.gz.parquet", "7YDjw5xbxd9X8EXNqfUjKg==", 1488559296001L))
-    val vdsHash = Some("ZEC0iSi7m3skj/Lzufg/PA==")
+    val vdsHash = Some("76MsWjVkglAPwUwFJLGBlw==")
     val vdsLastModified = Some(1488559298507L)
 
     testWith(vdsUri, vdsBlobs, vdsHash, vdsLastModified)

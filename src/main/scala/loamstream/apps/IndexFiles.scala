@@ -28,8 +28,10 @@ object IndexFiles {
     writeDataTo(makePath("all-jobs.tsv"))(jobsToExecutions)
 
     import loamstream.util.Maps.Implicits._
+
+    def shouldGoToFailureFile(execution: Execution): Boolean = execution.isFailure || execution.status.isCanceled
     
-    writeDataTo(makePath("failed-jobs.tsv"))(jobsToExecutions.filterValues(_.isFailure))
+    writeDataTo(makePath("failed-jobs.tsv"))(jobsToExecutions.filterValues(shouldGoToFailureFile))
   }
   
   private def writeDataTo(file: Path)(executionTuples: Iterable[(LJob, Execution)]): Unit = {

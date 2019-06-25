@@ -21,6 +21,7 @@ final class JobStatusTest extends FunSuite {
     assert(Terminated.canStopExecution === true)
     assert(Unknown.canStopExecution === false)
     assert(CouldNotStart.canStopExecution === true)
+    assert(Canceled.canStopExecution === true)
     assert(FailedPermanently.canStopExecution === true)
     assert(WaitingForOutputs.canStopExecution === false)
   }
@@ -36,6 +37,7 @@ final class JobStatusTest extends FunSuite {
     assert(Terminated.isPermanentFailure === false)
     assert(Unknown.isPermanentFailure === false)
     assert(CouldNotStart.isPermanentFailure === false)
+    assert(Canceled.isPermanentFailure === false)
     assert(FailedPermanently.isPermanentFailure === true)
     assert(WaitingForOutputs.isPermanentFailure === false)
   }
@@ -51,8 +53,25 @@ final class JobStatusTest extends FunSuite {
     assert(Terminated.isCouldNotStart === false)
     assert(Unknown.isCouldNotStart === false)
     assert(CouldNotStart.isCouldNotStart === true)
+    assert(Canceled.isCouldNotStart === false)
     assert(FailedPermanently.isCouldNotStart === false)
     assert(WaitingForOutputs.isCouldNotStart === false)
+  }
+  
+  test("isCanceled") {
+    assert(Succeeded.isCanceled === false)
+    assert(Skipped.isCanceled === false)
+    assert(Failed.isCanceled === false)
+    assert(FailedWithException.isCanceled === false)
+    assert(NotStarted.isCanceled === false)
+    assert(Submitted.isCanceled === false)
+    assert(Running.isCanceled === false)
+    assert(Terminated.isCanceled === false)
+    assert(Unknown.isCanceled === false)
+    assert(CouldNotStart.isCanceled === false)
+    assert(Canceled.isCanceled === true)
+    assert(FailedPermanently.isCanceled === false)
+    assert(WaitingForOutputs.isCanceled === false)
   }
   
   test("isSuccess") {
@@ -66,6 +85,7 @@ final class JobStatusTest extends FunSuite {
     assert(Terminated.isSuccess === false)
     assert(Unknown.isSuccess === false)
     assert(CouldNotStart.isSuccess === false)
+    assert(Canceled.isSuccess === false)
     assert(FailedPermanently.isSuccess === false)
     assert(WaitingForOutputs.isSuccess === true)
   }
@@ -81,6 +101,7 @@ final class JobStatusTest extends FunSuite {
     assert(Terminated.isSkipped === false)
     assert(Unknown.isSkipped === false)
     assert(CouldNotStart.isSkipped === false)
+    assert(Canceled.isSkipped === false)
     assert(FailedPermanently.isSkipped === false)
     assert(WaitingForOutputs.isSkipped === false)
   }
@@ -96,6 +117,7 @@ final class JobStatusTest extends FunSuite {
     assert(Terminated.isFailure === true)
     assert(Unknown.isFailure === false)
     assert(CouldNotStart.isFailure === false)
+    assert(Canceled.isFailure === false)
     assert(FailedPermanently.isFailure === true)
     assert(WaitingForOutputs.isFailure === false)
   }
@@ -111,6 +133,7 @@ final class JobStatusTest extends FunSuite {
     assert(Terminated.isFinished === true)
     assert(Unknown.isFinished === false)
     assert(CouldNotStart.isFinished === true)
+    assert(Canceled.isFinished === true)
     assert(FailedPermanently.isFinished === true)
     assert(WaitingForOutputs.isFinished === true)
   }
@@ -126,6 +149,7 @@ final class JobStatusTest extends FunSuite {
     assert(Terminated.notFinished === false)
     assert(Unknown.notFinished === true)
     assert(CouldNotStart.notFinished === false)
+    assert(Canceled.notFinished === false)
     assert(FailedPermanently.notFinished === false)
     assert(WaitingForOutputs.notFinished === false)
   }
@@ -151,8 +175,9 @@ final class JobStatusTest extends FunSuite {
     doTest("Running", Some(Running))
     doTest("Terminated", Some(Terminated))
     doTest("Unknown", Some(Unknown))
-    doTest("PermanentFailure", Some(FailedPermanently))
+    doTest("FailedPermanently", Some(FailedPermanently))
     doTest("CouldNotStart", Some(CouldNotStart))
+    doTest("Canceled", Some(Canceled))
     doTest("WaitingForOutputs", Some(WaitingForOutputs))
     doTest("", None)
     doTest("Undefined", None)
@@ -178,6 +203,7 @@ final class JobStatusTest extends FunSuite {
         Terminated,
         Unknown,
         CouldNotStart,
+        Canceled,
         FailedPermanently,
         WaitingForOutputs)
         

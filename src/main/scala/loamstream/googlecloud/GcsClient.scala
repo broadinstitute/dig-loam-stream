@@ -54,9 +54,7 @@ final case class GcsClient(driver: CloudStorageDriver) extends CloudStorageClien
     blob.name.split("/").contains(segment)
   }
 
-  private[googlecloud] def blobs(uri:URI): Iterable[BlobMetadata] = {
-    driver.blobsAt(uri)
-      .filterNot(isDirectory)
-      .filter(matchesSegment(uri.lastSegment))
+  private[googlecloud] def blobs(uri: URI): Iterable[BlobMetadata] = {
+    driver.blobsAt(uri).filter(matchesSegment(uri.lastSegment))
   }
 }

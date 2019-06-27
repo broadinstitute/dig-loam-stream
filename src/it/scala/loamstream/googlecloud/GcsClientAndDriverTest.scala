@@ -15,8 +15,7 @@ final class GcsClientAndDriverTest extends FunSuite {
   private val bucketName = "loamstream"
   private val testDataDir = "integration-tests"
   
-  //private val credentialFile = path("/humgen/diabetes/users/dig/google_credential.json")
-  private val credentialFile = path("/home/clint/workspace/google_credential.json")
+  private val credentialFile = CredentialFiles.digUser
   
   test("blobsAt") {
     val driver = new GcsCloudStorageDriver(credentialFile)

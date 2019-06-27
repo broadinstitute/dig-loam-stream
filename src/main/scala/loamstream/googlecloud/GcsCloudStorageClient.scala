@@ -15,7 +15,7 @@ import scala.util.Try
  *
  * Wrapper around Google Cloud Storage JAVA API to expose methods for job recording purposes
  */
-final case class GcsClient(driver: CloudStorageDriver) extends CloudStorageClient with Loggable {
+final case class GcsCloudStorageClient(driver: CloudStorageDriver) extends CloudStorageClient with Loggable {
   import loamstream.util.Uris.Implicits._
 
   override val hashAlgorithm: HashType = Md5
@@ -51,10 +51,12 @@ final case class GcsClient(driver: CloudStorageDriver) extends CloudStorageClien
 
   // Useful to distinguish, for instance, `x.gz` from `x.gz.tbi`
   private[googlecloud] def matchesSegment(segment: String)(blob: BlobMetadata): Boolean = {
-    blob.name.split("/").contains(segment)
+    blob.name.split('/').contains(segment)
   }
 
   private[googlecloud] def blobs(uri: URI): Iterable[BlobMetadata] = {
-    driver.blobsAt(uri).filter(matchesSegment(uri.lastSegment))
+    LazyIterable {
+      driver.blobsAt(uri).iterator.filter(matchesSegment(uri.lastSegment))
+    }
   }
 }

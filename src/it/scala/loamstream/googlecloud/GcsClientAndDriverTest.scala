@@ -14,27 +14,12 @@ final class GcsClientAndDriverTest extends FunSuite {
   
   private val bucketName = "loamstream"
   private val testDataDir = "integration-tests"
-  /*
-   * googlecloud {
-    gcloudBinary = "/humgen/diabetes/users/dig/loamstream/google-cloud-sdk/bin/gcloud"
-    gsutilBinary = "/humgen/diabetes/users/dig/loamstream/google-cloud-sdk/bin/gsutil"
-    imageVersion = "1.2-deb9"
-    metadata = "MINICONDA_VERSION=4.4.10,JAR=gs://hail-common/builds/0.2/jars/hail-0.2-e08cc2a17c4a-Spark-2.2.0.jar,ZIP=gs://hail-common/builds/0.2/python/hail-0.2-e08cc2a17c4a.zip"
-    initializationActions = "gs://dataproc-initialization-actions/conda/bootstrap-conda.sh,gs://hail-common/cloudtools/init_notebook1.py"
-    projectId = "broadinstitute.com:cmi-gce-01"
-    clusterId = "loamstream-integration-tests"
-    credentialsFile = "/humgen/diabetes/users/dig/google_credential.json"
-    masterMachineType = "n1-standard-1"
-    workerMachineType = "n1-standard-1"
-    numWorkers = 2
-    numPreemptibleWorkers = 0
-   */
   
   //private val credentialFile = path("/humgen/diabetes/users/dig/google_credential.json")
   private val credentialFile = path("/home/clint/workspace/google_credential.json")
   
   test("blobsAt") {
-    val driver = new GcsDriver(credentialFile)
+    val driver = new GcsCloudStorageDriver(credentialFile)
     
     val dirName = "foo/bar/"
     
@@ -74,9 +59,9 @@ final class GcsClientAndDriverTest extends FunSuite {
   }
   
   test("isPresent") {
-    val driver = new GcsDriver(credentialFile)
+    val driver = new GcsCloudStorageDriver(credentialFile)
     
-    val client = new GcsClient(driver)
+    val client = new GcsCloudStorageClient(driver)
     
     val dirName = "foo/bar/"
     
@@ -104,8 +89,44 @@ final class GcsClientAndDriverTest extends FunSuite {
     }
   }
   
+  test("isPresent - problematic dir") {
+    val driver = new GcsCloudStorageDriver(credentialFile)
+    
+    deleteTestDataAndThen(driver, "isPresentProblematicDir") { (subKey, uriOf) =>
+    
+      //There is an implicit dir 'foo', as well as the file 'foo.xyz'; both should exist according to isPresent
+      driver.put(uriOf("foo.xyz"), "asdf")
+      
+      driver.put(uriOf("foo/bar"), "asdf")
+      driver.put(uriOf("foo/baz"), "asdf")
+      driver.put(uriOf("foo/blerg"), "asdf")
+      
+      val client = new GcsCloudStorageClient(driver)
+    
+      assert(client.isPresent(uriOf("foo")))
+      assert(client.isPresent(uriOf("foo.xyz")))
+    }
+  }
+  
+  test("blobsAt - problematic dir") {
+    val driver = new GcsCloudStorageDriver(credentialFile)
+    
+    deleteTestDataAndThen(driver, "isPresentProblematicDir") { (subKey, uriOf) =>
+    
+      driver.put(uriOf("foo.xyz"), "asdf")
+      
+      driver.put(uriOf("foo/bar"), "asdf")
+      driver.put(uriOf("foo/baz"), "asdf")
+      driver.put(uriOf("foo/blerg"), "asdf")
+      
+      assert(driver.blobsAt(uriOf("foo/")).size === 3)
+      assert(driver.blobsAt(uriOf("foo")).size === 3)
+      assert(driver.blobsAt(uriOf("foo.xyz")).size === 1)
+    }
+  }
+  
   private def deleteTestDataAndThen[A](
-      driver: GcsDriver, 
+      driver: GcsCloudStorageDriver, 
       testName: String)(f: (String => String, String => URI) => A) {
     val testSubDir = s"${testDataDir}/${testName}"
     

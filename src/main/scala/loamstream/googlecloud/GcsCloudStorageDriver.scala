@@ -24,7 +24,7 @@ import com.google.cloud.storage.Blob
  * @author kyuksel
  *         date: 3/5/17
  */
-final case class GcsDriver(credentialsFile: Path) extends CloudStorageDriver with Loggable {
+final case class GcsCloudStorageDriver(credentialsFile: Path) extends CloudStorageDriver with Loggable {
   import loamstream.util.Uris.Implicits._
   import scala.collection.JavaConverters._
   
@@ -55,9 +55,22 @@ final case class GcsDriver(credentialsFile: Path) extends CloudStorageDriver wit
         BlobField.UPDATED,
         BlobField.MD5HASH)
 
-      storage.list(bucketName(uri), withPrefix, withRelevantFields).getValues.asScala.map { b => 
+      val page = storage.list(bucketName(uri), withPrefix, withRelevantFields)
+      
+      def matchesIgnoringTrailingSlashes(b: Blob): Boolean = {
+        def withoutTrailingSlash(s: String): String = if(s.endsWith("/")) s.dropRight(1) else s
+
+        import java.nio.file.Paths.{get => path}
+        
+        path(withoutTrailingSlash(b.getName)).startsWith(path(withoutTrailingSlash(uri.getPathWithoutLeadingSlash)))
+      }
+      
+      //Note iterateAll, to iterate (potentially) over every Page of results, not just the first one
+      def resultIterator = page.iterateAll.iterator.asScala.filter(matchesIgnoringTrailingSlashes).map { b => 
         BlobMetadata(b.getName, b.getMd5, b.getUpdateTime)
       }
+      
+      LazyIterable(resultIterator)
     } catch {
       case e: StorageException =>
         warn(s"URI $uri is invalid because ${e.getMessage}", e)
@@ -82,7 +95,7 @@ final case class GcsDriver(credentialsFile: Path) extends CloudStorageDriver wit
     def isDirectory(b: Blob): Boolean = b.getName.endsWith("/") 
     
     val listResult = storage.list(bucketName, withPrefix).getValues.asScala 
-		
+
     val (dirs, nonDirs) = listResult.partition(isDirectory)
 
     if(nonDirs.nonEmpty) {
@@ -92,7 +105,7 @@ final case class GcsDriver(credentialsFile: Path) extends CloudStorageDriver wit
         info(s"Deleting '${item.getName}'")
         
         storage.delete(bucketName, item.getName)
-  		}
+      }
     }
     
     for {
@@ -105,12 +118,12 @@ final case class GcsDriver(credentialsFile: Path) extends CloudStorageDriver wit
   }
 }
 
-object GcsDriver {
-  def fromConfig(config: GoogleCloudConfig): Try[GcsDriver] = fromCredentialsFile(config.credentialsFile)
+object GcsCloudStorageDriver {
+  def fromConfig(config: GoogleCloudConfig): Try[GcsCloudStorageDriver] = fromCredentialsFile(config.credentialsFile)
 
-  def fromCredentialsFile(credentialsFile: Path): Try[GcsDriver] = {
+  def fromCredentialsFile(credentialsFile: Path): Try[GcsCloudStorageDriver] = {
     if (Files.exists(credentialsFile)) {
-      Success(GcsDriver(credentialsFile))
+      Success(GcsCloudStorageDriver(credentialsFile))
     } else {
       Tries.failure(s"Google Cloud credential not found at $credentialsFile")
     }

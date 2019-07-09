@@ -107,14 +107,23 @@ object LsAtEbiTest extends Loggable {
   
   private def toUnit[A](ignored: A): Unit = ()
   
+  private def doToFailureIfNeeded(msg: String)(runResults: RunResults): Try[Unit] = {
+    if(ExitCodes.isSuccess(runResults.exitCode)) { Success(()) }
+    else { 
+      val message = s"${msg} (exit code ${runResults.exitCode}) " +
+      s"stderr follows: '${runResults.stderr.mkString(System.lineSeparator)}'"
+        
+      Tries.failure(message) 
+    }
+  }
+  
   private def copyToEbi(localFile: Path, remoteDest: Path): Try[Unit] = {
     val remoteHostAndPath = s"${ebiUserAtHost}:${remoteDest}"
     
     def toFailureIfNeeded(runResults: RunResults): Try[Unit] = {
-      if(ExitCodes.isSuccess(runResults.exitCode)) { Success(()) }
-      else { Tries.failure(s"Couldn't copy '${localFile}' to '${remoteHostAndPath}'") }
+      doToFailureIfNeeded(s"Couldn't copy '${localFile}' to '${remoteHostAndPath}'")(runResults)
     }
-    
+
     runSync(s"${ebiScp} ${localFile} ${remoteHostAndPath}").flatMap(toFailureIfNeeded).map(toUnit)
   }
   
@@ -122,13 +131,7 @@ object LsAtEbiTest extends Loggable {
     val remoteHostAndPath = s"${ebiUserAtHost}:${remoteSrc}"
     
     def toFailureIfNeeded(runResults: RunResults): Try[Unit] = {
-      if(ExitCodes.isSuccess(runResults.exitCode)) { Success(()) }
-      else { 
-        val message = s"Couldn't copy '${remoteSrc}' to '${localDest}' (exit code ${runResults.exitCode}) " +
-        s"stderr follows: '${runResults.stderr.mkString(System.lineSeparator)}'"
-        
-        Tries.failure(message) 
-      }
+      doToFailureIfNeeded(s"Couldn't copy '${remoteSrc}' to '${localDest}'")(runResults)
     }
     
     runSync(s"${ebiScp} ${remoteHostAndPath} ${localDest}").flatMap(toFailureIfNeeded).map(_ => localDest)
@@ -136,16 +139,13 @@ object LsAtEbiTest extends Loggable {
   
   private def runAtEbi(remoteCommand: String, showOutput: Boolean = false): Try[Unit] = {
     def toFailureIfNeeded(runResults: RunResults): Try[Unit] = {
-      if(ExitCodes.isSuccess(runResults.exitCode)) { Success(()) }
-      else { Tries.failure(s"Couldn't run remote command '${remoteCommand}' as/at ${ebiUserAtHost}") }
+      doToFailureIfNeeded(s"Couldn't run remote command '${remoteCommand}' as/at ${ebiUserAtHost}")(runResults)
     }
     
     runSync(s"${ebiCli} ${remoteCommand}", showOutput).flatMap(toFailureIfNeeded)
   }
   
-  private def copyInputFile(remoteDest: Path): Try[Unit] = {
-    copyToEbi(localResourceDir / "A.txt", remoteDest)
-  }
+  private def copyInputFile(remoteDest: Path): Try[Unit] = copyToEbi(localResourceDir / "A.txt", remoteDest)
   
   private def runLoamStream(remoteWorkDir: Path): Try[Unit] = {
     val jarFile = remoteLsJarFilename

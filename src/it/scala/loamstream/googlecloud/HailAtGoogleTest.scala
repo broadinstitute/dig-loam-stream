@@ -1,15 +1,17 @@
 package loamstream.googlecloud
 
 import java.nio.file.Files.exists
+
 import scala.io.Source
+
 import org.scalatest.FunSuite
+
+import loamstream.IntegrationTestHelpers
 import loamstream.apps.Main
 import loamstream.util.CanBeClosed
 import loamstream.util.{ Files => LFiles }
 import loamstream.util.Paths.Implicits.PathHelpers
-import loamstream.IntegrationTestHelpers
-import org.scalactic.source.Position.apply
-import org.scalatest.Finders
+
 
 /**
  * @author clint

@@ -1,5 +1,7 @@
 package loamstream.googlecloud
 
+import scala.concurrent.duration._
+
 import org.scalatest.FunSuite
 
 import loamstream.util.BashScript.Implicits.BashPath
@@ -34,7 +36,8 @@ final class CloudSdkDataProcClientTest extends FunSuite {
     scopes = "ses",
     properties = "p,r,o,p,s",
     initializationActions = "gs://example.com/blah/foo.sh",
-    metadata = None)
+    metadata = None,
+    maxClusterIdleTime = "42m")
     
   private val configWithMetadata = config.copy(metadata = Some("key=value"))
 
@@ -92,7 +95,7 @@ final class CloudSdkDataProcClientTest extends FunSuite {
     val tokens = gcloudTokens(config)("foo")("--bar", "Baz")
 
     val expectedTokens = {
-      Seq(examplePath.render, "dataproc", "clusters", "foo", "--project", config.projectId, "--bar", "Baz")
+      Seq(examplePath.render, "beta", "dataproc", "clusters", "foo", "--project", config.projectId, "--bar", "Baz")
     }
     
     assert(tokens === expectedTokens)
@@ -103,9 +106,15 @@ final class CloudSdkDataProcClientTest extends FunSuite {
 
     val tokens = isClusterRunningTokens(config)
 
-    val expectedTokens = {
-      Seq(examplePath.render, "dataproc", "clusters", "describe", "--project", config.projectId, config.clusterId)
-    }
+    val expectedTokens = Seq(
+        examplePath.render, 
+        "beta", 
+        "dataproc", 
+        "clusters", 
+        "describe", 
+        "--project", 
+        config.projectId, 
+        config.clusterId)
     
     assert(tokens === expectedTokens)
   }
@@ -115,9 +124,15 @@ final class CloudSdkDataProcClientTest extends FunSuite {
 
     val tokens = deleteClusterTokens(config)
 
-    val expectedTokens = {
-      Seq(examplePath.render, "dataproc", "clusters", "delete", "--project", config.projectId, config.clusterId) 
-    }
+    val expectedTokens = Seq(
+        examplePath.render, 
+        "beta", 
+        "dataproc", 
+        "clusters", 
+        "delete", 
+        "--project", 
+        config.projectId, 
+        config.clusterId) 
     
     assert(tokens === expectedTokens)
   }
@@ -144,6 +159,7 @@ final class CloudSdkDataProcClientTest extends FunSuite {
   
   private val baseStartClusterTokens: Seq[String] = Seq(
       examplePath.render,
+      "beta",
       "dataproc",
       "clusters",
       "create",
@@ -173,5 +189,7 @@ final class CloudSdkDataProcClientTest extends FunSuite {
       "--properties",
       config.properties,
       "--initialization-actions",
-      config.initializationActions)
+      config.initializationActions,
+      "--max-idle",
+      "42m")
 }

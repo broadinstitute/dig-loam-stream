@@ -1,9 +1,14 @@
 package loamstream.googlecloud
 
-import org.scalatest.FunSuite
-import com.typesafe.config.ConfigFactory
 import java.nio.file.Paths
+
+import scala.concurrent.duration._
 import scala.util.Try
+
+import org.scalatest.FunSuite
+
+import com.typesafe.config.ConfigFactory
+import scala.util.Success
 
 /**
  * @author clint
@@ -28,6 +33,7 @@ final class GoogleCloudConfigTest extends FunSuite {
   private val properties = "p,r,o,p,s"
   private val initializationActions = "gs://example.com/foo.sh"
   private val metadata = "key=value"
+  private val maxClusterIdleTime = "42h"
 
   test("fromConfig - defaults used") {
     val confString = s"""loamstream {
@@ -65,6 +71,7 @@ final class GoogleCloudConfigTest extends FunSuite {
     assert(gConfig.properties === Defaults.properties)
     assert(gConfig.initializationActions === Defaults.initializationActions)
     assert(gConfig.metadata === Defaults.metadata)
+    assert(gConfig.maxClusterIdleTime === Defaults.maxClusterIdleTime)
   }
 
   test("fromConfig - bad input") {
@@ -104,6 +111,7 @@ final class GoogleCloudConfigTest extends FunSuite {
           properties = "$properties"
           initializationActions = "$initializationActions"
           metadata = "$metadata"
+          maxClusterIdleTime = "$maxClusterIdleTime"
         }
       }"""
 
@@ -128,5 +136,39 @@ final class GoogleCloudConfigTest extends FunSuite {
     assert(gConfig.properties === properties)
     assert(gConfig.initializationActions === initializationActions)
     assert(gConfig.metadata === Some(metadata))
+    assert(gConfig.maxClusterIdleTime === maxClusterIdleTime)
+  }
+  
+  test("checkMaxClusterIdleTime - bad input") {
+    import GoogleCloudConfig.checkMaxClusterIdleTime
+    
+    assert(checkMaxClusterIdleTime("").isFailure)
+    assert(checkMaxClusterIdleTime("  ").isFailure)
+    assert(checkMaxClusterIdleTime("asdfg").isFailure)
+    assert(checkMaxClusterIdleTime("10mmm").isFailure)
+    assert(checkMaxClusterIdleTime("10hhh").isFailure)
+    assert(checkMaxClusterIdleTime("10dd").isFailure)
+    
+    //10 minutes in seconds, minus 1
+    assert(checkMaxClusterIdleTime("599s").isFailure)
+    assert(checkMaxClusterIdleTime("9m").isFailure)
+    assert(checkMaxClusterIdleTime("1m").isFailure)
+    assert(checkMaxClusterIdleTime("0m").isFailure)
+    assert(checkMaxClusterIdleTime("-1d").isFailure)
+    
+    //14 days in seconds, plus 1
+    assert(checkMaxClusterIdleTime("1209601s").isFailure)
+    assert(checkMaxClusterIdleTime("15d").isFailure)
+    assert(checkMaxClusterIdleTime("1000d").isFailure)
+  }
+  
+  test("checkMaxClusterIdleTime - good input") {
+    import GoogleCloudConfig.checkMaxClusterIdleTime
+    
+    assert(checkMaxClusterIdleTime("10m").isSuccess)
+    assert(checkMaxClusterIdleTime("11m").isSuccess)
+    assert(checkMaxClusterIdleTime("700s").isSuccess)
+    assert(checkMaxClusterIdleTime("14d").isSuccess)
+    assert(checkMaxClusterIdleTime("48h").isSuccess)
   }
 }

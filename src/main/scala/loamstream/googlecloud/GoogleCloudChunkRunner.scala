@@ -28,6 +28,8 @@ import rx.lang.scala.Scheduler
 import loamstream.model.jobs.JobOracle
 import loamstream.model.execute.LocalSettings
 import loamstream.model.execute.GoogleSettings
+import GoogleCloudChunkRunner.ClusterStatus
+
 
 /**
  * @author clint
@@ -45,9 +47,6 @@ final case class GoogleCloudChunkRunner(
   }
   
   private lazy val singleThreadedScheduler: Scheduler = ExecutionContextScheduler(singleThreadedExecutionContext)
-  
-  //NB: Ensure that we only start the cluster once from this Runner
-  private lazy val init: Unit = client.startCluster()
   
   override def maxNumJobs: Int = delegate.maxNumJobs
   
@@ -75,14 +74,36 @@ final case class GoogleCloudChunkRunner(
   private[googlecloud] def deleteClusterIfNecessary(): Unit = {
     //NB: If anything goes wrong determining whether or not the cluster is up, try to shut it down
     //anyway, to be safe.
-    Try(client.isClusterRunning) match {
-      case Success(true) => client.deleteCluster()
-      case Success(false) => debug("Cluster not running, not attempting to shut it down")
-      case Failure(e) => {
-        warn(s"Error determining cluster status, attempting to shut down cluster anyway")
+    determineClusterStatus() match {
+      case ClusterStatus.Running => client.deleteCluster()
+      case ClusterStatus.NotRunning => debug("Cluster not running, not attempting to shut it down")
+      case ClusterStatus.Undetermined(e) => {
+        warn(s"Error determining cluster status, attempting to shut down cluster anyway", e)
         
         client.deleteCluster()
       }
+    }
+  }
+  
+  private[googlecloud] def startClusterIfNecessary(): Unit = {
+    //NB: If anything goes wrong determining whether or not the cluster is up, try to shut it down
+    //anyway, to be safe.
+    determineClusterStatus() match {
+      case ClusterStatus.NotRunning => client.startCluster()
+      case ClusterStatus.Running => debug("Cluster already running, not attempting to start it")
+      case ClusterStatus.Undetermined(e) => {
+        warn(s"Error determining cluster status, attempting to start cluster anyway", e)
+        
+        client.startCluster()
+      }
+    }
+  }
+  
+  private def determineClusterStatus(): ClusterStatus = {
+    Try(client.isClusterRunning) match {
+      case Success(true) => ClusterStatus.Running
+      case Success(false) => ClusterStatus.NotRunning
+      case Failure(e) => ClusterStatus.Undetermined(e)
     }
   }
   
@@ -119,13 +140,21 @@ final case class GoogleCloudChunkRunner(
   }
   
   private[googlecloud] def withCluster[A](client: DataProcClient)(f: => A): A = {
-    init
+    startClusterIfNecessary()
       
     f
   }
 }
 
 object GoogleCloudChunkRunner extends Loggable {
+  sealed trait ClusterStatus
+  
+  object ClusterStatus {
+    final case object Running extends ClusterStatus
+    final case object NotRunning extends ClusterStatus
+    final case class Undetermined(cause: Throwable) extends ClusterStatus
+  }
+  
   private[googlecloud] def addCluster(cluster: String)
                                      (jobsAndExecutions: Map[LJob, RunData]): Map[LJob, RunData] = {
     jobsAndExecutions.map {

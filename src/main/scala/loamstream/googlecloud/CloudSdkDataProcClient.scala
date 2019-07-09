@@ -6,6 +6,7 @@ import scala.util.Try
 import scala.util.Success
 import loamstream.util.Tries
 import loamstream.util.ExitCodes
+import scala.concurrent.duration.Duration
 
 /**
  * @author clint
@@ -93,7 +94,9 @@ object CloudSdkDataProcClient extends Loggable {
       "--properties",
       config.properties,
       "--initialization-actions",
-      config.initializationActions)
+      config.initializationActions,
+      "--max-idle",
+      config.maxClusterIdleTime)
     
     val metadataPart: Seq[String] = config.metadata match {
       case Some(md) => Seq("--metadata", md)
@@ -104,11 +107,11 @@ object CloudSdkDataProcClient extends Loggable {
 
     gcloudTokens(config)("create")(tokens: _*)
   }
-
+  
   private[googlecloud] def gcloudTokens(config: GoogleCloudConfig)(verb: String)(args: String*): Seq[String] = {
     val gcloud = normalize(config.gcloudBinary)
 
-    gcloud +: "dataproc" +: "clusters" +: verb +: "--project" +: config.projectId +: args
+    gcloud +: "beta" +: "dataproc" +: "clusters" +: verb +: "--project" +: config.projectId +: args
   }
 
   private def runCommand(tokens: Seq[String]): Int = {

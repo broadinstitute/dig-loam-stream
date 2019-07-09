@@ -10,6 +10,7 @@ import loamstream.model.execute.JobFilter
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.LJob
 import loamstream.model.execute.DryRunner
+import loamstream.model.execute.ByNameJobFilter
 
 /**
  * @author clint
@@ -314,6 +315,61 @@ final class DryRunnerTest extends FunSuite {
     //indicate that the subsequnt jobs will run since they follow on from one that does.
     //TODO: Improve this ordering
     assert(actual.map(_.name) === Seq(job0, job1, job2, job3, job4, job5).map(_.name))
+  }
+  
+  test("toBeRun with JobFilter.RunEverything - more-complex topology, wide fanout") {
+    /*    
+     *     j1 (x)
+     *    /   \
+     * j0  ... +------ j100 (x)
+     *   |\   /          |
+     *   | j99 (x)       |
+     *   |               |
+     *   +---------------+
+     */
+    
+    val job0 = mockJob("j0")
+    val jobs1to99 = (1 to 99).map(i => mockJob(s"j$i", job0))
+    val job100 = mockJob("j100", (job0 +: jobs1to99): _*)
+    
+    assert(jobs1to99.sortBy(_.id.toInt) === jobs1to99)
+    
+    val executable = Executable(Set(job100))
+    
+    val jobFilter = JobFilter.RunEverything
+    
+    val actual = DryRunner.toBeRun(jobFilter, executable)
+    
+    //NB: DryRunner is 'conservative'; if the JobFilter says a job should run, but subsequent jobs shouldn't, 
+    //indicate that the subsequnt jobs will run since they follow on from one that does.
+    assert(actual.toSet === (job0 +: jobs1to99 :+ job100).toSet)
+  }
+  
+  test("toBeRun with ByNameJobFilter - more-complex topology, wide fanout") {
+    /*    
+     *     j1 (x)
+     *    /   \
+     * j0  ... +------ j100 (x)
+     *   |\   /          |
+     *   | j99 (x)       |
+     *   |               |
+     *   +---------------+
+     */
+    
+    val job0 = mockJob("j0")
+    val jobs1to99 = (1 to 99).map(i => mockJob(s"j$i", job0))
+    val job100 = mockJob("j100", (job0 +: jobs1to99): _*)
+    
+    assert(jobs1to99.sortBy(_.id.toInt) === jobs1to99)
+    
+    val executable = Executable(Set(job100))
+    
+    val jobFilter = ByNameJobFilter.anyOf("j0".r, "j4\\d".r)
+    
+    val actual = DryRunner.toBeRun(jobFilter, executable)
+    
+    //NB: In this case, dependency relationships are ignored, and what the ByNameJobFilter says goes.
+    assert(actual.map(_.name).toSet === Set("j0","j40","j41","j42","j43","j44","j45","j46","j47","j48","j49"))
   }
 }
 

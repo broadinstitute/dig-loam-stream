@@ -140,21 +140,16 @@ object AppWiring extends Loggable {
     new DefaultAppWiring(intent, makeDao = makeDao)
   }
 
-  private[AppWiring] def makeJobFilter(
+  private[apps] def makeJobFilter(
       jobFilterIntent: JobFilterIntent,
       hashingStrategy: HashingStrategy,
       getDao: => LoamDao): JobFilter = {
     
-    val dao = getDao
-    
     import JobFilterIntent._
     
     jobFilterIntent match {
-      case RunEverything => JobFilter.RunEverything
-      case RunIfAllMatch(regexes) => ByNameJobFilter.allOf(regexes)
-      case RunIfAnyMatch(regexes) => ByNameJobFilter.anyOf(regexes)
-      case RunIfNoneMatch(regexes) => ByNameJobFilter.noneOf(regexes)
-      case _ => defaultJobFilter(dao, hashingStrategy)
+      case convertible: JobFilterIntent.ConvertibleToJobFilter => convertible.toJobFilter
+      case _ => defaultJobFilter(getDao, hashingStrategy)
     }
   }
   

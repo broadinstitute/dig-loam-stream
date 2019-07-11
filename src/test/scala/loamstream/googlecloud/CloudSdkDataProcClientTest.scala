@@ -23,23 +23,26 @@ final class CloudSdkDataProcClientTest extends FunSuite {
     projectId = "pid",
     clusterId = "cid",
     credentialsFile = path("N/A"),
-    numWorkers = 42,
     //non-default values
-    zone = "z",
-    masterMachineType = "mmt",
-    masterBootDiskSize = 99,
-    workerMachineType = "wmt",
-    workerBootDiskSize = 17,
-    numPreemptibleWorkers = 123,
-    preemptibleWorkerBootDiskSize = 11,
-    imageVersion = "42.2.1.0",
-    scopes = "ses",
-    properties = "p,r,o,p,s",
-    initializationActions = "gs://example.com/blah/foo.sh",
-    metadata = None,
-    maxClusterIdleTime = "42m")
+    defaultClusterConfig = ClusterConfig(
+      numWorkers = 42,
+      zone = "z",
+      masterMachineType = "mmt",
+      masterBootDiskSize = 99,
+      workerMachineType = "wmt",
+      workerBootDiskSize = 17,
+      numPreemptibleWorkers = 123,
+      preemptibleWorkerBootDiskSize = 11,
+      imageVersion = "42.2.1.0",
+      scopes = "ses",
+      properties = "p,r,o,p,s",
+      initializationActions = "gs://example.com/blah/foo.sh",
+      metadata = None,
+      maxClusterIdleTime = "42m"))
     
-  private val configWithMetadata = config.copy(metadata = Some("key=value"))
+  private val configWithMetadata = {
+    config.copy(defaultClusterConfig = config.defaultClusterConfig.copy(metadata = Some("key=value")))
+  }
 
   private val examplePath = Paths.newAbsolute("foo", "bar", "baz")
 
@@ -142,7 +145,7 @@ final class CloudSdkDataProcClientTest extends FunSuite {
 
     val tokens = startClusterTokens(configWithMetadata)
 
-    val expected = baseStartClusterTokens ++ Seq("--metadata", configWithMetadata.metadata.get)
+    val expected = baseStartClusterTokens ++ Seq("--metadata", configWithMetadata.defaultClusterConfig.metadata.get)
 
     assert(tokens === expected)
   }
@@ -167,29 +170,29 @@ final class CloudSdkDataProcClientTest extends FunSuite {
       config.projectId,
       config.clusterId,
       "--zone",
-      config.zone,
+      config.defaultClusterConfig.zone,
       "--master-machine-type",
-      config.masterMachineType,
+      config.defaultClusterConfig.masterMachineType,
       "--master-boot-disk-size",
-      config.masterBootDiskSize.toString,
+      config.defaultClusterConfig.masterBootDiskSize.toString,
       "--num-workers",
-      config.numWorkers.toString,
+      config.defaultClusterConfig.numWorkers.toString,
       "--worker-machine-type",
-      config.workerMachineType,
+      config.defaultClusterConfig.workerMachineType,
       "--worker-boot-disk-size",
-      config.workerBootDiskSize.toString,
+      config.defaultClusterConfig.workerBootDiskSize.toString,
       "--num-preemptible-workers",
-      config.numPreemptibleWorkers.toString,
+      config.defaultClusterConfig.numPreemptibleWorkers.toString,
       "--preemptible-worker-boot-disk-size",
-      config.preemptibleWorkerBootDiskSize.toString,
+      config.defaultClusterConfig.preemptibleWorkerBootDiskSize.toString,
       "--image-version",
-      config.imageVersion,
+      config.defaultClusterConfig.imageVersion,
       "--scopes",
-      config.scopes,
+      config.defaultClusterConfig.scopes,
       "--properties",
-      config.properties,
+      config.defaultClusterConfig.properties,
       "--initialization-actions",
-      config.initializationActions,
+      config.defaultClusterConfig.initializationActions,
       "--max-idle",
       "42m")
 }

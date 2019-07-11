@@ -72,33 +72,33 @@ object CloudSdkDataProcClient extends Loggable {
     val firstTokens: Seq[String] = Seq(
       config.clusterId,
       "--zone",
-      config.zone,
+      config.defaultClusterConfig.zone,
       "--master-machine-type",
-      config.masterMachineType,
+      config.defaultClusterConfig.masterMachineType,
       "--master-boot-disk-size",
-      config.masterBootDiskSize.toString,
+      config.defaultClusterConfig.masterBootDiskSize.toString,
       "--num-workers",
-      config.numWorkers.toString,
+      config.defaultClusterConfig.numWorkers.toString,
       "--worker-machine-type",
-      config.workerMachineType,
+      config.defaultClusterConfig.workerMachineType,
       "--worker-boot-disk-size",
-      config.workerBootDiskSize.toString,
+      config.defaultClusterConfig.workerBootDiskSize.toString,
       "--num-preemptible-workers",
-      config.numPreemptibleWorkers.toString,
+      config.defaultClusterConfig.numPreemptibleWorkers.toString,
       "--preemptible-worker-boot-disk-size",
-      config.preemptibleWorkerBootDiskSize.toString,
+      config.defaultClusterConfig.preemptibleWorkerBootDiskSize.toString,
       "--image-version",
-      config.imageVersion,
+      config.defaultClusterConfig.imageVersion,
       "--scopes",
-      config.scopes,
+      config.defaultClusterConfig.scopes,
       "--properties",
-      config.properties,
+      config.defaultClusterConfig.properties,
       "--initialization-actions",
-      config.initializationActions,
+      config.defaultClusterConfig.initializationActions,
       "--max-idle",
-      config.maxClusterIdleTime)
+      config.defaultClusterConfig.maxClusterIdleTime)
     
-    val metadataPart: Seq[String] = config.metadata match {
+    val metadataPart: Seq[String] = config.defaultClusterConfig.metadata match {
       case Some(md) => Seq("--metadata", md)
       case None => Nil
     }

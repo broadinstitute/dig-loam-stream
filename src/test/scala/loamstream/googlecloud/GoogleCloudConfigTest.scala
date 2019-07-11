@@ -56,22 +56,22 @@ final class GoogleCloudConfigTest extends FunSuite {
     assert(gConfig.clusterId === clusterId)
     assert(gConfig.credentialsFile === Paths.get(credentialsFile))
 
-    import GoogleCloudConfig.Defaults
+    import ClusterConfig.Defaults
 
-    assert(gConfig.numWorkers === Defaults.numWorkers)
-    assert(gConfig.zone === Defaults.zone)
-    assert(gConfig.masterMachineType === Defaults.masterMachineType)
-    assert(gConfig.masterBootDiskSize === Defaults.masterBootDiskSize)
-    assert(gConfig.workerMachineType === Defaults.workerMachineType)
-    assert(gConfig.workerBootDiskSize === Defaults.workerBootDiskSize)
-    assert(gConfig.numPreemptibleWorkers === Defaults.numPreemptibleWorkers)
-    assert(gConfig.preemptibleWorkerBootDiskSize === Defaults.preemptibleWorkerBootDiskSize)
-    assert(gConfig.imageVersion === Defaults.imageVersion)
-    assert(gConfig.scopes === Defaults.scopes)
-    assert(gConfig.properties === Defaults.properties)
-    assert(gConfig.initializationActions === Defaults.initializationActions)
-    assert(gConfig.metadata === Defaults.metadata)
-    assert(gConfig.maxClusterIdleTime === Defaults.maxClusterIdleTime)
+    assert(gConfig.defaultClusterConfig.numWorkers === Defaults.numWorkers)
+    assert(gConfig.defaultClusterConfig.zone === Defaults.zone)
+    assert(gConfig.defaultClusterConfig.masterMachineType === Defaults.masterMachineType)
+    assert(gConfig.defaultClusterConfig.masterBootDiskSize === Defaults.masterBootDiskSize)
+    assert(gConfig.defaultClusterConfig.workerMachineType === Defaults.workerMachineType)
+    assert(gConfig.defaultClusterConfig.workerBootDiskSize === Defaults.workerBootDiskSize)
+    assert(gConfig.defaultClusterConfig.numPreemptibleWorkers === Defaults.numPreemptibleWorkers)
+    assert(gConfig.defaultClusterConfig.preemptibleWorkerBootDiskSize === Defaults.preemptibleWorkerBootDiskSize)
+    assert(gConfig.defaultClusterConfig.imageVersion === Defaults.imageVersion)
+    assert(gConfig.defaultClusterConfig.scopes === Defaults.scopes)
+    assert(gConfig.defaultClusterConfig.properties === Defaults.properties)
+    assert(gConfig.defaultClusterConfig.initializationActions === Defaults.initializationActions)
+    assert(gConfig.defaultClusterConfig.metadata === Defaults.metadata)
+    assert(gConfig.defaultClusterConfig.maxClusterIdleTime === Defaults.maxClusterIdleTime)
   }
 
   test("fromConfig - bad input") {
@@ -98,20 +98,22 @@ final class GoogleCloudConfigTest extends FunSuite {
           projectId = "$projectId"
           clusterId = "$clusterId"
           credentialsFile = "$credentialsFile"
-          numWorkers = $numWorkers
-          zone = "$zone"
-          masterMachineType = "$masterMachineType"
-          masterBootDiskSize = $masterBootDiskSize
-          workerMachineType = "$workerMachineType"
-          workerBootDiskSize = $workerBootDiskSize
-          numPreemptibleWorkers = $numPreemptibleWorkers
-          preemptibleWorkerBootDiskSize = $preemptibleWorkerBootDiskSize
-          imageVersion = "$imageVersion"
-          scopes = "$scopes"
-          properties = "$properties"
-          initializationActions = "$initializationActions"
-          metadata = "$metadata"
-          maxClusterIdleTime = "$maxClusterIdleTime"
+          defaultClusterConfig {
+            numWorkers = $numWorkers
+            zone = "$zone"
+            masterMachineType = "$masterMachineType"
+            masterBootDiskSize = $masterBootDiskSize
+            workerMachineType = "$workerMachineType"
+            workerBootDiskSize = $workerBootDiskSize
+            numPreemptibleWorkers = $numPreemptibleWorkers
+            preemptibleWorkerBootDiskSize = $preemptibleWorkerBootDiskSize
+            imageVersion = "$imageVersion"
+            scopes = "$scopes"
+            properties = "$properties"
+            initializationActions = "$initializationActions"
+            metadata = "$metadata"
+            maxClusterIdleTime = "$maxClusterIdleTime"
+          }
         }
       }"""
 
@@ -123,20 +125,20 @@ final class GoogleCloudConfigTest extends FunSuite {
     assert(gConfig.gsutilBinary === Paths.get(gsutilBinaryPath))
     assert(gConfig.projectId === projectId)
     assert(gConfig.clusterId === clusterId)
-    assert(gConfig.numWorkers === numWorkers)
-    assert(gConfig.zone === zone)
-    assert(gConfig.masterMachineType === masterMachineType)
-    assert(gConfig.masterBootDiskSize === masterBootDiskSize)
-    assert(gConfig.workerMachineType === workerMachineType)
-    assert(gConfig.workerBootDiskSize === workerBootDiskSize)
-    assert(gConfig.numPreemptibleWorkers === numPreemptibleWorkers)
-    assert(gConfig.preemptibleWorkerBootDiskSize === preemptibleWorkerBootDiskSize)
-    assert(gConfig.imageVersion === imageVersion)
-    assert(gConfig.scopes === scopes)
-    assert(gConfig.properties === properties)
-    assert(gConfig.initializationActions === initializationActions)
-    assert(gConfig.metadata === Some(metadata))
-    assert(gConfig.maxClusterIdleTime === maxClusterIdleTime)
+    assert(gConfig.defaultClusterConfig.numWorkers === numWorkers)
+    assert(gConfig.defaultClusterConfig.zone === zone)
+    assert(gConfig.defaultClusterConfig.masterMachineType === masterMachineType)
+    assert(gConfig.defaultClusterConfig.masterBootDiskSize === masterBootDiskSize)
+    assert(gConfig.defaultClusterConfig.workerMachineType === workerMachineType)
+    assert(gConfig.defaultClusterConfig.workerBootDiskSize === workerBootDiskSize)
+    assert(gConfig.defaultClusterConfig.numPreemptibleWorkers === numPreemptibleWorkers)
+    assert(gConfig.defaultClusterConfig.preemptibleWorkerBootDiskSize === preemptibleWorkerBootDiskSize)
+    assert(gConfig.defaultClusterConfig.imageVersion === imageVersion)
+    assert(gConfig.defaultClusterConfig.scopes === scopes)
+    assert(gConfig.defaultClusterConfig.properties === properties)
+    assert(gConfig.defaultClusterConfig.initializationActions === initializationActions)
+    assert(gConfig.defaultClusterConfig.metadata === Some(metadata))
+    assert(gConfig.defaultClusterConfig.maxClusterIdleTime === maxClusterIdleTime)
   }
   
   test("checkMaxClusterIdleTime - bad input") {

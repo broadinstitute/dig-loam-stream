@@ -22,6 +22,7 @@ import loamstream.model.jobs.OutputStreams
 import loamstream.model.jobs.RunData
 import loamstream.util.Maps
 import java.nio.file.Path
+import loamstream.model.execute.GoogleSettings
 
 
 /**
@@ -48,7 +49,10 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
   private def mockJob(
       result: JobResult, 
       resources: Option[Resources] = None, 
-      jobDir: Option[Path] = None) = MockJob(result, resources, jobDir)
+      jobDir: Option[Path] = None) = {
+    
+    MockJob(result, resources, jobDir, initialSettings = GoogleSettings(clusterId, ClusterConfig.default))
+  }
 
   test("addCluster") {
     import GoogleCloudChunkRunner.addCluster
@@ -69,7 +73,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
         job2 -> job2.toReturn, 
         job3 -> job3.toReturn)
     
-    val runDatas = addCluster(clusterId)(input)
+    val runDatas = addCluster(clusterId, ???)(input)
     
     val runData1 = runDatas(job1)
     val job1Result = runData1.jobResult.get.asInstanceOf[CommandResult]

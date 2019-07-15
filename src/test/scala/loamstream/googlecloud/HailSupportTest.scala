@@ -56,7 +56,7 @@ final class HailSupportTest extends FunSuite {
 
   private val clusterId = "asdfasdf"
 
-  private val googleSettings = GoogleSettings(clusterId)
+  private val googleSettings = GoogleSettings(clusterId, clusterConfig = ClusterConfig.default)
 
   // scalastyle:off line.size.limit
   private val sep = File.separator

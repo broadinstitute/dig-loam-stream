@@ -18,6 +18,7 @@ import loamstream.model.quantities.Memory
 import loamstream.util.Loggable
 import loamstream.model.execute.Settings
 import loamstream.model.execute.LocalSettings
+import loamstream.googlecloud.ClusterConfig
 
 /** Predefined symbols in Loam scripts */
 object LoamPredef extends Loggable {
@@ -142,11 +143,15 @@ object LoamPredef extends Loggable {
   }
   
   def google[A](expr: => A)(implicit scriptContext: LoamScriptContext): A = {
-    val settings = GoogleSettings(scriptContext.googleConfig.clusterId) 
+    googleWith(ClusterConfig.default)(expr)(scriptContext)
+  }
+
+  def googleWith[A](clusterConfig: ClusterConfig)(expr: => A)(implicit scriptContext: LoamScriptContext): A = {
+    val settings = GoogleSettings(scriptContext.googleConfig.clusterId, clusterConfig) 
     
     runWith(settings)(expr)(scriptContext)
   }
-
+  
   /**
    * Parse the config file into a DataConfig.
    * @param path a string representing the path of the file to parse.

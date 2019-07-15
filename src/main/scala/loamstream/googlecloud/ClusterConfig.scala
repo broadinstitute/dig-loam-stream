@@ -20,9 +20,7 @@ final case class ClusterConfig(
     scopes: String = Defaults.scopes,
     properties: String = Defaults.properties,
     initializationActions: String = Defaults.initializationActions,
-    maxClusterIdleTime: String = Defaults.maxClusterIdleTime) {
-  
-}
+    maxClusterIdleTime: String = Defaults.maxClusterIdleTime)
 
 object ClusterConfig {
   val default: ClusterConfig = ClusterConfig()

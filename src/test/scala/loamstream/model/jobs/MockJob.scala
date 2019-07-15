@@ -21,11 +21,10 @@ abstract class MockJob(
     override val dependencies: Set[JobNode],
     override val inputs: Set[DataHandle],
     override val outputs: Set[DataHandle],
-    val delay: Int) extends LocalJob {
+    val delay: Int,
+    override val initialSettings: Settings = LocalSettings) extends LocalJob {
 
   def toReturn: RunData
-  
-  override def initialSettings: Settings = LocalSettings
   
   override def toString: String = {
     s"'$name'(#$id, returning $toReturn, ${dependencies.size} dependencies)"
@@ -68,7 +67,9 @@ object MockJob {
       override val dependencies: Set[JobNode],
       override val inputs: Set[DataHandle],
       override val outputs: Set[DataHandle],
-      override val delay: Int) extends MockJob(name, dependencies, inputs, outputs, delay)
+      override val delay: Int,
+      override val initialSettings: Settings = LocalSettings) extends 
+          MockJob(name, dependencies, inputs, outputs, delay)
   
   class FromJobFn(
       toReturnFn: MockJob => RunData,
@@ -76,7 +77,9 @@ object MockJob {
       override val dependencies: Set[JobNode],
       override val inputs: Set[DataHandle],
       override val outputs: Set[DataHandle],
-      override val delay: Int) extends MockJob(name, dependencies, inputs, outputs, delay) {
+      override val delay: Int,
+      override val initialSettings: Settings = LocalSettings) extends 
+          MockJob(name, dependencies, inputs, outputs, delay) {
     
     override lazy val toReturn: RunData = toReturnFn(this)
   }
@@ -106,7 +109,8 @@ object MockJob {
   def apply(
       jobResult: JobResult,
       resources: Option[Resources],
-      jobDir: Option[Path]): MockJob = {
+      jobDir: Option[Path],
+      initialSettings: Settings): MockJob = {
     
     def makeRunData(job: LJob) = {
       runDataFrom(job, LocalSettings, jobResult.toJobStatus, Option(jobResult), resources, jobDir)
@@ -118,7 +122,8 @@ object MockJob {
         dependencies = Set.empty,
         inputs = Set.empty,
         outputs = Set.empty,
-        delay = 0)
+        delay = 0,
+        initialSettings = initialSettings)
   } 
   
   def apply(

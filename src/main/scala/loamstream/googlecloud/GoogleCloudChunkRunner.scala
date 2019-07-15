@@ -131,8 +131,16 @@ final case class GoogleCloudChunkRunner(
     //on the same cluster simultaneously
     import loamstream.util.Observables.Implicits._
 
+    val googleSettings = job.initialSettings match {
+      case gs: GoogleSettings => gs
+      case _ => sys.error(s"Only jobs with Google settings are supported, but got ${job.initialSettings}")
+    }
+    
     val futureResult = {
-      delegate.run(Set(job), jobOracle, shouldRestart).map(addCluster(googleConfig.clusterId)).lastAsFuture
+      import googleSettings.cluster
+      import googleSettings.clusterConfig
+
+      delegate.run(Set(job), jobOracle, shouldRestart).map(addCluster(cluster, clusterConfig)).lastAsFuture
     }
     
     //TODO: add some timeout
@@ -155,26 +163,13 @@ object GoogleCloudChunkRunner extends Loggable {
     final case class Undetermined(cause: Throwable) extends ClusterStatus
   }
   
-  private[googlecloud] def addCluster(cluster: String)
+  private[googlecloud] def addCluster(cluster: String, clusterConfig: ClusterConfig)
                                      (jobsAndExecutions: Map[LJob, RunData]): Map[LJob, RunData] = {
     jobsAndExecutions.map {
       case (job, runData @ RunData.WithLocalResources(localResources: LocalResources)) => {
         val googleResources = GoogleResources.fromClusterAndLocalResources(cluster, localResources)
-        
-        //Make sure we've got Google settings
-        //TODO: Why weren't the settings GoogleSettings to begin with?
-        val newSettings = runData.settings match {
-          case LocalSettings => {
-            val googleSettings = GoogleSettings(cluster)
-            
-            debug(s"Munging LocalSettings to ${googleSettings}, grumble grumble")
-            
-            googleSettings
-          }
-          case settings => settings
-        }
-        
-        job -> runData.withResources(googleResources).withSettings(newSettings)
+
+        job -> runData.withResources(googleResources)
       }
       case tuple => tuple
     }

@@ -20,6 +20,7 @@ import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobResult
 import loamstream.util.{Files => LFiles}
 import java.nio.file.Files.exists
+import loamstream.googlecloud.ClusterConfig
 
 /**
  * @author clint
@@ -103,7 +104,7 @@ final class FileSystemExecutionRecorderTest extends FunSuite {
   }
   
   test("settingsToString - Google settings") {
-    assert(settingsToString(GoogleSettings("foo")) === s"settings-type\tgoogle\ncluster\tfoo")
+    assert(settingsToString(GoogleSettings("foo", ClusterConfig.default)) === s"settings-type\tgoogle\ncluster\tfoo")
   }
   
   test("settingsToString - DRM settings") {

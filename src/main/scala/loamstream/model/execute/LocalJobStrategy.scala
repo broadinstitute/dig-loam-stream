@@ -66,9 +66,9 @@ object LocalJobStrategy extends Loggable {
       processLogger: ToFilesProcessLogger): RunData = {
     
     val (jobStatus, jobResult) = exitValueAttempt match {
-        case Success(exitValue) => (JobStatus.fromExitCode(exitValue), CommandResult(exitValue))
-        case Failure(e)         => ExecuterHelpers.statusAndResultFrom(e)
-      }
+      case Success(exitValue) => (JobStatus.fromExitCode(exitValue), CommandResult(exitValue))
+      case Failure(e)         => ExecuterHelpers.statusAndResultFrom(e)
+    }
       
     val outputStreams = OutputStreams(processLogger.stdoutPath, processLogger.stderrPath)
     

@@ -34,6 +34,7 @@ import loamstream.util.Hashes
 import loamstream.drm.ContainerParams
 import loamstream.model.jobs.TerminationReason
 import loamstream.model.execute.Settings
+import loamstream.googlecloud.ClusterConfig
 
 /**
  * @author clint
@@ -322,7 +323,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           None,
           Some(ContainerParams(imageName = "library/foo:1.2.3")))
               
-      val googleSettings = GoogleSettings("some-cluster")
+      val googleSettings = GoogleSettings("some-cluster", ClusterConfig.default)
 
       val localResources = LocalResources(Instant.ofEpochMilli(123), Instant.ofEpochMilli(456))
 
@@ -586,7 +587,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
         None, 
         Some(ContainerParams(imageName = "library/foo:1.2.3")))
         
-    val googleSettings = GoogleSettings("some-cluster")
+    val googleSettings = GoogleSettings("some-cluster", ClusterConfig.default)
 
     val localResources = LocalResources(Instant.ofEpochMilli(123), Instant.ofEpochMilli(456))
 

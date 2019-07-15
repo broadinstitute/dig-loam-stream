@@ -19,6 +19,7 @@ import loamstream.util.ProcessLoggers
 import loamstream.util.Processes
 import loamstream.util.RunResults
 import loamstream.util.Tries
+import scala.concurrent.duration.Duration
 
 /**
  * @author clint
@@ -51,14 +52,25 @@ final class LsAtEbiTest extends FunSuite {
     
     val localWorkDir = IntegrationTestHelpers.getWorkDirUnderTarget()
     
+    import scala.concurrent.duration._
+    
+    def sleep(duration: Duration): Try[Unit] = Try(Thread.sleep(duration.toMillis))
+    
     val outputFileAttempt = for {
       _ <- runAtEbi(s"rm -rf ${remoteWorkDir}")
+      _ <- sleep(1.second)
       _ <- runAtEbi(s"mkdir -p ${remoteWorkDir}")
+      _ <- sleep(1.second)
       _ <- copyLsJar(remoteWorkDir)
+      _ <- sleep(1.second)
       _ <- copySimgFile(remoteWorkDir)
+      _ <- sleep(1.second)
       _ <- copyLoamFile(remoteWorkDir)
+      _ <- sleep(1.second)
       _ <- copyConfFile(remoteWorkDir)
+      _ <- sleep(1.second)
       _ <- copyInputFile(remoteWorkDir)
+      _ <- sleep(1.second)
       _ <- runLoamStream(remoteWorkDir)
       outputFile <- copyOutputFile(remoteWorkDir / "C.txt", localWorkDir / "output.txt")
     } yield outputFile

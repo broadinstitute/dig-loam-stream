@@ -20,6 +20,7 @@ import loamstream.model.execute.UgerDrmSettings
 import loamstream.model.execute.LsfDrmSettings
 import loamstream.model.execute.LocalSettings
 import loamstream.model.execute.Settings
+import loamstream.googlecloud.ClusterConfig
 
 /**
  * @author clint
@@ -83,7 +84,7 @@ final class LoamEnvironmentTest extends FunSuite with Loggable {
       UgerDrmSettings(Cpus(2), Memory.inGb(3), CpuTime.inHours(4), Option(UgerDefaults.queue), None)
     }
     doTest(LsfDrmSettings(Cpus(3), Memory.inGb(4), CpuTime.inHours(5), None, None))
-    doTest(GoogleSettings(clusterId))
+    doTest(GoogleSettings(clusterId, ClusterConfig.default))
   }
   
   test("Multiple EEs") {
@@ -135,7 +136,7 @@ final class LoamEnvironmentTest extends FunSuite with Loggable {
     
     val ugerSettings = TestHelpers.defaultUgerSettings
     val lsfSettings = TestHelpers.defaultLsfSettings
-    val googleSettings = GoogleSettings(clusterId)
+    val googleSettings = GoogleSettings(clusterId, ClusterConfig.default)
     
     doTest(DrmSystem.Uger, LocalSettings, ugerSettings, googleSettings)
     doTest(DrmSystem.Uger, googleSettings, ugerSettings, LocalSettings)
@@ -158,7 +159,7 @@ final class LoamEnvironmentTest extends FunSuite with Loggable {
   
   private def envFn[A](settings: Settings)(block: => A)(implicit context: LoamScriptContext): A = settings match {
     case LocalSettings => LoamPredef.local(block)
-    case GoogleSettings(_) => LoamPredef.google(block)
+    case GoogleSettings(_, clusterConfig) => LoamPredef.googleWith(clusterConfig)(block)
     case settings: DrmSettings => {
       LoamPredef.drmWith(settings.cores.value, settings.memoryPerCore.gb, settings.maxRunTime.hours)(block)
     }

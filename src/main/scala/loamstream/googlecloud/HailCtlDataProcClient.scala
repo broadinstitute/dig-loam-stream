@@ -90,8 +90,11 @@ object HailCtlDataProcClient extends Loggable {
   }
 
   private def runCommand(googleConfig: GoogleCloudConfig, hailConfig: HailConfig, command: String): Int = {
+    import loamstream.util.Paths.normalize
+    
     val fullScriptContents = s"""|source ~/.bashrc
                                  |conda activate ${hailConfig.condaEnv}
+                                 |PATH="${normalize(googleConfig.gcloudBinary.getParent)}":$${PATH}
                                  |CLOUDSDK_CORE_PROJECT="${googleConfig.projectId}"
                                  |${command}""".stripMargin
 

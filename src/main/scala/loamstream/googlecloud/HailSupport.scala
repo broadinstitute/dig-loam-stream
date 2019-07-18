@@ -70,11 +70,14 @@ object HailSupport {
       val jarFile = hailConfig.jarFile
       
       val hailctlPrefixPart: String = {
+        import loamstream.util.Paths.normalize
+        
         val sourceBashrcPart = "source ~/.bashrc"
         val activateCondaPart = s"""conda activate "${hailConfig.condaEnv}""""
         val projectIdEnvVarPart = s"""CLOUDSDK_CORE_PROJECT="${googleConfig.projectId}""""
+        val pathMungingPart = s"""PATH="${normalize(googleConfig.gcloudBinary.getParent)}":$${PATH}"""
     
-        val prefix = s"${sourceBashrcPart} && ${activateCondaPart} && ${projectIdEnvVarPart}"
+        val prefix = s"${sourceBashrcPart} && ${activateCondaPart} && ${projectIdEnvVarPart} && ${pathMungingPart}"
         
         s"""${prefix} && hailctl dataproc submit ${googleConfig.clusterId} """
       }

@@ -51,7 +51,6 @@ object HailCtlDataProcClient extends Loggable {
 
   private[googlecloud] def startClusterTokens(config: GoogleCloudConfig): Seq[String] = {
     val firstTokens: Seq[String] = Seq(
-      config.clusterId,
       "--project",
       config.projectId,
       "--zone",
@@ -73,9 +72,10 @@ object HailCtlDataProcClient extends Loggable {
       "--properties",
       config.properties,
       "--max-idle",
-      config.maxClusterIdleTime)
+      config.maxClusterIdleTime,
+      config.clusterId)
     
-    val metadataPart: Seq[String] = config.metadata match {
+    val metadataPart: Seq[String] = config.metadata.map(_.trim).filter(_.nonEmpty) match {
       case Some(md) => Seq("--metadata", md)
       case None => Nil
     }

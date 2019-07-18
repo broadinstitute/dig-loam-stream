@@ -90,7 +90,8 @@ object HailCtlDataProcClient extends Loggable {
   }
 
   private def runCommand(googleConfig: GoogleCloudConfig, hailConfig: HailConfig, command: String): Int = {
-    val fullScriptContents = s"""|conda activate ${hailConfig.condaEnv}
+    val fullScriptContents = s"""|source ~/.bashrc
+                                 |conda activate ${hailConfig.condaEnv}
                                  |CLOUDSDK_CORE_PROJECT="${googleConfig.projectId}"
                                  |${command}""".stripMargin
 
@@ -105,7 +106,7 @@ object HailCtlDataProcClient extends Loggable {
       line => info(s"hailctl: $line"),
       line => info(s"hailctl (via stderr): $line"))
 
-    val result = bashScript.processBuilder(Paths.get(".")).!
+    val result = bashScript.processBuilder(Paths.get(".")).!(processLogger)
 
     debug(s"Got status code $result from running '$fullScriptContents'")
 

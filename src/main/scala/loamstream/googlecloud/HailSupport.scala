@@ -69,11 +69,14 @@ object HailSupport {
           
       val jarFile = hailConfig.jarFile
       
-      val activateCondaPart = s"""conda activate "${hailConfig.condaEnv}""""
-      val projectIdEnvVarPart = s"""CLOUDSDK_CORE_PROJECT="${googleConfig.projectId}""""
-      
       val hailctlPrefixPart: String = {
-        s"""${activateCondaPart} && ${projectIdEnvVarPart} && hailctl dataproc submit ${googleConfig.clusterId} """
+        val sourceBashrcPart = "source ~/.bashrc"
+        val activateCondaPart = s"""conda activate "${hailConfig.condaEnv}""""
+        val projectIdEnvVarPart = s"""CLOUDSDK_CORE_PROJECT="${googleConfig.projectId}""""
+    
+        val prefix = s"${sourceBashrcPart} && ${activateCondaPart} && ${projectIdEnvVarPart}"
+        
+        s"""${prefix} && hailctl dataproc submit ${googleConfig.clusterId} """
       }
           
       //NB: Combine prefix part with first user-provided part, if the latter exists.  This matches what

@@ -69,36 +69,21 @@ object HailSupport {
           
       val jarFile = hailConfig.jarFile
       
-      val googlePrefixParts: Seq[String] = Seq(
-          "", 
-          /*${googleConfig.gcloudBinary}, */
-          " dataproc jobs submit pyspark --cluster=", 
-          /*${googleConfig.clusterId}*/ 
-          " --project=",
-          /*${googleConfig.projectId}*/
-          " --files=",
-          /*${hailConfig.jar}*/
-          " --py-files=",
-          /*${hailConfig.zip}*/
-          s""" --properties="spark.driver.extraClassPath=./$jarFile,spark.executor.extraClassPath=./$jarFile" """)
-          
-      val googlePrefixArgs: Seq[Any] = Seq(
-          googleConfig.gcloudBinary, 
-          googleConfig.clusterId, 
-          googleConfig.projectId,
-          hailConfig.jar, 
-          hailConfig.zip)
+      val activateCondaPart = s"""conda activate "${hailConfig.condaEnv}""""
+      val projectIdEnvVarPart = s"""CLOUDSDK_CORE_PROJECT="${googleConfig.projectId}""""
       
-      //NB: Combine last google prefix part with first user-provided part, if the latter exists.  This matches what
+      val hailctlPrefixPart: String = {
+        s"""${activateCondaPart} && ${projectIdEnvVarPart} && hailctl dataproc submit ${googleConfig.clusterId} """
+      }
+          
+      //NB: Combine prefix part with first user-provided part, if the latter exists.  This matches what
       //the compiler would provide.
       val newParts: Seq[String] = stringContext.parts.toSeq match {
-        case Nil => googlePrefixParts
-        case firstPart +: otherParts => {
-          googlePrefixParts.init ++ (s"${googlePrefixParts.last}${firstPart}" +: otherParts)
-        }
+        case Nil => Seq(hailctlPrefixPart)
+        case firstPart +: otherParts => s"${hailctlPrefixPart}${firstPart}" +: otherParts
       }
       
-      val newArgs = googlePrefixArgs ++ args
+      val newArgs = args
       
       LoamCmdTool.StringContextWithCmd(StringContext(newParts: _*)).cmd(newArgs: _*)
     }

@@ -28,6 +28,9 @@ final class HailSupportTest extends FunSuite {
   //NB: Write pyhail script files to a temp dir
   private val scriptDir = TestHelpers.getWorkDir(getClass.getSimpleName)
 
+  private val clusterId = "cluster-asdfasdf"
+  private val projectId = "project-kajsdhka"
+  
   //NB: Write pyhail script files to a temp dir
   private lazy val config: LoamConfig = {
     val configString = {
@@ -36,13 +39,14 @@ final class HailSupportTest extends FunSuite {
         googlecloud {
           gcloudBinary = "/path/to/gcloud"
           gsutilBinary = "/path/to/gsutil"
-          projectId = "some-project-id"
-          clusterId = "some-cluster-id"
+          projectId = "${projectId}"
+          clusterId = "${clusterId}"
           credentialsFile = "/path/to/creds"
 
           hail {
             jar = "gs://some-bucket/hail-all-spark.jar"
             zip = "gs://some-bucket/hail-all.zip"
+            condaEnv = "hail-0.2.18"
             scriptDir = "${scriptDir.render}" //don't litter in the current dir
           }
         }
@@ -54,14 +58,12 @@ final class HailSupportTest extends FunSuite {
 
   private val projectContext: LoamProjectContext = LoamProjectContext.empty(config)
 
-  private val clusterId = "asdfasdf"
-
   private val googleSettings = GoogleSettings(clusterId)
 
   // scalastyle:off line.size.limit
   private val sep = File.separator
   private val gCloudPath = s"${sep}path${sep}to${sep}gcloud"
-  private val googlePrefix = s"""$gCloudPath dataproc jobs submit pyspark --cluster=some-cluster-id --project=some-project-id --files=gs://some-bucket/hail-all-spark.jar --py-files=gs://some-bucket/hail-all.zip --properties="spark.driver.extraClassPath=./hail-all-spark.jar,spark.executor.extraClassPath=./hail-all-spark.jar" """
+  private val hailctlPrefix = s"""conda activate "hail-0.2.18" && CLOUDSDK_CORE_PROJECT="${projectId}" && hailctl dataproc submit ${clusterId} """
   // scalastyle:on line.size.limit
 
   import HailSupport._
@@ -138,7 +140,7 @@ final class HailSupportTest extends FunSuite {
   }
 
   test("Hail interpolator works with an empty command") {
-    val expectedCommandLine = googlePrefix
+    val expectedCommandLine = hailctlPrefix
 
     withScriptContext { implicit context =>
       doTest(expectedCommandLine)(hail"")
@@ -146,7 +148,7 @@ final class HailSupportTest extends FunSuite {
   }
 
   test("Hail interpolator works with a simple command") {
-    val expectedCommandLine = s"${googlePrefix}foo.py"
+    val expectedCommandLine = s"${hailctlPrefix}foo.py"
 
     withScriptContext { implicit context =>
       doTest(expectedCommandLine)(hail"foo.py")
@@ -163,7 +165,7 @@ final class HailSupportTest extends FunSuite {
 
       val scriptFile = commandLine.split("\\s+").last
 
-      val expectedCommandLine = s"${googlePrefix}${scriptFile}"
+      val expectedCommandLine = s"${hailctlPrefix}${scriptFile}"
 
       assert(commandLine === expectedCommandLine)
 
@@ -207,7 +209,7 @@ final class HailSupportTest extends FunSuite {
            | -o ${ancestryPcaLoadingsTsv}""".stripMargin.trim
       }
 
-      s"${googlePrefix}${suffix}"
+      s"${hailctlPrefix}${suffix}"
     }
 
     withScriptContext { implicit context =>
@@ -254,7 +256,7 @@ final class HailSupportTest extends FunSuite {
 
       val scriptFile = commandLine.split("\\s+").last
 
-      val expectedCommandLine = s"${googlePrefix}${scriptFile}"
+      val expectedCommandLine = s"${hailctlPrefix}${scriptFile}"
 
       assert(commandLine === expectedCommandLine)
 

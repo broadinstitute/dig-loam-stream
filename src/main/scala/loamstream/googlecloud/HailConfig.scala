@@ -17,8 +17,13 @@ import loamstream.util.Paths
  * @author clint
  * Feb 22, 2017
  */
-final case class HailConfig(jar: URI, zip: URI, scriptDir: Path = Defaults.scriptDir) extends HasScriptDir {
-  def jarFile: String = jar.getPath.split("/").last
+final case class HailConfig(
+    jar: URI, 
+    zip: URI,
+    condaEnv: String,
+    scriptDir: Path = Defaults.scriptDir) extends HasScriptDir {
+  
+  def jarFile: String = java.nio.file.Paths.get(jar.getPath).getFileName.toString
   
   def withScriptDir(newScriptDir: Path): HailConfig = copy(scriptDir = newScriptDir)
 }

@@ -28,8 +28,6 @@ final class GoogleCloudConfigTest extends FunSuite {
   private val masterBootDiskSize = 99
   private val workerMachineType = "wmt"
   private val workerBootDiskSize = 17
-  private val imageVersion = "iv"
-  private val scopes = "ses"
   private val properties = "p,r,o,p,s"
   private val maxClusterIdleTime = "42h"
 
@@ -64,8 +62,6 @@ final class GoogleCloudConfigTest extends FunSuite {
     assert(gConfig.workerBootDiskSize === Defaults.workerBootDiskSize)
     assert(gConfig.numPreemptibleWorkers === Defaults.numPreemptibleWorkers)
     assert(gConfig.preemptibleWorkerBootDiskSize === Defaults.preemptibleWorkerBootDiskSize)
-    assert(gConfig.imageVersion === Defaults.imageVersion)
-    assert(gConfig.scopes === Defaults.scopes)
     assert(gConfig.properties === Defaults.properties)
     assert(gConfig.maxClusterIdleTime === Defaults.maxClusterIdleTime)
   }
@@ -102,8 +98,6 @@ final class GoogleCloudConfigTest extends FunSuite {
           workerBootDiskSize = $workerBootDiskSize
           numPreemptibleWorkers = $numPreemptibleWorkers
           preemptibleWorkerBootDiskSize = $preemptibleWorkerBootDiskSize
-          imageVersion = "$imageVersion"
-          scopes = "$scopes"
           properties = "$properties"
           maxClusterIdleTime = "$maxClusterIdleTime"
         }
@@ -125,8 +119,6 @@ final class GoogleCloudConfigTest extends FunSuite {
     assert(gConfig.workerBootDiskSize === workerBootDiskSize)
     assert(gConfig.numPreemptibleWorkers === numPreemptibleWorkers)
     assert(gConfig.preemptibleWorkerBootDiskSize === preemptibleWorkerBootDiskSize)
-    assert(gConfig.imageVersion === imageVersion)
-    assert(gConfig.scopes === scopes)
     assert(gConfig.properties === properties)
     assert(gConfig.maxClusterIdleTime === maxClusterIdleTime)
   }

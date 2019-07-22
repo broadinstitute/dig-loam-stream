@@ -30,8 +30,6 @@ final class CloudSdkDataProcWrapperTest extends FunSuite {
     workerBootDiskSize = 17,
     numPreemptibleWorkers = 123,
     preemptibleWorkerBootDiskSize = 11,
-    imageVersion = "42.2.1.0",
-    scopes = "ses",
     properties = "p,r,o,p,s",
     maxClusterIdleTime = "42m")
     

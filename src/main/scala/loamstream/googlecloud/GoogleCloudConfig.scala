@@ -33,8 +33,6 @@ final case class GoogleCloudConfig(
     workerBootDiskSize: Int = Defaults.workerBootDiskSize,
     numPreemptibleWorkers: Int = Defaults.numPreemptibleWorkers,
     preemptibleWorkerBootDiskSize: Int = Defaults.preemptibleWorkerBootDiskSize,
-    imageVersion: String = Defaults.imageVersion,
-    scopes: String = Defaults.scopes,
     properties: String = Defaults.properties,
     maxClusterIdleTime: String = Defaults.maxClusterIdleTime)
 
@@ -49,7 +47,6 @@ object GoogleCloudConfig extends Loggable {
     val numPreemptibleWorkers: Int = 0
     val preemptibleWorkerBootDiskSize: Int = 20 // in GB
     val imageVersion: String = "1.1.49" // 2.x not supported by Hail, 1.1 needed for new Python API
-    val scopes: String = "https://www.googleapis.com/auth/cloud-platform"
     val properties: String = {
       "spark:spark.driver.extraJavaOptions=-Xss4M,spark:spark.executor.extraJavaOptions=-Xss4M," +
       "spark:spark.driver.memory=45g,spark:spark.driver.maxResultSize=30g,spark:spark.task.maxFailures=20," +
@@ -73,7 +70,6 @@ object GoogleCloudConfig extends Loggable {
       numPreemptibleWorkers: Int = Defaults.numPreemptibleWorkers,
       preemptibleWorkerBootDiskSize: Int = Defaults.preemptibleWorkerBootDiskSize,
       imageVersion: String = Defaults.imageVersion,
-      scopes: String = Defaults.scopes,
       properties: String = Defaults.properties,
       maxClusterIdleTime: String = Defaults.maxClusterIdleTime) {
     
@@ -95,8 +91,6 @@ object GoogleCloudConfig extends Loggable {
           workerBootDiskSize = workerBootDiskSize,
           numPreemptibleWorkers = numPreemptibleWorkers,
           preemptibleWorkerBootDiskSize = preemptibleWorkerBootDiskSize,
-          imageVersion = imageVersion,
-          scopes = scopes,
           properties = properties,
           maxClusterIdleTime = maxClusterIdleTime)
       }

@@ -40,12 +40,10 @@ object HailCtlDataProcClient extends Loggable {
   type DelegateFn = (GoogleCloudConfig, HailConfig, String) => Int
   
   def fromConfigs(googleConfig: GoogleCloudConfig, hailConfig: HailConfig): Try[HailCtlDataProcClient] = {
-    val gcloudBinary = googleConfig.gcloudBinary.toFile
-
-    if (gcloudBinary.exists && gcloudBinary.canExecute) {
-      Success(new HailCtlDataProcClient(googleConfig, hailConfig, new CloudSdkDataProcWrapper(googleConfig)))
-    } else {
-      Tries.failure(s"gcloud executable not found at ${googleConfig.gcloudBinary} or not executable")
+    for {
+      wrapper <- CloudSdkDataProcWrapper.fromConfig(googleConfig)
+    } yield {
+      new HailCtlDataProcClient(googleConfig, hailConfig, new CloudSdkDataProcWrapper(googleConfig))
     }
   }
 

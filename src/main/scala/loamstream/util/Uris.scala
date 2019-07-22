@@ -45,9 +45,8 @@ object Uris {
        */
       def getPathWithoutLeadingSlash: String = {
         val path = uri.getPath
-        val leadingChar = 1
   
-        if (path.startsWith("/")) path.drop(leadingChar) else path
+        if (path.startsWith("/")) path.drop(1) else path
       }
   
       /**

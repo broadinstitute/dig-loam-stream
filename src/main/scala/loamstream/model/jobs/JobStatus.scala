@@ -24,11 +24,15 @@ sealed trait JobStatus {
 
   final def isCouldNotStart: Boolean = this == JobStatus.CouldNotStart
   
+  final def isCanceled: Boolean = this == JobStatus.Canceled
+  
   final def isRunning: Boolean = this == JobStatus.Running
   
   final def notRunning: Boolean = !isRunning
   
-  final def canStopExecution: Boolean = isFailure || isCouldNotStart
+  final def canStopExecution: Boolean = isFailure || isCouldNotStart || isCanceled
+  
+  final def name: String = toString.toLowerCase
 }
 
 object JobStatus extends Loggable {
@@ -44,6 +48,7 @@ object JobStatus extends Loggable {
   case object WaitingForOutputs extends Success(isTerminal = false)
   case object Unknown extends NeitherSuccessNorFailure
   case object CouldNotStart extends NeitherSuccessNorFailure(isTerminal = true)
+  case object Canceled extends NeitherSuccessNorFailure(isTerminal = true)
   case object FailedPermanently extends Failure(isTerminal = true)
 
   def values: Set[JobStatus] = namesToInstances.values.toSet
@@ -71,16 +76,17 @@ object JobStatus extends Loggable {
       override val isFailure: Boolean = false) extends JobStatus
   
   private lazy val namesToInstances: Map[String, JobStatus] = Map(
-    "succeeded" -> Succeeded,
-    "skipped" -> Skipped,
-    "failed" -> Failed,
-    "failedwithexception" -> FailedWithException,
-    "notstarted" -> NotStarted,
-    "submitted" -> Submitted,
-    "terminated" -> Terminated,
-    "running" -> Running,
-    "unknown" -> Unknown,
-    "permanentfailure" -> FailedPermanently,
-    "couldnotstart" -> CouldNotStart,
-    "waitingforoutputs" -> WaitingForOutputs)
+    Succeeded.name -> Succeeded,
+    Skipped.name -> Skipped,
+    Failed.name -> Failed,
+    FailedWithException.name -> FailedWithException,
+    NotStarted.name -> NotStarted,
+    Submitted.name -> Submitted,
+    Terminated.name -> Terminated,
+    Running.name -> Running,
+    Unknown.name -> Unknown,
+    FailedPermanently.name -> FailedPermanently,
+    CouldNotStart.name -> CouldNotStart,
+    Canceled.name -> Canceled,
+    WaitingForOutputs.name -> WaitingForOutputs)
 }

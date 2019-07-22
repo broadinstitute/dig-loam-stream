@@ -41,8 +41,8 @@ import loamstream.drm.uger.UgerPathBuilder
 
 import loamstream.googlecloud.CloudSdkDataProcClient
 import loamstream.googlecloud.CloudStorageClient
-import loamstream.googlecloud.GcsClient
-import loamstream.googlecloud.GcsDriver
+import loamstream.googlecloud.GcsCloudStorageClient
+import loamstream.googlecloud.GcsCloudStorageDriver
 import loamstream.googlecloud.GoogleCloudConfig
 import loamstream.googlecloud.GoogleCloudChunkRunner
 
@@ -353,11 +353,11 @@ object AppWiring extends Loggable {
     
     val gcsClientAttempt = for {
       googleConfig <- googleConfigAttempt
-      gcsDriver <- GcsDriver.fromConfig(googleConfig)
+      gcsDriver <- GcsCloudStorageDriver.fromConfig(googleConfig)
     } yield {
       trace("Creating Google Cloud Storage Client...")
       
-      GcsClient(gcsDriver)
+      GcsCloudStorageClient(gcsDriver)
     }
 
     if(gcsClientAttempt.isFailure) {

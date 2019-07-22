@@ -1,4 +1,4 @@
-package loamstream
+package loamstream.googlecloud
 
 import java.nio.file.Files.exists
 
@@ -6,10 +6,12 @@ import scala.io.Source
 
 import org.scalatest.FunSuite
 
+import loamstream.IntegrationTestHelpers
 import loamstream.apps.Main
 import loamstream.util.CanBeClosed
 import loamstream.util.{ Files => LFiles }
 import loamstream.util.Paths.Implicits.PathHelpers
+
 
 /**
  * @author clint

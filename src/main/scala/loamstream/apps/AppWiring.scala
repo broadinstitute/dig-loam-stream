@@ -39,7 +39,7 @@ import loamstream.drm.uger.QacctAccountingClient
 import loamstream.drm.uger.UgerNativeSpecBuilder
 import loamstream.drm.uger.UgerPathBuilder
 
-import loamstream.googlecloud.CloudSdkDataProcClient
+import loamstream.googlecloud.CloudSdkDataProcWrapper
 import loamstream.googlecloud.CloudStorageClient
 import loamstream.googlecloud.GcsCloudStorageClient
 import loamstream.googlecloud.GcsCloudStorageDriver

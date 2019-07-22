@@ -31,8 +31,6 @@ final class GoogleCloudConfigTest extends FunSuite {
   private val imageVersion = "iv"
   private val scopes = "ses"
   private val properties = "p,r,o,p,s"
-  private val initializationActions = "gs://example.com/foo.sh"
-  private val metadata = "key=value"
   private val maxClusterIdleTime = "42h"
 
   test("fromConfig - defaults used") {
@@ -69,8 +67,6 @@ final class GoogleCloudConfigTest extends FunSuite {
     assert(gConfig.imageVersion === Defaults.imageVersion)
     assert(gConfig.scopes === Defaults.scopes)
     assert(gConfig.properties === Defaults.properties)
-    assert(gConfig.initializationActions === Defaults.initializationActions)
-    assert(gConfig.metadata === Defaults.metadata)
     assert(gConfig.maxClusterIdleTime === Defaults.maxClusterIdleTime)
   }
 
@@ -109,8 +105,6 @@ final class GoogleCloudConfigTest extends FunSuite {
           imageVersion = "$imageVersion"
           scopes = "$scopes"
           properties = "$properties"
-          initializationActions = "$initializationActions"
-          metadata = "$metadata"
           maxClusterIdleTime = "$maxClusterIdleTime"
         }
       }"""
@@ -134,8 +128,6 @@ final class GoogleCloudConfigTest extends FunSuite {
     assert(gConfig.imageVersion === imageVersion)
     assert(gConfig.scopes === scopes)
     assert(gConfig.properties === properties)
-    assert(gConfig.initializationActions === initializationActions)
-    assert(gConfig.metadata === Some(metadata))
     assert(gConfig.maxClusterIdleTime === maxClusterIdleTime)
   }
   

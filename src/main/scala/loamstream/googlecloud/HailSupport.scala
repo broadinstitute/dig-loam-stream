@@ -67,8 +67,6 @@ object HailSupport {
       val hailConfig = scriptContext.hailConfig
       val googleConfig = scriptContext.googleConfig
           
-      val jarFile = hailConfig.jarFile
-      
       val hailctlPrefixPart: String = {
         import loamstream.util.Paths.normalize
         

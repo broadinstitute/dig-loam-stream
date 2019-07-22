@@ -43,7 +43,7 @@ object HailCtlDataProcClient extends Loggable {
     val gcloudBinary = googleConfig.gcloudBinary.toFile
 
     if (gcloudBinary.exists && gcloudBinary.canExecute) {
-      Success(new HailCtlDataProcClient(googleConfig, hailConfig, new CloudSdkDataProcClient(googleConfig)))
+      Success(new HailCtlDataProcClient(googleConfig, hailConfig, new CloudSdkDataProcWrapper(googleConfig)))
     } else {
       Tries.failure(s"gcloud executable not found at ${googleConfig.gcloudBinary} or not executable")
     }
@@ -75,12 +75,7 @@ object HailCtlDataProcClient extends Loggable {
       config.maxClusterIdleTime,
       config.clusterId)
     
-    val metadataPart: Seq[String] = config.metadata.map(_.trim).filter(_.nonEmpty) match {
-      case Some(md) => Seq("--metadata", md)
-      case None => Nil
-    }
-    
-    val tokens = firstTokens ++ metadataPart
+    val tokens = firstTokens
 
     hailctlTokens(config)("start")(tokens: _*)
   }
@@ -98,21 +93,6 @@ object HailCtlDataProcClient extends Loggable {
                                  |CLOUDSDK_CORE_PROJECT="${googleConfig.projectId}"
                                  |${command}""".stripMargin
 
-    debug(s"Running Google Cloud SDK command: '$fullScriptContents'")
-
-    val bashScript = BashScript.fromCommandLineString(fullScriptContents)
-    
-    import scala.sys.process._
-
-    // STDERR messages aren't logged as 'error' because gcloud/hailctl writes a lot of non-error messages to STDERR
-    val processLogger = ProcessLogger(
-      line => info(s"hailctl: $line"),
-      line => info(s"hailctl (via stderr): $line"))
-
-    val result = bashScript.processBuilder(Paths.get(".")).!(processLogger)
-
-    debug(s"Got status code $result from running '$fullScriptContents'")
-
-    result
+    CloudSdkDataProcWrapper.runProcess(fullScriptContents, "hailctl")
   }
 }

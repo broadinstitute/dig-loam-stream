@@ -63,7 +63,7 @@ final class HailSupportTest extends FunSuite {
   // scalastyle:off line.size.limit
   private val sep = File.separator
   private val gCloudPath = s"${sep}path${sep}to${sep}gcloud"
-  private val hailctlPrefix = s"""source ~/.bashrc && conda activate "hail-0.2.18" && CLOUDSDK_CORE_PROJECT="${projectId}" && hailctl dataproc submit ${clusterId} """
+  private val hailctlPrefix = s"""source ~/.bashrc && conda activate "hail-0.2.18" && CLOUDSDK_CORE_PROJECT="${projectId}" && PATH="/path/to":$${PATH} && hailctl dataproc submit ${clusterId} """
   // scalastyle:on line.size.limit
 
   import HailSupport._

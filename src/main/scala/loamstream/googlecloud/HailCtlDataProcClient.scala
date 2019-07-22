@@ -50,7 +50,7 @@ object HailCtlDataProcClient extends Loggable {
   }
 
   private[googlecloud] def startClusterTokens(config: GoogleCloudConfig): Seq[String] = {
-    val firstTokens: Seq[String] = Seq(
+    val tokens: Seq[String] = Seq(
       "--project",
       config.projectId,
       "--zone",
@@ -75,8 +75,6 @@ object HailCtlDataProcClient extends Loggable {
       config.maxClusterIdleTime,
       config.clusterId)
     
-    val tokens = firstTokens
-
     hailctlTokens(config)("start")(tokens: _*)
   }
   

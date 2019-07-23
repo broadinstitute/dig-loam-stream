@@ -29,6 +29,7 @@ import loamstream.model.jobs.JobOracle
 import loamstream.model.execute.LocalSettings
 import loamstream.model.execute.GoogleSettings
 import GoogleCloudChunkRunner.ClusterStatus
+import loamstream.model.jobs.JobStatus
 
 
 /**
@@ -75,26 +76,28 @@ final case class GoogleCloudChunkRunner(
     //NB: If anything goes wrong determining whether or not the cluster is up, try to shut it down
     //anyway, to be safe.
     determineClusterStatus() match {
-      case ClusterStatus.Running => client.deleteCluster()
+      case ClusterStatus.Running => client.stopCluster()
       case ClusterStatus.NotRunning => debug("Cluster not running, not attempting to shut it down")
       case ClusterStatus.Undetermined(e) => {
         warn(s"Error determining cluster status, attempting to shut down cluster anyway", e)
         
-        client.deleteCluster()
+        client.stopCluster()
       }
     }
   }
   
-  private[googlecloud] def startClusterIfNecessary(): Unit = {
+  private[googlecloud] def startClusterIfNecessary(clusterConfig: ClusterConfig): Unit = {
+    def start() = client.startCluster(clusterConfig)
+    
     //NB: If anything goes wrong determining whether or not the cluster is up, try to shut it down
     //anyway, to be safe.
     determineClusterStatus() match {
-      case ClusterStatus.NotRunning => client.startCluster()
+      case ClusterStatus.NotRunning => start()
       case ClusterStatus.Running => debug("Cluster already running, not attempting to start it")
       case ClusterStatus.Undetermined(e) => {
         warn(s"Error determining cluster status, attempting to start cluster anyway", e)
         
-        client.startCluster()
+        start()
       }
     }
   }
@@ -113,8 +116,18 @@ final case class GoogleCloudChunkRunner(
       shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
     
     def doRunSingle(j: LJob): Map[LJob, RunData] = {
-      withCluster(client) {
-        runSingle(delegate, jobOracle, shouldRestart)(j)
+      def runDataForNonGoogleJob = RunData(
+          job = j, 
+          settings = j.initialSettings, 
+          jobStatus = JobStatus.CouldNotStart, 
+          jobResult = None, 
+          terminationReasonOpt = None)
+      
+      j.initialSettings match {
+        case GoogleSettings(_, clusterConfig) => withCluster(clusterConfig) {
+          runSingle(delegate, jobOracle, shouldRestart)(j)
+        }
+        case settings => Map(j -> runDataForNonGoogleJob)
       }
     }
     
@@ -137,18 +150,15 @@ final case class GoogleCloudChunkRunner(
     }
     
     val futureResult = {
-      import googleSettings.cluster
-      import googleSettings.clusterConfig
-
-      delegate.run(Set(job), jobOracle, shouldRestart).map(addCluster(cluster, clusterConfig)).lastAsFuture
+      delegate.run(Set(job), jobOracle, shouldRestart).map(addCluster(googleSettings.cluster)).lastAsFuture
     }
     
     //TODO: add some timeout
     Await.result(futureResult, Duration.Inf)
   }
   
-  private[googlecloud] def withCluster[A](client: DataProcClient)(f: => A): A = {
-    startClusterIfNecessary()
+  private[googlecloud] def withCluster[A](clusterConfig: ClusterConfig)(f: => A): A = {
+    startClusterIfNecessary(clusterConfig)
       
     f
   }
@@ -163,7 +173,7 @@ object GoogleCloudChunkRunner extends Loggable {
     final case class Undetermined(cause: Throwable) extends ClusterStatus
   }
   
-  private[googlecloud] def addCluster(cluster: String, clusterConfig: ClusterConfig)
+  private[googlecloud] def addCluster(cluster: String)
                                      (jobsAndExecutions: Map[LJob, RunData]): Map[LJob, RunData] = {
     jobsAndExecutions.map {
       case (job, runData @ RunData.WithLocalResources(localResources: LocalResources)) => {

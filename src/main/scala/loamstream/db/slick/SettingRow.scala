@@ -138,7 +138,6 @@ object LsfSettingRow extends DrmSettingRowCompanion[LsfSettingRow](new LsfSettin
 final case class GoogleSettingRow(
     executionId: Int,
     cluster: String,
-    metadata: Option[String],
     zone: String,
     masterMachineType: String,
     masterBootDiskSize: Int,
@@ -147,15 +146,11 @@ final case class GoogleSettingRow(
     workerBootDiskSize: Int,
     numPreemptibleWorkers: Int,
     preemptibleWorkerBootDiskSize: Int,
-    imageVersion: String,
-    scopes: String,
     properties: String,
-    initializationActions: String,
     maxClusterIdleTime: String) extends SettingRow with HasSimpleToSettings {
 
   override def toSettings: Settings = {
     val clusterConfig = ClusterConfig(
-        metadata = metadata,
         zone = zone,
         masterMachineType = masterMachineType,
         masterBootDiskSize = masterBootDiskSize,
@@ -164,10 +159,7 @@ final case class GoogleSettingRow(
         workerBootDiskSize = workerBootDiskSize,
         numPreemptibleWorkers = numPreemptibleWorkers,
         preemptibleWorkerBootDiskSize = preemptibleWorkerBootDiskSize,
-        imageVersion = imageVersion,
-        scopes = scopes,
         properties = properties,
-        initializationActions = initializationActions,
         maxClusterIdleTime = maxClusterIdleTime)
     
     GoogleSettings(cluster, clusterConfig)
@@ -187,7 +179,6 @@ object GoogleSettingRow {
     GoogleSettingRow(
         executionId = executionId,
         cluster = cluster,
-        metadata = metadata,
         zone = zone,
         masterMachineType = masterMachineType,
         masterBootDiskSize = masterBootDiskSize,
@@ -196,10 +187,7 @@ object GoogleSettingRow {
         workerBootDiskSize = workerBootDiskSize,
         numPreemptibleWorkers = numPreemptibleWorkers,
         preemptibleWorkerBootDiskSize = preemptibleWorkerBootDiskSize,
-        imageVersion = imageVersion,
-        scopes = scopes,
         properties = properties,
-        initializationActions = initializationActions,
         maxClusterIdleTime = maxClusterIdleTime)
   }
 }

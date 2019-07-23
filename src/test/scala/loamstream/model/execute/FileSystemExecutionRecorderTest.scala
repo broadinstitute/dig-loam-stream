@@ -104,7 +104,23 @@ final class FileSystemExecutionRecorderTest extends FunSuite {
   }
   
   test("settingsToString - Google settings") {
-    assert(settingsToString(GoogleSettings("foo", ClusterConfig.default)) === s"settings-type\tgoogle\ncluster\tfoo")
+    val expected = Seq(
+        "settings-type" -> "google",
+        "cluster" -> "foo",
+        "zone" -> "us-central1-b",
+        "master-machine-type" -> "n1-standard-1",
+        "master-boot-disk-size" -> "20",
+        "num-workers" -> "2",
+        "worker-machine-type" -> "n1-standard-1",
+        "worker-boot-disk-size" -> "20",
+        "num-preemptible-workers" -> "0",
+        "preemptible-worker-boot-disk-size" -> "20",
+        "properties" -> "short-props",
+        "max-cluster-idle-time" -> "10m").map { case (k, v) => s"${k}\t${v}" }.mkString("\n")
+    
+    val clusterConfig = ClusterConfig.default.copy(properties = "short-props")
+  
+    assert(settingsToString(GoogleSettings("foo", clusterConfig)) === expected)
   }
   
   test("settingsToString - DRM settings") {

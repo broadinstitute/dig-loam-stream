@@ -2,16 +2,18 @@ package loamstream.googlecloud
 
 import java.nio.file.Path
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.Duration
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.DurationLong
+import scala.util.Failure
+import scala.util.Success
 import scala.util.Try
 
 import com.typesafe.config.Config
-import loamstream.conf.ValueReaders
 
 import GoogleCloudConfig.Defaults
+import loamstream.conf.ValueReaders
 import loamstream.util.Loggable
-import scala.util.Success
-import scala.util.Failure
 import loamstream.util.Tries
 
 

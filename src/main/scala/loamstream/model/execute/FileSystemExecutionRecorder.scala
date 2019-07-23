@@ -124,7 +124,6 @@ object FileSystemExecutionRecorder extends ExecutionRecorder {
         Seq(
           typeTuple(EnvironmentType.Google.name), 
           Keys.cluster -> cluster,
-          Keys.metadata -> metadata.getOrElse(""),
           Keys.zone -> zone,
           Keys.masterMachineType -> masterMachineType,
           Keys.masterBootDiskSize -> masterBootDiskSize,
@@ -133,10 +132,7 @@ object FileSystemExecutionRecorder extends ExecutionRecorder {
           Keys.workerBootDiskSize -> workerBootDiskSize,
           Keys.numPreemptibleWorkers -> numPreemptibleWorkers,
           Keys.preemptibleWorkerBootDiskSize -> preemptibleWorkerBootDiskSize,
-          Keys.imageVersion -> imageVersion,
-          Keys.scopes -> scopes,
           Keys.properties -> properties,
-          Keys.initializationActions -> initializationActions,
           Keys.maxClusterIdleTime -> maxClusterIdleTime)
       }
       case DrmSettings(cores, memory, cpuTime, queueOpt, containerParamsOpt) => {

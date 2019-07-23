@@ -172,7 +172,6 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
     override def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
     
     def cluster = column[String]("CLUSTER")
-    def metadata = column[Option[String]]("METADATA")
     def zone = column[String]("ZONE")
     def masterMachineType = column[String]("MASTER_MACHINE_TYPE")
     def masterBootDiskSize = column[Int]("MASTER_BOOT_DISK_SIZE")
@@ -181,17 +180,14 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
     def workerBootDiskSize = column[Int]("WORKER_BOOT_DISK_SIZE")
     def numPreemptibleWorkers = column[Int]("NUM_PREEMPTIBLE_WORKERS")
     def preemptibleWorkerBootDiskSize = column[Int]("PREEMTIBLE_WORKER_BOOT_DISK_SIZE")
-    def imageVersion = column[String]("IMAGE_VERSION")
-    def scopes = column[String]("SCOPES")
     def properties = column[String]("PROPERTIES")
-    def initializationActions = column[String]("INITIALIZATION_ACTIONS")
     def maxClusterIdleTime = column[String]("MAX_CLUSTER_IDLE_TIME")
     
     //NB: Required by Slick to define the mapping between DB columns and case class fields.
     //It's unlikely devs will need to call it directly.
-    override def * = (executionId, cluster, metadata, zone, masterMachineType, masterBootDiskSize, numWorkers, 
+    override def * = (executionId, cluster, zone, masterMachineType, masterBootDiskSize, numWorkers, 
                       workerMachineType, workerBootDiskSize, numPreemptibleWorkers, preemptibleWorkerBootDiskSize,
-                      imageVersion, scopes, properties, initializationActions, maxClusterIdleTime) <> 
+                      properties, maxClusterIdleTime) <> 
                        ((GoogleSettingRow.apply _).tupled, GoogleSettingRow.unapply)
   }
 

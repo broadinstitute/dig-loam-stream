@@ -9,7 +9,7 @@ import loamstream.TestHelpers
  */
 final class HailCtlDataProcClientTest extends FunSuite {
   private def canStop[A](f: => A): DataProcClient.CanStop = new DataProcClient.CanStop {
-    override def deleteCluster(): Unit = f
+    override def stopCluster(): Unit = f
   }
   
   private def canTellIfRunning(f: => Boolean): DataProcClient.CanTellIfRunning = new DataProcClient.CanTellIfRunning {
@@ -21,7 +21,7 @@ final class HailCtlDataProcClientTest extends FunSuite {
     var isClusterRunningInvoked = 0
     
     val delegate: DataProcClient = new DataProcClient {
-      override def deleteCluster(): Unit =  {
+      override def stopCluster(): Unit =  {
         canStopInvoked += 1
       }
       
@@ -43,7 +43,7 @@ final class HailCtlDataProcClientTest extends FunSuite {
     assert(canStopInvoked === 0)
     assert(isClusterRunningInvoked === 1)
     
-    hailCtlClient.deleteCluster()
+    hailCtlClient.stopCluster()
     assert(canStopInvoked === 1)
     assert(isClusterRunningInvoked === 1)
   }

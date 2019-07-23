@@ -75,12 +75,12 @@ final case class GoogleCloudChunkRunner(
     //NB: If anything goes wrong determining whether or not the cluster is up, try to shut it down
     //anyway, to be safe.
     determineClusterStatus() match {
-      case ClusterStatus.Running => client.deleteCluster()
+      case ClusterStatus.Running => client.stopCluster()
       case ClusterStatus.NotRunning => debug("Cluster not running, not attempting to shut it down")
       case ClusterStatus.Undetermined(e) => {
         warn(s"Error determining cluster status, attempting to shut down cluster anyway", e)
         
-        client.deleteCluster()
+        client.stopCluster()
       }
     }
   }

@@ -12,7 +12,7 @@ object DataProcClient {
   }
   
   trait CanStop {
-    def deleteCluster(): Unit
+    def stopCluster(): Unit
   }
   
   trait CanTellIfRunning {

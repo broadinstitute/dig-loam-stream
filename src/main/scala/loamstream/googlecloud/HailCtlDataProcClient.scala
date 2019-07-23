@@ -21,7 +21,7 @@ final class HailCtlDataProcClient private[googlecloud] (
   delegate: DataProcClient.CanStopAndTellIfRunning,
   runCommand: DelegateFn = HailCtlDataProcClient.runCommand) extends DataProcClient with Loggable {
 
-  override def deleteCluster(): Unit = delegate.deleteCluster()
+  override def stopCluster(): Unit = delegate.stopCluster()
 
   override def isClusterRunning: Boolean = delegate.isClusterRunning
 

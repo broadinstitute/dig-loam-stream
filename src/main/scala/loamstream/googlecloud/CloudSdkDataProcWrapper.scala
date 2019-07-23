@@ -24,7 +24,7 @@ final class CloudSdkDataProcWrapper private[googlecloud] (
     isClusterRunningTokens
   }
 
-  override def deleteCluster(): Unit = {
+  override def stopCluster(): Unit = {
     debug(s"Deleting cluster '${config.clusterId}'")
 
     val exitCode = runCommand(deleteClusterTokens(config))

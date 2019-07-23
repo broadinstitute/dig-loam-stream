@@ -43,14 +43,14 @@ final class CloudSdkDataProcWrapperTest extends FunSuite {
     val client = new CloudSdkDataProcWrapper(config, alwaysSucceeds)
 
     //Shouldn't throw
-    client.deleteCluster()
+    client.stopCluster()
   }
 
   test("deleteCluster - should throw") {
     val client = new CloudSdkDataProcWrapper(config, alwaysFails)
 
     intercept[ExitCodeException] {
-      client.deleteCluster()
+      client.stopCluster()
     }
   }
 

@@ -1,0 +1,59 @@
+import loamstream.conf.DataConfig
+import loamstream.googlecloud.HailSupport._
+import loamstream.model.Store
+import loamstream.util.CanBeClosed.enclosed
+
+val dataConfig = loadConfig("dataConfig", "")
+
+val googleCloudUri = uri(dataConfig.getStr("googleCloudUri"))
+val workDir = path(dataConfig.getStr("workDir"))
+
+val resourcesDir = path("src/it/resources/hail-at-google").toAbsolutePath
+
+val input_local: Store = store(resourcesDir / "input.tsv")
+val input_google: Store = store(googleCloudUri / "input.tsv")
+val output_google0: Store = store(googleCloudUri / "output0.tsv")
+val output_local0: Store = store(workDir / "output0.tsv")
+val output_google1: Store = store(googleCloudUri / "output1.tsv")
+val output_local1: Store = store(workDir / "output1.tsv")
+
+local {    
+  googleCopy(input_local, input_google).tag("copy-input-to-google")
+}
+
+import loamstream.googlecloud.ClusterConfig
+
+val clusterConfig0 = ClusterConfig(
+    masterMachineType = "n1-standard-1",
+    workerMachineType = "n1-standard-1",
+    numWorkers = 2,
+    numPreemptibleWorkers = 0)
+
+val clusterConfig1 = ClusterConfig(
+    masterMachineType = "n1-standard-1",
+    workerMachineType = "n1-standard-1",
+    numWorkers = 4,
+    numPreemptibleWorkers = 0)
+
+googleWith(clusterConfig0) {
+  hail"""${resourcesDir}/hail_test.py --
+    --input ${input_google}
+    --output ${output_google0}"""
+    .in(input_google)
+    .out(output_google0)
+    .tag(s"hail_test")
+}
+
+googleWith(clusterConfig1) {
+  hail"""${resourcesDir}/hail_test.py --
+    --input ${input_google}
+    --output ${output_google1}"""
+    .in(input_google)
+    .out(output_google1)
+    .tag(s"hail_test")
+}
+
+local {    
+  googleCopy(output_google0, output_local0).tag("copy-result-to-local0")
+  googleCopy(output_google1, output_local1).tag("copy-result-to-local1")
+}

@@ -30,6 +30,7 @@ import loamstream.model.execute.LocalSettings
 import loamstream.model.execute.GoogleSettings
 import GoogleCloudChunkRunner.ClusterStatus
 import loamstream.model.jobs.JobStatus
+import loamstream.util.ValueBox
 
 
 /**
@@ -49,7 +50,9 @@ final case class GoogleCloudChunkRunner(
   
   private lazy val singleThreadedScheduler: Scheduler = ExecutionContextScheduler(singleThreadedExecutionContext)
   
-  override def maxNumJobs: Int = delegate.maxNumJobs
+  override def maxNumJobs: Int = 1
+
+  private val currentClusterConfig: ValueBox[Option[ClusterConfig]] = ValueBox(None)
   
   override def run(
       jobs: Set[LJob], 
@@ -87,13 +90,17 @@ final case class GoogleCloudChunkRunner(
   }
   
   private[googlecloud] def startClusterIfNecessary(clusterConfig: ClusterConfig): Unit = {
-    def start() = client.startCluster(clusterConfig)
+    def start(): Unit = {
+      client.startCluster(clusterConfig)
+      
+      currentClusterConfig := Option(clusterConfig) 
+    }
     
     //NB: If anything goes wrong determining whether or not the cluster is up, try to shut it down
     //anyway, to be safe.
     determineClusterStatus() match {
+      case ClusterStatus.Running => debug("Cluster already running, not attempting to start it")  
       case ClusterStatus.NotRunning => start()
-      case ClusterStatus.Running => debug("Cluster already running, not attempting to start it")
       case ClusterStatus.Undetermined(e) => {
         warn(s"Error determining cluster status, attempting to start cluster anyway", e)
         
@@ -158,9 +165,15 @@ final case class GoogleCloudChunkRunner(
   }
   
   private[googlecloud] def withCluster[A](clusterConfig: ClusterConfig)(f: => A): A = {
-    startClusterIfNecessary(clusterConfig)
+    currentClusterConfig.get { currentClusterConfigOpt =>
+      if(currentClusterConfigOpt != Option(clusterConfig)) {
+        deleteClusterIfNecessary()
+      }
+    
+      startClusterIfNecessary(clusterConfig)
       
-    f
+      f
+    }
   }
 }
 

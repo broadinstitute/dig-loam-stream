@@ -41,7 +41,7 @@ googleWith(clusterConfig0) {
     --output ${output_google0}"""
     .in(input_google)
     .out(output_google0)
-    .tag(s"hail_test")
+    .tag(s"hail_test0")
 }
 
 googleWith(clusterConfig1) {
@@ -50,7 +50,7 @@ googleWith(clusterConfig1) {
     --output ${output_google1}"""
     .in(input_google)
     .out(output_google1)
-    .tag(s"hail_test")
+    .tag(s"hail_test1")
 }
 
 local {    

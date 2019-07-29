@@ -165,8 +165,12 @@ final case class GoogleCloudChunkRunner(
   }
   
   private[googlecloud] def withCluster[A](clusterConfig: ClusterConfig)(f: => A): A = {
+    def differentCurrentClusterDefined(currentClusterConfigOpt: Option[ClusterConfig]): Boolean = {
+      currentClusterConfigOpt.isDefined && (currentClusterConfigOpt != Option(clusterConfig))
+    }
+    
     currentClusterConfig.get { currentClusterConfigOpt =>
-      if(currentClusterConfigOpt != Option(clusterConfig)) {
+      if(differentCurrentClusterDefined(currentClusterConfigOpt)) {
         deleteClusterIfNecessary()
       }
     

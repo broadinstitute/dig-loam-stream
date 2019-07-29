@@ -113,7 +113,7 @@ object MockJob {
       initialSettings: Settings): MockJob = {
     
     def makeRunData(job: LJob) = {
-      runDataFrom(job, LocalSettings, jobResult.toJobStatus, Option(jobResult), resources, jobDir)
+      runDataFrom(job, initialSettings, jobResult.toJobStatus, Option(jobResult), resources, jobDir)
     }
     
     new FromJobFn(

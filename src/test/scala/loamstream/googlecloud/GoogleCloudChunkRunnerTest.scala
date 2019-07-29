@@ -23,6 +23,8 @@ import loamstream.model.jobs.RunData
 import loamstream.util.Maps
 import java.nio.file.Path
 import loamstream.model.execute.GoogleSettings
+import loamstream.model.execute.Resources.LocalResources
+import loamstream.model.execute.Settings
 
 
 /**
@@ -48,17 +50,21 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
 
   private val clusterConfig0 = ClusterConfig.default.copy(zone = "foo")
   private val clusterConfig1 = clusterConfig0.copy(numWorkers = 99)
+  private val clusterConfig2 = clusterConfig0.copy(numWorkers = 42)
     
   assert(clusterConfig0 !== clusterConfig1)
+  assert(clusterConfig0 !== clusterConfig2)
+  assert(clusterConfig1 !== clusterConfig2)
   
   private def clusterConfigFrom(j: LJob): ClusterConfig = j.initialSettings.asInstanceOf[GoogleSettings].clusterConfig
   
   private def mockJob(
       result: JobResult, 
       resources: Option[Resources] = None, 
-      jobDir: Option[Path] = None) = {
+      jobDir: Option[Path] = None,
+      initialSettings: GoogleSettings = GoogleSettings(clusterId, clusterConfig0)) = {
     
-    MockJob(result, resources, jobDir, initialSettings = GoogleSettings(clusterId, clusterConfig0))
+    MockJob(result, resources, jobDir, initialSettings = initialSettings)
   }
 
   test("addCluster") {
@@ -107,14 +113,14 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       
       googleRunner.withCluster(clusterConfig1 ) {
         assert(mockClient.clusterRunning() === true)
-        assert(mockClient.startClusterInvocations() === Seq(clusterConfig0))
-        assert(mockClient.deleteClusterInvocations() === 0)
+        assert(mockClient.startClusterInvocations() === Seq(clusterConfig0, clusterConfig1))
+        assert(mockClient.deleteClusterInvocations() === 1)
       }
       
       val result = googleRunner.withCluster(clusterConfig0) {
         assert(mockClient.clusterRunning() === true)
-        assert(mockClient.startClusterInvocations() === Seq(clusterConfig0))
-        assert(mockClient.deleteClusterInvocations() === 0)
+        assert(mockClient.startClusterInvocations() === Seq(clusterConfig0, clusterConfig1, clusterConfig0))
+        assert(mockClient.deleteClusterInvocations() === 2)
         
         42
       }
@@ -123,8 +129,8 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       
       assert(googleRunner.singleThreadedExecutor.isShutdown === false)
       assert(mockClient.clusterRunning() === true)
-      assert(mockClient.startClusterInvocations() === Seq(clusterConfig0))
-      assert(mockClient.deleteClusterInvocations() === 0)
+      assert(mockClient.startClusterInvocations() === Seq(clusterConfig0, clusterConfig1, clusterConfig0))
+      assert(mockClient.deleteClusterInvocations() === 2)
     } 
   }
   
@@ -339,6 +345,75 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       assert(job3Resources.endTime === localResources.endTime)
       
       assert(jobRuns.size === 3)
+    }
+  }
+  
+  test("run - non-empty input, multiple clusterconfigs") {
+    withMockRunner { (mockRunner, googleRunner, client) =>
+      val localResources3 = TestHelpers.localResources
+      val localResources4 = TestHelpers.localResources
+      
+      import JobResult._
+      
+      val settings12 = GoogleSettings(clusterId, clusterConfig0)
+      val settings3 = GoogleSettings(clusterId, clusterConfig1)
+      val settings4 = GoogleSettings(clusterId, clusterConfig2)
+      
+      //clusterConfig0
+      val job1 = mockJob(result = Success, initialSettings = settings12)
+      val job2 = mockJob(result = Failure, initialSettings = settings12)
+      //clusterConfig1
+      val job3 = mockJob(
+          result = CommandResult(0), 
+          resources = Some(localResources3), 
+          initialSettings = settings3)
+      //clusterConfig2
+      val job4 = mockJob(
+          result = CommandResult(0), 
+          resources = Some(localResources4), 
+          initialSettings = settings4)
+      
+      assert(client.clusterRunning() === false)
+      assert(client.startClusterInvocations() === Nil)
+      assert(client.deleteClusterInvocations() === 0)
+      
+      val z: Map[LJob, RunData] = Map.empty
+      
+      val runDataObs = googleRunner.run(Set(job1, job2, job3, job4), TestHelpers.DummyJobOracle, neverRestart)
+      
+      val jobRuns = waitFor(runDataObs.foldLeft(z)(_ ++ _).lastAsFuture)
+      
+      assert(client.clusterRunning() === true)
+      assert(client.startClusterInvocations().toSet === 
+        Set(settings12.clusterConfig, settings3.clusterConfig, settings4.clusterConfig))
+      assert(client.deleteClusterInvocations() === 2)
+      
+      assert(jobRuns(job1) === job1.toReturn)
+      assert(jobRuns(job2) === job2.toReturn)
+
+      def checkCommandResult(job: LJob, expectedLocalResources: LocalResources): Unit = {
+        val jobRunData = jobRuns(job)
+        val jobResult = jobRunData.jobResult.get.asInstanceOf[JobResult.CommandResult]
+  
+        assert(jobResult.exitCode === 0)
+  
+        val jobResources = jobRunData.resourcesOpt.get.asInstanceOf[GoogleResources]
+  
+        val expectedResources = GoogleResources(
+            cluster = clusterId, 
+            startTime = expectedLocalResources.startTime, 
+            endTime = expectedLocalResources.endTime)
+        
+        assert(jobResources === expectedResources)
+      }
+
+      checkCommandResult(job3, localResources3)
+      checkCommandResult(job4, localResources4)
+      
+      assert(jobRuns.size === 4)
+      
+      assert(jobRuns.mapValues(_.settings) === Map(
+          job1 -> settings12, job2 -> settings12, job3 -> settings3, job4 -> settings4))
     }
   }
   

@@ -11,43 +11,32 @@ import loamstream.util.BashScript.Implicits._
  * Feb 24, 2017
  */
 final class HailConfigTest extends FunSuite {
-  test("jarFile") {
-    val jar = new URI("gs://foo/bar/baz")
-    val zip = new URI("gs://blerg/zerg/flerg")
-
-    assert(HailConfig(jar, zip).jarFile === "baz")
-  }
-
   test("fromConfig - good input, defaults used") {
-    val jar = new URI("gs://foo/bar/baz")
-    val zip = new URI("gs://blerg/zerg/flerg")
+    val envName = "hail-0.2.18"
 
     val configString = s"""
       loamstream {
         googlecloud {
           hail {
-            jar = "$jar"
-            zip = "$zip"
+            condaEnv = "$envName"
           }
         }
       }"""
 
     val actual = HailConfig.fromConfig(ConfigFactory.parseString(configString)).get
 
-    assert(actual === HailConfig(jar, zip, HailConfig.Defaults.scriptDir))
+    assert(actual === HailConfig(envName, HailConfig.Defaults.scriptDir))
   }
 
   test("fromConfig - good input, NO defaults used") {
-    val jar = new URI("gs://foo/bar/baz")
-    val zip = new URI("gs://blerg/zerg/flerg")
+    val envName = "hail-0.2.18"
     val scriptDir = Paths.get("/foo/bar/baz")
 
     val configString = s"""
       loamstream {
         googlecloud {
           hail {
-            jar = "$jar"
-            zip = "$zip"
+            condaEnv = "$envName"
             scriptDir = "${scriptDir.render}"
           }
         }
@@ -55,7 +44,7 @@ final class HailConfigTest extends FunSuite {
 
     val actual = HailConfig.fromConfig(ConfigFactory.parseString(configString)).get
 
-    assert(actual === HailConfig(jar, zip, scriptDir))
+    assert(actual === HailConfig(envName, scriptDir))
   }
 
   test("fromConfig - bad input") {

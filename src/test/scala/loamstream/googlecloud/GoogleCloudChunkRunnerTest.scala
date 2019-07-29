@@ -504,7 +504,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       assert(client.deleteClusterInvocations() === 0)
       assert(client.isClusterRunningInvocations() === 3)
       
-      client.deleteCluster()
+      client.stopCluster()
       
       assert(client.clusterRunning() === false)
       assert(client.startClusterInvocations() === 1)
@@ -556,7 +556,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       assert(client.delegate.deleteClusterInvocations() === 0)
       assert(client.delegate.isClusterRunningInvocations() === 3)
       
-      client.deleteCluster()
+      client.stopCluster()
       
       assert(client.delegate.clusterRunning() === false)
       assert(client.delegate.deleteClusterInvocations() === 1)
@@ -658,8 +658,8 @@ object GoogleCloudChunkRunnerTest {
       startClusterBody
     }
     
-    override def deleteCluster(): Unit = {
-      delegate.deleteCluster()
+    override def stopCluster(): Unit = {
+      delegate.stopCluster()
       
       deleteClusterBody
     }
@@ -679,7 +679,7 @@ object GoogleCloudChunkRunnerTest {
       clusterRunning := false
     }
     
-    override def deleteCluster(): Unit = {
+    override def stopCluster(): Unit = {
       deleteClusterInvocations.mutate(_ + 1)
       
       clusterRunning := false

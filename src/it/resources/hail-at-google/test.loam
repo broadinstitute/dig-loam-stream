@@ -8,7 +8,7 @@ val dataConfig = loadConfig("dataConfig", "")
 val googleCloudUri = uri(dataConfig.getStr("googleCloudUri"))
 val workDir = path(dataConfig.getStr("workDir"))
 
-val resourcesDir = path("src/it/resources/hail-at-google")
+val resourcesDir = path("src/it/resources/hail-at-google").toAbsolutePath
 
 val input_local: Store = store(resourcesDir / "input.tsv")
 val input_google: Store = store(googleCloudUri / "input.tsv")

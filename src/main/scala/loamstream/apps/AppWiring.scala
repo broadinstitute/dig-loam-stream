@@ -39,7 +39,7 @@ import loamstream.drm.uger.QacctAccountingClient
 import loamstream.drm.uger.UgerNativeSpecBuilder
 import loamstream.drm.uger.UgerPathBuilder
 
-import loamstream.googlecloud.CloudSdkDataProcClient
+import loamstream.googlecloud.CloudSdkDataProcWrapper
 import loamstream.googlecloud.CloudStorageClient
 import loamstream.googlecloud.GcsCloudStorageClient
 import loamstream.googlecloud.GcsCloudStorageDriver
@@ -84,6 +84,8 @@ import loamstream.conf.Locations
 import loamstream.drm.lsf.BacctAccountingClient
 import loamstream.drm.DrmaaClient
 import loamstream.model.execute.FileSystemExecutionRecorder
+import loamstream.googlecloud.HailCtlDataProcClient
+import loamstream.googlecloud.HailConfig
 
 
 /**
@@ -227,7 +229,7 @@ object AppWiring extends Loggable {
 
       val (drmRunner, drmRunnerHandles) = drmChunkRunner(intent.confFile, config, threadPoolSize)
       
-      val googleRunner = googleChunkRunner(intent.confFile, config.googleConfig, localRunner)
+      val googleRunner = googleChunkRunner(intent.confFile, config.googleConfig, config.hailConfig, localRunner)
 
       val compositeRunner = CompositeChunkRunner(localRunner +: (drmRunner.toSeq ++ googleRunner))
       
@@ -249,23 +251,24 @@ object AppWiring extends Loggable {
 
   private def googleChunkRunner(
       confFile: Option[Path],
-      googleConfigOpt: Option[GoogleCloudConfig], 
+      googleConfigOpt: Option[GoogleCloudConfig],
+      hailConfigOpt: Option[HailConfig], 
       delegate: ChunkRunner): Option[GoogleCloudChunkRunner] = {
     
     //TODO: A better way to enable or disable Google support; for now, this is purely expedient
     
-    def noGoogleConfig: Option[GoogleCloudChunkRunner] = {
+    def noConfigs: Option[GoogleCloudChunkRunner] = {
       debug("Google Cloud support NOT enabled due to missing 'loamstream.googlecloud' section in the config file")
         
       None
     }
     
-    def googleConfigPresent(googleConfig: GoogleCloudConfig): Option[GoogleCloudChunkRunner] = {
-      val clientAttempt = CloudSdkDataProcClient.fromConfig(googleConfig)
-    
+    def configsPresent(configTuple: (GoogleCloudConfig, HailConfig)): Option[GoogleCloudChunkRunner] = {
+      val (googleConfig, hailConfig) = configTuple
+      
       val runnerAttempt: Try[GoogleCloudChunkRunner] = {
         for {
-          client <- CloudSdkDataProcClient.fromConfig(googleConfig)
+          client <- HailCtlDataProcClient.fromConfigs(googleConfig, hailConfig)
         } yield {
           trace("Creating Google Cloud ChunkRunner...")
     
@@ -284,7 +287,12 @@ object AppWiring extends Loggable {
       runnerAttempt.toOption
     }
     
-    googleConfigOpt.fold(noGoogleConfig)(googleConfigPresent)
+    val configsOpt = for {
+      googleConfig <- googleConfigOpt 
+      hailConfig <- hailConfigOpt
+    } yield (googleConfig, hailConfig)
+    
+    configsOpt.fold(noConfigs)(configsPresent)
   }
   
   private def drmChunkRunner(

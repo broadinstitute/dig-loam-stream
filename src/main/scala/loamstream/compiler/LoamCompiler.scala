@@ -300,7 +300,7 @@ final class LoamCompiler(
   def compile(config: LoamConfig, script: LoamScript): LoamCompiler.Result = compile(LoamProject(config, script))
 
   private def failureDueToException(e: Throwable): LoamCompiler.Result = {
-    error(s"${e.getClass.getName} while trying to compile: ${e.getMessage}")
+    error(s"${e.getClass.getName} while trying to compile: ${e.getMessage}", e)
 
     logCompilationErrors(LoamCompiler.Result.throwable(reporter, e))
   }

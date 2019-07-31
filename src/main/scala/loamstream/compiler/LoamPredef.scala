@@ -21,7 +21,9 @@ import loamstream.model.execute.LocalSettings
 import loamstream.googlecloud.ClusterConfig
 
 /** Predefined symbols in Loam scripts */
-object LoamPredef extends Loggable {
+object LoamPredef extends LoamPredef
+
+trait LoamPredef extends Loggable {
 
   type Store = loamstream.model.Store
   

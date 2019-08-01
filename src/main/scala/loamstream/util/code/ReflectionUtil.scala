@@ -16,13 +16,8 @@ object ReflectionUtil {
    
     val clazz = classLoader.loadClass(jvmFullyQualifiedClassName)
     
-    println(s"Loaded class '${jvmFullyQualifiedClassName}' as $clazz")
-    
     val field = clazz.getField("MODULE$")
-    
-    println(s"Got field $field")
     
     field.get(nullAsDummyValue).asInstanceOf[T]
   }
 }
-

@@ -21,6 +21,7 @@ lazy val Versions = new {
   val LogbackColorizer = "1.0.1"
   val Janino = "3.0.12"
   val CommonsCsv = "1.7"
+  val Reflections = "0.9.11"
 }
 
 lazy val Orgs = new {
@@ -58,7 +59,8 @@ lazy val mainDeps = Seq(
   "org.typelevel"  %% "squants"  % Versions.Squants,
   "org.tuxdude.logback.extensions" % "logback-colorizer" % Versions.LogbackColorizer,
   "org.codehaus.janino" % "janino" % Versions.Janino,
-  "org.apache.commons" % "commons-csv" % Versions.CommonsCsv
+  "org.apache.commons" % "commons-csv" % Versions.CommonsCsv,
+  "org.reflections" % "reflections" % Versions.Reflections
 )
 
 lazy val testDeps = Seq(

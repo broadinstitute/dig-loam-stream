@@ -22,11 +22,7 @@ object ReflectionUtil {
     
     println(s"Got field $field")
     
-    val instance = field.get(nullAsDummyValue).asInstanceOf[T]
-    
-    println(s"Made instance $instance")
-    
-    instance
+    field.get(nullAsDummyValue).asInstanceOf[T]
   }
 }
 

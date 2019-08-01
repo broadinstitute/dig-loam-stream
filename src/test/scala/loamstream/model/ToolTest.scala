@@ -17,8 +17,7 @@ final class ToolTest extends FunSuite {
   test("tag") {
     implicit val scriptContext: LoamScriptContext = new LoamScriptContext(TestHelpers.emptyProjectContext)
     
-    import LoamPredef._
-    import LoamCmdTool._
+    import loamstream.loam.LoamSyntax._
     
     def graph = scriptContext.projectContext.graph
     

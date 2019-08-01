@@ -25,8 +25,6 @@ object LoamPredef extends LoamPredef
 
 trait LoamPredef extends Loggable {
 
-  type Store = loamstream.model.Store
-  
   def path(pathString: String): Path = Paths.get(pathString)
 
   def uri(uriString: String): URI = URI.create(uriString)

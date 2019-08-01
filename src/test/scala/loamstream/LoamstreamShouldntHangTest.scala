@@ -111,8 +111,7 @@ object LoamstreamShouldntHangTest {
      */
     val onlyOneFailure: OnlyOneFailure = {
       implicit val scriptContext = new LoamScriptContext(TestHelpers.emptyProjectContext)
-      import LoamPredef._
-      import LoamCmdTool._
+      import loamstream.loam.LoamSyntax._
       
       val workDir = TestHelpers.getWorkDir(s"${classOf[LoamstreamShouldntHangTest].getSimpleName}")
       
@@ -137,8 +136,7 @@ object LoamstreamShouldntHangTest {
      */
     val twoStepsFirstFails: TwoStepsOneFails = {
       implicit val scriptContext = new LoamScriptContext(TestHelpers.emptyProjectContext)
-      import LoamPredef._
-      import LoamCmdTool._
+      import loamstream.loam.LoamSyntax._
       
       val workDir = TestHelpers.getWorkDir(s"${classOf[LoamstreamShouldntHangTest].getSimpleName}")
       
@@ -165,8 +163,7 @@ object LoamstreamShouldntHangTest {
      */
     val twoStepsSecondFails: TwoStepsOneFails = {
       implicit val scriptContext = new LoamScriptContext(TestHelpers.emptyProjectContext)
-      import LoamPredef._
-      import LoamCmdTool._
+      import loamstream.loam.LoamSyntax._
       
       val workDir = TestHelpers.getWorkDir(s"${classOf[LoamstreamShouldntHangTest].getSimpleName}")
       
@@ -199,8 +196,7 @@ object LoamstreamShouldntHangTest {
      */
     val threeStepsMutualDepFails: ThreeStepsMutualDepFails = {
       implicit val scriptContext = new LoamScriptContext(TestHelpers.emptyProjectContext)
-      import LoamPredef._
-      import LoamCmdTool._
+      import loamstream.loam.LoamSyntax._
       
       val workDir = TestHelpers.getWorkDir(s"${classOf[LoamstreamShouldntHangTest].getSimpleName}")
       
@@ -235,8 +231,7 @@ object LoamstreamShouldntHangTest {
      */
     val someEarlyFailures: SomeFailures = {
       implicit val scriptContext = new LoamScriptContext(TestHelpers.emptyProjectContext)
-      import LoamPredef._
-      import LoamCmdTool._
+      import loamstream.loam.LoamSyntax._
       
       val workDir = TestHelpers.getWorkDir(s"${classOf[LoamstreamShouldntHangTest].getSimpleName}")
       

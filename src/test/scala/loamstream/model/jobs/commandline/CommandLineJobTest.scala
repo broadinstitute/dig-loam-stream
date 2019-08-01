@@ -18,8 +18,7 @@ final class CommandLineJobTest extends FunSuite {
     val outputPath = TestHelpers.getWorkDir(getClass.getSimpleName).resolve("foo")
     
     val graph: LoamGraph = TestHelpers.makeGraph { implicit sc =>
-      import LoamPredef._
-      import LoamCmdTool._
+      import loamstream.loam.LoamSyntax._
     
       val input = store("src/test/resources/test-data-CommandLineStringJobTest").asInput
       val output = store(outputPath)

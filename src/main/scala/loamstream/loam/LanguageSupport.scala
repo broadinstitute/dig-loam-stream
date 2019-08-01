@@ -32,7 +32,7 @@ object LanguageSupport {
         
         val scriptFile = makeScript(stringContext, GeneratedScriptParams.r(rConfig), args: _*)
         
-        import LoamCmdTool._
+        import LoamCmdSyntax._
 
         cmd"${rConfig.binary} $scriptFile"
       }
@@ -59,7 +59,7 @@ object LanguageSupport {
         
         val scriptFile = makeScript(stringContext, GeneratedScriptParams.python(pythonConfig), args: _*)
         
-        import LoamCmdTool._
+        import LoamCmdSyntax._
 
         cmd"${pythonConfig.binary} $scriptFile"
       }

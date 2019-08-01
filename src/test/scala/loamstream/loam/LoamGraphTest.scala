@@ -281,8 +281,7 @@ object LoamGraphTest {
     
     implicit val scriptContext: LoamScriptContext = new LoamScriptContext(LoamProjectContext.empty(config))
     
-    import LoamCmdTool._
-    import loamstream.compiler.LoamPredef._
+    import loamstream.loam.LoamSyntax._
     
     val inputFile = path("/user/home/someone/data.vcf")
     val outputFile = path("/user/home/someone/dataImputed.vcf")

@@ -37,8 +37,7 @@ final class RunAllOfTest extends FunSuite {
     assert(jobFilter.isInstanceOf[ByNameJobFilter.AllOf])
     
     val graph = TestHelpers.makeGraph(DrmSystem.Uger) { implicit ctx =>
-      import LoamPredef._
-      import LoamCmdTool._
+      import loamstream.loam.LoamSyntax._
       
       val foo123 = cmd"foo --bar -n 123".tag("foo123")
       val bar = cmd"bar".tag("bar")

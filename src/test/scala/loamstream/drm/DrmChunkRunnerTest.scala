@@ -394,8 +394,7 @@ final class DrmChunkRunnerTest extends FunSuite {
     
     def makeGraph(drmSystem: DrmSystem): LoamGraph = {
       TestHelpers.makeGraph(drmSystem) { implicit context =>
-        import LoamPredef._
-        import LoamCmdTool._
+        import loamstream.loam.LoamSyntax._
       
         val a = store("a.txt").asInput
         val b = store("b.txt")
@@ -474,8 +473,7 @@ final class DrmChunkRunnerTest extends FunSuite {
     def makeGraphAndTools(drmSystem: DrmSystem): (LoamGraph, LoamCmdTool, LoamCmdTool, LoamCmdTool, LoamCmdTool) = {
       implicit val sc = new LoamScriptContext(TestHelpers.emptyProjectContext(drmSystem))
         
-      import loamstream.compiler.LoamPredef._
-      import loamstream.loam.LoamCmdTool._
+      import loamstream.loam.LoamSyntax._
     
       val a = store("a.txt").asInput
       val b = store("b.txt")

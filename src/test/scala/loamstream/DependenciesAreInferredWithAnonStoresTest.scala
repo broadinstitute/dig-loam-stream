@@ -26,8 +26,7 @@ final class DependenciesAreInferredWithAnonStoresTest extends FunSuite {
     val workDir = TestHelpers.getWorkDir(getClass.getSimpleName)
     
     val graph = TestHelpers.makeGraph { implicit context =>
-      import LoamPredef._
-      import LoamCmdTool._
+      import loamstream.loam.LoamSyntax._
       
       val nonExistent = store(nonExistentInputPath).asInput
       
@@ -51,8 +50,7 @@ final class DependenciesAreInferredWithAnonStoresTest extends FunSuite {
     val workDir = TestHelpers.getWorkDir(getClass.getSimpleName)
     
     val (graph, anonOutput) = TestHelpers.withScriptContext { implicit context =>
-      import LoamPredef._
-      import LoamCmdTool._
+      import loamstream.loam.LoamSyntax._
       
       val in = store(inputPath).asInput
       
@@ -84,8 +82,7 @@ final class DependenciesAreInferredWithAnonStoresTest extends FunSuite {
     val outPath = workDir / "out"
     
     val graph = TestHelpers.makeGraph { implicit context =>
-      import LoamPredef._
-      import LoamCmdTool._
+      import loamstream.loam.LoamSyntax._
       
       val nonExistent = store(nonExistentInputPath).asInput
       
@@ -123,8 +120,7 @@ final class DependenciesAreInferredWithAnonStoresTest extends FunSuite {
     val outPath = workDir / "out"
     
     val graph = TestHelpers.makeGraph { implicit context =>
-      import LoamPredef._
-      import LoamCmdTool._
+      import loamstream.loam.LoamSyntax._
       
       val in = store(inputPath).asInput
       
@@ -167,8 +163,7 @@ final class DependenciesAreInferredWithAnonStoresTest extends FunSuite {
     val outPath1 = workDir / "out1"
     
     val graph = TestHelpers.makeGraph { implicit context =>
-      import LoamPredef._
-      import LoamCmdTool._
+      import loamstream.loam.LoamSyntax._
       
       val nonExistent = store(nonExistentInputPath).asInput
       

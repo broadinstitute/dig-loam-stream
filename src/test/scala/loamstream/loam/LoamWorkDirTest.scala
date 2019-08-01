@@ -24,17 +24,20 @@ final class LoamWorkDirTest extends FunSuite {
   }
 
   private def assertWorkDirIsSet(workDirOpt1: Option[Path], workDirOpt2: Option[Path]): Unit = {
-    import LoamCmdTool._
-    import loamstream.compiler.LoamPredef._
+    import loamstream.loam.LoamSyntax._
+    
     implicit val scriptContext = new LoamScriptContext(LoamProjectContext.empty(TestHelpers.config))
+    
     workDirOpt1 match {
       case Some(workDir1) => changeDir(workDir1)
       case None => ()
     }
+    
     workDirOpt2 match {
       case Some(workDir2) => changeDir(workDir2)
       case None => ()
     }
+    
     val fileName1 = "file1.vcf"
     val fileName2 = "file2.vcf"
     val store1 = store(fileName1).asInput
@@ -78,8 +81,7 @@ final class LoamWorkDirTest extends FunSuite {
   private def createFilePaths: FilePathsLocal = new FilePathsLocal
 
   private def createGraphUsingChangeDir(paths: FilePathsLocal): LoamGraph = TestHelpers.makeGraph { implicit sc =>
-    import LoamPredef._
-    import LoamCmdTool._
+    import loamstream.loam.LoamSyntax._
     
     changeDir(paths.rootDirs.head)
     val inFile = store(paths.inFileName).asInput
@@ -101,8 +103,7 @@ final class LoamWorkDirTest extends FunSuite {
   }
 
   private def createGraphUsingInDir(paths: FilePathsLocal): LoamGraph = TestHelpers.makeGraph { implicit sc =>
-    import LoamPredef._
-    import LoamCmdTool._
+    import loamstream.loam.LoamSyntax._
 
     val outFile2 = store
     inDir(paths.rootDirs.head) {

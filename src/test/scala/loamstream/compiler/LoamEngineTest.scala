@@ -107,8 +107,7 @@ final class LoamEngineTest extends FunSuite {
     Files.writeTo(inputFile)("XYZ")
     
     val graph = TestHelpers.makeGraph { implicit context =>
-      import LoamPredef._
-      import LoamCmdTool._
+      import loamstream.loam.LoamSyntax._
 
       val input = store(inputFile).asInput
       val output = store(outputFile)

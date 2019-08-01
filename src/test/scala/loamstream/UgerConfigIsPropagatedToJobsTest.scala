@@ -24,8 +24,7 @@ final class UgerConfigIsPropagatedToJobsTest extends FunSuite {
     
     def makeGraph(drmSystem: DrmSystem): LoamGraph = {
       TestHelpers.makeGraph(drmSystem) { implicit context =>
-        import LoamPredef._
-        import LoamCmdTool._
+        import loamstream.loam.LoamSyntax._
       
         val a = store("a.txt").asInput
         val b = store("b.txt")
@@ -74,8 +73,7 @@ final class UgerConfigIsPropagatedToJobsTest extends FunSuite {
   test("uger config is propagated to jobs - defaults") {
     def doTest(drmSystem: DrmSystem): Unit = {
       val graph = TestHelpers.makeGraph(drmSystem) { implicit context =>
-        import LoamPredef._
-        import LoamCmdTool._
+        import loamstream.loam.LoamSyntax._
       
         val a = store("a.txt").asInput
         val b = store("b.txt")
@@ -106,8 +104,7 @@ final class UgerConfigIsPropagatedToJobsTest extends FunSuite {
   test("uger config is propagated to jobs - defaults (no arg)") {
     def doTest(drmSystem: DrmSystem): Unit = {
       val graph = TestHelpers.makeGraph(drmSystem) { implicit context =>
-        import LoamPredef._
-        import LoamCmdTool._
+        import loamstream.loam.LoamSyntax._
       
         val a = store("a.txt").asInput
         val b = store("b.txt")

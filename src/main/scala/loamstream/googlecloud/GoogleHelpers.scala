@@ -1,8 +1,8 @@
 package loamstream.googlecloud
 
-import loamstream.model.Store
-import loamstream.loam.LoamScriptContext
 import loamstream.loam.LoamCmdTool
+import loamstream.loam.LoamScriptContext
+import loamstream.model.Store
 import loamstream.util.BashScript.Implicits._
 
 /**
@@ -21,7 +21,7 @@ trait GoogleHelpers {
   }
 
   def googleCopy(src: Store, dest: Store, params: String*)(implicit context: LoamScriptContext): LoamCmdTool = {
-    import LoamCmdTool._
+    import loamstream.loam.LoamCmdSyntax._
 
     val googleConfig = context.googleConfig
 

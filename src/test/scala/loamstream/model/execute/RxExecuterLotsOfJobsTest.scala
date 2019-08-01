@@ -91,9 +91,7 @@ final class RxExecuterLotsOfJobsTest extends FunSuite {
   
   //Adapted from camp_chr_12_22.loam
   private def graph(outputDir: Path): LoamGraph = TestHelpers.makeGraph { implicit context =>
-    import LoamPredef._
-    import LoamCmdTool._
-    import Paths.Implicits._
+    import loamstream.loam.LoamSyntax._
     
     // Map: Chrom Number -> (Number of Shards, Offset for Start Position)
     val input = store("src/test/resources/a.txt").asInput

@@ -3,6 +3,7 @@ package loamstream.googlecloud
 import loamstream.loam.LoamCmdTool
 import loamstream.loam.LoamScriptContext
 import loamstream.loam.LanguageSupport
+import loamstream.loam.LoamCmdSyntax
 
 /**
  * @author clint
@@ -87,9 +88,7 @@ trait HailLoamSyntax {
         case firstPart +: otherParts => s"${hailctlPrefixPart}${firstPart}" +: otherParts
       }
       
-      val newArgs = args
-      
-      LoamCmdTool.StringContextWithCmd(StringContext(newParts: _*)).cmd(newArgs: _*)
+      LoamCmdSyntax.StringContextWithCmd(StringContext(newParts: _*)).cmd(args: _*)
     }
   }
 }

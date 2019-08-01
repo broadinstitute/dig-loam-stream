@@ -46,8 +46,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
   test("Jobs are skipped if their outputs were already produced by a previous run") {
     def copyAToB(fileIn: Path, fileOut: Path): LoamGraph = TestHelpers.makeGraph { implicit context =>
-      import LoamPredef._
-      import LoamCmdTool._
+      import loamstream.loam.LoamSyntax._
        
       val in = LoamPredef.store(fileIn).asInput
       val out = LoamPredef.store(fileOut)
@@ -57,8 +56,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
     
     def copyAToBToC(fileIn: Path, fileOut1: Path, fileOut2: Path): LoamGraph = {
       TestHelpers.makeGraph { implicit context => 
-        import LoamPredef._
-        import LoamCmdTool._
+        import loamstream.loam.LoamSyntax._
       
         val in = LoamPredef.store(fileIn).asInput
         val out1 = LoamPredef.store(fileOut1)
@@ -194,8 +192,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
     
     //Loam for a single invocation of a bogus command:
     def makeScript(fileOut1: Path): LoamGraph = TestHelpers.makeGraph { implicit context =>
-      import LoamPredef._
-      import LoamCmdTool._
+      import loamstream.loam.LoamSyntax._
       
       val in = LoamPredef.store(fileIn).asInput
       val out1 = LoamPredef.store(fileOut1)
@@ -260,8 +257,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
     val bogusCommandName = "asdfasdf"
     
     def makeScript(fileOut1: Path, fileOut2: Path): LoamGraph = TestHelpers.makeGraph { implicit context =>
-      import LoamPredef._
-      import LoamCmdTool._
+      import loamstream.loam.LoamSyntax._
 
       val in = LoamPredef.store(fileIn).asInput
       val out1 = LoamPredef.store(fileOut1)

@@ -17,13 +17,15 @@ import loamstream.conf.DynamicConfig
  * 
  * Jul 31, 2019
  */
+object LoamCmdSyntax extends LoamCmdSyntax
+
 trait LoamCmdSyntax {
   implicit final class StringContextWithCmd(val stringContext: StringContext) {
     /** BEWARE: This method has the implicit side-effect of modifying the graph
      *          within scriptContext via the call to addToGraph()
      */
     def cmd(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
-      val tool = create(args : _*)(StringUtils.unwrapLines)(scriptContext, stringContext)
+      val tool = LoamCmdTool.create(args : _*)(StringUtils.unwrapLines)(scriptContext, stringContext)
 
       addToGraph(tool)
 
@@ -60,56 +62,5 @@ trait LoamCmdSyntax {
     scriptContext.projectContext.updateGraph { graph =>
       graph.withTool(tool, scriptContext)
     }
-  }
-  
-  /**
-   * @param transform allows for manipulating white space,
-   *                  system-dependent markers (e.g. line breaks), etc.
-   *                  within a commandline or a block of embedded code
-   */
-  private[loam] def create(args: Any*)
-                          (transform: String => String)
-                          (implicit scriptContext: LoamScriptContext, stringContext: StringContext): LoamCmdTool = {
-
-    def toStringToken(s: String) = StringToken(transform(s))
-    
-    //TODO: handle case where there are no parts (can that happen? cmd"" ?)
-    val firstPart +: stringParts = stringContext.parts
-
-    val firstToken: LoamToken = toStringToken(firstPart)
-
-    //Associate transformations with stores when making tokens? 
-    
-    val tokens: Seq[LoamToken] = firstToken +: {
-      stringParts.zip(args).flatMap { case (stringPart, arg) =>
-        Seq(toToken(arg), toStringToken(stringPart))
-      }
-    }
-
-    val merged = LoamToken.mergeStringTokens(tokens)
-
-    LoamCmdTool(LId.newAnonId, merged)
-  }
-  
-  private[loam] def toToken(arg: Any): LoamToken = {
-    def isInputStore(s: Store) = s.graph.inputStores.contains(s)
-    
-    arg match {
-      case store: Store => StoreToken(store)
-      //NB: @unchecked is ok here because the check that can't be performed due to erasure is worked around by 
-      //the isHasLocationIterable() guard
-      case stores: Iterable[Store] @unchecked if isStoreIterable(stores) => {
-        MultiStoreToken(stores)
-      }
-      case args: Iterable[_] => MultiToken(args)
-      //NB: Will throw if the DynamicConf represents a config key that's not present,
-      //or a key that points to a sub-config (ie NOT a string or number)
-      case conf: DynamicConfig => StringToken(conf.unpack.toString)
-      case arg => StringToken(arg.toString)
-    }
-  }
-  
-  private[loam] def isStoreIterable(xs: Iterable[_]): Boolean = {
-    xs.nonEmpty && xs.forall(_.isInstanceOf[Store])
   }
 }

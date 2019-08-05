@@ -34,22 +34,22 @@ final class DbBackedJobFilter(
 
   // If performance becomes an issue, not 'findOutput()'ing multiple times
   // for a given OutputRecord should help
-  private[execute] def needsToBeRun(jobStr: String, rec: StoreRecord): Boolean = {
-    val msg = s"Job $jobStr will be run because its output"
+  private[execute] def needsToBeRun(jobStringRep: String, output: StoreRecord): Boolean = {
+    val msg = s"Job $jobStringRep will be run because its output"
 
     val considerHashes = outputHashingStrategy.shouldHash
     
-    val missingFromDisk = rec.isMissing
-    lazy val differentModTime = hasDifferentModTime(rec)
-    lazy val noHashInDb = notHashedInDb(rec)
-    lazy val differentHashInDb = hasDifferentHash(rec)
+    val missingFromDisk = output.isMissing
+    lazy val differentModTime = hasDifferentModTime(output)
+    lazy val noHashInDb = notHashedInDb(output)
+    lazy val differentHashInDb = hasDifferentHash(output)
     lazy val absentOrDifferentHash = (considerHashes && (noHashInDb || differentHashInDb))
     
-    if (missingFromDisk) { debug(s"$msg $rec is missing.") }
-    else if (differentModTime) { debug(s"$msg $rec is older.") }
+    if (missingFromDisk) { debug(s"$msg $output is missing.") }
+    else if (differentModTime) { debug(s"$msg $output is older.") }
     else if(considerHashes) {
-      if (noHashInDb) { debug(s"$msg $rec does not have a hash value.") }
-      else if (differentHashInDb) { debug(s"$msg $rec has a different hash.") }
+      if (noHashInDb) { debug(s"$msg $output does not have a hash value.") }
+      else if (differentHashInDb) { debug(s"$msg $output has a different hash.") }
     }
 
     missingFromDisk || differentModTime || absentOrDifferentHash

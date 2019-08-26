@@ -15,6 +15,8 @@ object Paths {
   
   trait Implicits {
     final implicit class PathHelpers(val path: Path) {
+      def exists: Boolean = java.nio.file.Files.exists(path)
+      
       def /(next: String): Path = path.resolve(next)
       def /(next: Try[String]): Try[Path] = next.map(/)
       

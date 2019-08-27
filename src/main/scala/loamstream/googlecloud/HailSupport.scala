@@ -72,8 +72,8 @@ object HailSupport {
         
         val sourceBashrcPart = "source ~/.bashrc"
         val activateCondaPart = s"""conda activate "${hailConfig.condaEnv}""""
-        val projectIdEnvVarPart = s"""CLOUDSDK_CORE_PROJECT="${googleConfig.projectId}""""
-        val pathMungingPart = s"""PATH="${normalize(googleConfig.gcloudBinary.getParent)}":$${PATH}"""
+        val projectIdEnvVarPart = s"""export CLOUDSDK_CORE_PROJECT="${googleConfig.projectId}""""
+        val pathMungingPart = s"""export PATH="${normalize(googleConfig.gcloudBinary.getParent)}":$${PATH}"""
     
         val prefix = s"${sourceBashrcPart} && ${activateCondaPart} && ${projectIdEnvVarPart} && ${pathMungingPart}"
         

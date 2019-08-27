@@ -129,6 +129,7 @@ object BsubJobSubmitter extends Loggable {
     val memoryPerCoreInMegs = drmSettings.memoryPerCore.mb.toLong
     val memoryPerCoreInKb = drmSettings.memoryPerCore.kb.toLong
     
+    //Memory specified with -R needs to be in megs, with -M it needs to be in kb.
     val memoryRusagePart = Seq("-R", s"rusage[mem=${memoryPerCoreInMegs}]")
     val memoryDashMPart = Seq("-M", memoryPerCoreInKb.toString)
     

@@ -99,35 +99,42 @@ final class BsubJobSubmitterTest extends FunSuite {
     assert(extractJobId(withUnTrimmedStrings) === Some("2738574"))
   }
   
-  test("makeTokensAndCdf - NO containerization") {
-    import BsubJobSubmitter.makeTokens
+  test("makeTokens") {
+    def doTest(settings: LsfDrmSettings): Unit = {
+      import BsubJobSubmitter.makeTokens
+      
+      val executableName = "/definitely/not/the/default"
+      
+      val lsfConfig = TestHelpers.config.lsfConfig.get    
+      
+      val tokens = makeTokens(executableName, lsfConfig, taskArray, settings)
+      
+      val expectedTokens = Seq(
+          executableName,
+          "-q",
+          queue.name,
+          "-W",
+          "3:0",
+          "-M",
+          settings.memoryPerCore.kb.toLong.toString,
+          "-R",
+          s"rusage[mem=${7 * 1000}]",
+          "-n",
+          "42",
+          "-R",
+          "span[hosts=1]",
+          "-J",
+          s"${taskArray.drmJobName}[1-2]",
+          "-oo",
+          taskArray.stdOutPathTemplate,
+          "-eo",
+          taskArray.stdErrPathTemplate)
+          
+      assert(tokens === expectedTokens)
+    }
     
-    val executableName = "/definitely/not/the/default"
-    
-    val lsfConfig = TestHelpers.config.lsfConfig.get    
-    
-    val tokens = makeTokens(executableName, lsfConfig, taskArray, settingsWithoutContainer)
-    
-    val expectedTokens = Seq(
-        executableName,
-        "-q",
-        queue.name,
-        "-W",
-        "3:0",
-        "-R",
-        s"rusage[mem=${7 * 1000}]",
-        "-n",
-        "42",
-        "-R",
-        "span[hosts=1]",
-        "-J",
-        s"${taskArray.drmJobName}[1-2]",
-        "-oo",
-        taskArray.stdOutPathTemplate,
-        "-eo",
-        taskArray.stdErrPathTemplate)
-        
-    assert(tokens === expectedTokens)
+    doTest(settings)
+    doTest(settingsWithoutContainer)
   }
   
   private def makeBsubOutput(baseJobId: String): Seq[String] = Seq(

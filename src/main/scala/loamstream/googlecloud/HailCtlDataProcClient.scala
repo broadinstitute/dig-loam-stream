@@ -25,12 +25,12 @@ final class HailCtlDataProcClient private[googlecloud] (
 
   override def isClusterRunning: Boolean = delegate.isClusterRunning
 
-  override def startCluster(): Unit = {
+  override def startCluster(clusterConfig: ClusterConfig): Unit = {
     debug(s"Starting cluster '${googleConfig.clusterId}'")
 
     import HailCtlDataProcClient.startClusterTokens
     
-    val exitCode = runCommand(googleConfig, hailConfig, startClusterTokens(googleConfig).mkString(" "))
+    val exitCode = runCommand(googleConfig, hailConfig, startClusterTokens(googleConfig, clusterConfig).mkString(" "))
 
     ExitCodes.throwIfFailure(exitCode)
   }
@@ -47,33 +47,36 @@ object HailCtlDataProcClient extends Loggable {
     }
   }
 
-  private[googlecloud] def startClusterTokens(config: GoogleCloudConfig): Seq[String] = {
+  private[googlecloud] def startClusterTokens(
+      googleConfig: GoogleCloudConfig, 
+      clusterConfig: ClusterConfig): Seq[String] = {
+    
     val tokens: Seq[String] = Seq(
       "--project",
-      config.projectId,
+      googleConfig.projectId,
       "--zone",
-      config.zone,
+      clusterConfig.zone,
       "--master-machine-type",
-      config.masterMachineType,
+      clusterConfig.masterMachineType,
       "--master-boot-disk-size",
-      config.masterBootDiskSize.toString,
+      clusterConfig.masterBootDiskSize.toString,
       "--num-workers",
-      config.numWorkers.toString,
+      clusterConfig.numWorkers.toString,
       "--worker-machine-type",
-      config.workerMachineType,
+      clusterConfig.workerMachineType,
       "--worker-boot-disk-size",
-      config.workerBootDiskSize.toString,
+      clusterConfig.workerBootDiskSize.toString,
       "--num-preemptible-workers",
-      config.numPreemptibleWorkers.toString,
+      clusterConfig.numPreemptibleWorkers.toString,
       "--preemptible-worker-boot-disk-size",
-      config.preemptibleWorkerBootDiskSize.toString,
+      clusterConfig.preemptibleWorkerBootDiskSize.toString,
       "--properties",
-      config.properties,
+      clusterConfig.properties,
       "--max-idle",
-      config.maxClusterIdleTime,
-      config.clusterId)
+      clusterConfig.maxClusterIdleTime,
+      googleConfig.clusterId)
     
-    hailctlTokens(config)("start")(tokens: _*)
+    hailctlTokens(googleConfig)("start")(tokens: _*)
   }
   
   private[googlecloud] def hailctlTokens(config: GoogleCloudConfig)(verb: String)(args: String*): Seq[String] = {

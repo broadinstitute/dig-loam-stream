@@ -26,6 +26,7 @@ import loamstream.util.TypeBox
 import loamstream.model.execute.UgerDrmSettings
 import loamstream.model.execute.LsfDrmSettings
 import loamstream.model.execute.Settings
+import loamstream.googlecloud.ClusterConfig
 
 
 /**
@@ -127,7 +128,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     val lsfSettings = {
       LsfDrmSettings(Cpus(8), Memory.inGb(4), UgerDefaults.maxRunTime, Option(UgerDefaults.queue), None)
     }
-    val googleSettings = GoogleSettings("some-cluster")
+    val googleSettings = GoogleSettings("some-cluster", ClusterConfig.default)
 
     val localResources = LocalResources(Instant.ofEpochMilli(123), Instant.ofEpochMilli(456))
 

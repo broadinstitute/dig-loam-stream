@@ -21,17 +21,18 @@ final class CloudSdkDataProcWrapperTest extends FunSuite {
     projectId = "pid",
     clusterId = "cid",
     credentialsFile = path("N/A"),
-    numWorkers = 42,
     //non-default values
-    zone = "z",
-    masterMachineType = "mmt",
-    masterBootDiskSize = 99,
-    workerMachineType = "wmt",
-    workerBootDiskSize = 17,
-    numPreemptibleWorkers = 123,
-    preemptibleWorkerBootDiskSize = 11,
-    properties = "p,r,o,p,s",
-    maxClusterIdleTime = "42m")
+    defaultClusterConfig = ClusterConfig(
+      numWorkers = 42,
+      zone = "z",
+      masterMachineType = "mmt",
+      masterBootDiskSize = 99,
+      workerMachineType = "wmt",
+      workerBootDiskSize = 17,
+      numPreemptibleWorkers = 123,
+      preemptibleWorkerBootDiskSize = 11,
+      properties = "p,r,o,p,s",
+      maxClusterIdleTime = "42m"))
     
   private val examplePath = Paths.newAbsolute("foo", "bar", "baz")
 

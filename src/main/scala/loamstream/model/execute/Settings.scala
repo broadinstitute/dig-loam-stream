@@ -16,6 +16,7 @@ import loamstream.drm.DrmSystem
 import loamstream.util.Options
 import loamstream.drm.ContainerParams
 import loamstream.model.jobs.commandline.HasCommandLine
+import loamstream.googlecloud.ClusterConfig
 
 /**
  * @author kyuksel
@@ -90,4 +91,4 @@ object DrmSettings {
 /**
  * Execution-time settings for a google job 
  */
-final case class GoogleSettings(cluster: String) extends Settings(EnvironmentType.Google)
+final case class GoogleSettings(cluster: String, clusterConfig: ClusterConfig) extends Settings(EnvironmentType.Google)

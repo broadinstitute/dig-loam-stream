@@ -33,6 +33,7 @@ import loamstream.db.slick.DbDescriptor
 import loamstream.conf.ExecutionConfig
 import loamstream.conf.Locations
 import loamstream.util.Files
+import loamstream.cli.JobFilterIntent
 
 
 /**
@@ -108,8 +109,6 @@ object Main extends Loggable {
     def doDryRun(intent: Intent.DryRun, makeDao: => LoamDao = AppWiring.makeDefaultDb): Unit = {
       val config = AppWiring.loamConfigFrom(intent.confFile, intent.drmSystemOpt, intent.shouldValidate) 
       
-      val jobFilter = AppWiring.jobFilterForDryRun(intent, makeDao)
-      
       val loamEngine = LoamEngine.default(config)
       
       val compilationResult = compile(loamEngine, intent.loams)
@@ -120,14 +119,21 @@ object Main extends Loggable {
         case LoamCompiler.Result.Success(_, _, graph) => {
           val executable = LoamEngine.toExecutable(graph)
     
-          val jobsToBeRun = TimeUtils.time(s"Listing jobs that would be run", info(_)) {
-            DryRunner.toBeRun(jobFilter, executable)
+          val jobsToBeRun = intent.jobFilterIntent match {
+            case JobFilterIntent.AsByNameJobFilter(byNameFilter) => DryRunner.toBeRun(byNameFilter, executable) 
+            case _ => {
+              val jobFilter = AppWiring.jobFilterForDryRun(intent, makeDao)
+              
+              DryRunner.toBeRun(jobFilter, executable)
+            }
           }
           
-          info(s"Jobs to be run (${jobsToBeRun.size}):")
+          info(s"Jobs that COULD run (${jobsToBeRun.size}):")
             
           //Log jobs that could be run normally
-          jobsToBeRun.map(_.toString).foreach(info(_))
+          jobsToBeRun.map(j => s"(name: '${j.name}') $j").foreach(info(_))
+          
+          info(s"Done listing ${jobsToBeRun.size} jobs that COULD run.")
           
           //Also write them to a file, like if we were running for real.
           loamEngine.listJobsThatCouldRun(jobsToBeRun)

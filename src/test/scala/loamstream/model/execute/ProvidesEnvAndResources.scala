@@ -21,6 +21,7 @@ import loamstream.drm.uger.UgerDefaults
 import loamstream.model.execute.Resources.UgerResources
 import loamstream.model.execute.Resources.LsfResources
 import loamstream.drm.lsf.LsfDefaults
+import loamstream.googlecloud.ClusterConfig
 
 /**
  * @author kyuksel
@@ -37,7 +38,7 @@ trait ProvidesEnvAndResources extends FunSuite {
   val mockLsfSettings: DrmSettings = LsfDrmSettings(
       Cpus(4), Memory.inGb(8), LsfDefaults.maxRunTime, queue = None, containerParams = None)
       
-  val mockGoogleSettings: GoogleSettings = GoogleSettings("asdf")
+  val mockGoogleSettings: GoogleSettings = GoogleSettings("asdf", ClusterConfig.default)
   val mockStatus: JobStatus = JobStatus.Unknown
   val mockExitCode: Int = 999
   val mockResult: JobResult = JobResult.CommandResult(mockExitCode)

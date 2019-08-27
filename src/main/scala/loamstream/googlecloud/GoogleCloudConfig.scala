@@ -2,16 +2,18 @@ package loamstream.googlecloud
 
 import java.nio.file.Path
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.Duration
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.DurationLong
+import scala.util.Failure
+import scala.util.Success
 import scala.util.Try
 
 import com.typesafe.config.Config
-import loamstream.conf.ValueReaders
 
 import GoogleCloudConfig.Defaults
+import loamstream.conf.ValueReaders
 import loamstream.util.Loggable
-import scala.util.Success
-import scala.util.Failure
 import loamstream.util.Tries
 
 
@@ -25,34 +27,11 @@ final case class GoogleCloudConfig(
     projectId: String,
     clusterId: String,
     credentialsFile: Path,
-    zone: String = Defaults.zone,
-    masterMachineType: String = Defaults.masterMachineType,
-    masterBootDiskSize: Int = Defaults.masterBootDiskSize,
-    numWorkers: Int = Defaults.numWorkers,
-    workerMachineType: String = Defaults.workerMachineType,
-    workerBootDiskSize: Int = Defaults.workerBootDiskSize,
-    numPreemptibleWorkers: Int = Defaults.numPreemptibleWorkers,
-    preemptibleWorkerBootDiskSize: Int = Defaults.preemptibleWorkerBootDiskSize,
-    properties: String = Defaults.properties,
-    maxClusterIdleTime: String = Defaults.maxClusterIdleTime)
+    defaultClusterConfig: ClusterConfig = Defaults.clusterConfig)
 
 object GoogleCloudConfig extends Loggable {
-  object Defaults { // for creating a minimal cluster
-    val zone: String = "us-central1-b"
-    val masterMachineType: String = "n1-standard-1"
-    val masterBootDiskSize: Int = 20 // in GB
-    val numWorkers: Int = 2
-    val workerMachineType: String = "n1-standard-1"
-    val workerBootDiskSize: Int = 20 // in GB
-    val numPreemptibleWorkers: Int = 0
-    val preemptibleWorkerBootDiskSize: Int = 20 // in GB
-    val imageVersion: String = "1.1.49" // 2.x not supported by Hail, 1.1 needed for new Python API
-    val properties: String = {
-      "spark:spark.driver.extraJavaOptions=-Xss4M,spark:spark.executor.extraJavaOptions=-Xss4M," +
-      "spark:spark.driver.memory=45g,spark:spark.driver.maxResultSize=30g,spark:spark.task.maxFailures=20," +
-      "spark:spark.kryoserializer.buffer.max=1g,hdfs:dfs.replication=1"
-    }
-    val maxClusterIdleTime: String = "10m"
+  object Defaults { 
+    val clusterConfig: ClusterConfig = ClusterConfig.default
   }
   
   private final case class Parsed(
@@ -61,21 +40,11 @@ object GoogleCloudConfig extends Loggable {
       projectId: String,
       clusterId: String,
       credentialsFile: Path,
-      zone: String = Defaults.zone,
-      masterMachineType: String = Defaults.masterMachineType,
-      masterBootDiskSize: Int = Defaults.masterBootDiskSize,
-      numWorkers: Int = Defaults.numWorkers,
-      workerMachineType: String = Defaults.workerMachineType,
-      workerBootDiskSize: Int = Defaults.workerBootDiskSize,
-      numPreemptibleWorkers: Int = Defaults.numPreemptibleWorkers,
-      preemptibleWorkerBootDiskSize: Int = Defaults.preemptibleWorkerBootDiskSize,
-      imageVersion: String = Defaults.imageVersion,
-      properties: String = Defaults.properties,
-      maxClusterIdleTime: String = Defaults.maxClusterIdleTime) {
+      defaultClusterConfig: ClusterConfig = Defaults.clusterConfig) {
     
     def toGoogleCloudConfig: Try[GoogleCloudConfig] = {
       for {
-        _ <- checkMaxClusterIdleTime(maxClusterIdleTime)
+        _ <- checkMaxClusterIdleTime(defaultClusterConfig.maxClusterIdleTime)
       } yield {
         GoogleCloudConfig(
           gcloudBinary = gcloudBinary,
@@ -83,16 +52,7 @@ object GoogleCloudConfig extends Loggable {
           projectId = projectId,
           clusterId = clusterId,
           credentialsFile = credentialsFile,
-          zone = zone,
-          masterMachineType = masterMachineType,
-          masterBootDiskSize = masterBootDiskSize,
-          numWorkers = numWorkers,
-          workerMachineType = workerMachineType,
-          workerBootDiskSize = workerBootDiskSize,
-          numPreemptibleWorkers = numPreemptibleWorkers,
-          preemptibleWorkerBootDiskSize = preemptibleWorkerBootDiskSize,
-          properties = properties,
-          maxClusterIdleTime = maxClusterIdleTime)
+          defaultClusterConfig = defaultClusterConfig)
       }
     }
   }

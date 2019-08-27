@@ -16,6 +16,8 @@ final case class MockChunkRunner(delegate: ChunkRunner) extends ChunkRunner {
   override def canRun(job: LJob): Boolean = delegate.canRun(job)
   
   val chunks: ValueBox[Seq[Set[LJob]]] = ValueBox(Vector.empty)
+  
+  val chunksWithSettings: ValueBox[Seq[Set[(LJob, Settings)]]] = ValueBox(Vector.empty)
 
   override def run(
       chunk: Set[LJob], 
@@ -23,6 +25,8 @@ final case class MockChunkRunner(delegate: ChunkRunner) extends ChunkRunner {
       shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
     
     chunks.mutate(_ :+ chunk)
+    
+    chunksWithSettings.mutate( _ :+ chunk.map(j => j -> j.initialSettings))
 
     delegate.run(chunk, jobOracle, shouldRestart)
   }

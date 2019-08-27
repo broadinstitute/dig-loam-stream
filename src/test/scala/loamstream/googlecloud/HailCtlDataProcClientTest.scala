@@ -31,7 +31,7 @@ final class HailCtlDataProcClientTest extends FunSuite {
         true
       }
       
-      override def startCluster(): Unit = ???
+      override def startCluster(clusterConfig: ClusterConfig): Unit = ???
     }
     
     val hailCtlClient = new HailCtlDataProcClient(TestHelpers.config.googleConfig.get, HailConfig("foo-env"), delegate)
@@ -52,12 +52,7 @@ final class HailCtlDataProcClientTest extends FunSuite {
     import HailCtlDataProcClient.startClusterTokens
     import TestHelpers.path
     
-    val googleConfig = GoogleCloudConfig(
-        gcloudBinary = path("/foo/bar/gcloud"),
-        gsutilBinary = path("/blah/blah/gsutil"),
-        projectId = "some-project-id",
-        clusterId = "some-cluster-id",
-        credentialsFile = path("some/creds/file"),
+    val clusterConfig = ClusterConfig(
         zone = "some-zone",
         masterMachineType = "some-mmt",
         masterBootDiskSize = 42,
@@ -69,6 +64,14 @@ final class HailCtlDataProcClientTest extends FunSuite {
         properties = "some-properties",
         maxClusterIdleTime = "13m")
     
+    val googleConfig = GoogleCloudConfig(
+        gcloudBinary = path("/foo/bar/gcloud"),
+        gsutilBinary = path("/blah/blah/gsutil"),
+        projectId = "some-project-id",
+        clusterId = "some-cluster-id",
+        credentialsFile = path("some/creds/file"),
+        defaultClusterConfig = clusterConfig)
+    
     val expected = Seq(
       "hailctl",
       "dataproc",
@@ -76,27 +79,27 @@ final class HailCtlDataProcClientTest extends FunSuite {
       "--project",
       googleConfig.projectId,
       "--zone",
-      googleConfig.zone,
+      clusterConfig.zone,
       "--master-machine-type",
-      googleConfig.masterMachineType,
+      clusterConfig.masterMachineType,
       "--master-boot-disk-size",
-      googleConfig.masterBootDiskSize.toString,
+      clusterConfig.masterBootDiskSize.toString,
       "--num-workers",
-      googleConfig.numWorkers.toString,
+      clusterConfig.numWorkers.toString,
       "--worker-machine-type",
-      googleConfig.workerMachineType,
+      clusterConfig.workerMachineType,
       "--worker-boot-disk-size",
-      googleConfig.workerBootDiskSize.toString,
+      clusterConfig.workerBootDiskSize.toString,
       "--num-preemptible-workers",
-      googleConfig.numPreemptibleWorkers.toString,
+      clusterConfig.numPreemptibleWorkers.toString,
       "--preemptible-worker-boot-disk-size",
-      googleConfig.preemptibleWorkerBootDiskSize.toString,
+      clusterConfig.preemptibleWorkerBootDiskSize.toString,
       "--properties",
-      googleConfig.properties,
+      clusterConfig.properties,
       "--max-idle",
-      googleConfig.maxClusterIdleTime,
+      clusterConfig.maxClusterIdleTime,
       googleConfig.clusterId)
       
-    assert(startClusterTokens(googleConfig) === expected)
+    assert(startClusterTokens(googleConfig, clusterConfig) === expected)
   }
 }

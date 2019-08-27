@@ -29,6 +29,8 @@ import loamstream.model.jobs.JobOracle
 import loamstream.model.execute.LocalSettings
 import loamstream.model.execute.GoogleSettings
 import GoogleCloudChunkRunner.ClusterStatus
+import loamstream.model.jobs.JobStatus
+import loamstream.util.ValueBox
 
 
 /**
@@ -48,7 +50,9 @@ final case class GoogleCloudChunkRunner(
   
   private lazy val singleThreadedScheduler: Scheduler = ExecutionContextScheduler(singleThreadedExecutionContext)
   
-  override def maxNumJobs: Int = delegate.maxNumJobs
+  override def maxNumJobs: Int = 1
+
+  private val currentClusterConfig: ValueBox[Option[ClusterConfig]] = ValueBox(None)
   
   override def run(
       jobs: Set[LJob], 
@@ -85,16 +89,22 @@ final case class GoogleCloudChunkRunner(
     }
   }
   
-  private[googlecloud] def startClusterIfNecessary(): Unit = {
+  private[googlecloud] def startClusterIfNecessary(clusterConfig: ClusterConfig): Unit = {
+    def start(): Unit = {
+      client.startCluster(clusterConfig)
+      
+      currentClusterConfig := Option(clusterConfig) 
+    }
+    
     //NB: If anything goes wrong determining whether or not the cluster is up, try to shut it down
     //anyway, to be safe.
     determineClusterStatus() match {
-      case ClusterStatus.NotRunning => client.startCluster()
-      case ClusterStatus.Running => debug("Cluster already running, not attempting to start it")
+      case ClusterStatus.Running => debug("Cluster already running, not attempting to start it")  
+      case ClusterStatus.NotRunning => start()
       case ClusterStatus.Undetermined(e) => {
         warn(s"Error determining cluster status, attempting to start cluster anyway", e)
         
-        client.startCluster()
+        start()
       }
     }
   }
@@ -113,8 +123,18 @@ final case class GoogleCloudChunkRunner(
       shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
     
     def doRunSingle(j: LJob): Map[LJob, RunData] = {
-      withCluster(client) {
-        runSingle(delegate, jobOracle, shouldRestart)(j)
+      def runDataForNonGoogleJob = RunData(
+          job = j, 
+          settings = j.initialSettings, 
+          jobStatus = JobStatus.CouldNotStart, 
+          jobResult = None, 
+          terminationReasonOpt = None)
+      
+      j.initialSettings match {
+        case GoogleSettings(_, clusterConfig) => withCluster(clusterConfig) {
+          runSingle(delegate, jobOracle, shouldRestart)(j)
+        }
+        case settings => Map(j -> runDataForNonGoogleJob)
       }
     }
     
@@ -131,18 +151,33 @@ final case class GoogleCloudChunkRunner(
     //on the same cluster simultaneously
     import loamstream.util.Observables.Implicits._
 
+    val googleSettings = job.initialSettings match {
+      case gs: GoogleSettings => gs
+      case _ => sys.error(s"Only jobs with Google settings are supported, but got ${job.initialSettings}")
+    }
+    
     val futureResult = {
-      delegate.run(Set(job), jobOracle, shouldRestart).map(addCluster(googleConfig.clusterId)).lastAsFuture
+      delegate.run(Set(job), jobOracle, shouldRestart).map(addCluster(googleSettings.cluster)).lastAsFuture
     }
     
     //TODO: add some timeout
     Await.result(futureResult, Duration.Inf)
   }
   
-  private[googlecloud] def withCluster[A](client: DataProcClient)(f: => A): A = {
-    startClusterIfNecessary()
+  private[googlecloud] def withCluster[A](clusterConfig: ClusterConfig)(f: => A): A = {
+    def differentCurrentClusterDefined(currentClusterConfigOpt: Option[ClusterConfig]): Boolean = {
+      currentClusterConfigOpt.isDefined && (currentClusterConfigOpt != Option(clusterConfig))
+    }
+    
+    currentClusterConfig.get { currentClusterConfigOpt =>
+      if(differentCurrentClusterDefined(currentClusterConfigOpt)) {
+        deleteClusterIfNecessary()
+      }
+    
+      startClusterIfNecessary(clusterConfig)
       
-    f
+      f
+    }
   }
 }
 
@@ -160,21 +195,8 @@ object GoogleCloudChunkRunner extends Loggable {
     jobsAndExecutions.map {
       case (job, runData @ RunData.WithLocalResources(localResources: LocalResources)) => {
         val googleResources = GoogleResources.fromClusterAndLocalResources(cluster, localResources)
-        
-        //Make sure we've got Google settings
-        //TODO: Why weren't the settings GoogleSettings to begin with?
-        val newSettings = runData.settings match {
-          case LocalSettings => {
-            val googleSettings = GoogleSettings(cluster)
-            
-            debug(s"Munging LocalSettings to ${googleSettings}, grumble grumble")
-            
-            googleSettings
-          }
-          case settings => settings
-        }
-        
-        job -> runData.withResources(googleResources).withSettings(newSettings)
+
+        job -> runData.withResources(googleResources)
       }
       case tuple => tuple
     }

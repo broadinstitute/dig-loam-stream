@@ -13,6 +13,7 @@ import loamstream.drm.ContainerParams
 import loamstream.model.execute.UgerDrmSettings
 import loamstream.model.execute.LsfDrmSettings
 import loamstream.model.execute.EnvironmentType
+import loamstream.googlecloud.ClusterConfig
 
 /**
  * @author kyuksel
@@ -36,7 +37,9 @@ object SettingRow {
     case LocalSettings => LocalSettingRow(executionId)
     case ugerSettings: UgerDrmSettings => UgerSettingRow.fromSettings(executionId, ugerSettings)
     case lsfSettings: LsfDrmSettings => LsfSettingRow.fromSettings(executionId, lsfSettings)
-    case GoogleSettings(cluster) => GoogleSettingRow(executionId, cluster)
+    case GoogleSettings(cluster, clusterConfig) => {
+      GoogleSettingRow.fromNameAndClusterConfig(executionId, cluster, clusterConfig)
+    }
   }
 }
 
@@ -132,14 +135,59 @@ final case class LsfSettingRow(
 
 object LsfSettingRow extends DrmSettingRowCompanion[LsfSettingRow](new LsfSettingRow(_, _, _, _, _))
 
-final case class GoogleSettingRow(executionId: Int,
-                                  cluster: String) extends SettingRow with HasSimpleToSettings {
+final case class GoogleSettingRow(
+    executionId: Int,
+    cluster: String,
+    zone: String,
+    masterMachineType: String,
+    masterBootDiskSize: Int,
+    numWorkers: Int,
+    workerMachineType: String,
+    workerBootDiskSize: Int,
+    numPreemptibleWorkers: Int,
+    preemptibleWorkerBootDiskSize: Int,
+    properties: String,
+    maxClusterIdleTime: String) extends SettingRow with HasSimpleToSettings {
 
-  override def toSettings: Settings = GoogleSettings(cluster)
+  override def toSettings: Settings = {
+    val clusterConfig = ClusterConfig(
+        zone = zone,
+        masterMachineType = masterMachineType,
+        masterBootDiskSize = masterBootDiskSize,
+        numWorkers = numWorkers,
+        workerMachineType = workerMachineType,
+        workerBootDiskSize = workerBootDiskSize,
+        numPreemptibleWorkers = numPreemptibleWorkers,
+        preemptibleWorkerBootDiskSize = preemptibleWorkerBootDiskSize,
+        properties = properties,
+        maxClusterIdleTime = maxClusterIdleTime)
+    
+    GoogleSettings(cluster, clusterConfig)
+  }
   
   override def insertOrUpdate(tables: Tables): tables.driver.api.DBIO[Int] = {
     import tables.driver.api._
     
     tables.googleSettings.insertOrUpdate(this)
+  }
+}
+
+object GoogleSettingRow {
+  def fromNameAndClusterConfig(executionId: Int, cluster: String, clusterConfig: ClusterConfig): GoogleSettingRow = {
+    import clusterConfig._
+    
+    GoogleSettingRow(
+        executionId = executionId,
+        cluster = cluster,
+        zone = zone,
+        masterMachineType = masterMachineType,
+        masterBootDiskSize = masterBootDiskSize,
+        numWorkers = numWorkers,
+        workerMachineType = workerMachineType,
+        workerBootDiskSize = workerBootDiskSize,
+        numPreemptibleWorkers = numPreemptibleWorkers,
+        preemptibleWorkerBootDiskSize = preemptibleWorkerBootDiskSize,
+        properties = properties,
+        maxClusterIdleTime = maxClusterIdleTime)
   }
 }

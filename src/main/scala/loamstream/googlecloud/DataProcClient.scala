@@ -8,7 +8,7 @@ trait DataProcClient extends DataProcClient.CanStart with DataProcClient.CanStop
 
 object DataProcClient {
   trait CanStart {
-    def startCluster(): Unit
+    def startCluster(clusterConfig: ClusterConfig): Unit
   }
   
   trait CanStop {

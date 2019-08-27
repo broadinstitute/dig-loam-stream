@@ -22,6 +22,7 @@ import loamstream.drm.ContainerParams
 import loamstream.drm.Queue
 import loamstream.model.execute.Settings
 import loamstream.model.execute.LocalSettings
+import loamstream.googlecloud.ClusterConfig
 
 /**
  * @author clint
@@ -31,7 +32,7 @@ final class LoamPredefTest extends FunSuite {
   test("google") {
     implicit val scriptContext = newScriptContext
     
-    val settings = GoogleSettings(scriptContext.googleConfig.clusterId)
+    val settings = GoogleSettings(scriptContext.googleConfig.clusterId, ClusterConfig.default)
     
     doSettingsTest(scriptContext, LocalSettings, settings, LoamPredef.google)
   }

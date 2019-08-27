@@ -65,6 +65,20 @@ object FileSystemExecutionRecorder extends ExecutionRecorder {
     val executionNode = "execution-node"
     val queue = "queue"
     val singularityImageName = "singularity-image-name"
+    val metadata = "metadata"
+    val zone = "zone"
+    val masterMachineType = "master-machine-type"
+    val masterBootDiskSize = "master-boot-disk-size"
+    val numWorkers = "num-workers"
+    val workerMachineType = "worker-machine-type"
+    val workerBootDiskSize = "worker-boot-disk-size"
+    val numPreemptibleWorkers = "num-preemptible-workers"
+    val preemptibleWorkerBootDiskSize = "preemptible-worker-boot-disk-size"
+    val imageVersion = "image-version"
+    val scopes = "scopes"
+    val properties = "properties"
+    val initializationActions = "initialization-actions"
+    val maxClusterIdleTime = "max-cluster-idle-time"
   }
   
   private def line(key: String, value: String): String = s"${key}\t${value}"
@@ -104,10 +118,22 @@ object FileSystemExecutionRecorder extends ExecutionRecorder {
     
     settings match {
       case LocalSettings => Seq(typeTuple(EnvironmentType.Local.name))
-      case GoogleSettings(cluster) => {
+      case GoogleSettings(cluster, clusterConfig) => {
+        import clusterConfig._
+        
         Seq(
           typeTuple(EnvironmentType.Google.name), 
-          Keys.cluster -> cluster)
+          Keys.cluster -> cluster,
+          Keys.zone -> zone,
+          Keys.masterMachineType -> masterMachineType,
+          Keys.masterBootDiskSize -> masterBootDiskSize,
+          Keys.numWorkers -> numWorkers,
+          Keys.workerMachineType -> workerMachineType,
+          Keys.workerBootDiskSize -> workerBootDiskSize,
+          Keys.numPreemptibleWorkers -> numPreemptibleWorkers,
+          Keys.preemptibleWorkerBootDiskSize -> preemptibleWorkerBootDiskSize,
+          Keys.properties -> properties,
+          Keys.maxClusterIdleTime -> maxClusterIdleTime)
       }
       case DrmSettings(cores, memory, cpuTime, queueOpt, containerParamsOpt) => {
         val containerParamsTuples = Seq(

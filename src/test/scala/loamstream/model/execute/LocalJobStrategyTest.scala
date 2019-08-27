@@ -16,6 +16,7 @@ import loamstream.util.ExitCodes
 import loamstream.util.ToFilesProcessLogger
 import loamstream.conf.UgerConfig
 import loamstream.conf.LsfConfig
+import loamstream.googlecloud.ClusterConfig
 
 /**
  * @author clint
@@ -54,8 +55,8 @@ final class LocalJobStrategyTest extends FunSuite {
     doTest(0, LocalSettings)
     doTest(42, LocalSettings)
     
-    doTest(0, GoogleSettings("foo"))
-    doTest(42, GoogleSettings("foo"))
+    doTest(0, GoogleSettings("foo", ClusterConfig.default))
+    doTest(42, GoogleSettings("foo", ClusterConfig.default))
     
     doTest(0, DrmSettings.fromUgerConfig(UgerConfig()))
     doTest(42, DrmSettings.fromUgerConfig(UgerConfig()))

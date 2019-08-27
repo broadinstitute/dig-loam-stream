@@ -21,7 +21,7 @@ final class HailAtGoogleTest extends FunSuite {
   test("Copy a file to Google, run a simple Hail job with it, and copy the result to the local FS.") {
     val workDir = IntegrationTestHelpers.getWorkDirUnderTarget().toAbsolutePath
     
-    val testConfContents = s"""|googleCloudUri = "gs://loamstream/dev/integration_tests"
+    val testConfContents = s"""|googleCloudUri = "gs://loamstream/dev/integration_tests/hail-at-google"
                                |workDir = "${workDir}"
                                |""".stripMargin.trim
                                

@@ -16,6 +16,12 @@ import java.time.Instant
  */
 object DryRunner extends Loggable {
   
+  def toBeRun(byNameJobFilter: ByNameJobFilter, executable: Executable): Iterable[LJob] = {
+    val allJobs = toBeRun(JobFilter.RunEverything, executable)
+    
+    allJobs.filter(byNameJobFilter.shouldRun)
+  }
+  
   def toBeRun(jobFilter: JobFilter, executable: Executable): Iterable[LJob] = {
 
     val seen = scala.collection.mutable.HashSet.empty[LJob]
@@ -49,7 +55,7 @@ object DryRunner extends Loggable {
         }
         
         def shouldRunJob: Boolean = jobFilter.shouldRun(job)
-        
+
         val shouldEmitJob = anyInputsNeedRunning || shouldRunJob
         
         val forJobNode = if (shouldEmitJob) Seq(job) else Nil

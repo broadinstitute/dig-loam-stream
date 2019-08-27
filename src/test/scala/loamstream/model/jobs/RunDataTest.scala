@@ -8,6 +8,7 @@ import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.TestHelpers
 import loamstream.model.execute.LocalSettings
 import loamstream.model.execute.GoogleSettings
+import loamstream.googlecloud.ClusterConfig
 
 
 /**
@@ -36,7 +37,7 @@ final class RunDataTest extends FunSuite {
     
     val googleResources = GoogleResources.fromClusterAndLocalResources("foo", localResources)
     
-    val googleSettings = GoogleSettings("foo")
+    val googleSettings = GoogleSettings("foo", ClusterConfig.default)
     
     val runDataLocalResources = RunData(j, googleSettings, Succeeded, None, Some(localResources), None, None)
     

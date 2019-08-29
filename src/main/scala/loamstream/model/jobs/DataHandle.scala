@@ -45,7 +45,7 @@ object DataHandle {
     
     override def isPresent: Boolean = Files.exists(path)
 
-    override def hash: Option[Hash] = if (isPresent) Option(Hashes.sha1(path)) else None
+    override lazy val hash: Option[Hash] = if (isPresent) Option(Hashes.sha1(path)) else None
 
     override def lastModified: Option[Instant] = {
       if (isPresent) Option(Paths.lastModifiedTime(path)) else None
@@ -57,8 +57,8 @@ object DataHandle {
       StoreRecord( 
           loc = location,
           isPresent = isPresent,
-          hash = hashToString(hash),
-          hashType = hashTypeToString(hashType),
+          makeHash = () => hashToString(hash),
+          makeHashType = () => hashTypeToString(hashType),
           lastModified = lastModified)
     }
 
@@ -72,7 +72,7 @@ object DataHandle {
   final case class GcsUriHandle(uri: URI, client: Option[CloudStorageClient]) extends DataHandle {
     override def isPresent = client.exists(_.isPresent(uri))
 
-    override def hash: Option[Hash] = client.flatMap(_.hash(uri))
+    override lazy val hash: Option[Hash] = client.flatMap(_.hash(uri))
 
     override def lastModified: Option[Instant] = client.flatMap(_.lastModified(uri))
 
@@ -82,8 +82,8 @@ object DataHandle {
       StoreRecord( 
           loc = location,
           isPresent = isPresent,
-          hash = hashToString(hash),
-          hashType = hashTypeToString(hashType),
+          makeHash = () => hashToString(hash),
+          makeHashType = () => hashTypeToString(hashType),
           lastModified = lastModified)
     }
   }

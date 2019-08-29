@@ -22,7 +22,9 @@ final class StoreRecordTest extends FunSuite {
   private val fooPath = path(fooLoc)
   private val fooHash = Hashes.sha1(fooPath).valueAsBase64String
   private val fooHashType = Sha1.algorithmName
-  private val fooRec = StoreRecord(fooLoc, Option(fooHash), Option(fooHashType), lastModifiedOptOf(fooPath))
+  private val fooRec = {
+    StoreRecord(fooLoc, () => Option(fooHash), () => Option(fooHashType), lastModifiedOptOf(fooPath))
+  }
 
   private val fooPathCopy = fooPath
   private val fooHashCopy = Hashes.sha1(fooPathCopy).valueAsBase64String
@@ -32,7 +34,9 @@ final class StoreRecordTest extends FunSuite {
   private val emptyPath = path(emptyLoc)
   private val emptyHash = Hashes.sha1(emptyPath).valueAsBase64String
   private val emptyHashType = Sha1.algorithmName
-  private val emptyRec = StoreRecord(emptyLoc, Option(emptyHash), Option(emptyHashType), lastModifiedOptOf(emptyPath))
+  private val emptyRec = {
+    StoreRecord(emptyLoc, () => Option(emptyHash), () => Option(emptyHashType), lastModifiedOptOf(emptyPath))
+  }
 
   private val nonExistingLoc = normalize("non/existent/path")
   private val nonExistingRec = StoreRecord(nonExistingLoc)
@@ -49,7 +53,7 @@ final class StoreRecordTest extends FunSuite {
     val recFromFooOutput = StoreRecord(PathHandle(fooPath).normalized)
     assert(fooRec == recFromFooOutput)
 
-    val expectedNonExistingRec = StoreRecord(nonExistingLoc, false, None, None, None)
+    val expectedNonExistingRec = StoreRecord(nonExistingLoc, false, () => None, () => None, None)
     assert(nonExistingRec == expectedNonExistingRec)
   }
 

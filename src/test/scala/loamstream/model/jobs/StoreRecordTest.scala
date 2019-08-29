@@ -45,6 +45,36 @@ final class StoreRecordTest extends FunSuite {
 
   private def normalize(loc: String): String = Paths.normalize(path(loc))
 
+  test("hash and hashType are lazy") {
+    var timesHashMade = 0
+    var timesHashTypeMade = 0
+    
+    val bogusHash = Some("bogus-hash")
+    val bogusHashType = Some("bogus-hash-type")
+    
+    val record = StoreRecord(
+        loc = "foo",
+        isPresent = true,
+        makeHash = () => { timesHashMade += 1 ; bogusHash },
+        makeHashType = () => { timesHashTypeMade += 1 ; bogusHashType },
+        lastModified = Some(Instant.now))
+        
+    assert(timesHashMade === 0)
+    assert(timesHashTypeMade === 0)
+    
+    assert(record.hash === bogusHash)
+    assert(record.hashType === bogusHashType)
+    
+    assert(timesHashMade === 1)
+    assert(timesHashTypeMade === 1)
+    
+    assert(record.hash === bogusHash)
+    assert(record.hashType === bogusHashType)
+    
+    assert(timesHashMade === 1)
+    assert(timesHashTypeMade === 1)
+  }
+  
   test("apply/isPresent/isMissing") {
     assert(fooRec.isPresent)
 

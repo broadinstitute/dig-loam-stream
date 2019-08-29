@@ -9,7 +9,7 @@ import org.scalatest.FunSuite
 import loamstream.TestHelpers
 import loamstream.googlecloud.CloudStorageClient
 import loamstream.model.jobs.DataHandle.GcsUriHandle
-import loamstream.model.jobs.OutputTest.MockGcsClient
+import loamstream.model.jobs.DataHandleTest.MockGcsClient
 import loamstream.util.Hash
 import loamstream.util.HashType
 import loamstream.util.HashType.Md5
@@ -22,8 +22,8 @@ import loamstream.util.PlatformUtil
   *         kyuksel
   * Aug 5, 2016
   */
-final class OutputTest extends FunSuite {
-  test("PathOutput") {
+final class DataHandleTest extends FunSuite {
+  test("PathHandle") {
     import DataHandle.PathHandle
     import TestHelpers.path
     import java.nio.file.Files
@@ -70,12 +70,6 @@ final class OutputTest extends FunSuite {
           lastModified = None)
                                                     
       assert(doesntExistRecord === expectedDoesntExistRecord)
-      //assert(doesntExistRecord strictEquals expectedDoesntExistRecord)
-      /*assert(doesntExistRecord.loc === expectedDoesntExistRecord.loc)
-      assert(doesntExistRecord.isPresent === expectedDoesntExistRecord.isPresent)
-      assert(doesntExistRecord.hash === expectedDoesntExistRecord.hash)
-      assert(doesntExistRecord.hashType === expectedDoesntExistRecord.hashType)
-      assert(doesntExistRecord.lastModified === expectedDoesntExistRecord.lastModified)*/
   
       val existsRecord = exists.toStoreRecord
       
@@ -87,18 +81,12 @@ final class OutputTest extends FunSuite {
           lastModified = Some(Paths.lastModifiedTime(existingPath)))
       
       assert(existsRecord === expectedExistsRecord)
-      //assert(existsRecord strictEquals expectedExistsRecord)
-      /*assert(existsRecord.loc === expectedExistsRecord.loc)
-      assert(existsRecord.isPresent === expectedExistsRecord.isPresent)
-      assert(existsRecord.hash === expectedExistsRecord.hash)
-      assert(existsRecord.hashType === expectedExistsRecord.hashType)
-      assert(existsRecord.lastModified === expectedExistsRecord.lastModified)*/
     }
     
     doTest(path("src/test/resources/for-hashing/foo.txt"))
   }
 
-  test("GcsUriOutput.location") {
+  test("GcsUriHandle.location") {
     import java.net.URI
     import DataHandle.GcsUriHandle
 
@@ -118,7 +106,7 @@ final class OutputTest extends FunSuite {
   val someLoc = "gs://bucket/folder/file"
   val someURI = URI.create(someLoc)
 
-  test("GcsUriOutput with no CloudStorageClient") {
+  test("GcsUriHandle with no CloudStorageClient") {
     val output = GcsUriHandle(someURI, client = None)
     val expectedOutputRecord = StoreRecord(loc = someLoc,
                                            isPresent = false,
@@ -132,7 +120,7 @@ final class OutputTest extends FunSuite {
     assert(output.toStoreRecord === expectedOutputRecord)
   }
 
-  test("GcsUriOutput with CloudStorageClient") {
+  test("GcsUriHandle with CloudStorageClient") {
     def gcsUriOutput(hash: Option[Hash] = None,
                      isPresent: Boolean = false,
                      lastModified: Option[Instant] = None) = {
@@ -191,11 +179,11 @@ final class OutputTest extends FunSuite {
   }
 }
 
-object OutputTest {
+object DataHandleTest {
   final case class MockGcsClient(hash: Option[Hash] = None,
                                  isPresent: Boolean = false,
-                                 lastModified: Option[Instant] = None)
-  extends CloudStorageClient {
+                                 lastModified: Option[Instant] = None) extends CloudStorageClient {
+    
     override val hashAlgorithm: HashType = Md5
 
     override def hash(uri: URI): Option[Hash] = hash

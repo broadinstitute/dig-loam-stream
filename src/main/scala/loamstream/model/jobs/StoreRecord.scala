@@ -30,20 +30,16 @@ final class StoreRecord private (
     new StoreRecord(loc, isPresent, makeHash, makeHashType, lastModified)
   }
   
+  private def equalityFields: Seq[_] = Seq(loc, isPresent, hash, hashType, lastModified)
+  
   //NB: This will force the evaluation of hash and hashType!
   override def equals(other: Any): Boolean = other match {
-    case that: StoreRecord => {
-      this.loc == that.loc &&
-      this.isPresent == that.isPresent &&
-      this.hash == that.hash &&
-      this.hashType == that.hashType &&
-      this.lastModified == that.lastModified
-    }
+    case that: StoreRecord => this.equalityFields == that.equalityFields
     case _ => false
   }
   
   //NB: This will force the evaluation of hash and hashType! 
-  override def hashCode: Int = List(loc, isPresent, hash, hashType, lastModified).hashCode
+  override def hashCode: Int = equalityFields.hashCode
   
   def isMissing: Boolean = !isPresent
 
@@ -59,14 +55,16 @@ final class StoreRecord private (
   def isHashed: Boolean = hash.isDefined
 
   def hasDifferentHashThan(other: StoreRecord): Boolean = {
-    (for {
+    val resultOpt = for {
       hashValue <- hash
       hashKind <- hashType
       otherHashValue <- other.hash
       otherHashKind <- other.hashType
     } yield {
       hashKind != otherHashKind || hashValue != otherHashValue
-    }).getOrElse(false)
+    }
+    
+    resultOpt.getOrElse(false)
   }
 
   def withLastModified(t: Instant) = copy(lastModified = Option(t))

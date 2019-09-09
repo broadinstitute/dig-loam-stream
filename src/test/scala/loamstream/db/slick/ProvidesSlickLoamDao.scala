@@ -24,7 +24,11 @@ trait ProvidesSlickLoamDao {
   protected def cachedOutput(path: Path, hash: Hash, lastModified: Instant): StoreRecord = {
     val hashValue = hash.valueAsBase64String
 
-    StoreRecord(Paths.normalize(path), Option(hashValue), Option(hash.tpe.algorithmName), Option(lastModified))
+    StoreRecord(
+        Paths.normalize(path), 
+        () => Option(hashValue), 
+        () => Option(hash.tpe.algorithmName), 
+        Option(lastModified))
   }
 
   protected def cachedOutput(path: Path, hash: Hash): StoreRecord = {

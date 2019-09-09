@@ -11,6 +11,9 @@ import loamstream.apps.Main
 import loamstream.util.CanBeClosed
 import loamstream.util.{ Files => LFiles }
 import loamstream.util.Paths.Implicits.PathHelpers
+import loamstream.IntegrationTestHelpers.path
+import loamstream.conf.LoamConfig
+import com.typesafe.config.ConfigFactory
 
 
 /**
@@ -18,6 +21,8 @@ import loamstream.util.Paths.Implicits.PathHelpers
  * Jun 11, 2019
  */
 final class HailAtGoogleTest extends FunSuite {
+  
+  
   test("Copy a file to Google, run a simple Hail job with it, and copy the result to the local FS.") {
     val workDir = IntegrationTestHelpers.getWorkDirUnderTarget().toAbsolutePath
     
@@ -35,9 +40,19 @@ final class HailAtGoogleTest extends FunSuite {
     
     assert(exists(expectedOutput) === false)
     
+    val resourceDir = path("src/it/resources/hail-at-google")
+    
+    val loamstreamDotConf = resourceDir / "loamstream.conf"
+    
+    //Sanity check
+    val googleConfig = LoamConfig.fromConfig(ConfigFactory.parseFile(loamstreamDotConf.toFile)).get.googleConfig.get
+    
+    assert(googleConfig.defaultClusterConfig !== ClusterConfig.default)
+    
+    //Now run for real
     Main.main(Array(
-        "--conf", "src/it/resources/hail-at-google/loamstream.conf",
-        "--loams", "src/it/resources/hail-at-google/test.loam"))
+        "--conf", loamstreamDotConf.toString,
+        "--loams", (resourceDir / "test.loam").toString))
     
     val outputLines = CanBeClosed.enclosed(Source.fromFile(expectedOutput.toFile)) {
       _.getLines.map(_.trim).toIndexedSeq

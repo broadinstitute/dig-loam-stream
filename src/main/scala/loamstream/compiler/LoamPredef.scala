@@ -143,7 +143,9 @@ object LoamPredef extends Loggable {
   }
   
   def google[A](expr: => A)(implicit scriptContext: LoamScriptContext): A = {
-    googleWith(ClusterConfig.default)(expr)(scriptContext)
+    val defaultClusterConfig = scriptContext.googleConfig.defaultClusterConfig
+    
+    googleWith(defaultClusterConfig)(expr)(scriptContext)
   }
 
   def googleWith[A](clusterConfig: ClusterConfig)(expr: => A)(implicit scriptContext: LoamScriptContext): A = {

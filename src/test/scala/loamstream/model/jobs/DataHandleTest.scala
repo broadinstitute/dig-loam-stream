@@ -9,7 +9,7 @@ import org.scalatest.FunSuite
 import loamstream.TestHelpers
 import loamstream.googlecloud.CloudStorageClient
 import loamstream.model.jobs.DataHandle.GcsUriHandle
-import loamstream.model.jobs.OutputTest.MockGcsClient
+import loamstream.model.jobs.DataHandleTest.MockGcsClient
 import loamstream.util.Hash
 import loamstream.util.HashType
 import loamstream.util.HashType.Md5
@@ -22,8 +22,8 @@ import loamstream.util.PlatformUtil
   *         kyuksel
   * Aug 5, 2016
   */
-final class OutputTest extends FunSuite {
-  test("PathOutput") {
+final class DataHandleTest extends FunSuite {
+  test("PathHandle") {
     import DataHandle.PathHandle
     import TestHelpers.path
     import java.nio.file.Files
@@ -65,8 +65,8 @@ final class OutputTest extends FunSuite {
       val expectedDoesntExistRecord = StoreRecord( 
           loc = Paths.normalize(nonExistingPath),
           isPresent = false,
-          hash = None,
-          hashType = None,
+          makeHash = () => None,
+          makeHashType = () => None,
           lastModified = None)
                                                     
       assert(doesntExistRecord === expectedDoesntExistRecord)
@@ -76,8 +76,8 @@ final class OutputTest extends FunSuite {
       val expectedExistsRecord = StoreRecord(
           loc = Paths.normalize(existingPath),
           isPresent = true,
-          hash = Some(hashStr),
-          hashType = Some(Sha1.algorithmName),
+          makeHash = () => Some(hashStr),
+          makeHashType = () => Some(Sha1.algorithmName),
           lastModified = Some(Paths.lastModifiedTime(existingPath)))
       
       assert(existsRecord === expectedExistsRecord)
@@ -86,7 +86,7 @@ final class OutputTest extends FunSuite {
     doTest(path("src/test/resources/for-hashing/foo.txt"))
   }
 
-  test("GcsUriOutput.location") {
+  test("GcsUriHandle.location") {
     import java.net.URI
     import DataHandle.GcsUriHandle
 
@@ -106,13 +106,13 @@ final class OutputTest extends FunSuite {
   val someLoc = "gs://bucket/folder/file"
   val someURI = URI.create(someLoc)
 
-  test("GcsUriOutput with no CloudStorageClient") {
+  test("GcsUriHandle with no CloudStorageClient") {
     val output = GcsUriHandle(someURI, client = None)
     val expectedOutputRecord = StoreRecord(loc = someLoc,
-                                            isPresent = false,
-                                            hash = None,
-                                            hashType = None,
-                                            lastModified = None)
+                                           isPresent = false,
+                                           makeHash = () => None,
+                                           makeHashType = () => None,
+                                           lastModified = None)
 
     assert(output.isMissing)
     assert(output.hash.isEmpty)
@@ -120,7 +120,7 @@ final class OutputTest extends FunSuite {
     assert(output.toStoreRecord === expectedOutputRecord)
   }
 
-  test("GcsUriOutput with CloudStorageClient") {
+  test("GcsUriHandle with CloudStorageClient") {
     def gcsUriOutput(hash: Option[Hash] = None,
                      isPresent: Boolean = false,
                      lastModified: Option[Instant] = None) = {
@@ -131,11 +131,11 @@ final class OutputTest extends FunSuite {
 
     // Not present; no hash; no timestamp
     val output1 = gcsUriOutput()
-    val expectedOutputRecord1 = StoreRecord( loc = someLoc,
-                                              isPresent = false,
-                                              hash = None,
-                                              hashType = None,
-                                              lastModified = None)
+    val expectedOutputRecord1 = StoreRecord(loc = someLoc,
+                                            isPresent = false,
+                                            makeHash = () => None,
+                                            makeHashType = () => None,
+                                            lastModified = None)
     assert(output1.isMissing)
     assert(output1.hash.isEmpty)
     assert(output1.lastModified.isEmpty)
@@ -143,11 +143,11 @@ final class OutputTest extends FunSuite {
 
     // Present; no hash; no timestamp
     val output2 = gcsUriOutput(isPresent = true)
-    val expectedOutputRecord2 = StoreRecord( loc = someLoc,
-                                              isPresent = true,
-                                              hash = None,
-                                              hashType = None,
-                                              lastModified = None)
+    val expectedOutputRecord2 = StoreRecord(loc = someLoc,
+                                            isPresent = true,
+                                            makeHash = () => None,
+                                            makeHashType = () => None,
+                                            lastModified = None)
     assert(output2.isPresent)
     assert(output2.hash.isEmpty)
     assert(output2.lastModified.isEmpty)
@@ -157,8 +157,8 @@ final class OutputTest extends FunSuite {
     val output3 = gcsUriOutput(isPresent = true, hash = someHash)
     val expectedOutputRecord3 = StoreRecord( loc = someLoc,
                                               isPresent = true,
-                                              hash = someHash.map(_.valueAsBase64String),
-                                              hashType = Some(Md5.algorithmName),
+                                              makeHash = () => someHash.map(_.valueAsBase64String),
+                                              makeHashType = () => Some(Md5.algorithmName),
                                               lastModified = None)
     assert(output3.isPresent)
     assert(output3.hash.isDefined)
@@ -167,11 +167,11 @@ final class OutputTest extends FunSuite {
 
     // Present; some hash; some timestamp
     val output4 = gcsUriOutput(isPresent = true, hash = someHash, lastModified = Some(Instant.ofEpochMilli(2)))
-    val expectedOutputRecord4 = StoreRecord( loc = someLoc,
-                                              isPresent = true,
-                                              hash = someHash.map(_.valueAsBase64String),
-                                              hashType = Some(Md5.algorithmName),
-                                              lastModified = Some(Instant.ofEpochMilli(2)))
+    val expectedOutputRecord4 = StoreRecord(loc = someLoc,
+                                            isPresent = true,
+                                            makeHash = () => someHash.map(_.valueAsBase64String),
+                                            makeHashType = () => Some(Md5.algorithmName),
+                                            lastModified = Some(Instant.ofEpochMilli(2)))
     assert(output4.isPresent)
     assert(output4.hash.isDefined)
     assert(output4.lastModified.isDefined)
@@ -179,11 +179,11 @@ final class OutputTest extends FunSuite {
   }
 }
 
-object OutputTest {
+object DataHandleTest {
   final case class MockGcsClient(hash: Option[Hash] = None,
                                  isPresent: Boolean = false,
-                                 lastModified: Option[Instant] = None)
-  extends CloudStorageClient {
+                                 lastModified: Option[Instant] = None) extends CloudStorageClient {
+    
     override val hashAlgorithm: HashType = Md5
 
     override def hash(uri: URI): Option[Hash] = hash

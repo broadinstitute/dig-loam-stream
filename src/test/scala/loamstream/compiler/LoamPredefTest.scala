@@ -29,12 +29,52 @@ import loamstream.googlecloud.ClusterConfig
  * May 5, 2017
  */
 final class LoamPredefTest extends FunSuite {
-  test("google") {
+  test("google - defaults") {
+    
     implicit val scriptContext = newScriptContext
+    
+    assert(scriptContext.config.googleConfig.get.defaultClusterConfig === ClusterConfig.default)
     
     val settings = GoogleSettings(scriptContext.googleConfig.clusterId, ClusterConfig.default)
     
     doSettingsTest(scriptContext, LocalSettings, settings, LoamPredef.google)
+  }
+  
+  test("google - non-defaults") {
+    val baseConfig = TestHelpers.config
+    
+    val baseGoogleConfig = baseConfig.googleConfig.get
+    
+    val newClusterConfig = ClusterConfig.default.copy(numWorkers = 42)
+    
+    assert(newClusterConfig !== ClusterConfig.default)
+    
+    val loamConfig = {
+      baseConfig.copy(googleConfig = Some(baseGoogleConfig.copy(defaultClusterConfig = newClusterConfig)))
+    }
+    
+    assert(loamConfig !== baseConfig)
+    
+    implicit val scriptContext = new LoamScriptContext(LoamProjectContext.empty(loamConfig))
+    
+    val settings = GoogleSettings(scriptContext.googleConfig.clusterId, newClusterConfig)
+    
+    doSettingsTest(scriptContext, LocalSettings, settings, LoamPredef.google)
+  }
+  
+  test("googleWith") {
+    
+    val newClusterConfig = ClusterConfig.default.copy(numWorkers = 42)
+    
+    assert(newClusterConfig !== ClusterConfig.default)
+    
+    implicit val scriptContext = newScriptContext
+    
+    assert(scriptContext.config.googleConfig.get.defaultClusterConfig === ClusterConfig.default)
+    
+    val settings = GoogleSettings(scriptContext.googleConfig.clusterId, newClusterConfig)
+    
+    doSettingsTest(scriptContext, LocalSettings, settings, LoamPredef.googleWith(newClusterConfig))
   }
   
   test("local") {

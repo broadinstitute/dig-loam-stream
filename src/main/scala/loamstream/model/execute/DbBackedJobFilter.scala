@@ -36,7 +36,7 @@ final class DbBackedJobFilter(
   // for a given OutputRecord should help
   private[execute] def needsToBeRun(jobStr: String, rec: StoreRecord): Boolean = {
     val msg = s"Job $jobStr will be run because its output"
-
+    
     val considerHashes = outputHashingStrategy.shouldHash
     
     val missingFromDisk = rec.isMissing

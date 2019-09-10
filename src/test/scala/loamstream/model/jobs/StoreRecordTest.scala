@@ -22,7 +22,9 @@ final class StoreRecordTest extends FunSuite {
   private val fooPath = path(fooLoc)
   private val fooHash = Hashes.sha1(fooPath).valueAsBase64String
   private val fooHashType = Sha1.algorithmName
-  private val fooRec = StoreRecord(fooLoc, Option(fooHash), Option(fooHashType), lastModifiedOptOf(fooPath))
+  private val fooRec = {
+    StoreRecord(fooLoc, () => Option(fooHash), () => Option(fooHashType), lastModifiedOptOf(fooPath))
+  }
 
   private val fooPathCopy = fooPath
   private val fooHashCopy = Hashes.sha1(fooPathCopy).valueAsBase64String
@@ -32,7 +34,9 @@ final class StoreRecordTest extends FunSuite {
   private val emptyPath = path(emptyLoc)
   private val emptyHash = Hashes.sha1(emptyPath).valueAsBase64String
   private val emptyHashType = Sha1.algorithmName
-  private val emptyRec = StoreRecord(emptyLoc, Option(emptyHash), Option(emptyHashType), lastModifiedOptOf(emptyPath))
+  private val emptyRec = {
+    StoreRecord(emptyLoc, () => Option(emptyHash), () => Option(emptyHashType), lastModifiedOptOf(emptyPath))
+  }
 
   private val nonExistingLoc = normalize("non/existent/path")
   private val nonExistingRec = StoreRecord(nonExistingLoc)
@@ -41,6 +45,36 @@ final class StoreRecordTest extends FunSuite {
 
   private def normalize(loc: String): String = Paths.normalize(path(loc))
 
+  test("hash and hashType are lazy") {
+    var timesHashMade = 0
+    var timesHashTypeMade = 0
+    
+    val bogusHash = Some("bogus-hash")
+    val bogusHashType = Some("bogus-hash-type")
+    
+    val record = StoreRecord(
+        loc = "foo",
+        isPresent = true,
+        makeHash = () => { timesHashMade += 1 ; bogusHash },
+        makeHashType = () => { timesHashTypeMade += 1 ; bogusHashType },
+        lastModified = Some(Instant.now))
+        
+    assert(timesHashMade === 0)
+    assert(timesHashTypeMade === 0)
+    
+    assert(record.hash === bogusHash)
+    assert(record.hashType === bogusHashType)
+    
+    assert(timesHashMade === 1)
+    assert(timesHashTypeMade === 1)
+    
+    assert(record.hash === bogusHash)
+    assert(record.hashType === bogusHashType)
+    
+    assert(timesHashMade === 1)
+    assert(timesHashTypeMade === 1)
+  }
+  
   test("apply/isPresent/isMissing") {
     assert(fooRec.isPresent)
 
@@ -49,7 +83,7 @@ final class StoreRecordTest extends FunSuite {
     val recFromFooOutput = StoreRecord(PathHandle(fooPath).normalized)
     assert(fooRec == recFromFooOutput)
 
-    val expectedNonExistingRec = StoreRecord(nonExistingLoc, false, None, None, None)
+    val expectedNonExistingRec = StoreRecord(nonExistingLoc, false, () => None, () => None, None)
     assert(nonExistingRec == expectedNonExistingRec)
   }
 

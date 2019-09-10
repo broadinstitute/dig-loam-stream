@@ -126,8 +126,12 @@ object BsubJobSubmitter extends Loggable {
     val runTimeInHours: Int = drmSettings.maxRunTime.hours.toInt
     val maxRunTimePart = Seq("-W", s"${runTimeInHours}:0")
     
-    val memoryPerCoreInMegs = drmSettings.memoryPerCore.mb.toInt
-    val memoryPart = Seq("-R", s"rusage[mem=${memoryPerCoreInMegs}]")
+    val memoryPerCoreInMegs = drmSettings.memoryPerCore.mb.toLong
+    
+    //Per the LSF docs, memory specified with -R needs to be in megs, with -M it needs to be in kb,
+    //but at EBI, it needs to be in megs for both.
+    val memoryRusagePart = Seq("-R", s"rusage[mem=${memoryPerCoreInMegs}]")
+    val memoryDashMPart = Seq("-M", memoryPerCoreInMegs.toString)
     
     val numCores = drmSettings.cores.value
     
@@ -142,7 +146,8 @@ object BsubJobSubmitter extends Loggable {
     val stderrPart = Seq("-eo", s"${taskArray.stdErrPathTemplate}")
     
     val tokens = actualExecutable +: 
-      (queuePart ++ maxRunTimePart ++ memoryPart ++ coresPart ++ jobNamePart ++ stdoutPart ++ stderrPart)
+      (queuePart ++ maxRunTimePart ++ memoryDashMPart ++ memoryRusagePart ++ 
+       coresPart ++ jobNamePart ++ stdoutPart ++ stderrPart)
       
     tokens
   }

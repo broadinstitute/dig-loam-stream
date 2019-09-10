@@ -10,7 +10,7 @@ import loamstream.loam.LoamCmdSyntax
  * Feb 17, 2017
  */
 trait HailLoamSyntax {
-  /**
+    /**
    * Provides a hail"..." interpolator that invokes cmd"..." but with Google Cloud boilerplate prepended; 
    * Gets Google Cloud and Hail config info from scriptContext.projectContext.config .
    */
@@ -73,8 +73,8 @@ trait HailLoamSyntax {
         
         val sourceBashrcPart = "source ~/.bashrc"
         val activateCondaPart = s"""conda activate "${hailConfig.condaEnv}""""
-        val projectIdEnvVarPart = s"""CLOUDSDK_CORE_PROJECT="${googleConfig.projectId}""""
-        val pathMungingPart = s"""PATH="${normalize(googleConfig.gcloudBinary.getParent)}":$${PATH}"""
+        val projectIdEnvVarPart = s"""export CLOUDSDK_CORE_PROJECT="${googleConfig.projectId}""""
+        val pathMungingPart = s"""export PATH="${normalize(googleConfig.gcloudBinary.getParent)}":$${PATH}"""
     
         val prefix = s"${sourceBashrcPart} && ${activateCondaPart} && ${projectIdEnvVarPart} && ${pathMungingPart}"
         
@@ -88,7 +88,9 @@ trait HailLoamSyntax {
         case firstPart +: otherParts => s"${hailctlPrefixPart}${firstPart}" +: otherParts
       }
       
-      LoamCmdSyntax.StringContextWithCmd(StringContext(newParts: _*)).cmd(args: _*)
+      val newArgs = args
+      
+      LoamCmdSyntax.StringContextWithCmd(StringContext(newParts: _*)).cmd(newArgs: _*)
     }
   }
 }

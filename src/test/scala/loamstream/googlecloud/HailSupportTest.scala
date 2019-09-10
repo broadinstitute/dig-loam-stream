@@ -44,8 +44,6 @@ final class HailSupportTest extends FunSuite {
           credentialsFile = "/path/to/creds"
 
           hail {
-            jar = "gs://some-bucket/hail-all-spark.jar"
-            zip = "gs://some-bucket/hail-all.zip"
             condaEnv = "hail-0.2.18"
             scriptDir = "${scriptDir.render}" //don't litter in the current dir
           }
@@ -63,7 +61,7 @@ final class HailSupportTest extends FunSuite {
   // scalastyle:off line.size.limit
   private val sep = File.separator
   private val gCloudPath = s"${sep}path${sep}to${sep}gcloud"
-  private val hailctlPrefix = s"""source ~/.bashrc && conda activate "hail-0.2.18" && CLOUDSDK_CORE_PROJECT="${projectId}" && PATH="/path/to":$${PATH} && hailctl dataproc submit ${clusterId} """
+  private val hailctlPrefix = s"""source ~/.bashrc && conda activate "hail-0.2.18" && export CLOUDSDK_CORE_PROJECT="${projectId}" && export PATH="/path/to":$${PATH} && hailctl dataproc submit ${clusterId} """
   // scalastyle:on line.size.limit
 
   import HailSupport._

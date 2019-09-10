@@ -213,10 +213,10 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       // Record with different hash:  'hasDifferentHash' --> true
       //                              'needsToBeRun' --> true
-      val recWithDiffHash = StoreRecord( cachedOutput1.loc,
-                                          Option("bogus-hash"),
-                                          Option(Sha1.algorithmName),
-                                          cachedOutput1.lastModified)
+      val recWithDiffHash = StoreRecord(cachedOutput1.loc,
+                                        () => Option("bogus-hash"),
+                                        () => Option(Sha1.algorithmName),
+                                        cachedOutput1.lastModified)
                                           
       assert(filter.hasDifferentHash(recWithDiffHash))
       assert(filter.needsToBeRun(jobName, recWithDiffHash))
@@ -302,10 +302,10 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       // Record with different hash:  'hasDifferentHash' --> true
       //                              'needsToBeRun' --> true
-      val recWithDiffHash = StoreRecord( cachedOutput1.loc,
-                                          Option("bogus-hash"),
-                                          Option(Sha1.algorithmName),
-                                          cachedOutput1.lastModified)
+      val recWithDiffHash = StoreRecord(cachedOutput1.loc,
+                                        () => Option("bogus-hash"),
+                                        () => Option(Sha1.algorithmName),
+                                        cachedOutput1.lastModified)
       assert(filter.hasDifferentHash(recWithDiffHash))
       assert(filter.hasDifferentModTime(recWithDiffHash) === false)
       //since hashes aren't considered

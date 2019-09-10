@@ -123,6 +123,28 @@ final class FileSystemExecutionRecorderTest extends FunSuite {
     assert(settingsToString(GoogleSettings("foo", clusterConfig)) === expected)
   }
   
+  test("settingsToString - AWS settings") {
+    fail("TODO")
+    
+    val expected = Seq(
+        "settings-type" -> "google",
+        "cluster" -> "foo",
+        "zone" -> "us-central1-b",
+        "master-machine-type" -> "n1-standard-1",
+        "master-boot-disk-size" -> "20",
+        "num-workers" -> "2",
+        "worker-machine-type" -> "n1-standard-1",
+        "worker-boot-disk-size" -> "20",
+        "num-preemptible-workers" -> "0",
+        "preemptible-worker-boot-disk-size" -> "20",
+        "properties" -> "short-props",
+        "max-cluster-idle-time" -> "10m").map { case (k, v) => s"${k}\t${v}" }.mkString("\n")
+    
+    val clusterConfig = ClusterConfig.default.copy(properties = "short-props")
+  
+    assert(settingsToString(GoogleSettings("foo", clusterConfig)) === expected)
+  }
+  
   test("settingsToString - DRM settings") {
     def doTest(makeSettings: DrmSettings.SettingsMaker, expectedSettingsType: String): Unit = {
       def doTestWith(queueOpt: Option[Queue], containerParamsOpt: Option[ContainerParams]): Unit = {
@@ -167,6 +189,16 @@ final class FileSystemExecutionRecorderTest extends FunSuite {
   }
   
   test("resourcesToString - google resources") {
+    val endTime = Instant.now
+    
+    val resources = GoogleResources("foo", startTime, endTime)
+    
+    assert(resourcesToString(resources) === s"start-time\t${startTime}\nend-time\t${endTime}\ncluster\tfoo")
+  }
+  
+  test("resourcesToString - AWS resources") {
+    fail("TODO")
+    
     val endTime = Instant.now
     
     val resources = GoogleResources("foo", startTime, endTime)

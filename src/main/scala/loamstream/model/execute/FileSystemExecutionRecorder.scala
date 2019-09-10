@@ -11,6 +11,7 @@ import java.nio.file.{Files => JFiles}
 import java.nio.file.Path
 import loamstream.util.Paths
 import loamstream.util.{Files => LFiles}
+import loamstream.model.execute.Resources.AwsResources
 
 
 /**
@@ -57,7 +58,7 @@ object FileSystemExecutionRecorder extends ExecutionRecorder {
     val settingsType = "settings-type"
     val startTime = "start-time"
     val endTime = "end-time"
-    val cluster = "cluster"
+    // Uger/LSF
     val memory = "memory"
     val cores = "cores"
     val maxRunTime = "max-run-time"
@@ -67,6 +68,8 @@ object FileSystemExecutionRecorder extends ExecutionRecorder {
     val singularityImageName = "singularity-image-name"
     val metadata = "metadata"
     val zone = "zone"
+    // Google
+    val cluster = "cluster"
     val masterMachineType = "master-machine-type"
     val masterBootDiskSize = "master-boot-disk-size"
     val numWorkers = "num-workers"
@@ -79,6 +82,19 @@ object FileSystemExecutionRecorder extends ExecutionRecorder {
     val properties = "properties"
     val initializationActions = "initialization-actions"
     val maxClusterIdleTime = "max-cluster-idle-time"
+    // AWS
+    val amiId = "ami-id"
+    val instances = "instances"
+    val masterInstanceType = "master-instance-type"
+    val slaveInstanceType = "slave-instance-type"
+    val masterVolumeSizeInGB = "master-volume-size-in-gb"
+    val slaveVolumeSizeInGB = "slave-volume-size-in-gb"
+    val applications = "applications"
+    val configurations = "configurations"
+    val bootstrapScripts = "bootstrapScripts"
+    val bootstrapSteps = "bootstrapSteps"
+    val keepAliveWhenNoSteps = "keepAliveWhenNoSteps"
+    val visibleToAllUsers = "visibleToAllUsers"
   }
   
   private def line(key: String, value: String): String = s"${key}\t${value}"
@@ -101,6 +117,7 @@ object FileSystemExecutionRecorder extends ExecutionRecorder {
     val resourceSpecificTuples: Seq[(String, Any)] = resources match {
       case _: LocalResources => Nil
       case g: GoogleResources => Seq(Keys.cluster -> g.clusterId)
+      case a: AwsResources => Seq(Keys.cluster -> a.clusterId)
       case DrmResources(memory, cpuTime, nodeOpt, queueOpt, _, _, _) => {
         Seq(
           Keys.memory -> memory.value.toString,
@@ -134,6 +151,25 @@ object FileSystemExecutionRecorder extends ExecutionRecorder {
           Keys.preemptibleWorkerBootDiskSize -> preemptibleWorkerBootDiskSize,
           Keys.properties -> properties,
           Keys.maxClusterIdleTime -> maxClusterIdleTime)
+      }
+      case AwsSettings(clusterConfig) => {
+        import clusterConfig._
+        
+        Seq(
+          typeTuple(EnvironmentType.Aws.name),
+          Keys.cluster -> name,
+          Keys.amiId -> amiId.getOrElse(""),
+          Keys.instances -> instances,
+          Keys.masterInstanceType -> masterInstanceType.value,
+          Keys.slaveInstanceType -> slaveInstanceType.value,
+          Keys.masterVolumeSizeInGB -> masterVolumeSizeInGB,
+          Keys.slaveVolumeSizeInGB -> slaveVolumeSizeInGB,
+          Keys.applications -> applications.map(_.value).mkString(","),
+          Keys.configurations -> configurations.map(_.toString),
+          Keys.bootstrapScripts -> bootstrapScripts.map(_.config.scriptBootstrapAction.path.toString).mkString(","),
+          Keys.bootstrapSteps -> bootstrapSteps.map(_.toString),
+          Keys.keepAliveWhenNoSteps -> keepAliveWhenNoSteps,
+          Keys.visibleToAllUsers -> visibleToAllUsers)
       }
       case DrmSettings(cores, memory, cpuTime, queueOpt, containerParamsOpt) => {
         val containerParamsTuples = Seq(

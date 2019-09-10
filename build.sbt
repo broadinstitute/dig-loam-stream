@@ -7,7 +7,7 @@ lazy val Versions = new {
   val GoogleCloudStorage = "1.77.0"
   val GoogleAuth = "0.16.1"
   val LogBack = "1.2.3"
-  val Scala = "2.12.8"
+  val Scala = "2.12.9"
   val ScalaMajor = "2.12"
   val ScalaFmt = "1.5.1"
   val ScalaTest = "3.0.8"
@@ -21,6 +21,7 @@ lazy val Versions = new {
   val LogbackColorizer = "1.0.1"
   val Janino = "3.0.12"
   val CommonsCsv = "1.7"
+  val DigAws           = "0.1-SNAPSHOT"
 }
 
 lazy val Orgs = new {
@@ -58,7 +59,8 @@ lazy val mainDeps = Seq(
   "org.typelevel"  %% "squants"  % Versions.Squants,
   "org.tuxdude.logback.extensions" % "logback-colorizer" % Versions.LogbackColorizer,
   "org.codehaus.janino" % "janino" % Versions.Janino,
-  "org.apache.commons" % "commons-csv" % Versions.CommonsCsv
+  "org.apache.commons" % "commons-csv" % Versions.CommonsCsv,
+  Orgs.DIG %% "dig-aws" % Versions.DigAws
 )
 
 lazy val testDeps = Seq(

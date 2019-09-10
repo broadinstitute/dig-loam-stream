@@ -155,7 +155,6 @@ import ${ScalaId.from[DepositBox[_]].inScalaFull}
 import ${ScalaId.from[LoamProjectContext].inScalaFull}
 import ${ScalaId.from[LoamScriptContext].inScalaFull}
 import java.nio.file._
-import java.net.URI
 
 // scalastyle:off object.name
 

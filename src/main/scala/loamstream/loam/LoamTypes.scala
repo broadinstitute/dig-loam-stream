@@ -6,7 +6,6 @@ package loamstream.loam
  */
 trait LoamTypes {
   type Path = java.nio.file.Path
-  type Paths = java.nio.file.Paths
   type URI = java.net.URI
   
   type Store = loamstream.model.Store

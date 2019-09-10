@@ -14,6 +14,7 @@ final class EnvironmentTypeTest extends FunSuite {
     assert(Google.name === "google")
     assert(Uger.name === "uger")
     assert(Lsf.name === "lsf")
+    assert(Aws.name === "aws")
   }
   
   test("is* predicates") {
@@ -21,21 +22,31 @@ final class EnvironmentTypeTest extends FunSuite {
     assert(Local.isGoogle === false)
     assert(Local.isUger === false)
     assert(Local.isLsf === false)
+    assert(Local.isAws === false)
     
     assert(Google.isLocal === false)
     assert(Google.isGoogle === true)
     assert(Google.isUger === false)
     assert(Google.isLsf === false)
+    assert(Google.isAws === false)
     
     assert(Uger.isLocal === false)
     assert(Uger.isGoogle === false)
     assert(Uger.isUger === true)
     assert(Uger.isLsf === false)
+    assert(Uger.isAws === false)
     
     assert(Lsf.isLocal === false)
     assert(Lsf.isGoogle === false)
     assert(Lsf.isUger === false)
     assert(Lsf.isLsf === true)
+    assert(Lsf.isAws === false)
+    
+    assert(Aws.isLocal === false)
+    assert(Aws.isGoogle === false)
+    assert(Aws.isUger === false)
+    assert(Aws.isLsf === false)
+    assert(Aws.isAws === true)
   }
   
   test("fromString") {
@@ -62,5 +73,10 @@ final class EnvironmentTypeTest extends FunSuite {
     assert(fromString("Lsf") === Some(Lsf))
     assert(fromString("LSF") === Some(Lsf))
     assert(fromString("LsF") === Some(Lsf))
+    
+    assert(fromString("aws") === Some(Aws))
+    assert(fromString("Aws") === Some(Aws))
+    assert(fromString("AWS") === Some(Aws))
+    assert(fromString("AwS") === Some(Aws))
   }
 }

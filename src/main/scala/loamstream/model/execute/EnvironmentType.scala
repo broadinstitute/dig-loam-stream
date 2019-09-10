@@ -5,13 +5,15 @@ package loamstream.model.execute
  *         Nov 22, 2016
  */
 sealed abstract class EnvironmentType(val name: String) {
-  final def isLocal: Boolean = this.isInstanceOf[EnvironmentType.Local.type]
+  final def isLocal: Boolean = this == EnvironmentType.Local
 
-  final def isGoogle: Boolean = this.isInstanceOf[EnvironmentType.Google.type]
+  final def isGoogle: Boolean = this == EnvironmentType.Google
   
-  final def isUger: Boolean = this.isInstanceOf[EnvironmentType.Uger.type]
+  final def isUger: Boolean = this == EnvironmentType.Uger
   
-  final def isLsf: Boolean = this.isInstanceOf[EnvironmentType.Lsf.type]
+  final def isLsf: Boolean = this == EnvironmentType.Lsf
+  
+  final def isAws: Boolean = this == EnvironmentType.Aws
 }
 
 object EnvironmentType {
@@ -20,6 +22,7 @@ object EnvironmentType {
     val Google = "google"
     val Uger = "uger"
     val Lsf = "lsf"
+    val Aws = "aws"
   }
 
   final case object Local extends EnvironmentType(Names.Local)
@@ -30,11 +33,14 @@ object EnvironmentType {
 
   final case object Google extends EnvironmentType(Names.Google)
   
+  final case object Aws extends EnvironmentType(Names.Aws)
+  
   def fromString(s: String): Option[EnvironmentType] = s.trim.toLowerCase match {
     case Names.Local => Some(Local)
     case Names.Google => Some(Google)
     case Names.Uger => Some(Uger)
     case Names.Lsf => Some(Lsf)
+    case Names.Aws => Some(Aws)
     case _ => None
   }
 }

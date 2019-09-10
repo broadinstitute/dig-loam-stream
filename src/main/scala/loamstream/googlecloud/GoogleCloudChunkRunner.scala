@@ -157,7 +157,7 @@ final case class GoogleCloudChunkRunner(
     }
     
     val futureResult = {
-      delegate.run(Set(job), jobOracle, shouldRestart).map(addCluster(googleSettings.cluster)).lastAsFuture
+      delegate.run(Set(job), jobOracle, shouldRestart).map(addCluster(googleSettings.clusterId)).lastAsFuture
     }
     
     //TODO: add some timeout

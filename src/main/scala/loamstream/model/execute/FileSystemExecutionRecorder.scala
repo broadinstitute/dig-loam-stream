@@ -100,7 +100,7 @@ object FileSystemExecutionRecorder extends ExecutionRecorder {
     
     val resourceSpecificTuples: Seq[(String, Any)] = resources match {
       case _: LocalResources => Nil
-      case g: GoogleResources => Seq(Keys.cluster -> g.cluster)
+      case g: GoogleResources => Seq(Keys.cluster -> g.clusterId)
       case DrmResources(memory, cpuTime, nodeOpt, queueOpt, _, _, _) => {
         Seq(
           Keys.memory -> memory.value.toString,

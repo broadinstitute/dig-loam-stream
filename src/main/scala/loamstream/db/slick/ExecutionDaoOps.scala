@@ -48,16 +48,6 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
     runBlocking(insertEverything)
   }
   
-  override def allExecutions: Seq[Execution] = {
-    val query = tables.executions.result
-
-    log(query)
-
-    val executions = runBlocking(query.transactionally)
-
-    executions.map(reify)
-  }
-
   override def findExecution(outputLocation: String): Option[Execution] = {
 
     val executionForPath = for {
@@ -144,7 +134,7 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
     }
   }
   
-  private def reify(executionRow: ExecutionRow): Execution = {
+  protected[slick] def reify(executionRow: ExecutionRow): Execution = {
     executionRow.toExecution(resourcesFor(executionRow), outputsFor(executionRow).toSet)
   }
   

@@ -62,7 +62,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
   private def noOutputs: Boolean = dao.allStoreRecords.isEmpty
 
-  private def noExecutions: Boolean = dao.allExecutions.isEmpty
+  private def noExecutions: Boolean = executions.isEmpty
 
   import loamstream.TestHelpers.dummyJobDir
 
@@ -133,7 +133,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
       assert(stored.outputs.nonEmpty)
 
-      val Seq(retrieved) = dao.allExecutions
+      val Seq(retrieved) = executions
 
       assert(dao.allStoreRecords.toSet === stored.outputs)
 
@@ -395,12 +395,12 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
             terminationReason = None)
       }
 
-      assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0))
+      assertEqualFieldsFor(executions.toSet, Set(expected0))
 
       dao.insertExecutions(succeeded, failed1)
       val expected1 = failed1
       val expected2 = succeeded
-      assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0, expected1, expected2))
+      assertEqualFieldsFor(executions.toSet, Set(expected0, expected1, expected2))
     }
   }
 
@@ -430,7 +430,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
             failed.jobDir.get,
             failedOutput(output0.path))
   
-        assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0))
+        assertEqualFieldsFor(executions.toSet, Set(expected0))
       }
     }
     
@@ -512,7 +512,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   
         val expected0 = Execution(ugerSettings, mockCmd, CommandResult(42), ex0.jobDir.get, failedOutput(path0))
   
-        assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0))
+        assertEqualFieldsFor(executions.toSet, Set(expected0))
         assertEqualFieldsFor(dao.findExecution(output0), Some(expected0))
   
         assert(dao.findExecution(output1) === None)
@@ -523,7 +523,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
         val expected1 = ex1
         val expected2 = ex2
   
-        assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0, expected1, expected2))
+        assertEqualFieldsFor(executions.toSet, Set(expected0, expected1, expected2))
   
         assertEqualFieldsFor(dao.findExecution(output0), Some(expected0))
         assertEqualFieldsFor(dao.findExecution(output1), Some(expected1))
@@ -654,7 +654,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
         
         assert(resourcesFromDb === ResourceRow.fromResources(resources, 1))
         
-        assert(dao.allExecutions.head === execution)
+        assert(executions.head === execution)
       }
     }
       

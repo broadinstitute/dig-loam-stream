@@ -77,7 +77,8 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       val result = JobResult.CommandResult(0)
       
       Execution(
-          settings = mockLsfSettings,
+          envType = mockLsfSettings.envType,
+          settings = Option(mockLsfSettings),
           cmd = Option(cmd),
           status = result.toJobStatus,
           result = Option(result),
@@ -113,7 +114,8 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
     assert(result.isFailure)
 
     val execution = Execution(
-        settings = mockUgerSettings,
+        envType = mockUgerSettings.envType,
+        settings = Option(mockUgerSettings),
         cmd = Option(mockCmd), 
         status = result.toJobStatus,
         result = Option(result), 
@@ -245,7 +247,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       val toInsert = new ExecutionRow(
           dummyId,
           mockUgerSettings.envType.toString,
-          mockCmd,
+          Option(mockCmd),
           mockStatus,
           mockExitCode,
           Some(jobDir.toString),
@@ -282,7 +284,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       val toInsert = new ExecutionRow(
           dummyId,
           mockUgerSettings.envType.toString,
-          mockCmd,
+          Option(mockCmd),
           mockStatus,
           mockExitCode,
           Some(jobDir.toString),
@@ -339,7 +341,8 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
         Instant.ofEpochMilli(1), Instant.ofEpochMilli(72345))
 
       val failed0 = Execution(
-          settings = LocalSettings,
+          envType = LocalSettings.envType,
+          settings = Option(LocalSettings),
           cmd = Option(mockCmd),
           status = CommandResult(42).toJobStatus,
           result = Option(CommandResult(42)),
@@ -349,7 +352,8 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           terminationReason = None)
 
       val failed1 = Execution(
-          settings = lsfSettings,
+          envType = lsfSettings.envType,
+          settings = Option(lsfSettings),
           cmd = Option(mockCmd),
           status = CommandResult(1).toJobStatus,
           result = Option(CommandResult(1)),
@@ -359,7 +363,8 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           terminationReason = Some(TerminationReason.UserRequested))
 
       val succeeded = Execution(
-          settings = googleSettings,
+          envType = googleSettings.envType,
+          settings = Option(googleSettings),
           cmd = Option(mockCmd),
           status = CommandResult(0).toJobStatus,
           result = Option(CommandResult(0)),
@@ -379,7 +384,8 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
       val expected0 = {
         Execution(
-            settings = LocalSettings,
+            envType = LocalSettings.envType,
+            settings = Option(LocalSettings),
             cmd = Option(mockCmd), 
             status = CommandResult(42).toJobStatus, 
             result = Option(CommandResult(42)),
@@ -439,7 +445,8 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           val output0 = PathHandle(path)
   
           val failed = Execution(
-              settings = mockUgerSettings,
+              envType = mockUgerSettings.envType,
+              settings = Option(mockUgerSettings),
               cmd = command, 
               status = JobResult.Failure.toJobStatus,
               result = Option(JobResult.Failure),
@@ -485,7 +492,8 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
         val ex0 = Execution(ugerSettings, mockCmd, CommandResult(42), dummyJobDir, output0)
         val ex1 = Execution(ugerSettings, mockCmd, CommandResult(0), dummyJobDir, output1, output2)
         val ex2 = Execution(
-            settings = ugerSettings,
+            envType = ugerSettings.envType,
+            settings = Option(ugerSettings),
             cmd = Option(mockCmd), 
             status = CommandResult(1).toJobStatus, 
             result = Option(CommandResult(1)),
@@ -621,7 +629,8 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
         val result = CommandResult(0)
         
         val execution = Execution(
-            settings = settings,
+            envType = settings.envType,
+            settings = Option(settings),
             cmd = Option(mockCmd),
             status = result.toJobStatus,
             result = Option(result),

@@ -18,22 +18,27 @@ import loamstream.model.jobs.TerminationReason
 final case class ExecutionRow(
     id: Int, 
     env: String, 
-    cmd: String, 
+    cmd: Option[String], 
     status: JobStatus, 
     exitCode: Int,
     jobDir: Option[String],
     terminationReason: Option[String]) {
   
-  def toExecution(settings: Settings, resourcesOpt: Option[Resources], outputs: Set[StoreRecord]): Execution = {
+  def toExecution(resourcesOpt: Option[Resources], outputs: Set[StoreRecord]): Execution = {
     val commandResult = CommandResult(exitCode)
 
     import Paths.{get => toPath}
     
     val termReason = terminationReason.flatMap(TerminationReason.fromName)
     
+    val envTypeOpt = EnvironmentType.fromString(env)
+    
+    require(envTypeOpt.isDefined, s"Unknown environment type name '${env}'")
+    
     Execution(
-        settings = settings,
-        cmd = Option(cmd),
+        envType = envTypeOpt.get,
+        settings = None,
+        cmd = cmd,
         status = status,
         result = Option(commandResult),
         resources = resourcesOpt,

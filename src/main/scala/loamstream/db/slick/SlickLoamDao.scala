@@ -41,7 +41,8 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends
       outputRow <- findOutputRow(loc)
       executionId <- outputRow.executionId
       executionRow <- findExecutionRow(executionId)
-    } yield executionRow.cmd
+      commandLine <- executionRow.cmd
+    } yield commandLine
   }
 
   override def createTables(): Unit = tables.create(db)

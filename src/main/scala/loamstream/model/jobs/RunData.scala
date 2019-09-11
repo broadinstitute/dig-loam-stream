@@ -48,7 +48,8 @@ final case class RunData(
     val ultimateStatus = RunData.determineJobStatus(jobStatus)
     
     Execution(
-      settings = settings,
+      envType = settings.envType,
+      settings = Option(settings),
       cmd = cmdOpt,
       status = ultimateStatus,
       result = jobResult,

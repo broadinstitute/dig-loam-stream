@@ -54,6 +54,7 @@ import loamstream.model.jobs.TerminationReason
 import loamstream.model.execute.Settings
 import loamstream.model.execute.LocalSettings
 import loamstream.model.jobs.JobOracle
+import loamstream.model.execute.EnvironmentType
 
 /**
   * @author clint
@@ -150,7 +151,8 @@ object TestHelpers {
                     resources: Option[Resources] = None,
                     jobDir: Option[Path] = None): Execution = {
     Execution(
-        settings = LocalSettings,
+        envType = LocalSettings.envType,
+        settings = Option(LocalSettings),
         cmd = None,
         status = status,
         result = result,

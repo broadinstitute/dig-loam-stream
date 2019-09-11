@@ -39,7 +39,7 @@ object ExecutionInfo {
     val commandString = execution.cmd.map(c => s"'$c'")getOrElse("<None>")
   
     val envSettings = execution.settings
-    val envType = envSettings.envType
+    val envType = execution.envType
     
     val result = execution.result
     

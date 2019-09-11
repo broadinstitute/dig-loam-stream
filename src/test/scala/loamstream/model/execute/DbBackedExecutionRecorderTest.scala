@@ -63,7 +63,8 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
         val job = MockJob(status)
         
         val e = Execution(
-            settings = mockUgerSettings,
+            envType = mockUgerSettings.envType,
+            settings = Option(mockUgerSettings),
             cmd = command, 
             status = status, 
             result = result, 
@@ -100,7 +101,8 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
       val job = MockJob(cr.toJobStatus)
       
       val e = Execution(
-          settings = mockUgerSettings,
+          envType = mockUgerSettings.envType,
+          settings = Option(mockUgerSettings),
           cmd = Option(mockCmd), 
           status = cr.toJobStatus, 
           result = Option(cr), 
@@ -128,7 +130,8 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
       val job = MockJob(cr.toJobStatus)
       
       val e = Execution(
-          settings = mockUgerSettings,
+          envType = mockUgerSettings.envType,
+          settings = Option(mockUgerSettings),
           cmd = Option(mockCmd), 
           status = cr.toJobStatus, 
           result = Option(cr),

@@ -4,7 +4,7 @@ package loamstream.model.execute
  * @author clint
  *         Nov 22, 2016
  */
-sealed abstract class EnvironmentType(val name: String) {
+sealed abstract class EnvironmentType private (val name: String) {
   final def isLocal: Boolean = this == EnvironmentType.Local
 
   final def isGoogle: Boolean = this == EnvironmentType.Google

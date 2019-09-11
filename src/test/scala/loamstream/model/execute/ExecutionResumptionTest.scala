@@ -37,7 +37,8 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
     val lastModified = Paths.lastModifiedTime(p)
 
     val e = Execution(
-        settings = mockUgerSettings,
+        envType = mockUgerSettings.envType,
+        settings = Option(mockUgerSettings),
         cmd = Option(mockCmd),
         status = JobStatus.fromExitCode(exitCode),
         result = Option(JobResult.CommandResult(exitCode)),

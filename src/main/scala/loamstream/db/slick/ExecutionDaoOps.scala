@@ -15,6 +15,7 @@ import loamstream.model.execute.DrmSettings
 import loamstream.model.execute.LsfDrmSettings
 import loamstream.model.execute.UgerDrmSettings
 import loamstream.drm.ContainerParams
+import loamstream.model.jobs.JobStatus
 
 
 /**
@@ -46,26 +47,6 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
     val insertEverything = DBIO.sequence(inserts).transactionally
 
     runBlocking(insertEverything)
-  }
-  
-  override def findExecution(outputLocation: String): Option[Execution] = {
-
-    val executionForPath = for {
-      output <- tables.outputs.filter(_.locator === outputLocation)
-      execution <- output.execution
-    } yield {
-      execution
-    }
-
-    log(executionForPath.result)
-
-    import Implicits._
-
-    val query = for {
-      executionOption <- executionForPath.result.headOption
-    } yield executionOption.map(reify)
-
-    runBlocking(query)
   }
   
   // TODO Input no longer needs to be a (Execution, JobResult) since Execution contains JobResult now
@@ -101,6 +82,19 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
     } yield {
       insertedOutputCounts ++ insertedResourceCounts
     }
+  }
+  
+  override def findLastStatus(outputLocation: String): Option[JobStatus] = {
+    val executionForPath = for {
+      output <- tables.outputs.filter(_.locator === outputLocation)
+      execution <- output.execution
+    } yield {
+      execution
+    }
+    
+    val executionOpt = runBlocking(executionForPath.result.headOption)
+    
+    executionOpt.map(_.status)
   }
   
   protected def findExecutionRow(executionId: Int): Option[ExecutionRow] = {

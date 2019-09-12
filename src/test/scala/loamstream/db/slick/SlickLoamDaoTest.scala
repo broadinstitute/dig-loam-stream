@@ -178,7 +178,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
       //Use Sets to ignore order
       assert(dao.allStoreRecords.toSet == expected)
-      assert(dao.allStoreRecords.forall(dao.findExecution(_).get.isFailure))
+      assert(dao.allStoreRecords.forall(dao.findLastStatus(_).get.isFailure))
     }
   }
 
@@ -197,7 +197,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
       //Use Sets to ignore order
       assert(dao.allStoreRecords.toSet == all)
-      assert(dao.allStoreRecords.count(dao.findExecution(_).get.isFailure) == failedOutputs.size)
+      assert(dao.allStoreRecords.count(dao.findLastStatus(_).get.isFailure) == failedOutputs.size)
     }
   }
 
@@ -513,10 +513,10 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
         val expected0 = Execution(ugerSettings, mockCmd, CommandResult(42), ex0.jobDir.get, failedOutput(path0))
   
         assertEqualFieldsFor(executions.toSet, Set(expected0))
-        assertEqualFieldsFor(dao.findExecution(output0), Some(expected0))
+        assertEqualFieldsFor(findExecution(output0), Some(expected0))
   
-        assert(dao.findExecution(output1) === None)
-        assert(dao.findExecution(output2) === None)
+        assert(findExecution(output1) === None)
+        assert(findExecution(output2) === None)
   
         dao.insertExecutions(ex1, ex2)
   
@@ -525,9 +525,9 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   
         assertEqualFieldsFor(executions.toSet, Set(expected0, expected1, expected2))
   
-        assertEqualFieldsFor(dao.findExecution(output0), Some(expected0))
-        assertEqualFieldsFor(dao.findExecution(output1), Some(expected1))
-        assertEqualFieldsFor(dao.findExecution(output2), Some(expected1))
+        assertEqualFieldsFor(findExecution(output0), Some(expected0))
+        assertEqualFieldsFor(findExecution(output1), Some(expected1))
+        assertEqualFieldsFor(findExecution(output2), Some(expected1))
       }
       
       doTest(TestHelpers.localResources)

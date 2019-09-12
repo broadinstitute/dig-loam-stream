@@ -100,16 +100,16 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       //If the job was skipped, we should have left the one from the previous successful run alone.
 
       compareResultsAndStatuses(
-          dao.findExecution(updatedOutput1).get,
+          findExecution(updatedOutput1).get,
           TestHelpers.executionFromResult(CommandResult(0)))
       
-      assert(dao.findExecution(updatedOutput1).get.outputs === Set(updatedOutput1))
+      assert(findExecution(updatedOutput1).get.outputs === Set(updatedOutput1))
 
       compareResultsAndStatuses(
-          dao.findExecution(updatedOutput2).get,
+          findExecution(updatedOutput2).get,
         TestHelpers.executionFromResult(CommandResult(0)))
       
-      assert(dao.findExecution(updatedOutput2).get.outputs === Set(updatedOutput2))
+      assert(findExecution(updatedOutput2).get.outputs === Set(updatedOutput2))
     }
     
     def doFirstPart(fileIn: Path, fileOut1: Path, fileOut2: Path): Unit = {
@@ -142,7 +142,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       val output1 = StoreRecord(PathHandle(fileOut1))
       val output2 = StoreRecord(PathHandle(fileOut2))
 
-      val executionFromOutput1 = dao.findExecution(output1).get
+      val executionFromOutput1 = findExecution(output1).get
       
       val output1Result = executionFromOutput1.result.get.asInstanceOf[CommandResult]
       
@@ -150,7 +150,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       assert(executionFromOutput1.resources.get === firstResources)
       assert(executionFromOutput1.outputs === Set(output1))
 
-      assert(dao.findExecution(output2) === None)
+      assert(findExecution(output2) === None)
     }
     
     def doSecondPart(fileIn: Path, fileOut1: Path, fileOut2: Path): Unit = {
@@ -234,8 +234,8 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       assert(recordOpt === Some(output1))
       assert(recordOpt.get.hash.isEmpty)
 
-      assert(dao.findExecution(output1).get.result.get.isFailure)
-      assert(dao.findExecution(output1).get.outputs === Set(output1))
+      assert(findExecution(output1).get.result.get.isFailure)
+      assert(findExecution(output1).get.outputs === Set(output1))
     }
     
     createTablesAndThen {
@@ -290,11 +290,11 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       val output1 = StoreRecord(fileOut1)
       val output2 = StoreRecord(fileOut2)
 
-      assert(dao.findExecution(output1).get.result.get.isFailure)
-      assert(dao.findExecution(output1).get.outputs === Set(output1))
+      assert(findExecution(output1).get.result.get.isFailure)
+      assert(findExecution(output1).get.outputs === Set(output1))
 
       //NB: The job that referenced output2 didn't get run, so its execution should not have been recorded 
-      assert(dao.findExecution(output2) === None)
+      assert(findExecution(output2) === None)
     }
     
     createTablesAndThen {

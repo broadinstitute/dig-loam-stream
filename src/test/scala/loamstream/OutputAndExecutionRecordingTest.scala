@@ -63,9 +63,9 @@ final class OutputAndExecutionRecordingTest extends FunSuite with ProvidesSlickL
       
       val loamEngine = LoamEngine(TestHelpers.config, LoamCompiler.default, executer)
       
-      def out0ExFromDb = dao.findExecution(StoreRecord(out0Path))
-      def out1ExFromDb = dao.findExecution(StoreRecord(out1Path))
-      def out2ExFromDb = dao.findExecution(StoreRecord(out2Path))
+      def out0ExFromDb = findExecution(StoreRecord(out0Path))
+      def out1ExFromDb = findExecution(StoreRecord(out1Path))
+      def out2ExFromDb = findExecution(StoreRecord(out2Path))
       
       assert(out0ExFromDb.isEmpty)
       assert(out1ExFromDb.isEmpty)

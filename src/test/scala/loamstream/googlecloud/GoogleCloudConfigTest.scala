@@ -23,6 +23,7 @@ final class GoogleCloudConfigTest extends FunSuite {
   private val numWorkers = 42
   private val numPreemptibleWorkers = 123
   private val preemptibleWorkerBootDiskSize = 19
+  private val numWorkerLocalSsds = 1
   private val zone = "z"
   private val masterMachineType = "mmt"
   private val masterBootDiskSize = 99
@@ -90,6 +91,7 @@ final class GoogleCloudConfigTest extends FunSuite {
             workerBootDiskSize = $workerBootDiskSize
             numPreemptibleWorkers = $numPreemptibleWorkers
             preemptibleWorkerBootDiskSize = $preemptibleWorkerBootDiskSize
+            numWorkerLocalSsds = $numWorkerLocalSsds
             properties = "$properties"
             maxClusterIdleTime = "$maxClusterIdleTime"
           }
@@ -112,6 +114,7 @@ final class GoogleCloudConfigTest extends FunSuite {
     assert(gConfig.defaultClusterConfig.workerBootDiskSize === workerBootDiskSize)
     assert(gConfig.defaultClusterConfig.numPreemptibleWorkers === numPreemptibleWorkers)
     assert(gConfig.defaultClusterConfig.preemptibleWorkerBootDiskSize === preemptibleWorkerBootDiskSize)
+    assert(gConfig.defaultClusterConfig.numWorkerLocalSsds === numWorkerLocalSsds)
     assert(gConfig.defaultClusterConfig.properties === properties)
     assert(gConfig.defaultClusterConfig.maxClusterIdleTime === maxClusterIdleTime)
   }

@@ -128,12 +128,8 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
     }
   }
   
-  protected[slick] def reify(executionRow: ExecutionRow): Execution = {
-    executionRow.toExecution(resourcesFor(executionRow), outputsFor(executionRow).toSet)
-  }
-  
   //TODO: There must be a better way than a subquery
-  private def outputsFor(execution: ExecutionRow): Seq[StoreRecord] = {
+  private[slick] def outputsFor(execution: ExecutionRow): Seq[StoreRecord] = {
     val query = tables.outputs.filter(_.executionId === execution.id).result
 
     runBlocking(query).map(toOutputRecord)

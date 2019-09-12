@@ -31,7 +31,7 @@ object FileSystemExecutionRecorder extends ExecutionRecorder {
       
       val settingsFilePath = makeSettingsFilePath(jobDir)
       
-      execution.settings.map(settingsToString).foreach(LFiles.writeTo(settingsFilePath))
+      LFiles.writeTo(settingsFilePath)(settingsToString(execution.settings))
       
       for {
         rs <- execution.resources

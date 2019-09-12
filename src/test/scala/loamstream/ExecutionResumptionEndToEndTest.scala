@@ -33,6 +33,7 @@ import loamstream.model.jobs.StoreRecord
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.util.Loggable
 import loamstream.util.Sequence
+import loamstream.model.jobs.PseudoExecution
 
 
 
@@ -71,7 +72,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
     def run(
         secondScript: LoamGraph,
         fileOut1: Path,
-        fileOut2: Path)(expectedStatuses: Seq[Execution]): Unit = {
+        fileOut2: Path)(expectedStatuses: Seq[Execution.Persisted]): Unit = {
       
       val (executable, executions) = compileAndRun(secondScript)
 
@@ -85,7 +86,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       val firstExecution = executions(firstJob)
       val secondExecution = executions(secondJob)
       
-      def compareResultsAndStatuses(actual: Execution, expected: Execution): Unit = {
+      def compareResultsAndStatuses(actual: Execution.Persisted, expected: Execution.Persisted): Unit = {
         assert(actual.status === expected.status)
 
         assert(actual.result === expected.result)
@@ -158,7 +159,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
   
       import TestHelpers.{ executionFrom, executionFromResult }
       
-      def doRun(expectedStatuses: Seq[Execution]): Unit = {
+      def doRun(expectedStatuses: Seq[Execution.Persisted]): Unit = {
         run(secondScript, fileOut1, fileOut2)(expectedStatuses)
       }
       

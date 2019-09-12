@@ -5,6 +5,11 @@ import scala.util.Try
 import loamstream.TestHelpers
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.StoreRecord
+import loamstream.model.jobs.JobResult.CommandResult
+import java.nio.file.Paths
+import loamstream.model.execute.EnvironmentType
+import loamstream.model.jobs.TerminationReason
+import loamstream.model.jobs.PseudoExecution
 
 /**
  * @author clint
@@ -15,7 +20,7 @@ trait TestDbOps {
   
   protected def store(execution: Execution): Unit = dao.insertExecutions(Seq(execution))
   
-  protected def executions: Seq[Execution] = {
+  protected def executions: Seq[PseudoExecution] = {
     import dao.driver.api._
     
     val query = dao.tables.executions.result
@@ -24,14 +29,35 @@ trait TestDbOps {
     
     val executions = TestHelpers.waitFor(executionsFuture)
   
-    executions.map(dao.reify)
+    executions.map(reify)
   }
   
-  protected def findExecution(outputStoreRecord: StoreRecord): Option[Execution] = {
-    findExecution(outputStoreRecord.loc)
+  private def reify(executionRow: ExecutionRow): PseudoExecution = {
+    import executionRow._
+    
+    val commandResult = CommandResult(exitCode)
+
+    import Paths.{get => toPath}
+    
+    val termReason = terminationReason.flatMap(TerminationReason.fromName)
+    
+    val envTypeOpt = EnvironmentType.fromString(env)
+    
+    require(envTypeOpt.isDefined, s"Unknown environment type name '${env}'")
+    
+    PseudoExecution(
+        envType = envTypeOpt.get,
+        cmd = cmd,
+        status = status,
+        result = Option(commandResult),
+        outputs = dao.outputsFor(executionRow).toSet,
+        jobDir = jobDir.map(toPath(_)),
+        terminationReason = termReason)
   }
   
-  protected def findExecution(outputLocation: String): Option[Execution] = {
+  protected def findExecution(output: StoreRecord): Option[Execution.Persisted] = findExecution(output.loc)
+  
+  protected def findExecution(outputLocation: String): Option[Execution.Persisted] = {
     import dao.driver.api._
     
     val executionForPath = for {
@@ -47,7 +73,7 @@ trait TestDbOps {
     
     val executionOpt = TestHelpers.waitFor(executionOptFuture)
     
-    executionOpt.map(dao.reify)
+    executionOpt.map(reify)
   }
   
   protected def createTablesAndThen[A](f: => A): A = {

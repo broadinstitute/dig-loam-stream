@@ -151,8 +151,7 @@ object TestHelpers {
                     resources: Option[Resources] = None,
                     jobDir: Option[Path] = None): Execution = {
     Execution(
-        envType = LocalSettings.envType,
-        settings = Option(LocalSettings),
+        settings = LocalSettings,
         cmd = None,
         status = status,
         result = result,

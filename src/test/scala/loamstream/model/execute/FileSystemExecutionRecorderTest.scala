@@ -56,8 +56,7 @@ final class FileSystemExecutionRecorderTest extends FunSuite {
       
       val execution = Execution(
           cmd = Some("foo --bar"),
-          envType = settings.envType,
-          settings = Option(settings),
+          settings = settings,
           status = JobStatus.Succeeded,
           result = Some(JobResult.CommandResult(0)),
           resources = Some(resources),

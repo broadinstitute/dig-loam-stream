@@ -173,8 +173,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
         val result = CommandResult(0)
       
         Execution(
-          envType = settings.envType,
-          settings = Option(settings),
+          settings = settings,
           cmd = Option(mockCmd),
           status = result.toJobStatus,
           result = Option(result),
@@ -217,14 +216,14 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     val e1 = Execution.from(job1, status1, terminationReason = None)
     
     assert(e0.cmd === Some("foo"))
-    assert(e0.settings.get.isUger)
+    assert(e0.settings.isUger)
     assert(e0.result === Some(result0))
     assert(e0.outputs === Set.empty)
     assert(e0.jobDir === jobDirOpt)
     //TODO: Check settings field once it's no longer a placeholder 
     
     assert(e1.cmd === None)
-    assert(e1.settings.get.isLocal)
+    assert(e1.settings.isLocal)
     assert(e1.status === status1)
     assert(e1.result === None)
     assert(e1.outputs === Set.empty)
@@ -235,8 +234,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
   test("isCommandExecution") {
     def assertIsCommandExecution(result: JobResult, cmd: Option[String] = Option(mockCmd)): Unit = {
       val execution = Execution(
-          envType = mockUgerSettings.envType,
-          settings = Option(mockUgerSettings),
+          settings = mockUgerSettings,
           cmd = cmd, 
           status = result.toJobStatus,
           result = Option(result),
@@ -250,8 +248,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     
     def assertIsNOTCommandExecution(result: JobResult, cmd: Option[String] = Option(mockCmd)): Unit = {
       val execution = Execution(
-          envType = mockUgerSettings.envType,
-          settings = Option(mockUgerSettings),
+          settings = mockUgerSettings,
           cmd = cmd, 
           status = result.toJobStatus,
           result = Option(result),

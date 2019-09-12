@@ -26,23 +26,20 @@ import loamstream.model.execute.AwsSettings
  */
 final case class Execution(
     cmd: Option[String] = None,
-    envType: EnvironmentType,
-    settings: Option[Settings],
+    settings: Settings,
     status: JobStatus,
     result: Option[JobResult] = None,
     resources: Option[Resources] = None,
     outputs: Set[StoreRecord] = Set.empty,
     jobDir: Option[Path],
-    terminationReason: Option[TerminationReason]) {
+    terminationReason: Option[TerminationReason]) extends Execution.Persisted {
 
   require(
       environmentAndResourcesMatch, 
       s"Environment type and resources must match, but got $envType and $resources")
       
-  require(
-      environmentAndSettingsMatch, 
-      s"Environment type and settings must match, but got $envType and $settings")
-  
+  def envType: EnvironmentType = settings.envType
+      
   def isSuccess: Boolean = status.isSuccess
   def isFailure: Boolean = status.isFailure
   
@@ -53,16 +50,6 @@ final case class Execution(
     case (EnvironmentType.Uger, Some(_: UgerResources)) => true
     case (EnvironmentType.Lsf, Some(_: LsfResources)) => true
     case (EnvironmentType.Aws, Some(_: AwsResources)) => true
-    case _ => false
-  }
-  
-  private def environmentAndSettingsMatch: Boolean = (envType, settings) match {
-    case (_, None) => true
-    case (EnvironmentType.Local, Some(LocalSettings)) => true
-    case (EnvironmentType.Google, Some(_: GoogleSettings)) => true
-    case (EnvironmentType.Uger, Some(_: UgerDrmSettings)) => true
-    case (EnvironmentType.Lsf, Some(_: LsfDrmSettings)) => true
-    case (EnvironmentType.Aws, Some(_: AwsSettings)) => true
     case _ => false
   }
   
@@ -90,6 +77,16 @@ final case class Execution(
 //TODO: Clean up and consolidate factory methods.  We probably don't need so many.  Maybe name them better too.
 object Execution extends Loggable {
 
+  trait Persisted {
+    def envType: EnvironmentType
+    def cmd: Option[String]
+    def status: JobStatus
+    def result: Option[JobResult]
+    def outputs: Set[StoreRecord]
+    def jobDir: Option[Path]
+    def terminationReason: Option[TerminationReason]
+  }
+  
   object WithCommandResult {
     def unapply(e: Execution): Option[CommandResult] = e.result match {
       case Some(cr: CommandResult) => Some(cr)
@@ -122,8 +119,7 @@ object Execution extends Loggable {
     
     Execution(
         cmd = Option(cmd),
-        envType = settings.envType,
-        settings = Option(settings),
+        settings = settings,
         status = result.toJobStatus, 
         result = Option(result), 
         resources = None, 
@@ -140,8 +136,7 @@ object Execution extends Loggable {
     
     Execution(
         cmd = Option(cmd),
-        envType = settings.envType,
-        settings = Option(settings),
+        settings = settings,
         status = result.toJobStatus, 
         result = Option(result), 
         resources = None, 
@@ -168,8 +163,7 @@ object Execution extends Loggable {
     val settings = job.initialSettings
     
     Execution(
-      envType = settings.envType,
-      settings = Option(settings),
+      settings = settings,
       cmd = commandLine,
       status = status,
       result = result,

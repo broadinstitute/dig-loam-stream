@@ -17,9 +17,6 @@ trait LoamDao {
   final def insertExecutions(execution: Execution, others: Execution*): Unit = insertExecutions(execution +: others)
   def insertExecutions(rows: Iterable[Execution]): Unit
 
-  //protected def findExecution(outputLocation: String): Option[Execution]
-  
-  //protected final def findExecution(output: StoreRecord): Option[Execution] = findExecution(output.loc)
   final def findLastStatus(output: StoreRecord): Option[JobStatus] = findLastStatus(output.loc)
   def findLastStatus(outputLocation: String): Option[JobStatus]
 

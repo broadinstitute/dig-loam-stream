@@ -91,8 +91,7 @@ final class RunDataTest extends FunSuite {
         terminationReasonOpt = Some(termReason))
         
     val expected = Execution(
-        envType = j.initialSettings.envType,
-        settings = Option(j.initialSettings),
+        settings = j.initialSettings,
         cmd = None,
         status = Succeeded,
         result = Some(JobResult.Success),
@@ -123,8 +122,7 @@ final class RunDataTest extends FunSuite {
         terminationReasonOpt = Some(termReason))
         
     val expected = Execution(
-        envType = j.initialSettings.envType,
-        settings = Option(j.initialSettings),
+        settings = j.initialSettings,
         cmd = None,
         status = FailedPermanently,
         result = Some(JobResult.Failure),
@@ -155,8 +153,7 @@ final class RunDataTest extends FunSuite {
         terminationReasonOpt = Some(termReason))
         
     val expected = Execution(
-        envType = j.initialSettings.envType,
-        settings = Option(j.initialSettings),
+        settings = j.initialSettings,
         cmd = None,
         status = Succeeded,
         result = None,
@@ -187,8 +184,7 @@ final class RunDataTest extends FunSuite {
         terminationReasonOpt = Some(termReason))
         
     val expected = Execution(
-        envType = clj.initialSettings.envType,
-        settings = Option(clj.initialSettings),
+        settings = clj.initialSettings,
         cmd = Some(dummyCommandLine),
         status = Succeeded,
         result = Some(JobResult.Success),
@@ -219,8 +215,7 @@ final class RunDataTest extends FunSuite {
         terminationReasonOpt = Some(termReason))
         
     val expected = Execution(
-        envType = clj.initialSettings.envType,
-        settings = Option(clj.initialSettings),
+        settings = clj.initialSettings,
         cmd = Some(dummyCommandLine),
         status = FailedPermanently,
         result = Some(JobResult.Failure),
@@ -251,8 +246,7 @@ final class RunDataTest extends FunSuite {
         terminationReasonOpt = Some(termReason))
         
     val expected = Execution(
-        envType = clj.initialSettings.envType,
-        settings = Option(clj.initialSettings),
+        settings = clj.initialSettings,
         cmd = Some(dummyCommandLine),
         status = Succeeded,
         result = None,

@@ -91,10 +91,10 @@ object FileSystemExecutionRecorder extends ExecutionRecorder {
     val slaveVolumeSizeInGB = "slave-volume-size-in-gb"
     val applications = "applications"
     val configurations = "configurations"
-    val bootstrapScripts = "bootstrapScripts"
-    val bootstrapSteps = "bootstrapSteps"
-    val keepAliveWhenNoSteps = "keepAliveWhenNoSteps"
-    val visibleToAllUsers = "visibleToAllUsers"
+    val bootstrapScripts = "bootstrap-scripts"
+    val bootstrapSteps = "bootstraps-steps"
+    val keepAliveWhenNoSteps = "keep-alive-when-no-steps"
+    val visibleToAllUsers = "visible-to-all-users"
   }
   
   private def line(key: String, value: String): String = s"${key}\t${value}"
@@ -155,19 +155,21 @@ object FileSystemExecutionRecorder extends ExecutionRecorder {
       case AwsSettings(clusterConfig) => {
         import clusterConfig._
         
+        def toString[A](as: Iterable[A]): String = as.mkString("[", ",", "]")
+        
         Seq(
           typeTuple(EnvironmentType.Aws.name),
           Keys.cluster -> name,
-          Keys.amiId -> amiId.getOrElse(""),
+          Keys.amiId -> amiId.map(_.value).getOrElse(""),
           Keys.instances -> instances,
           Keys.masterInstanceType -> masterInstanceType.value,
           Keys.slaveInstanceType -> slaveInstanceType.value,
           Keys.masterVolumeSizeInGB -> masterVolumeSizeInGB,
           Keys.slaveVolumeSizeInGB -> slaveVolumeSizeInGB,
-          Keys.applications -> applications.map(_.value).mkString(","),
-          Keys.configurations -> configurations.map(_.toString),
-          Keys.bootstrapScripts -> bootstrapScripts.map(_.config.scriptBootstrapAction.path.toString).mkString(","),
-          Keys.bootstrapSteps -> bootstrapSteps.map(_.toString),
+          Keys.applications -> toString(applications.map(_.value)),
+          Keys.configurations -> toString(configurations),
+          Keys.bootstrapScripts -> toString(bootstrapScripts.map(_.config.scriptBootstrapAction.path)),
+          Keys.bootstrapSteps -> toString(bootstrapSteps),
           Keys.keepAliveWhenNoSteps -> keepAliveWhenNoSteps,
           Keys.visibleToAllUsers -> visibleToAllUsers)
       }

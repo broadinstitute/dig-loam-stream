@@ -21,6 +21,15 @@ import loamstream.model.jobs.JobResult
 import loamstream.util.{Files => LFiles}
 import java.nio.file.Files.exists
 import loamstream.googlecloud.ClusterConfig
+import loamstream.model.execute.Resources.AwsResources
+import org.broadinstitute.dig.aws.emr.AmiId
+import org.broadinstitute.dig.aws.emr.Cluster
+import org.broadinstitute.dig.aws.emr.InstanceType
+import org.broadinstitute.dig.aws.JobStep
+import java.net.URI
+import org.broadinstitute.dig.aws.emr.BootstrapScript
+import org.broadinstitute.dig.aws.emr.ApplicationConfig
+import org.broadinstitute.dig.aws.emr.ApplicationName
 
 /**
  * @author clint
@@ -124,25 +133,51 @@ final class FileSystemExecutionRecorderTest extends FunSuite {
   }
   
   test("settingsToString - AWS settings") {
-    fail("TODO")
+    val appNames = Seq(ApplicationName("bar"), ApplicationName("baz"))
+    
+    val appConfigs = Seq(ApplicationConfig("some-classification"), ApplicationConfig("some-other-classification"))
+    
+    val bootstrapUri0 = URI.create("s3://some-bootstrap-script")
+    val bootstrapUri1 = URI.create("s3://some-other-bootstrap-script")
+    val bootstrapScripts = Seq(new BootstrapScript(bootstrapUri0), new BootstrapScript(bootstrapUri1))
+
+    val scriptUri0 = URI.create("s3://some-script")
+    val scriptUri1 = URI.create("s3://some-pyspark-script")
+    val bootstrapSteps = Seq(JobStep.Script(scriptUri0), JobStep.PySpark(scriptUri1))
+    
+    val clusterConfig = Cluster(
+        name = "foo",
+        amiId = Some(AmiId("ami-some-ami-id")),
+        instances = 42,
+        masterInstanceType = InstanceType("some-master-instance-type"),
+        slaveInstanceType = InstanceType("some-slave-instance-type"),
+        masterVolumeSizeInGB = 12,
+        slaveVolumeSizeInGB = 34,
+        applications = appNames,
+        configurations = appConfigs,
+        bootstrapScripts = bootstrapScripts,
+        bootstrapSteps = bootstrapSteps,
+        keepAliveWhenNoSteps = true,
+        visibleToAllUsers = false)
     
     val expected = Seq(
-        "settings-type" -> "google",
+        "settings-type" -> "aws",
         "cluster" -> "foo",
-        "zone" -> "us-central1-b",
-        "master-machine-type" -> "n1-standard-1",
-        "master-boot-disk-size" -> "20",
-        "num-workers" -> "2",
-        "worker-machine-type" -> "n1-standard-1",
-        "worker-boot-disk-size" -> "20",
-        "num-preemptible-workers" -> "0",
-        "preemptible-worker-boot-disk-size" -> "20",
-        "properties" -> "short-props",
-        "max-cluster-idle-time" -> "10m").map { case (k, v) => s"${k}\t${v}" }.mkString("\n")
+        "ami-id" -> "ami-some-ami-id",
+        "instances" -> "42",
+        "master-instance-type" -> "some-master-instance-type",
+        "slave-instance-type" -> "some-slave-instance-type",
+        "master-volume-size-in-gb" -> "12",
+        "slave-volume-size-in-gb" -> "34",
+        "applications" -> "[bar,baz]",
+        "configurations" -> appConfigs.mkString("[", ",", "]"),
+        "bootstrap-scripts" -> Seq(bootstrapUri0, bootstrapUri1).mkString("[", ",", "]"),
+        "bootstraps-steps" -> bootstrapSteps.mkString("[", ",", "]"),
+        "keep-alive-when-no-steps" -> "true",
+        "visible-to-all-users" -> "false"
+        ).map { case (k, v) => s"${k}\t${v}" }.mkString("\n")
     
-    val clusterConfig = ClusterConfig.default.copy(properties = "short-props")
-  
-    assert(settingsToString(GoogleSettings("foo", clusterConfig)) === expected)
+    assert(settingsToString(AwsSettings(clusterConfig)) === expected)
   }
   
   test("settingsToString - DRM settings") {
@@ -197,11 +232,9 @@ final class FileSystemExecutionRecorderTest extends FunSuite {
   }
   
   test("resourcesToString - AWS resources") {
-    fail("TODO")
-    
     val endTime = Instant.now
     
-    val resources = GoogleResources("foo", startTime, endTime)
+    val resources = AwsResources("foo", startTime, endTime)
     
     assert(resourcesToString(resources) === s"start-time\t${startTime}\nend-time\t${endTime}\ncluster\tfoo")
   }

@@ -61,6 +61,7 @@ final class HailCtlDataProcClientTest extends FunSuite {
         workerBootDiskSize = 123,
         numPreemptibleWorkers = 17,
         preemptibleWorkerBootDiskSize = 11,
+        numWorkerLocalSsds = 1,
         properties = "some-properties",
         maxClusterIdleTime = "13m")
     
@@ -94,6 +95,8 @@ final class HailCtlDataProcClientTest extends FunSuite {
       clusterConfig.numPreemptibleWorkers.toString,
       "--preemptible-worker-boot-disk-size",
       clusterConfig.preemptibleWorkerBootDiskSize.toString,
+      "--num-worker-local-ssds",
+      clusterConfig.numWorkerLocalSsds.toString,
       "--properties",
       clusterConfig.properties,
       "--max-idle",

@@ -15,6 +15,7 @@ final case class ClusterConfig(
     workerBootDiskSize: Int = Defaults.workerBootDiskSize,
     numPreemptibleWorkers: Int = Defaults.numPreemptibleWorkers,
     preemptibleWorkerBootDiskSize: Int = Defaults.preemptibleWorkerBootDiskSize,
+    numWorkerLocalSsds: Int = Defaults.numWorkerLocalSsds,
     properties: String = Defaults.properties,
     maxClusterIdleTime: String = Defaults.maxClusterIdleTime)
 
@@ -30,6 +31,7 @@ object ClusterConfig {
     val workerBootDiskSize: Int = 20 // in GB
     val numPreemptibleWorkers: Int = 0
     val preemptibleWorkerBootDiskSize: Int = 20 // in GB
+    val numWorkerLocalSsds: Int = 0
     val properties: String = {
       "spark:spark.driver.extraJavaOptions=-Xss4M,spark:spark.executor.extraJavaOptions=-Xss4M," +
       "spark:spark.driver.memory=45g,spark:spark.driver.maxResultSize=30g,spark:spark.task.maxFailures=20," +

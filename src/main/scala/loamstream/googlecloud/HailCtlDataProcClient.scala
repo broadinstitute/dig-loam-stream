@@ -70,6 +70,8 @@ object HailCtlDataProcClient extends Loggable {
       clusterConfig.numPreemptibleWorkers.toString,
       "--preemptible-worker-boot-disk-size",
       clusterConfig.preemptibleWorkerBootDiskSize.toString,
+      "--num-worker-local-ssds",
+      clusterConfig.numWorkerLocalSsds.toString,
       "--properties",
       clusterConfig.properties,
       "--max-idle",

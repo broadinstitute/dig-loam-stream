@@ -139,60 +139,6 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
     //It's unlikely devs will need to call it directly.
     override def * = (locator, lastModified, hash, hashType, executionId.?) <> (OutputRow.tupled, OutputRow.unapply)
   }
-
-  final class LocalResources(tag: Tag) extends BelongsToExecution[LocalResourceRow](tag, Names.localResources) {
-    override def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
-    def startTime = column[Timestamp]("START_TIME")
-    def endTime = column[Timestamp]("END_TIME")
-    //NB: Required by Slick to define the mapping between DB columns and case class fields.
-    //It's unlikely devs will need to call it directly.
-    override def * = (executionId, startTime, endTime) <> (LocalResourceRow.tupled, LocalResourceRow.unapply)
-  }
-
-  private[slick] abstract class DrmResourcesTable[R](tag: Tag, name: String) extends BelongsToExecution[R](tag, name) {
-    
-    override def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
-    def mem = column[Double]("MEM")
-    def cpu = column[Double]("CPU")
-    def node = column[Option[String]]("NODE")
-    def queue = column[Option[String]]("QUEUE")
-    def startTime = column[Timestamp]("START_TIME")
-    def endTime = column[Timestamp]("END_TIME")
-    //NB: Specify the length of this column so that we hopefully don't get a too-small VARCHAR,
-    //and instead some DB-specific column type appropriate for strings thousands of chars long.
-    def raw = column[Option[String]]("RAW_DATA", O.Length(maxStringColumnLength))
-  }
-  
-  final class UgerResources(tag: Tag) extends DrmResourcesTable[UgerResourceRow](tag, Names.ugerResources) {
-    //NB: Required by Slick to define the mapping between DB columns and case class fields.
-    //It's unlikely devs will need to call it directly.
-    override def * = {
-      (executionId, mem, cpu, node, queue, startTime, endTime, raw) <> 
-          (UgerResourceRow.tupled, UgerResourceRow.unapply)
-    }
-  }
-  
-  final class LsfResources(tag: Tag) extends DrmResourcesTable[LsfResourceRow](tag, Names.lsfResources) {
-    //NB: Required by Slick to define the mapping between DB columns and case class fields.
-    //It's unlikely devs will need to call it directly.
-    override def * = {
-      (executionId, mem, cpu, node, queue, startTime, endTime, raw) <> 
-          (LsfResourceRow.tupled, LsfResourceRow.unapply)
-    }
-  }
-
-  final class GoogleResources(tag: Tag) extends BelongsToExecution[GoogleResourceRow](tag, Names.googleResources) {
-    
-    override def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
-    def cluster = column[String]("CLUSTER")
-    def startTime = column[Timestamp]("START_TIME")
-    def endTime = column[Timestamp]("END_TIME")
-    //NB: Required by Slick to define the mapping between DB columns and case class fields.
-    //It's unlikely devs will need to call it directly.
-    override def * = {
-      (executionId, cluster, startTime, endTime) <> (GoogleResourceRow.tupled, GoogleResourceRow.unapply)
-    }
-  }
   
   private val executionForeignKeyPrefix = s"FK_ID_EXECUTIONS_"
   
@@ -200,19 +146,11 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
 
   lazy val executions = TableQuery[Executions]
   lazy val outputs = TableQuery[Outputs]
-  lazy val localResources = TableQuery[LocalResources]
-  lazy val ugerResources = TableQuery[UgerResources]
-  lazy val lsfResources = TableQuery[LsfResources]
-  lazy val googleResources = TableQuery[GoogleResources]
 
   //NB: Now a Seq so we can guarantee ordering
   private lazy val allTables: Seq[(String, SchemaDescription)] = Seq(
     Names.executions -> executions.schema,
     Names.outputs -> outputs.schema,
-    Names.localResources -> localResources.schema,
-    Names.ugerResources -> ugerResources.schema,
-    Names.lsfResources -> lsfResources.schema,
-    Names.googleResources -> googleResources.schema,
   )
 
   private def allTableNames: Seq[String] = allTables.unzip._1
@@ -265,9 +203,5 @@ object Tables {
   object Names {
     val executions = "EXECUTIONS"
     val outputs = "OUTPUTS"
-    val localResources = "RESOURCES_LOCAL"
-    val ugerResources = "RESOURCES_UGER"
-    val lsfResources = "RESOURCES_LSF"
-    val googleResources = "RESOURCES_GOOGLE"
   }
 }

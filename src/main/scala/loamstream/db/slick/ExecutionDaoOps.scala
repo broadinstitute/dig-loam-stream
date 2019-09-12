@@ -76,11 +76,9 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
     for {
       newExecution <- insertExecutionRow(executionRow)
       outputsWithExecutionId = tieOutputsToExecution(execution, newExecution.id)
-      resourcesWithExecutionId = tieResourcesToExecution(execution, newExecution.id)
       insertedOutputCounts <- insertOrUpdateOutputRows(outputsWithExecutionId)
-      insertedResourceCounts <- insertOrUpdateResourceRows(resourcesWithExecutionId)
     } yield {
-      insertedOutputCounts ++ insertedResourceCounts
+      insertedOutputCounts
     }
   }
   
@@ -135,36 +133,6 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
     runBlocking(query).map(toOutputRecord)
   }
 
-  private def resourcesFor(execution: ExecutionRow): Option[Resources] = {
-    //Oh, Slick ... yow :\
-    type ResourceTable = TableQuery[_ <: tables.driver.api.Table[_ <: ResourceRow] with tables.HasExecutionId]
-    
-    def resourcesFrom(table: ResourceTable): Seq[Resources] = {
-      runBlocking(table.filter(_.executionId === execution.id).result).map(_.toResources)
-    }
-    
-    val table: ResourceTable = execution.env match {
-      case EnvironmentType.Names.Local => tables.localResources
-      case EnvironmentType.Names.Uger => tables.ugerResources
-      case EnvironmentType.Names.Lsf => tables.lsfResources
-      case EnvironmentType.Names.Google => tables.googleResources
-    }
-    
-    val queryResults: Seq[Resources] = resourcesFrom(table)
-    
-    require(queryResults.size <= 1,
-      s"There must be at most 1 sets of resource usages per execution. " +
-        s"Found ${queryResults.size} for the execution with ID '${execution.id}'")
-
-    queryResults.headOption
-  }
-  
-  private def insertOrUpdateResourceRow(row: ResourceRow): DBIO[Int] = row.insertOrUpdate(tables)
-  
-  private def insertOrUpdateResourceRows(rows: Option[ResourceRow]): DBIO[Seq[Int]] = {
-    DBIO.sequence(rows.toSeq.map(insertOrUpdateResourceRow))
-  }
-
   private def tieOutputsToExecution(execution: Execution, executionId: Int): Seq[OutputRow] = {
     def toOutputRows(f: StoreRecord => OutputRow): Seq[OutputRow] = {
       execution.outputs.toSeq.map(f)
@@ -177,10 +145,6 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
     }
 
     outputs.map(_.withExecutionId(executionId))
-  }
-
-  private def tieResourcesToExecution(execution: Execution, executionId: Int): Option[ResourceRow] = {
-    execution.resources.map(rs => ResourceRow.fromResources(rs, executionId))
   }
   
   private object ExecutionQueries {

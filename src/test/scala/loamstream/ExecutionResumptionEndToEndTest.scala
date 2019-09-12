@@ -148,7 +148,6 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       val output1Result = executionFromOutput1.result.get.asInstanceOf[CommandResult]
       
       assert(output1Result.exitCode === 0)
-      assert(executionFromOutput1.resources.get === firstResources)
       assert(executionFromOutput1.outputs === Set(output1))
 
       assert(findExecution(output2) === None)

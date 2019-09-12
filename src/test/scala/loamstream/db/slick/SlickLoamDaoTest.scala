@@ -262,7 +262,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       // The DB must assign an auto-incremented 'id' upon insertion
       assert(recorded.id != dummyId)
       assert(recorded.env === mockUgerSettings.envType.toString)
-      assert(recorded.cmd === mockCmd)
+      assert(recorded.cmd === Some(mockCmd))
       assert(recorded.status === mockStatus)
       assert(recorded.exitCode === mockExitCode)
       assert(recorded.jobDir === Some(jobDir.toString))
@@ -299,7 +299,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       // The DB must assign an auto-incremented 'id' upon insertion
       assert(recorded.id != dummyId)
       assert(recorded.env === mockUgerSettings.envType.toString)
-      assert(recorded.cmd === mockCmd)
+      assert(recorded.cmd === Some(mockCmd))
       assert(recorded.status === mockStatus)
       assert(recorded.exitCode === mockExitCode)
       assert(recorded.jobDir === Some(jobDir.toString))
@@ -631,19 +631,6 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
             terminationReason = None)
             
         dao.insertExecutions(execution)
-        
-        import dao.tables.driver.api._
-        
-        val resourcesFromDb: ResourceRow = dao.runBlocking { 
-          settings.envType match {
-            case EnvironmentType.Local => dao.tables.localResources.result
-            case EnvironmentType.Uger => dao.tables.ugerResources.result
-            case EnvironmentType.Lsf => dao.tables.lsfResources.result
-            case EnvironmentType.Google => dao.tables.googleResources.result
-          }
-        }.head
-        
-        assert(resourcesFromDb === ResourceRow.fromResources(resources, 1))
         
         assert(executions.head === execution)
       }

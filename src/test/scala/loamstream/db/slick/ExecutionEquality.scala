@@ -11,21 +11,27 @@ object ExecutionEquality {
   object Implicits extends Implicits
   
   trait Implicits {
-    implicit object ExecutionEqualityWithoutSettings extends Equality[Execution] {
+    private def equalityFields(e: Execution.Persisted): Seq[_] = Seq(
+      e.cmd,
+      e.envType,
+      e.status,
+      e.result,
+      e.outputs,
+      e.jobDir,
+      e.terminationReason)
+    
+    implicit object ExecutionEqualityWithoutSettingsOrResources extends Equality[Execution] {
       override def areEqual(lhs: Execution, b: Any): Boolean = b match {
-        case rhs: Execution => equalityFields(lhs) == equalityFields(rhs)
+        case rhs: Execution.Persisted => equalityFields(lhs) == equalityFields(rhs)
         case _ => false
       }
-      
-      private def equalityFields(e: Execution): Seq[_] = Seq(
-        e.cmd,
-        e.envType,
-        e.status,
-        e.result,
-        e.resources,
-        e.outputs,
-        e.jobDir,
-        e.terminationReason)
+    }
+    
+    implicit object ExecutionDotPersistedEqualityWithoutSettingsOrResources extends Equality[Execution.Persisted] {
+      override def areEqual(lhs: Execution.Persisted, b: Any): Boolean = b match {
+        case rhs: Execution.Persisted => equalityFields(lhs) == equalityFields(rhs)
+        case _ => false
+      }
     }
   }
 }

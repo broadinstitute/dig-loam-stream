@@ -20,7 +20,7 @@ trait TestDbOps {
   
   protected def store(execution: Execution): Unit = dao.insertExecutions(Seq(execution))
   
-  protected def executions: Seq[PseudoExecution] = {
+  protected def executions: Seq[Execution.Persisted] = {
     import dao.driver.api._
     
     val query = dao.tables.executions.result
@@ -32,7 +32,7 @@ trait TestDbOps {
     executions.map(reify)
   }
   
-  private def reify(executionRow: ExecutionRow): PseudoExecution = {
+  private def reify(executionRow: ExecutionRow): Execution.Persisted = {
     import executionRow._
     
     val commandResult = CommandResult(exitCode)

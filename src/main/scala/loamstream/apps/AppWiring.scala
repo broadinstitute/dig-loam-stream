@@ -115,8 +115,6 @@ trait AppWiring {
 
 object AppWiring extends Loggable {
 
-  def daoForOutputLookup(intent: Intent.LookupOutput): LoamDao = makeDefaultDb
-
   def loamConfigFrom(
       confFile: Option[Path], 
       drmSystemOpt: Option[DrmSystem], 

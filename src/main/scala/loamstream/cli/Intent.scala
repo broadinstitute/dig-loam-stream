@@ -27,8 +27,6 @@ object Intent extends Loggable {
   final case object ShowHelpAndQuit extends Intent {
     override def confFile: Option[Path] = None
   }
-
-  final case class LookupOutput(confFile: Option[Path], output: Either[Path, URI]) extends Intent
   
   final case class CompileOnly(
       confFile: Option[Path], 
@@ -70,7 +68,6 @@ object Intent extends Loggable {
     val result = {
       asShowVersionAndQuit(values) orElse
       asShowHelpAndQuit(values) orElse
-      asLookupOutput(values) orElse 
       asCompileOnly(values) orElse
       asDryRun(values) orElse 
       asRealRun(values)
@@ -107,14 +104,6 @@ object Intent extends Loggable {
     
   private def asShowHelpAndQuit(values: Conf.Values): Option[Intent] = {
     if(values.helpSupplied) Some(ShowHelpAndQuit) else None
-  }
-  
-  private def asLookupOutput(values: Conf.Values): Option[Intent] = {
-    if(confExistsOrOmitted(values) && values.lookupSupplied) {
-      Some(LookupOutput(values.conf, values.lookup.get)) 
-    } else {
-      None
-    }
   }
   
   private def asCompileOnly(values: Conf.Values): Option[Intent] = {

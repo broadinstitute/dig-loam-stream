@@ -232,41 +232,4 @@ final class ConfTest extends FunSuite with Matchers {
       assert(values.cleanScriptsSupplied === false)
     }
   }
-  
-  test("--lookup") {
-    val someFile = "some/arbitrary/output"
-    val someUri = "gs://foo/bar/baz"
-    
-    val expectedPath = path(someFile)
-    val expectedUri = URI.create(someUri)
-    
-    //Path, full arg name
-    {
-      val values = makeConf(Seq("--lookup", someFile)).toValues
-        
-      assert(values.lookup === Some(Left(expectedPath)))
-      
-      assert(values.run === None)
-      assert(values.loams === Nil)
-      assert(values.compileOnlySupplied === false)
-      assert(values.conf === None)
-      assert(values.cleanDbSupplied === false)
-      assert(values.cleanLogsSupplied === false)
-      assert(values.cleanScriptsSupplied === false)
-    }
-    //URI, full arg name
-    {
-      val values = makeConf(Seq("--lookup", someUri)).toValues
-        
-      assert(values.lookup === Some(Right(expectedUri)))
-      
-      assert(values.run === None)
-      assert(values.loams === Nil)
-      assert(values.compileOnlySupplied === false)
-      assert(values.conf === None)
-      assert(values.cleanDbSupplied === false)
-      assert(values.cleanLogsSupplied === false)
-      assert(values.cleanScriptsSupplied === false)
-    }
-  }
 }

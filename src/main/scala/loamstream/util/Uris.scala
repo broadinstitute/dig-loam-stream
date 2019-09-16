@@ -8,18 +8,20 @@ import java.net.URI
   * date: Nov 15, 2016
   */
 object Uris {
-  object Implicits {
+  object Implicits extends Implicits
+  
+  trait Implicits {
     /**
      * Append a slash to the end of a URI if it does not already end with one
      */
-    def appendSlashIfNoneExists(uri: URI): URI = {
+    private def appendSlashIfNoneExists(uri: URI): URI = {
       val uriStr = uri.toString
   
       if (uriStr.endsWith("/")) { uri }
       else { URI.create(uriStr + "/") }
     }
   
-    final implicit class UriHelpers(val uri: URI) extends AnyVal {
+    final implicit class UriHelpers(val uri: URI) {
       /**
        * The important difference between this method and java.net.URI.resolve(String) is in the treatment of the final
        * segment. The URI resolve method drops the last segment if there is no trailing slash as specified in section 

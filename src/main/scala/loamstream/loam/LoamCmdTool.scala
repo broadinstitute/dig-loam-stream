@@ -12,46 +12,49 @@ import loamstream.model.Tool.AllStores
 import loamstream.model.Tool.DefaultStores
 import loamstream.util.StringUtils
 
-/**
-  * LoamStream
-  * Created by oliverr on 5/25/2016.
-  */
+/** 
+ *  A command line tool specified in a Loam script
+ *  @author clint
+ *  @author oliverr
+ *  @author kaan
+ *  
+ *  May 25, 2016
+ */
+final case class LoamCmdTool private (
+    val id: LId, 
+    val tokens: Seq[LoamToken])(implicit val scriptContext: LoamScriptContext) extends Tool {
+
+  /** Input and output stores before any are specified using in or out */
+  override def defaultStores: DefaultStores = AllStores(LoamToken.storesFromTokens(tokens))
+
+  /** Constructs the command line string */
+  def commandLine: String = LoamCmdTool.toString(tokens)
+}
+
 object LoamCmdTool {
-
-  private def createStringToken(string: String)(transform: String => String): StringToken = {
-    StringToken(transform(string))
-  }
-
-  implicit final class StringContextWithCmd(val stringContext: StringContext) extends AnyVal {
-    /** BEWARE: This method has the implicit side-effect of modifying the graph
-     *          within scriptContext via the call to addToGraph()
-     */
-    def cmd(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
-      val tool = create(args : _*)(StringUtils.unwrapLines)(scriptContext, stringContext)
-
-      addToGraph(tool)
-
-      tool
-    }
-  }
+  def toString(tokens: Seq[LoamToken]): String = tokens.map(_.render).mkString
   
   /**
    * @param transform allows for manipulating white space,
    *                  system-dependent markers (e.g. line breaks), etc.
    *                  within a commandline or a block of embedded code
    */
-  def create(args: Any*)(transform: String => String)
-            (implicit scriptContext: LoamScriptContext, stringContext: StringContext): LoamCmdTool = {
+  private[loam] def create(args: Any*)
+                          (transform: String => String)
+                          (implicit scriptContext: LoamScriptContext, stringContext: StringContext): LoamCmdTool = {
+
+    def toStringToken(s: String) = StringToken(transform(s))
+    
     //TODO: handle case where there are no parts (can that happen? cmd"" ?)
     val firstPart +: stringParts = stringContext.parts
 
-    val firstToken: LoamToken = createStringToken(firstPart)(transform)
+    val firstToken: LoamToken = toStringToken(firstPart)
 
     //Associate transformations with stores when making tokens? 
     
     val tokens: Seq[LoamToken] = firstToken +: {
       stringParts.zip(args).flatMap { case (stringPart, arg) =>
-        Seq(toToken(arg), createStringToken(stringPart)(transform))
+        Seq(toToken(arg), toStringToken(stringPart))
       }
     }
 
@@ -59,21 +62,8 @@ object LoamCmdTool {
 
     LoamCmdTool(LId.newAnonId, merged)
   }
-
-  /** BEWARE: This method has the side-effect of modifying the graph within scriptContext */
-  private def addToGraph(tool: LoamCmdTool)(implicit scriptContext: LoamScriptContext): Unit = {
-    scriptContext.projectContext.updateGraph { graph =>
-      graph.withTool(tool, scriptContext)
-    }
-  }
   
-  private[loam] def isStoreIterable(xs: Iterable[_]): Boolean = {
-    xs.nonEmpty && xs.forall(_.isInstanceOf[Store])
-  }
-  
-  def toString(tokens: Seq[LoamToken]): String = tokens.map(_.render).mkString
-  
-  def toToken(arg: Any): LoamToken = {
+  private[loam] def toToken(arg: Any): LoamToken = {
     def isInputStore(s: Store) = s.graph.inputStores.contains(s)
     
     arg match {
@@ -90,39 +80,8 @@ object LoamCmdTool {
       case arg => StringToken(arg.toString)
     }
   }
-}
-
-/** A command line tool specified in a Loam script */
-final case class LoamCmdTool private (id: LId, tokens: Seq[LoamToken])(implicit val scriptContext: LoamScriptContext) 
-    extends Tool {
-
-  /** Input and output stores before any are specified using in or out */
-  override def defaultStores: DefaultStores = AllStores(LoamToken.storesFromTokens(tokens))
-
-  /** Constructs the command line string */
-  def commandLine: String = LoamCmdTool.toString(tokens)
-
-  def using(dotkits: String*): LoamCmdTool = {
-    val prefix = {
-      val useuse = "source /broad/software/scripts/useuse"
-      val and = "&&"
-      val reuse = "reuse -q"
-      val reuses = dotkits.mkString(s"$reuse ", s" $and $reuse ", s" $and")
-      val openParen = "("
-      s"$useuse $and $reuses $openParen"
-    }
-
-    val useToken = StringToken(prefix)
-    val closeParenToken = StringToken(")")
-
-    val updatedTool = copy(tokens = useToken +: tokens :+ closeParenToken)
-
-    scriptContext.projectContext.updateGraph { graph =>
-      graph.updateTool(this, updatedTool)
-    }
-
-    updatedTool
+  
+  private[loam] def isStoreIterable(xs: Iterable[_]): Boolean = {
+    xs.nonEmpty && xs.forall(_.isInstanceOf[Store])
   }
-  
-  
 }

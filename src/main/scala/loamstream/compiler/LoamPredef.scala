@@ -21,10 +21,10 @@ import loamstream.model.execute.LocalSettings
 import loamstream.googlecloud.ClusterConfig
 
 /** Predefined symbols in Loam scripts */
-object LoamPredef extends Loggable {
+object LoamPredef extends LoamPredef
 
-  type Store = loamstream.model.Store
-  
+trait LoamPredef extends Loggable {
+
   def path(pathString: String): Path = Paths.get(pathString)
 
   def uri(uriString: String): URI = URI.create(uriString)

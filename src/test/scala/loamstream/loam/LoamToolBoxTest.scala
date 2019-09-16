@@ -60,8 +60,7 @@ final class LoamToolBoxTest extends FunSuite {
     val fileOut4 = outDir / "fileOut4.txt"
 
     val (graph, inToOne, oneToTwo, twoToThree, twoToFour) = TestHelpers.withScriptContext { implicit context =>
-      import LoamPredef._
-      import LoamCmdTool._
+      import loamstream.loam.LoamSyntax._
 
       val fileInStore = store(fileIn).asInput
       val fileOut1Store = store(fileOut1)
@@ -128,8 +127,7 @@ final class LoamToolBoxTest extends FunSuite {
 
     val (graph, fileTmp1Path, fileTmp2Path, inToTmp1, tmp1ToTmp2, tmp2ToOne, tmp2ToTwo, tmp2ToThree) = {
       TestHelpers.withScriptContext { implicit context =>
-        import LoamPredef._
-        import LoamCmdTool._
+        import loamstream.loam.LoamSyntax._
 
         val fileIn = store(fileInPath).asInput
         val fileTmp1 = store
@@ -213,8 +211,7 @@ final class LoamToolBoxTest extends FunSuite {
       TestHelpers.withScriptContext { implicit context =>
         //Derived from a previous real-world .loam
 
-        import LoamPredef._
-        import LoamCmdTool._
+        import loamstream.loam.LoamSyntax._
 
         val offset = 20400000
         val basesPerShard = 100000

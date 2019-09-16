@@ -2,13 +2,19 @@ package loamstream.loam
 
 import java.nio.file.Path
 
-import loamstream.compiler.LoamPredef
-import loamstream.loam.LoamScript.{LoamScriptBox, scriptsPackage}
-import loamstream.util._
-import loamstream.util.code.{ObjectId, PackageId, ScalaId, SourceUtils}
-import loamstream.googlecloud.GoogleSupport
-import loamstream.googlecloud.GoogleSupport
-import loamstream.googlecloud.HailSupport
+import loamstream.loam.LoamScript.LoamScriptBox
+import loamstream.loam.LoamScript.scriptsPackage
+import loamstream.util.DepositBox
+import loamstream.util.Hit
+import loamstream.util.Miss
+import loamstream.util.Sequence
+import loamstream.util.Shot
+import loamstream.util.StringUtils
+import loamstream.util.ValueBox
+import loamstream.util.code.ObjectId
+import loamstream.util.code.PackageId
+import loamstream.util.code.ScalaId
+import loamstream.util.code.SourceUtils
 
 /** A named Loam script */
 object LoamScript {
@@ -100,15 +106,8 @@ object LoamScript {
 
   /** ScalaIds required to be loaded  */
   val requiredScalaIds: Set[ScalaId] = {
-    Set(ScalaId.from[LoamPredef.type],
-      ScalaId.from[LoamCmdTool.type],
-      ScalaId.from[LoamCmdTool.StringContextWithCmd],
-      ScalaId.from[loamstream.util.Uris.type],
-      ScalaId.from[loamstream.util.Uris.Implicits.type],
-      ScalaId.from[loamstream.util.Paths.type],
-      ScalaId.from[loamstream.util.Paths.Implicits.type],
-      ScalaId.from[loamstream.util.Paths.Implicits.PathHelpers],
-      ScalaId.from[loamstream.util.Paths.Implicits.PathAttemptHelpers],
+    Set(
+      ScalaId.from[LoamSyntax.type],
       ScalaId.from[LoamScriptContext],
       ScalaId.from[LoamProjectContext],
       ScalaId.from[LoamProjectContext.type]
@@ -147,21 +146,15 @@ final case class LoamScript(name: String, code: String, subPackage: Option[Packa
     
     s"""package ${packageForThisScript.inScalaFull}
 
-import ${ScalaId.from[LoamPredef.type].inScalaFull}._
+import ${ScalaId.from[LoamSyntax.type].inScalaFull}._
 import ${ScalaId.from[LoamProjectContext].inScalaFull}
 import ${ScalaId.from[LoamGraph].inScalaFull}
 import ${ScalaId.from[ValueBox[_]].inScalaFull}
 import ${ScalaId.from[LoamScriptBox].inScalaFull}
-import ${ScalaId.from[LoamCmdTool.type].inScalaFull}._
-import ${ScalaId.from[loamstream.util.Paths.Implicits.type].inScalaFull}._
-import ${ScalaId.from[loamstream.util.Uris.Implicits.type].inScalaFull}._
 import ${ScalaId.from[DepositBox[_]].inScalaFull}
 import ${ScalaId.from[LoamProjectContext].inScalaFull}
 import ${ScalaId.from[LoamScriptContext].inScalaFull}
-import ${ScalaId.from[GoogleSupport.type].inScalaFull}._
-import ${ScalaId.from[HailSupport.type].inScalaFull}._
 import java.nio.file._
-import java.net.URI
 
 // scalastyle:off object.name
 
@@ -185,5 +178,4 @@ ${code.trim}
 // scalastyle:on object.name
 """
   }
-
 }

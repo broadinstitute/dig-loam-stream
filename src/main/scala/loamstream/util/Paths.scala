@@ -11,8 +11,10 @@ import java.time.Instant
   *         date: Jun 1, 2016
   */
 object Paths {
-  object Implicits {
-    final implicit class PathHelpers(val path: Path) extends AnyVal {
+  object Implicits extends Implicits
+  
+  trait Implicits {
+    final implicit class PathHelpers(val path: Path) {
       def /(next: String): Path = path.resolve(next)
       def /(next: Try[String]): Try[Path] = next.map(/)
       
@@ -22,7 +24,7 @@ object Paths {
       //scalastyle:on spaces.before.plus
     }
   
-    final implicit class PathAttemptHelpers(val attempt: Try[Path]) extends AnyVal {
+    final implicit class PathAttemptHelpers(val attempt: Try[Path]) {
       def /(next: String): Try[Path] = attempt.map(_ / next)
       def /(next: Try[String]): Try[Path] = attempt.flatMap(_ / next)
       

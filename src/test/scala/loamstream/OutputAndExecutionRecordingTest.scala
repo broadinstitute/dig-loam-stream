@@ -37,8 +37,7 @@ final class OutputAndExecutionRecordingTest extends FunSuite with ProvidesSlickL
     val out2Path = workDir / "A.copy.copy.copy"
     
     val graph = TestHelpers.makeGraph { implicit context =>
-      import LoamPredef.{ store => makeStore, _ }
-      import LoamCmdTool._
+      import loamstream.loam.LoamSyntax.{ store => makeStore, _ }
       
       val in = makeStore("src/test/resources/a.txt").asInput
       val out0 = makeStore(out0Path)

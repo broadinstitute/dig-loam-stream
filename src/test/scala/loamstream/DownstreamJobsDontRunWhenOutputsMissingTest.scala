@@ -32,8 +32,7 @@ final class DownstreamJobsDontRunWhenOutputsMissingTest extends FunSuite {
     val outputFile = workDir / "out.txt"
     
     val graph = TestHelpers.makeGraph { implicit context =>
-      import LoamPredef._
-      import LoamCmdTool._
+      import loamstream.loam.LoamSyntax._
       
       val input = store(inputFile).asInput
       val intermediate = store(intermediateFile)

@@ -27,7 +27,7 @@ import loamstream.compiler.LoamPredef
   *         date: Jul 21, 2016
   */
 final class LoamCmdToolTest extends LoamFunSuite {
-  import LoamCmdTool._
+  import loamstream.loam.LoamSyntax._
   import loamstream.TestHelpers.emptyProjectContext
  
   // Since all the cmd"..." are placed into a script file to be executed
@@ -369,6 +369,8 @@ final class LoamCmdToolTest extends LoamFunSuite {
     //DynamicConfig
     
     val config = DynamicConfig(ConfigFactory.parseString("foo { bar { baz = 42 } }"), Some("foo.bar.baz"))
+    
+    import LoamCmdTool.toToken
     
     assert(toToken(config) === StringToken("42"))
     

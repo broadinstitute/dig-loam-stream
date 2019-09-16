@@ -8,10 +8,16 @@ object ReflectionUtil {
 
   /** Encodes object name and creates instance of it */
   def getObject[T](classLoader: ClassLoader, scalaObjectId: ObjectId): T = {
-    val nullAsDummyValue = null // scalastyle:ignore null
-    
-    classLoader.loadClass(scalaObjectId.inJvmFull).getField("MODULE$").get(nullAsDummyValue).asInstanceOf[T]
+    getObject[T](classLoader, scalaObjectId.inJvmFull)
   }
 
+  def getObject[T](classLoader: ClassLoader, jvmFullyQualifiedClassName: String): T = {
+    val nullAsDummyValue = null // scalastyle:ignore null
+   
+    val clazz = classLoader.loadClass(jvmFullyQualifiedClassName)
+    
+    val field = clazz.getField("MODULE$")
+    
+    field.get(nullAsDummyValue).asInstanceOf[T]
+  }
 }
-

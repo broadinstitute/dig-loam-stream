@@ -47,7 +47,9 @@ import scala.concurrent.duration.Duration
 final class LsAtEbiTest extends FunSuite {
   import LsAtEbiTest._
   
-  test("Run a simple pipeline at EBI with some jobs in Singularity containers and some not") {
+  // NB: Disabled until SSH key authorization situation is sorted out.
+  // -Clint Sep 10, 2019
+  ignore("Run a simple pipeline at EBI with some jobs in Singularity containers and some not") {
     val remoteWorkDir = remoteBaseDir / "simple-mixed-pipeline"
     
     val localWorkDir = IntegrationTestHelpers.getWorkDirUnderTarget()

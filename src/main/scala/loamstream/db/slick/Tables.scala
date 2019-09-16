@@ -37,52 +37,6 @@ import scala.reflect.ClassTag
  *    EXECUTION_ID: integer, primary key - ID of the EXECUTION a row belongs to
  *    EXECUTION_FK: a foreign-key constraint from OUTPUTS.EXECUTION_ID to EXECUTION.ID
  *
- *
- *   SETTINGS_LOCAL: Environment settings requested during local job submissions
- *    EXECUTION_ID: integer, primary key - ID of the execution a row belongs to
- *    MEM: integer, nullable - memory requested when submitting the job
- *    EXECUTION_FK: a foreign-key constraint from OUTPUTS.EXECUTION_ID to EXECUTION.ID
- *
- *
- *   SETTINGS_UGER: Environment settings requested during Uger job submissions
- *    EXECUTION_ID: integer, primary key - ID of the execution a row belongs to
- *    MEM: integer - memory requested when submitting the job
- *    CPU: integer - number of cpu's requested when submitting the job
- *    QUEUE: varchar/text - name of the cluster queue in which the job has run
- *    EXECUTION_FK: a foreign-key constraint from OUTPUTS.EXECUTION_ID to EXECUTION.ID
- *
- *
- *   SETTINGS_GOOGLE: Environment settings requested during Google Cloud job submissions
- *    EXECUTION_ID: integer, primary key - ID of the execution a row belongs to
- *    CLUSTER: varchar/text - name of the cluster where the job has been submitted to
- *    EXECUTION_FK: a foreign-key constraint from OUTPUTS.EXECUTION_ID to EXECUTION.ID
- *
- *
- *   RESOURCES_LOCAL: Resources used during a local job's execution
- *    EXECUTION_ID: integer, primary key - ID of the execution a row belongs to
- *    START_TIME: timestamp, nullable - when a job started being executed
- *    END_TIME: timestamp, nullable - when a job finished being executed
- *    EXECUTION_FK: a foreign-key constraint from OUTPUTS.EXECUTION_ID to EXECUTION.ID
- *
- *
- *   RESOURCES_UGER: Resources used during a UGER job's execution
- *    EXECUTION_ID: integer, primary key - ID of the execution a row belongs to
- *    MEM: float, nullable - memory used by the job
- *    CPU: float, nullable - cpu time taken by the job
- *    START_TIME: timestamp, nullable - when a job started being executed
- *    END_TIME: timestamp, nullable - when a job finished being executed
- *    NODE: varchar/text, nullable - name of the host that has run the job
- *    QUEUE: varchar/text, nullable - name of the cluster queue in which the job has run
- *    EXECUTION_FK: a foreign-key constraint from OUTPUTS.EXECUTION_ID to EXECUTION.ID
- *
- *
- *   RESOURCES_GOOGLE: Resources used during a Google Cloud job's execution
- *    EXECUTION_ID: integer, primary key - ID of the execution a row belongs to
- *    CLUSTER: varchar/text, nullable - name of the cluster that has run the job
- *    START_TIME: timestamp, nullable - when a job started being executed
- *    END_TIME: timestamp, nullable - when a job finished being executed
- *    EXECUTION_FK: a foreign-key constraint from OUTPUTS.EXECUTION_ID to EXECUTION.ID
- *
  */
 final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
   import driver.api._
@@ -124,8 +78,7 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
     //NB: Required by Slick to define the mapping between DB columns and case class fields.
     //It's unlikely devs will need to call it directly.
     override def * = {
-      (id, env, cmd, status, exitCode, jobDir, terminationReason) <> 
-          (ExecutionRow.tupled, ExecutionRow.unapply)
+      (id, env, cmd, status, exitCode, jobDir, terminationReason) <> (ExecutionRow.tupled, ExecutionRow.unapply)
     }
   }
 
@@ -150,7 +103,7 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
   //NB: Now a Seq so we can guarantee ordering
   private lazy val allTables: Seq[(String, SchemaDescription)] = Seq(
     Names.executions -> executions.schema,
-    Names.outputs -> outputs.schema,
+    Names.outputs -> outputs.schema
   )
 
   private def allTableNames: Seq[String] = allTables.unzip._1

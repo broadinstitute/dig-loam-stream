@@ -12,6 +12,8 @@ import java.nio.file.Path
 import loamstream.util.Paths
 import loamstream.util.{Files => LFiles}
 import loamstream.model.execute.Resources.AwsResources
+import org.broadinstitute.dig.aws.emr.Cluster
+import loamstream.googlecloud.ClusterConfig
 
 
 /**
@@ -130,59 +132,61 @@ object FileSystemExecutionRecorder extends ExecutionRecorder {
     startAndEndTimeTuples ++ resourceSpecificTuples
   }
 
-  def settingsToTuples(settings: Settings): Seq[(String, Any)] = {
-    def typeTuple(envTypeName: String): (String, Any) = Keys.settingsType -> envTypeName
-    
-    settings match {
-      case LocalSettings => Seq(typeTuple(EnvironmentType.Local.name))
-      case GoogleSettings(cluster, clusterConfig) => {
-        import clusterConfig._
-        
-        Seq(
-          typeTuple(EnvironmentType.Google.name), 
-          Keys.cluster -> cluster,
-          Keys.zone -> zone,
-          Keys.masterMachineType -> masterMachineType,
-          Keys.masterBootDiskSize -> masterBootDiskSize,
-          Keys.numWorkers -> numWorkers,
-          Keys.workerMachineType -> workerMachineType,
-          Keys.workerBootDiskSize -> workerBootDiskSize,
-          Keys.numPreemptibleWorkers -> numPreemptibleWorkers,
-          Keys.preemptibleWorkerBootDiskSize -> preemptibleWorkerBootDiskSize,
-          Keys.properties -> properties,
-          Keys.maxClusterIdleTime -> maxClusterIdleTime)
-      }
-      case AwsSettings(clusterConfig) => {
-        import clusterConfig._
-        
-        def toString[A](as: Iterable[A]): String = as.mkString("[", ",", "]")
-        
-        Seq(
-          typeTuple(EnvironmentType.Aws.name),
-          Keys.cluster -> name,
-          Keys.amiId -> amiId.map(_.value).getOrElse(""),
-          Keys.instances -> instances,
-          Keys.masterInstanceType -> masterInstanceType.value,
-          Keys.slaveInstanceType -> slaveInstanceType.value,
-          Keys.masterVolumeSizeInGB -> masterVolumeSizeInGB,
-          Keys.slaveVolumeSizeInGB -> slaveVolumeSizeInGB,
-          Keys.applications -> toString(applications.map(_.value)),
-          Keys.configurations -> toString(configurations),
-          Keys.bootstrapScripts -> toString(bootstrapScripts.map(_.config.scriptBootstrapAction.path)),
-          Keys.bootstrapSteps -> toString(bootstrapSteps),
-          Keys.keepAliveWhenNoSteps -> keepAliveWhenNoSteps,
-          Keys.visibleToAllUsers -> visibleToAllUsers)
-      }
-      case DrmSettings(cores, memory, cpuTime, queueOpt, containerParamsOpt) => {
-        val containerParamsTuples = Seq(
-          Keys.singularityImageName -> containerParamsOpt.map(_.imageName).getOrElse(""))
-        
-        (typeTuple(settings.envType.name) +: containerParamsTuples) ++ Seq(
-          Keys.cores -> cores.value.toString,
-          Keys.memory -> memory.value.toString,
-          Keys.maxRunTime -> cpuTime.duration.toString,
-          Keys.queue -> queueOpt.map(_.toString).getOrElse("")) 
-      }
+  def settingsToTuples(settings: Settings): Seq[(String, Any)] = settings match {
+    case LocalSettings => Seq(typeTuple(EnvironmentType.Local.name))
+    case GoogleSettings(cluster, clusterConfig) => googleClusterConfigToTuples(cluster, clusterConfig)
+    case AwsSettings(clusterConfig) => awsClusterConfigToTuples(clusterConfig)
+    case DrmSettings(cores, memory, cpuTime, queueOpt, containerParamsOpt) => {
+      val containerParamsTuples = Seq(
+        Keys.singularityImageName -> containerParamsOpt.map(_.imageName).getOrElse(""))
+      
+      (typeTuple(settings.envType.name) +: containerParamsTuples) ++ Seq(
+        Keys.cores -> cores.value.toString,
+        Keys.memory -> memory.value.toString,
+        Keys.maxRunTime -> cpuTime.duration.toString,
+        Keys.queue -> queueOpt.map(_.toString).getOrElse("")) 
     }
+  }
+
+  private def typeTuple(envTypeName: String): (String, Any) = Keys.settingsType -> envTypeName
+  
+  private def googleClusterConfigToTuples(cluster: String, clusterConfig: ClusterConfig): Seq[(String, Any)] = {
+    import clusterConfig._
+        
+    Seq(
+      typeTuple(EnvironmentType.Google.name), 
+      Keys.cluster -> cluster,
+      Keys.zone -> zone,
+      Keys.masterMachineType -> masterMachineType,
+      Keys.masterBootDiskSize -> masterBootDiskSize,
+      Keys.numWorkers -> numWorkers,
+      Keys.workerMachineType -> workerMachineType,
+      Keys.workerBootDiskSize -> workerBootDiskSize,
+      Keys.numPreemptibleWorkers -> numPreemptibleWorkers,
+      Keys.preemptibleWorkerBootDiskSize -> preemptibleWorkerBootDiskSize,
+      Keys.properties -> properties,
+      Keys.maxClusterIdleTime -> maxClusterIdleTime)
+  }
+  
+  private def awsClusterConfigToTuples(clusterConfig: Cluster): Seq[(String, Any)] = {
+    import clusterConfig._
+        
+    def toString[A](as: Iterable[A]): String = as.mkString("[", ",", "]")
+    
+    Seq(
+      typeTuple(EnvironmentType.Aws.name),
+      Keys.cluster -> name,
+      Keys.amiId -> amiId.map(_.value).getOrElse(""),
+      Keys.instances -> instances,
+      Keys.masterInstanceType -> masterInstanceType.value,
+      Keys.slaveInstanceType -> slaveInstanceType.value,
+      Keys.masterVolumeSizeInGB -> masterVolumeSizeInGB,
+      Keys.slaveVolumeSizeInGB -> slaveVolumeSizeInGB,
+      Keys.applications -> toString(applications.map(_.value)),
+      Keys.configurations -> toString(configurations),
+      Keys.bootstrapScripts -> toString(bootstrapScripts.map(_.config.scriptBootstrapAction.path)),
+      Keys.bootstrapSteps -> toString(bootstrapSteps),
+      Keys.keepAliveWhenNoSteps -> keepAliveWhenNoSteps,
+      Keys.visibleToAllUsers -> visibleToAllUsers)
   }
 }

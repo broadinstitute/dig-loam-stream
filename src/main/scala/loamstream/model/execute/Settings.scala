@@ -92,7 +92,9 @@ object DrmSettings {
 /**
  * Execution-time settings for a google job 
  */
-final case class GoogleSettings(clusterId: String, clusterConfig: ClusterConfig) extends Settings(EnvironmentType.Google)
+final case class GoogleSettings(
+    clusterId: String, 
+    clusterConfig: ClusterConfig) extends Settings(EnvironmentType.Google)
 
 /**
  * Execution-time settings for an AWS job 

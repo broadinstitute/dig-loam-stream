@@ -100,6 +100,20 @@ parallelExecution in IntegrationTest := false
 testOptions in IntegrationTest += Tests.Argument("-oFD")
 testOptions in Test += Tests.Argument("-oFD")
 
+assemblyMergeStrategy in assembly := {
+  def hasTakeFirstExtension(s: String): Boolean = {
+    s.endsWith(".json") || s.endsWith(".config") || s.endsWith(".properties")
+  }
+
+  {
+    case PathList(ps @ _*) if hasTakeFirstExtension(ps.last) => MergeStrategy.first
+    case x => {
+      val oldStrategy = (assemblyMergeStrategy in assembly).value
+      oldStrategy(x)
+    }
+  }
+}
+
 //Make the fat jar produced by `assembly` a tracked artifact that will be published.  
 //(Without this bit, only the application classes, sources, and docs will be published.)
 artifact in (Compile, assembly) := {

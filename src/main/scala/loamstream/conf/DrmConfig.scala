@@ -69,7 +69,7 @@ object UgerConfig extends ConfigParser[UgerConfig] with Loggable {
     extraPathDir: Path = UgerDefaults.extraPathDir,
     condaEnvName: String = UgerDefaults.condaEnvName,
     staticJobSubmissionParams: String = UgerDefaults.staticJobSubmissionParams,
-    maxQacctRetries: Int =  UgerDefaults.maxQacctRetries) {
+    maxQacctRetries: Int = UgerDefaults.maxQacctRetries) {
     
     def toUgerConfig: UgerConfig = UgerConfig(
       maxNumJobs = maxNumJobs,

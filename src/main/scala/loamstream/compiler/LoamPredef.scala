@@ -19,6 +19,8 @@ import loamstream.util.Loggable
 import loamstream.model.execute.Settings
 import loamstream.model.execute.LocalSettings
 import loamstream.googlecloud.ClusterConfig
+import org.broadinstitute.dig.aws.emr.Cluster
+import loamstream.model.execute.AwsSettings
 
 /** Predefined symbols in Loam scripts */
 object LoamPredef extends LoamPredef
@@ -150,6 +152,12 @@ trait LoamPredef extends Loggable {
 
   def googleWith[A](clusterConfig: ClusterConfig)(expr: => A)(implicit scriptContext: LoamScriptContext): A = {
     val settings = GoogleSettings(scriptContext.googleConfig.clusterId, clusterConfig) 
+    
+    runWith(settings)(expr)(scriptContext)
+  }
+  
+  def awsWith[A](clusterConfig: Cluster)(expr: => A)(implicit scriptContext: LoamScriptContext): A = {
+    val settings = AwsSettings(clusterConfig) 
     
     runWith(settings)(expr)(scriptContext)
   }

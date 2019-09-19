@@ -14,6 +14,8 @@ import loamstream.conf.UgerConfig
 import loamstream.conf.LsfConfig
 import loamstream.model.execute.Settings
 import loamstream.model.execute.LocalSettings
+import org.broadinstitute.dig.aws.config.AWSConfig
+import org.broadinstitute.dig.aws.AWS
 
 /** Container for compile time and run time context for a script */
 final class LoamScriptContext(val projectContext: LoamProjectContext) {
@@ -67,10 +69,18 @@ final class LoamScriptContext(val projectContext: LoamProjectContext) {
     getOpt(config.googleConfig, s"Google support requires a valid 'loamstream.googlecloud' section in the config file")
   }
   
+  def awsConfig: AWSConfig = {
+    getOpt(config.awsConfig, s"AWS support requires a valid 'loamstream.aws' section in the config file")
+  }
+  
   private def getOpt[A](opt: Option[A], missingMessage: => String): A = {
     require(opt.isDefined, missingMessage)
     
     opt.get
+  }
+  
+  object AwsSupport {
+    val aws: AWS = new AWS(awsConfig)
   }
 }
 

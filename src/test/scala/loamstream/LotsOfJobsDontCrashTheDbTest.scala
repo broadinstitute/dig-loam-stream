@@ -16,9 +16,9 @@ import loamstream.model.execute.HashingStrategy
  */
 final class LotsOfJobsDontCrashTheDbTest extends FunSuite {
   test("Lots of jobs, lots of concurrent DB access") {
-    val numBranches = 50
+    val numBranches = 250
         
-    val jobsPerbranch = 5
+    val jobsPerbranch = 1
     
     TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
       val graph = TestHelpers.makeGraph { implicit scriptContext =>

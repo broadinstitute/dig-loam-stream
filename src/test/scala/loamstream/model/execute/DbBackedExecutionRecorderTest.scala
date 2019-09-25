@@ -42,11 +42,11 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
     createTablesAndThen {
       val recorder = new DbBackedExecutionRecorder(dao)
 
-      assert(executions === Set.empty)
+      assert(executions === Nil)
 
       recorder.record(TestHelpers.DummyJobOracle, Nil)
 
-      assert(executions === Set.empty)
+      assert(executions === Nil)
     }
   }
 
@@ -58,7 +58,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
       createTablesAndThen {
         val recorder = new DbBackedExecutionRecorder(dao)
   
-        assert(executions === Set.empty)
+        assert(executions === Nil)
   
         val job = MockJob(status)
         
@@ -76,7 +76,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
         
         recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
   
-        assert(executions === Set.empty)
+        assert(executions === Nil)
       }
     }
     
@@ -91,7 +91,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
     createTablesAndThen {
       val recorder = new DbBackedExecutionRecorder(dao)
 
-      assert(executions === Set.empty)
+      assert(executions === Nil)
 
       val cr = CommandResult(0)
 
@@ -111,7 +111,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
 
       recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
 
-      assertEqualFieldsFor(executions, Set(e))
+      assertEqualFieldsFor(executions, Seq(e))
     }
   }
 
@@ -119,7 +119,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
     createTablesAndThen {
       val recorder = new DbBackedExecutionRecorder(dao)
 
-      assert(executions === Set.empty)
+      assert(executions === Nil)
 
       val cr = CommandResult(42)
 
@@ -139,7 +139,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
 
       recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
 
-      assertEqualFieldsFor(executions, Set(e))
+      assertEqualFieldsFor(executions, Seq(e))
     }
   }
 
@@ -147,7 +147,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
     createTablesAndThen {
       val recorder = new DbBackedExecutionRecorder(dao)
 
-      assert(executions === Set.empty)
+      assert(executions === Nil)
 
       val cr = CommandResult(0)
 
@@ -161,7 +161,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
 
       recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
 
-      assertEqualFieldsFor(executions, Set(withHashedOutputs))
+      assertEqualFieldsFor(executions, Seq(withHashedOutputs))
     }
   }
 
@@ -169,7 +169,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
     createTablesAndThen {
       val recorder = new DbBackedExecutionRecorder(dao)
 
-      assert(executions === Set.empty)
+      assert(executions === Nil)
 
       val cr = CommandResult(42)
 
@@ -181,7 +181,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
 
       recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
 
-      val expected = Set(
+      val expected = Seq(
           Execution(
               settings = mockUgerSettings, 
               cmd = mockCmd, 

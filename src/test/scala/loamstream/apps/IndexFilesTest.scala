@@ -83,7 +83,7 @@ final class IndexFilesTest extends FunSuite {
       val allJobsContent = Files.readFrom(allJobsFile)
       val failedJobsContent = Files.readFrom(failedJobsFile)
       
-      val tab = '\t'
+      val tab = "\t"
       val newline = scala.util.Properties.lineSeparator
       
       val expectedAllJobsContent = s"""

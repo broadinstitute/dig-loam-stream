@@ -164,7 +164,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
 
       val job3Resources = job3RunData.resourcesOpt.get.asInstanceOf[GoogleResources]
       
-      assert(job3Resources.cluster === clusterId)
+      assert(job3Resources.clusterId === clusterId)
       assert(job3Resources.startTime === localResources.startTime)
       assert(job3Resources.endTime === localResources.endTime)
       
@@ -340,7 +340,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
 
       val job3Resources = job3RunData.resourcesOpt.get.asInstanceOf[GoogleResources]
 
-      assert(job3Resources.cluster === clusterId)
+      assert(job3Resources.clusterId === clusterId)
       assert(job3Resources.startTime === localResources.startTime)
       assert(job3Resources.endTime === localResources.endTime)
       
@@ -400,7 +400,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
         val jobResources = jobRunData.resourcesOpt.get.asInstanceOf[GoogleResources]
   
         val expectedResources = GoogleResources(
-            cluster = clusterId, 
+            clusterId = clusterId, 
             startTime = expectedLocalResources.startTime, 
             endTime = expectedLocalResources.endTime)
         

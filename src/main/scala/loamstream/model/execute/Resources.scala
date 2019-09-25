@@ -39,15 +39,20 @@ object Resources {
       endTime: Instant) extends Resources
       
   final case class GoogleResources(
-      cluster: String,
+      clusterId: String,
       startTime: Instant,
       endTime: Instant) extends Resources
   
   object GoogleResources {
-    def fromClusterAndLocalResources(cluster: String, localResources: LocalResources): GoogleResources = {
-      GoogleResources(cluster, localResources.startTime, localResources.endTime)
+    def fromClusterAndLocalResources(clusterId: String, localResources: LocalResources): GoogleResources = {
+      GoogleResources(clusterId, localResources.startTime, localResources.endTime)
     }
   }
+  
+  final case class AwsResources(
+      clusterId: String,
+      startTime: Instant,
+      endTime: Instant) extends Resources
   
   trait DrmResources extends Resources {
     def memory: Memory

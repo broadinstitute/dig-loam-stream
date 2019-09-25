@@ -37,52 +37,6 @@ import scala.reflect.ClassTag
  *    EXECUTION_ID: integer, primary key - ID of the EXECUTION a row belongs to
  *    EXECUTION_FK: a foreign-key constraint from OUTPUTS.EXECUTION_ID to EXECUTION.ID
  *
- *
- *   SETTINGS_LOCAL: Environment settings requested during local job submissions
- *    EXECUTION_ID: integer, primary key - ID of the execution a row belongs to
- *    MEM: integer, nullable - memory requested when submitting the job
- *    EXECUTION_FK: a foreign-key constraint from OUTPUTS.EXECUTION_ID to EXECUTION.ID
- *
- *
- *   SETTINGS_UGER: Environment settings requested during Uger job submissions
- *    EXECUTION_ID: integer, primary key - ID of the execution a row belongs to
- *    MEM: integer - memory requested when submitting the job
- *    CPU: integer - number of cpu's requested when submitting the job
- *    QUEUE: varchar/text - name of the cluster queue in which the job has run
- *    EXECUTION_FK: a foreign-key constraint from OUTPUTS.EXECUTION_ID to EXECUTION.ID
- *
- *
- *   SETTINGS_GOOGLE: Environment settings requested during Google Cloud job submissions
- *    EXECUTION_ID: integer, primary key - ID of the execution a row belongs to
- *    CLUSTER: varchar/text - name of the cluster where the job has been submitted to
- *    EXECUTION_FK: a foreign-key constraint from OUTPUTS.EXECUTION_ID to EXECUTION.ID
- *
- *
- *   RESOURCES_LOCAL: Resources used during a local job's execution
- *    EXECUTION_ID: integer, primary key - ID of the execution a row belongs to
- *    START_TIME: timestamp, nullable - when a job started being executed
- *    END_TIME: timestamp, nullable - when a job finished being executed
- *    EXECUTION_FK: a foreign-key constraint from OUTPUTS.EXECUTION_ID to EXECUTION.ID
- *
- *
- *   RESOURCES_UGER: Resources used during a UGER job's execution
- *    EXECUTION_ID: integer, primary key - ID of the execution a row belongs to
- *    MEM: float, nullable - memory used by the job
- *    CPU: float, nullable - cpu time taken by the job
- *    START_TIME: timestamp, nullable - when a job started being executed
- *    END_TIME: timestamp, nullable - when a job finished being executed
- *    NODE: varchar/text, nullable - name of the host that has run the job
- *    QUEUE: varchar/text, nullable - name of the cluster queue in which the job has run
- *    EXECUTION_FK: a foreign-key constraint from OUTPUTS.EXECUTION_ID to EXECUTION.ID
- *
- *
- *   RESOURCES_GOOGLE: Resources used during a Google Cloud job's execution
- *    EXECUTION_ID: integer, primary key - ID of the execution a row belongs to
- *    CLUSTER: varchar/text, nullable - name of the cluster that has run the job
- *    START_TIME: timestamp, nullable - when a job started being executed
- *    END_TIME: timestamp, nullable - when a job finished being executed
- *    EXECUTION_FK: a foreign-key constraint from OUTPUTS.EXECUTION_ID to EXECUTION.ID
- *
  */
 final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
   import driver.api._
@@ -115,7 +69,7 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
     def env = column[String]("ENV")
     //NB: Specify the length of this column so that we hopefully don't get a too-small VARCHAR,
     //and instead some DB-specific column type appropriate for strings thousands of chars long.
-    def cmd = column[String]("CMD", O.Length(maxStringColumnLength))
+    def cmd = column[Option[String]]("CMD", O.Length(maxStringColumnLength))
     def jobDir = column[Option[String]]("JOB_DIR", O.Length(maxStringColumnLength))
     def exitCode = column[Int]("EXIT_CODE")
     def status = column[JobStatus]("STATUS")
@@ -124,8 +78,7 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
     //NB: Required by Slick to define the mapping between DB columns and case class fields.
     //It's unlikely devs will need to call it directly.
     override def * = {
-      (id, env, cmd, status, exitCode, jobDir, terminationReason) <> 
-          (ExecutionRow.tupled, ExecutionRow.unapply)
+      (id, env, cmd, status, exitCode, jobDir, terminationReason) <> (ExecutionRow.tupled, ExecutionRow.unapply)
     }
   }
 
@@ -139,159 +92,6 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
     //It's unlikely devs will need to call it directly.
     override def * = (locator, lastModified, hash, hashType, executionId.?) <> (OutputRow.tupled, OutputRow.unapply)
   }
-
-  final class LocalSettings(tag: Tag) extends BelongsToExecution[LocalSettingRow](tag, Names.localSettings) {
-    override def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
-    //NB: Required by Slick to define the mapping between DB columns and case class fields.
-    //It's unlikely devs will need to call it directly.
-    override def * = (executionId) <> (LocalSettingRow.tupled, LocalSettingRow.unapply)
-  }
-
-  private[slick] abstract class DrmSettingsTable[R](
-      tag: Tag, 
-      name: String) extends BelongsToExecution[R](tag, name) {
-    
-    override def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
-    def cpus = column[Int]("CPU")
-    def memPerCpu = column[Double]("MEM")
-    def maxRunTime = column[Double]("MAX_RUN_TIME")
-    def queue = column[Option[String]]("QUEUE")
-  }
-  
-  final class UgerSettings(tag: Tag) extends DrmSettingsTable[UgerSettingRow](tag, Names.ugerSettings) {
-    override def * = {
-      (executionId, cpus, memPerCpu, maxRunTime, queue) <> (UgerSettingRow.tupled, UgerSettingRow.unapply)
-    }
-  }
-  
-  final class LsfSettings(tag: Tag) extends DrmSettingsTable[LsfSettingRow](tag, Names.lsfSettings) {
-    override def * = (executionId, cpus, memPerCpu, maxRunTime, queue) <> (LsfSettingRow.tupled, LsfSettingRow.unapply)
-  }
-
-  final class GoogleSettings(tag: Tag) extends BelongsToExecution[GoogleSettingRow](tag, Names.googleSettings) {
-    override def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
-    
-    def cluster = column[String]("CLUSTER")
-    def zone = column[String]("ZONE")
-    def masterMachineType = column[String]("MASTER_MACHINE_TYPE")
-    def masterBootDiskSize = column[Int]("MASTER_BOOT_DISK_SIZE")
-    def numWorkers = column[Int]("NUM_WORKERS")
-    def workerMachineType = column[String]("WORKER_MACHINE_TYPE")
-    def workerBootDiskSize = column[Int]("WORKER_BOOT_DISK_SIZE")
-    def numPreemptibleWorkers = column[Int]("NUM_PREEMPTIBLE_WORKERS")
-    def preemptibleWorkerBootDiskSize = column[Int]("PREEMTIBLE_WORKER_BOOT_DISK_SIZE")
-    def properties = column[String]("PROPERTIES")
-    def maxClusterIdleTime = column[String]("MAX_CLUSTER_IDLE_TIME")
-    
-    //NB: Required by Slick to define the mapping between DB columns and case class fields.
-    //It's unlikely devs will need to call it directly.
-    override def * = (executionId, cluster, zone, masterMachineType, masterBootDiskSize, numWorkers, 
-                      workerMachineType, workerBootDiskSize, numPreemptibleWorkers, preemptibleWorkerBootDiskSize,
-                      properties, maxClusterIdleTime) <> 
-                       ((GoogleSettingRow.apply _).tupled, GoogleSettingRow.unapply)
-  }
-
-  final class LocalResources(tag: Tag) extends BelongsToExecution[LocalResourceRow](tag, Names.localResources) {
-    override def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
-    def startTime = column[Timestamp]("START_TIME")
-    def endTime = column[Timestamp]("END_TIME")
-    //NB: Required by Slick to define the mapping between DB columns and case class fields.
-    //It's unlikely devs will need to call it directly.
-    override def * = (executionId, startTime, endTime) <> (LocalResourceRow.tupled, LocalResourceRow.unapply)
-  }
-
-  private[slick] abstract class DrmResourcesTable[R](tag: Tag, name: String) extends BelongsToExecution[R](tag, name) {
-    
-    override def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
-    def mem = column[Double]("MEM")
-    def cpu = column[Double]("CPU")
-    def node = column[Option[String]]("NODE")
-    def queue = column[Option[String]]("QUEUE")
-    def startTime = column[Timestamp]("START_TIME")
-    def endTime = column[Timestamp]("END_TIME")
-    //NB: Specify the length of this column so that we hopefully don't get a too-small VARCHAR,
-    //and instead some DB-specific column type appropriate for strings thousands of chars long.
-    def raw = column[Option[String]]("RAW_DATA", O.Length(maxStringColumnLength))
-  }
-  
-  final class UgerResources(tag: Tag) extends DrmResourcesTable[UgerResourceRow](tag, Names.ugerResources) {
-    //NB: Required by Slick to define the mapping between DB columns and case class fields.
-    //It's unlikely devs will need to call it directly.
-    override def * = {
-      (executionId, mem, cpu, node, queue, startTime, endTime, raw) <> 
-          (UgerResourceRow.tupled, UgerResourceRow.unapply)
-    }
-  }
-  
-  final class LsfResources(tag: Tag) extends DrmResourcesTable[LsfResourceRow](tag, Names.lsfResources) {
-    //NB: Required by Slick to define the mapping between DB columns and case class fields.
-    //It's unlikely devs will need to call it directly.
-    override def * = {
-      (executionId, mem, cpu, node, queue, startTime, endTime, raw) <> 
-          (LsfResourceRow.tupled, LsfResourceRow.unapply)
-    }
-  }
-
-  final class GoogleResources(tag: Tag) extends BelongsToExecution[GoogleResourceRow](tag, Names.googleResources) {
-    
-    override def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
-    def cluster = column[String]("CLUSTER")
-    def startTime = column[Timestamp]("START_TIME")
-    def endTime = column[Timestamp]("END_TIME")
-    //NB: Required by Slick to define the mapping between DB columns and case class fields.
-    //It's unlikely devs will need to call it directly.
-    override def * = {
-      (executionId, cluster, startTime, endTime) <> (GoogleResourceRow.tupled, GoogleResourceRow.unapply)
-    }
-  }
-  
-  trait HasDrmSettingsId { self: Table[_] =>
-    def drmSettingsId: Rep[Int]
-  }
-  
-  abstract class BelongsToDrmSettings[R, PR <: DrmSettingRow, P <: Table[PR] with HasExecutionId](
-      tag: Tag, 
-      name: String, 
-      parentTable: TableQuery[P]) extends Table[R](tag, name) with HasDrmSettingsId {
-    
-    final def settings = {
-      val foreignKeyName = s"${drmSettingsForeignKeyPrefix}${name}"
-      
-      foreignKey(foreignKeyName, drmSettingsId, parentTable)(_.executionId, onUpdate = Restrict, onDelete = Cascade)
-    }
-  }
-  
-  abstract class ContainerSettings[R : ClassTag, PR <: DrmSettingRow, P <: Table[PR] with HasExecutionId](
-      tag: Tag, 
-      name: String, 
-      parentTable: TableQuery[P],
-      companion: ContainerSettingsRowCompanion[R]) 
-          extends BelongsToDrmSettings[R, PR, P](tag, name, parentTable) with HasDrmSettingsId {
-    
-    override def drmSettingsId = column[Int]("DRM_SETTINGS_ID", O.PrimaryKey)
-    
-    def imageName = column[String]("IMAGE_NAME")
-    
-    override def * = {
-      val mappingParts = companion.slickMappingTuple
-      
-      (drmSettingsId, imageName) <> (mappingParts._1, mappingParts._2)
-    }
-  }
-  
-  final class LsfContainerSettings(tag: Tag) extends 
-      ContainerSettings[LsfContainerSettingsRow, LsfSettingRow, LsfSettings](
-          tag, 
-          Names.lsfContainerSettings, 
-          lsfSettings,
-          LsfContainerSettingsRow)
-  
-  final class UgerContainerSettings(tag: Tag) extends 
-      ContainerSettings[UgerContainerSettingsRow, UgerSettingRow, UgerSettings](
-          tag, 
-          Names.ugerContainerSettings, 
-          ugerSettings,
-          UgerContainerSettingsRow)
   
   private val executionForeignKeyPrefix = s"FK_ID_EXECUTIONS_"
   
@@ -299,31 +99,11 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
 
   lazy val executions = TableQuery[Executions]
   lazy val outputs = TableQuery[Outputs]
-  lazy val localSettings = TableQuery[LocalSettings]
-  lazy val ugerSettings = TableQuery[UgerSettings]
-  lazy val lsfSettings = TableQuery[LsfSettings]
-  lazy val googleSettings = TableQuery[GoogleSettings]
-  lazy val localResources = TableQuery[LocalResources]
-  lazy val ugerResources = TableQuery[UgerResources]
-  lazy val lsfResources = TableQuery[LsfResources]
-  lazy val googleResources = TableQuery[GoogleResources]
-  lazy val lsfContainerSettings = TableQuery[LsfContainerSettings]
-  lazy val ugerContainerSettings = TableQuery[UgerContainerSettings]
 
   //NB: Now a Seq so we can guarantee ordering
   private lazy val allTables: Seq[(String, SchemaDescription)] = Seq(
     Names.executions -> executions.schema,
-    Names.outputs -> outputs.schema,
-    Names.localSettings -> localSettings.schema,
-    Names.ugerSettings -> ugerSettings.schema,
-    Names.lsfSettings -> lsfSettings.schema,
-    Names.googleSettings -> googleSettings.schema,
-    Names.localResources -> localResources.schema,
-    Names.ugerResources -> ugerResources.schema,
-    Names.lsfResources -> lsfResources.schema,
-    Names.googleResources -> googleResources.schema,
-    Names.lsfContainerSettings -> lsfContainerSettings.schema,
-    Names.ugerContainerSettings -> ugerContainerSettings.schema
+    Names.outputs -> outputs.schema
   )
 
   private def allTableNames: Seq[String] = allTables.unzip._1
@@ -376,15 +156,5 @@ object Tables {
   object Names {
     val executions = "EXECUTIONS"
     val outputs = "OUTPUTS"
-    val localSettings = "SETTINGS_LOCAL"
-    val ugerSettings = "SETTINGS_UGER"
-    val lsfSettings = "SETTINGS_LSF"
-    val googleSettings = "SETTINGS_GOOGLE"
-    val localResources = "RESOURCES_LOCAL"
-    val ugerResources = "RESOURCES_UGER"
-    val lsfResources = "RESOURCES_LSF"
-    val googleResources = "RESOURCES_GOOGLE"
-    val lsfContainerSettings = "CONTAINER_SETTINGS_LSF"
-    val ugerContainerSettings = "CONTAINER_SETTINGS_UGER"
   }
 }

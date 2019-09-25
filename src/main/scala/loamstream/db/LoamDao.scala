@@ -6,6 +6,7 @@ import loamstream.model.jobs.Execution
 import loamstream.model.jobs.DataHandle
 import loamstream.model.jobs.StoreRecord
 import loamstream.util.Paths
+import loamstream.model.jobs.JobStatus
 
 /**
  * @author clint
@@ -16,11 +17,8 @@ trait LoamDao {
   final def insertExecutions(execution: Execution, others: Execution*): Unit = insertExecutions(execution +: others)
   def insertExecutions(rows: Iterable[Execution]): Unit
 
-  final def findExecution(output: StoreRecord): Option[Execution] = findExecution(output.loc)
-  
-  def findExecution(outputLocation: String): Option[Execution]
-
-  def allExecutions: Seq[Execution]
+  final def findLastStatus(output: StoreRecord): Option[JobStatus] = findLastStatus(output.loc)
+  def findLastStatus(outputLocation: String): Option[JobStatus]
 
   final def deleteOutput(loc: String, others: String*): Unit = deleteOutput(loc +: others)
   def deleteOutput(locs: Iterable[String]): Unit

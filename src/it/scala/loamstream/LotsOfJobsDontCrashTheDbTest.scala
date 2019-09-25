@@ -68,16 +68,19 @@ final class LotsOfJobsDontCrashTheDbTest extends FunSuite {
       
       val dao = new SlickLoamDao(dbDescriptor)
       
-      try {
-        dao.createTables()
-        
+      IntegrationTestHelpers.createTablesAndThen(dao) {
         val jobFilter = new DbBackedJobFilter(dao, HashingStrategy.HashOutputs)
         
         val executer = RxExecuter.defaultWith(newJobFilter = jobFilter)
         
         val results = executer.execute(executable)
-      } finally {
-        dao.dropTables()
+        
+        val numJobs = numBranches * jobsPerbranch
+        
+        assert(results.size === numJobs)
+        assert(
+            results.values.forall(_.isSuccess), 
+            s"Expected $numJobs successes, but got ${results.values.count(_.isFailure)} failures")
       }
     }
   }

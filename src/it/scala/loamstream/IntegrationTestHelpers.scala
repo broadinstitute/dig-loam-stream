@@ -13,6 +13,8 @@ import loamstream.loam.LoamGraph
 import loamstream.loam.LoamProjectContext
 import loamstream.loam.LoamScriptContext
 import loamstream.util.Sequence
+import loamstream.db.slick.SlickLoamDao
+import scala.util.Try
 
 /**
  * @author clint
@@ -76,4 +78,13 @@ object IntegrationTestHelpers {
     executionConfig = ExecutionConfig.default,
     compilationConfig = CompilationConfig.default,
     drmSystem = None)
+    
+  def createTablesAndThen[A](dao: SlickLoamDao)(f: => A): A = {
+    //NB: Use Try(...) to succinctly ignore failures
+    Try(dao.dropTables()) 
+      
+    dao.createTables()
+      
+    f
+  }
 }

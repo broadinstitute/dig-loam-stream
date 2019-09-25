@@ -7,7 +7,7 @@ lazy val Versions = new {
   val GoogleCloudStorage = "1.77.0"
   val GoogleAuth = "0.16.1"
   val LogBack = "1.2.3"
-  val Scala = "2.12.8"
+  val Scala = "2.12.10"
   val ScalaMajor = "2.12"
   val ScalaFmt = "1.5.1"
   val ScalaTest = "3.0.8"
@@ -21,6 +21,7 @@ lazy val Versions = new {
   val LogbackColorizer = "1.0.1"
   val Janino = "3.0.12"
   val CommonsCsv = "1.7"
+  val DigAws           = "0.1-SNAPSHOT"
 }
 
 lazy val Orgs = new {
@@ -58,7 +59,8 @@ lazy val mainDeps = Seq(
   "org.typelevel"  %% "squants"  % Versions.Squants,
   "org.tuxdude.logback.extensions" % "logback-colorizer" % Versions.LogbackColorizer,
   "org.codehaus.janino" % "janino" % Versions.Janino,
-  "org.apache.commons" % "commons-csv" % Versions.CommonsCsv
+  "org.apache.commons" % "commons-csv" % Versions.CommonsCsv,
+  Orgs.DIG %% "dig-aws" % Versions.DigAws
 )
 
 lazy val testDeps = Seq(
@@ -97,6 +99,20 @@ parallelExecution in IntegrationTest := false
 //Show full stack traces from unit and integration tests (F); display test run times (D)
 testOptions in IntegrationTest += Tests.Argument("-oFD")
 testOptions in Test += Tests.Argument("-oFD")
+
+assemblyMergeStrategy in assembly := {
+  def hasTakeFirstExtension(s: String): Boolean = {
+    s.endsWith(".json") || s.endsWith(".config") || s.endsWith(".properties")
+  }
+
+  {
+    case PathList(ps @ _*) if hasTakeFirstExtension(ps.last) => MergeStrategy.first
+    case x => {
+      val oldStrategy = (assemblyMergeStrategy in assembly).value
+      oldStrategy(x)
+    }
+  }
+}
 
 //Make the fat jar produced by `assembly` a tracked artifact that will be published.  
 //(Without this bit, only the application classes, sources, and docs will be published.)

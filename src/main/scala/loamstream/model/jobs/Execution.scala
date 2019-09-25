@@ -10,8 +10,14 @@ import loamstream.model.execute.Resources.GoogleResources
 import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.execute.Resources.UgerResources
 import loamstream.model.execute.Resources.LsfResources
+import loamstream.model.execute.Resources.AwsResources
 import loamstream.model.jobs.JobResult.CommandResult
 import loamstream.model.jobs.JobResult.FailureWithException
+import loamstream.model.execute.LocalSettings
+import loamstream.model.execute.GoogleSettings
+import loamstream.model.execute.UgerDrmSettings
+import loamstream.model.execute.LsfDrmSettings
+import loamstream.model.execute.AwsSettings
 
 /**
  * @author clint
@@ -26,21 +32,24 @@ final case class Execution(
     resources: Option[Resources] = None,
     outputs: Set[StoreRecord] = Set.empty,
     jobDir: Option[Path],
-    terminationReason: Option[TerminationReason]) {
+    terminationReason: Option[TerminationReason]) extends Execution.Persisted {
 
   require(
       environmentAndResourcesMatch, 
-      s"Environment type and resources must match, but got ${settings.envType} and $resources")
-  
+      s"Environment type and resources must match, but got $envType and $resources")
+      
+  def envType: EnvironmentType = settings.envType
+      
   def isSuccess: Boolean = status.isSuccess
   def isFailure: Boolean = status.isFailure
   
-  private def environmentAndResourcesMatch: Boolean = (settings.envType, resources) match {
+  private def environmentAndResourcesMatch: Boolean = (envType, resources) match {
     case (_, None) => true
     case (EnvironmentType.Local, Some(_: LocalResources)) => true
     case (EnvironmentType.Google, Some(_: GoogleResources)) => true
     case (EnvironmentType.Uger, Some(_: UgerResources)) => true
     case (EnvironmentType.Lsf, Some(_: LsfResources)) => true
+    case (EnvironmentType.Aws, Some(_: AwsResources)) => true
     case _ => false
   }
   
@@ -68,6 +77,16 @@ final case class Execution(
 //TODO: Clean up and consolidate factory methods.  We probably don't need so many.  Maybe name them better too.
 object Execution extends Loggable {
 
+  trait Persisted {
+    def envType: EnvironmentType
+    def cmd: Option[String]
+    def status: JobStatus
+    def result: Option[JobResult]
+    def outputs: Set[StoreRecord]
+    def jobDir: Option[Path]
+    def terminationReason: Option[TerminationReason]
+  }
+  
   object WithCommandResult {
     def unapply(e: Execution): Option[CommandResult] = e.result match {
       case Some(cr: CommandResult) => Some(cr)
@@ -115,7 +134,7 @@ object Execution extends Loggable {
                   jobDir: Path,
                   outputs: Set[DataHandle]): Execution = {
     
-    apply(
+    Execution(
         cmd = Option(cmd),
         settings = settings,
         status = result.toJobStatus, 
@@ -141,8 +160,10 @@ object Execution extends Loggable {
     
     val outputRecords = job.outputs.map(_.toStoreRecord)
     
+    val settings = job.initialSettings
+    
     Execution(
-      settings = job.initialSettings,
+      settings = settings,
       cmd = commandLine,
       status = status,
       result = result,

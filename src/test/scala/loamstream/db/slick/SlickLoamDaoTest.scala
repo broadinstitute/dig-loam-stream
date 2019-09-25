@@ -62,7 +62,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
   private def noOutputs: Boolean = dao.allStoreRecords.isEmpty
 
-  private def noExecutions: Boolean = dao.allExecutions.isEmpty
+  private def noExecutions: Boolean = executions.isEmpty
 
   import loamstream.TestHelpers.dummyJobDir
 
@@ -131,7 +131,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
       assert(stored.outputs.nonEmpty)
 
-      val Seq(retrieved) = dao.allExecutions
+      val Seq(retrieved) = executions
 
       assert(dao.allStoreRecords.toSet === stored.outputs)
 
@@ -176,7 +176,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
       //Use Sets to ignore order
       assert(dao.allStoreRecords.toSet == expected)
-      assert(dao.allStoreRecords.forall(dao.findExecution(_).get.isFailure))
+      assert(dao.allStoreRecords.forall(dao.findLastStatus(_).get.isFailure))
     }
   }
 
@@ -195,7 +195,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
       //Use Sets to ignore order
       assert(dao.allStoreRecords.toSet == all)
-      assert(dao.allStoreRecords.count(dao.findExecution(_).get.isFailure) == failedOutputs.size)
+      assert(dao.allStoreRecords.count(dao.findLastStatus(_).get.isFailure) == failedOutputs.size)
     }
   }
 
@@ -245,7 +245,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       val toInsert = new ExecutionRow(
           dummyId,
           mockUgerSettings.envType.toString,
-          mockCmd,
+          Option(mockCmd),
           mockStatus,
           mockExitCode,
           Some(jobDir.toString),
@@ -262,7 +262,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       // The DB must assign an auto-incremented 'id' upon insertion
       assert(recorded.id != dummyId)
       assert(recorded.env === mockUgerSettings.envType.toString)
-      assert(recorded.cmd === mockCmd)
+      assert(recorded.cmd === Some(mockCmd))
       assert(recorded.status === mockStatus)
       assert(recorded.exitCode === mockExitCode)
       assert(recorded.jobDir === Some(jobDir.toString))
@@ -282,7 +282,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       val toInsert = new ExecutionRow(
           dummyId,
           mockUgerSettings.envType.toString,
-          mockCmd,
+          Option(mockCmd),
           mockStatus,
           mockExitCode,
           Some(jobDir.toString),
@@ -299,7 +299,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       // The DB must assign an auto-incremented 'id' upon insertion
       assert(recorded.id != dummyId)
       assert(recorded.env === mockUgerSettings.envType.toString)
-      assert(recorded.cmd === mockCmd)
+      assert(recorded.cmd === Some(mockCmd))
       assert(recorded.status === mockStatus)
       assert(recorded.exitCode === mockExitCode)
       assert(recorded.jobDir === Some(jobDir.toString))
@@ -389,12 +389,12 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
             terminationReason = None)
       }
 
-      assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0))
+      assertEqualFieldsFor(executions.toSet, Set(expected0))
 
       dao.insertExecutions(succeeded, failed1)
       val expected1 = failed1
       val expected2 = succeeded
-      assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0, expected1, expected2))
+      assertEqualFieldsFor(executions.toSet, Set(expected0, expected1, expected2))
     }
   }
 
@@ -424,7 +424,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
             failed.jobDir.get,
             failedOutput(output0.path))
   
-        assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0))
+        assertEqualFieldsFor(executions.toSet, Set(expected0))
       }
     }
     
@@ -504,22 +504,22 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   
         val expected0 = Execution(ugerSettings, mockCmd, CommandResult(42), ex0.jobDir.get, failedOutput(path0))
   
-        assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0))
-        assertEqualFieldsFor(dao.findExecution(output0), Some(expected0))
+        assertEqualFieldsFor(executions.toSet, Set(expected0))
+        assertEqualFieldsFor(findExecution(output0), Some(expected0))
   
-        assert(dao.findExecution(output1) === None)
-        assert(dao.findExecution(output2) === None)
+        assert(findExecution(output1) === None)
+        assert(findExecution(output2) === None)
   
         dao.insertExecutions(ex1, ex2)
   
         val expected1 = ex1
         val expected2 = ex2
   
-        assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0, expected1, expected2))
+        assertEqualFieldsFor(executions.toSet, Set(expected0, expected1, expected2))
   
-        assertEqualFieldsFor(dao.findExecution(output0), Some(expected0))
-        assertEqualFieldsFor(dao.findExecution(output1), Some(expected1))
-        assertEqualFieldsFor(dao.findExecution(output2), Some(expected1))
+        assertEqualFieldsFor(findExecution(output0), Some(expected0))
+        assertEqualFieldsFor(findExecution(output1), Some(expected1))
+        assertEqualFieldsFor(findExecution(output2), Some(expected1))
       }
       
       doTest(TestHelpers.localResources)
@@ -632,20 +632,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
             
         dao.insertExecutions(execution)
         
-        import dao.tables.driver.api._
-        
-        val resourcesFromDb: ResourceRow = dao.runBlocking { 
-          settings.envType match {
-            case EnvironmentType.Local => dao.tables.localResources.result
-            case EnvironmentType.Uger => dao.tables.ugerResources.result
-            case EnvironmentType.Lsf => dao.tables.lsfResources.result
-            case EnvironmentType.Google => dao.tables.googleResources.result
-          }
-        }.head
-        
-        assert(resourcesFromDb === ResourceRow.fromResources(resources, 1))
-        
-        assert(dao.allExecutions.head === execution)
+        assert(executions.head === execution)
       }
     }
       

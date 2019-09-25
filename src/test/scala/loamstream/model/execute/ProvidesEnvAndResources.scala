@@ -22,6 +22,7 @@ import loamstream.model.execute.Resources.UgerResources
 import loamstream.model.execute.Resources.LsfResources
 import loamstream.drm.lsf.LsfDefaults
 import loamstream.googlecloud.ClusterConfig
+import loamstream.model.jobs.PseudoExecution
 
 /**
  * @author kyuksel
@@ -66,14 +67,14 @@ trait ProvidesEnvAndResources extends FunSuite {
         jobDir = Some(TestHelpers.dummyJobDir))
   }
 
-  protected def assertEqualFieldsFor(actual: Iterable[Execution], expected: Iterable[Execution]): Unit = {
-    assert(actual.map(_.settings) === expected.map(_.settings))
+  protected def assertEqualFieldsFor(actual: Iterable[Execution.Persisted], expected: Iterable[Execution]): Unit = {
+    assert(actual.map(_.envType) === expected.map(_.envType))
     assert(actual.map(_.cmd) === expected.map(_.cmd))
+    assert(actual.map(_.status) === expected.map(_.status))
     assert(actual.map(_.result) === expected.map(_.result))
-    assert(actual.map(_.settings) === expected.map(_.settings))
-    assert(actual.map(_.resources) === expected.map(_.resources))
-    assert(actual.map(_.jobDir) === expected.map(_.jobDir))
     assert(actual.map(_.outputs) === expected.map(_.outputs))
+    assert(actual.map(_.jobDir) === expected.map(_.jobDir))
+    assert(actual.map(_.terminationReason) === expected.map(_.terminationReason))
   }
 }
 

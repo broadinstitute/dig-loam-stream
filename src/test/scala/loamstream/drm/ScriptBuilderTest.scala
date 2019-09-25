@@ -178,7 +178,12 @@ final class ScriptBuilderTest extends FunSuite {
       drmSystem: DrmSystem, 
       containerParamsOpt: Option[ContainerParams]): String = {
     
-    val (discriminator0, discriminator1, discriminator2) = discriminators
+    val (discriminator0, discriminator1, discriminator2) = {
+      val (a, b, c) = discriminators
+      
+      //NB: Appease Scala 2.12.9 :\
+      (a.toString, b.toString, c.toString)
+    }
     val (jobId0, jobId1, jobId2) = jobIds
 
     val drmOutputDir = drmConfig.workDir.toAbsolutePath.render

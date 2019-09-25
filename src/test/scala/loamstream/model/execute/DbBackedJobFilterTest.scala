@@ -94,7 +94,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
         
       val jobName = "dummyJob"
       
-      assert(executions === Set.empty)
+      assert(executions === Nil)
 
       val failedCommandLine = mockCmd
       val successfulCommandLine = s"${mockCmd}asdfasdf"
@@ -145,7 +145,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
       
       val jobName = "dummyJob"
 
-      assert(executions === Set.empty)
+      assert(executions === Nil)
 
       import outputs.{o0, o1, o2, nonExistentOutput, cachedNonExistentOutput, cachedOutput0, cachedOutput1 }
       
@@ -233,7 +233,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
       val recorder = new DbBackedExecutionRecorder(dao)
       val jobName = "dummyJob"
 
-      assert(executions === Set.empty)
+      assert(executions === Nil)
 
       import outputs.{o0, o1, o2, nonExistentOutput, cachedNonExistentOutput, cachedOutput0, cachedOutput1 }
       

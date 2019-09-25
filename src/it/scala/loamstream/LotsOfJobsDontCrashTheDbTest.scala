@@ -20,7 +20,7 @@ import loamstream.util.Files
  * Sep 19, 2019
  */
 final class LotsOfJobsDontCrashTheDbTest extends FunSuite {
-  ignore("Lots of jobs, lots of concurrent DB access") {
+  test("Lots of jobs, lots of concurrent DB access") {
     val numBranches = 350
         
     val jobsPerbranch = 10

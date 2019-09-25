@@ -33,7 +33,8 @@ object DbDescriptor {
   
   def inMemoryH2: DbDescriptor = TypeAndJdbcUrl(DbType.H2, makeH2Url(s"test${sequence.next()}"))
   
-  def inMemoryHsqldb: DbDescriptor = TypeAndJdbcUrl(DbType.Hsqldb, makeHsqldbUrl(s"test${sequence.next()}"))
+  def inMemoryHsqldb: DbDescriptor = inMemoryHsqldb(s"test${sequence.next()}")
+  def inMemoryHsqldb(dbName: String): DbDescriptor = TypeAndJdbcUrl(DbType.Hsqldb, makeHsqldbUrl(dbName))
 
   //DB files live named .loamstream/db/loamstream.*, all under .loamstream/db
   val defaultDbName: String = "loamstream"

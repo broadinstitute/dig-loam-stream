@@ -1,27 +1,32 @@
 package loamstream
 
 import org.scalatest.FunSuite
-import loamstream.loam.LoamSyntax
-import loamstream.util.Files
+
 import loamstream.compiler.LoamEngine
-import loamstream.model.execute.RxExecuter
-import loamstream.model.execute.DbBackedJobFilter
+import loamstream.conf.CompilationConfig
+import loamstream.conf.ExecutionConfig
+import loamstream.conf.LoamConfig
 import loamstream.db.slick.DbDescriptor
 import loamstream.db.slick.SlickLoamDao
+import loamstream.loam.LoamSyntax
+import loamstream.model.execute.DbBackedJobFilter
 import loamstream.model.execute.HashingStrategy
+import loamstream.model.execute.RxExecuter
+import loamstream.util.Files
+
 
 /**
  * @author clint
  * Sep 19, 2019
  */
 final class LotsOfJobsDontCrashTheDbTest extends FunSuite {
-  test("Lots of jobs, lots of concurrent DB access") {
-    val numBranches = 200
+  ignore("Lots of jobs, lots of concurrent DB access") {
+    val numBranches = 350
         
     val jobsPerbranch = 10
     
-    TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
-      val graph = TestHelpers.makeGraph { implicit scriptContext =>
+    IntegrationTestHelpers.withWorkDirUnderTarget(Some(getClass.getSimpleName)) { workDir =>
+      val graph = IntegrationTestHelpers.makeGraph() { implicit scriptContext =>
         import LoamSyntax._
         
         val input = workDir / "start.txt"

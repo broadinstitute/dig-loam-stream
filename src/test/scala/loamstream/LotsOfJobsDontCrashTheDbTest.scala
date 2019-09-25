@@ -16,9 +16,9 @@ import loamstream.model.execute.HashingStrategy
  */
 final class LotsOfJobsDontCrashTheDbTest extends FunSuite {
   test("Lots of jobs, lots of concurrent DB access") {
-    val numBranches = 250
+    val numBranches = 200
         
-    val jobsPerbranch = 1
+    val jobsPerbranch = 10
     
     TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
       val graph = TestHelpers.makeGraph { implicit scriptContext =>
@@ -59,7 +59,7 @@ final class LotsOfJobsDontCrashTheDbTest extends FunSuite {
       
       assert(executable.jobNodes.size === numBranches)
       
-      val dbDescriptor = DbDescriptor.onDiskAt(workDir, getClass.getSimpleName)
+      val dbDescriptor = DbDescriptor.onDiskHsqldbAt(workDir, getClass.getSimpleName)
       
       val dao = new SlickLoamDao(dbDescriptor)
       

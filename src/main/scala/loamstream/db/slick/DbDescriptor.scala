@@ -25,17 +25,27 @@ object DbDescriptor {
     override val url: String = s"jdbc:h2:${dbDir.resolve(dbName)}"
   }
   
-  def inMemory: DbDescriptor = TypeAndJdbcUrl(DbType.H2, makeUrl(s"test${sequence.next()}"))
+  final case class OnDiskHsql(dbDir: Path, dbName: String) extends DbDescriptor {
+    override val dbType: DbType = DbType.Hsqldb
+    
+    override val url: String = s"jdbc:hsqldb:${dbDir.resolve(dbName)}"
+  }
+  
+  def inMemoryH2: DbDescriptor = TypeAndJdbcUrl(DbType.H2, makeH2Url(s"test${sequence.next()}"))
+  
+  def inMemoryHsqldb: DbDescriptor = TypeAndJdbcUrl(DbType.Hsqldb, makeHsqldbUrl(s"test${sequence.next()}"))
 
   //DB files live named .loamstream/db/loamstream.*, all under .loamstream/db
   val defaultDbName: String = "loamstream"
   
-  def onDiskDefault: DbDescriptor = onDiskAt(Locations.Default.dbDir, defaultDbName)
+  def onDiskDefault: DbDescriptor = onDiskHsqldbAt(Locations.Default.dbDir, defaultDbName)
   
-  def onDiskAt(dbDir: Path, dbName: String): OnDiskH2 = OnDiskH2(dbDir, dbName)
+  def onDiskHsqldbAt(dbDir: Path, dbName: String): OnDiskHsql = OnDiskHsql(dbDir, dbName)
   
   //TODO: This shouldn't be necessary :(
   private val sequence: Sequence[Int] = Sequence()
 
-  private def makeUrl(dbName: String): String = s"jdbc:h2:mem:$dbName;DB_CLOSE_DELAY=-1"
+  private def makeH2Url(dbName: String): String = s"jdbc:h2:mem:$dbName;DB_CLOSE_DELAY=-1"
+  
+  private def makeHsqldbUrl(dbName: String): String = s"jdbc:hsqldb:mem:$dbName"
 }

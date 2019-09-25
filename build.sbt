@@ -21,7 +21,8 @@ lazy val Versions = new {
   val LogbackColorizer = "1.0.1"
   val Janino = "3.0.12"
   val CommonsCsv = "1.7"
-  val DigAws           = "0.1-SNAPSHOT"
+  val DigAws = "0.1-SNAPSHOT"
+  val HsqlDb = "2.5.0"
 }
 
 lazy val Orgs = new {
@@ -60,7 +61,8 @@ lazy val mainDeps = Seq(
   "org.tuxdude.logback.extensions" % "logback-colorizer" % Versions.LogbackColorizer,
   "org.codehaus.janino" % "janino" % Versions.Janino,
   "org.apache.commons" % "commons-csv" % Versions.CommonsCsv,
-  Orgs.DIG %% "dig-aws" % Versions.DigAws
+  Orgs.DIG %% "dig-aws" % Versions.DigAws,
+  "org.hsqldb" % "hsqldb" % Versions.HsqlDb
 )
 
 lazy val testDeps = Seq(

@@ -18,4 +18,10 @@ object DbType {
   
     override val jdbcDriverClass: String = "org.h2.Driver"
   }
+  
+  object Hsqldb extends DbType {
+    override val driver: JdbcProfile = slick.jdbc.HsqldbProfile
+  
+    override val jdbcDriverClass: String = "org.hsqldb.jdbc.JDBCDriver"
+  }
 }

@@ -116,7 +116,7 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
     //TODO: Is this appropriate?
     implicit val executionContext = database.executor.executionContext
 
-    val tablesToCreate: Set[String] = {
+    val existingTableNames: Set[String] = {
       def queryForTableMetadata(tableName: String) = {
         MTable.getTables(Some("PUBLIC"), Some("PUBLIC"), Some(tableName), Some(Seq("TABLE"))).headOption
       }
@@ -129,16 +129,14 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
           tableMetadataOpt <- queryForTableMetadata(tableName)
         } yield tableMetadataOpt.map(_.name.name)
         
-        runBlocking(database)(queryForTable.transactionally)
+        runBlocking(database)(queryForTable)
       }
       
       tableNames.toSet
     }
-    
-    println(s"@@@@@@ Tables to create: $tablesToCreate")
 
     def createActions(tables: Seq[(String, SchemaDescription)]) = {
-      val tablesToCreateWithSchemas = allTables.toMap.filterKeys(tablesToCreate)
+      val tablesToCreateWithSchemas = allTables.toMap -- existingTableNames
       
       val actions = for {
         (tableName, schema) <- tablesToCreateWithSchemas
@@ -158,7 +156,6 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
 
   private def log(schema: SchemaDescription): Unit = {
     schema.createStatements.foreach(s => trace(s"DDL: $s"))
-    schema.createStatements.foreach(s => println(s"@@@@@@@ DDL: $s"))
   }
 
   private def jobStatusfromString(str: String): JobStatus = JobStatus.fromString(str).getOrElse {

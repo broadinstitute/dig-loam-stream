@@ -9,33 +9,35 @@ final class CanReOpenOnDiskDbTest extends FunSuite {
     final class HasDao(dbDir: Path, dbName: String) extends ProvidesSlickLoamDao {
       override protected val descriptor: DbDescriptor = DbDescriptor.onDiskHsqldbAt(dbDir, dbName)
       
-      def startUp(): Unit = {
-        println(s"@@@@@@@ Starting up db '$dbDir'/'$dbName'")
-        
-        dao.createTables()
-      }
+      def startUp(): Unit = dao.createTables()
       
-      def shutDown(): Unit = {
-        println(s"@@@@@@@ Shutting down db '$dbDir'/'$dbName'")
-        
-        dao.shutdown()
-      }
+      def shutDown(): Unit = dao.shutdown()
     }
     
     val testName = getClass.getSimpleName
     
-    TestHelpers.withWorkDir(testName) { workDir =>
-      val hasDao0 = new HasDao(workDir, testName)
+    TestHelpers.withWorkDir(testName) { workDir1 =>
+      val hasDao0 = new HasDao(workDir1, testName)
       
       hasDao0.startUp()
       
       hasDao0.shutDown()
       
-      val hasDao1 = new HasDao(workDir, testName)
+      val hasDao1 = new HasDao(workDir1, testName)
       
       hasDao1.startUp()
       
       hasDao1.shutDown()
+      
+      TestHelpers.withWorkDir(testName) { workDir2 =>
+        assert(workDir1 !== workDir2) 
+        
+        val hasDao0 = new HasDao(workDir2, testName)
+        
+        hasDao0.startUp()
+        
+        hasDao0.shutDown()
+      }
     }
   }
 }

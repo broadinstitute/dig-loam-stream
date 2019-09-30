@@ -118,21 +118,19 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
 
     val existingTableNames: Set[String] = {
       def queryForTableMetadata(tableName: String) = {
+        //NB: Plain old Mtable.getTables doesn't work for HSQLDB.
+        //This multi-param overload needs to be called instead.
+        //See https://stackoverflow.com/questions/29536689/how-to-query-database-tables-using-slick-and-hsqldb
         MTable.getTables(Some("PUBLIC"), Some("PUBLIC"), Some(tableName), Some(Seq("TABLE"))).headOption
       }
       
-      val tableNames = allTables.toMap.keys.flatMap { tableName =>
+      allTables.toMap.keySet.flatMap { tableName =>
         val queryForTable = for {
-          //NB: Plain old Mtable.getTables doesn't work for HSQLDB
-          //This multi-param overload needs to be called instead.
-          //See https://stackoverflow.com/questions/29536689/how-to-query-database-tables-using-slick-and-hsqldb
           tableMetadataOpt <- queryForTableMetadata(tableName)
         } yield tableMetadataOpt.map(_.name.name)
         
         runBlocking(database)(queryForTable)
       }
-      
-      tableNames.toSet
     }
 
     def createActions(tables: Seq[(String, SchemaDescription)]) = {

@@ -31,10 +31,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends
   import driver.api._
 
   protected[slick] override lazy val db: driver.backend.DatabaseDef = {
-    Database.forURL(
-        url = descriptor.url,
-      driver = descriptor.dbType.jdbcDriverClass /*,
-      executor = slick.util.AsyncExecutor(name = "test1", numThreads = 10, queueSize = 1000 )*/ )
+    Database.forURL(url = descriptor.url, driver = descriptor.dbType.jdbcDriverClass)
   }
 
   protected[slick] override lazy val tables: Tables = new Tables(driver)

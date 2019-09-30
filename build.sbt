@@ -14,7 +14,6 @@ lazy val Versions = new {
   val Scallop = "3.3.0"
   val TypesafeConfig = "1.3.4"
   val Slick = "3.3.2"
-  val H2 = "1.4.199"
   val RxScala = "0.26.5"
   val Ficus = "1.4.7"
   val Squants = "1.4.0"
@@ -52,7 +51,6 @@ lazy val mainDeps = Seq(
   "com.typesafe" % "config" % Versions.TypesafeConfig,
   "io.reactivex" %% "rxscala" % Versions.RxScala,
   "com.typesafe.slick" %% "slick" % Versions.Slick,
-  "com.h2database" % "h2" % Versions.H2,
   "org.rogach" %% "scallop" % Versions.Scallop,
   "com.google.cloud" % "google-cloud-storage" % Versions.GoogleCloudStorage,
   "com.google.auth" % "google-auth-library-credentials" % Versions.GoogleAuth,

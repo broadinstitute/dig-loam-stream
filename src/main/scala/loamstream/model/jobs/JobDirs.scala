@@ -21,22 +21,23 @@ object JobDirs {
     
     require(height >= 0)
     
-    def interior(children: Iterable[DirNode]): DirNode.Interior = {
-      DirNode.Interior(id = nextId(), children = children)
+    def interior(children: Iterable[DirNode]): Option[DirNode.Interior] = {
+      if(children.nonEmpty) { Some(DirNode.Interior(id = nextId(), children = children)) }
+      else { None }
     }
     
     val jobChunks = jobs.grouped(branchingFactor)
     
     def makeInteriorNodesAtHeight(h: Int): Option[DirNode.Interior] = h match {
-      case 0 if jobChunks.hasNext => Some(interior(children = jobChunks.next().map(DirNode.Leaf)))
+      case 0 if jobChunks.hasNext => interior(children = jobChunks.next().map(DirNode.Leaf))
       case n if jobChunks.hasNext => {
-        Some(interior(children = (1 to branchingFactor).flatMap(_ => makeInteriorNodesAtHeight(n - 1))))
+        interior(children = (1 to branchingFactor).flatMap(_ => makeInteriorNodesAtHeight(n - 1)))
       }
       case _ => None
     }
     
     def empty = DirNode.Interior(children = Nil)
-    
+
     (height, jobs.headOption) match {
       case (0, Some(job)) => DirNode.Leaf(job)
       case (_, None) => empty

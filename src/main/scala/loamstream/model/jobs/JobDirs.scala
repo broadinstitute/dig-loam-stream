@@ -110,13 +110,6 @@ object JobDirs {
     final case class Interior(id: String = nextId(), children: Iterable[DirNode]) extends DirNode {
       require(id.nonEmpty)
       require(children.nonEmpty)
-      
-      override def equals(other: Any): Boolean = other match {
-        case that: Interior => this.children == that.children
-        case _ => false
-      }
-      
-      override def hashCode: Int = children.hashCode
     }
     
     final case class Leaf(job: LJob) extends DirNode {

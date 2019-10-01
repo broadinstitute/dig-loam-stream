@@ -10,6 +10,7 @@ import loamstream.TestHelpers
 import loamstream.model.execute.LocalSettings
 import loamstream.util.Paths
 import loamstream.model.jobs.JobDirs.DirNode
+import org.scalactic.Equality
 
 /**
  * @author clint
@@ -18,6 +19,14 @@ import loamstream.model.jobs.JobDirs.DirNode
 final class JobDirsTest extends FunSuite {
   import JobDirs.DirNode._
   import JobDirsTest.NamedJob
+  import JobDirsTest.DirNodeOps
+  
+  private implicit object DirNodeEquality extends Equality[DirNode] {
+    override def areEqual(lhs: DirNode, a: Any): Boolean = a match {
+      case rhs: DirNode => lhs.equalsWithoutId(rhs)
+      case _ => false
+    }
+  }
   
   test("findHeight") {
     import JobDirs.findHeight
@@ -415,6 +424,16 @@ object JobDirsTest {
         jobStatus = JobStatus.Succeeded,
         jobResult = Some(JobResult.Success),
         terminationReasonOpt = None)
+    }
+  }
+  
+  private final implicit class DirNodeOps(val dirNode: DirNode) extends AnyVal {
+    def equalsWithoutId(other: DirNode): Boolean = (dirNode, other) match {
+      case (lhs: DirNode.Interior, rhs: DirNode.Interior) => {
+        lhs.children.iterator.zip(rhs.children.iterator).forall { case (l, r) => l.equalsWithoutId(r) }
+      }
+      case (lhs: DirNode.Leaf, rhs: DirNode.Leaf) => lhs == rhs
+      case _ => false
     }
   }
 }

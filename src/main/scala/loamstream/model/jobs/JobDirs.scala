@@ -1,31 +1,56 @@
 package loamstream.model.jobs
 
-import scala.collection.Seq
-import loamstream.util.{ Paths => LPaths }
-import loamstream.util.{ Files => LFiles }
-import loamstream.util.Sequence
 import java.nio.file.Path
-import java.nio.file.Paths.{ get => path }
-import java.nio.file.Files
+
 import scala.util.Try
 
+import loamstream.util.{ Paths => LPaths }
 
+/**
+ * @author clint
+ * Jul 2019
+ */
 object JobDirs {
 
   def allocate(jobs: Iterable[LJob], branchingFactor: Int, nextId: () => String = () => DirNode.nextId()): DirNode = {
-    require(branchingFactor > 1)
     require(jobs.nonEmpty)
     
-    if(jobs.size <= branchingFactor) {
-      DirNode.Interior(id = nextId(), children = jobs.map(DirNode.Leaf(_)))
-    } else {
-      val numChunks = branchingFactor
+    val numJobs = jobs.size
+    
+    val height = findHeight(branchingFactor, numJobs)
+    
+    require(height >= 0)
+    
+    def interior(children: Iterable[DirNode]): DirNode.Interior = {
+      DirNode.Interior(id = nextId(), children = children)
+    }
+    
+    val jobChunks = jobs.grouped(branchingFactor)
+    
+    def makeInteriorNodesAtHeight(h: Int): Option[DirNode.Interior] = h match {
+      case 0 if jobChunks.hasNext => Some(interior(children = jobChunks.next().map(DirNode.Leaf)))
+      case n if jobChunks.hasNext => {
+        Some(interior(children = (1 to branchingFactor).flatMap(_ => makeInteriorNodesAtHeight(n - 1))))
+      }
+      case _ => None
+    }
+    
+    def empty = DirNode.Interior(children = Nil)
+    
+    (height, jobs.headOption) match {
+      case (0, Some(job)) => DirNode.Leaf(job)
+      case (_, None) => empty
+      case _ => makeInteriorNodesAtHeight(height - 1).getOrElse(empty)
+    }
+  }
+  
+  private[jobs] def findHeight(branchingFactor: Int, desiredLeaves: Int): Int = {
+    if(desiredLeaves == 0) { 0 }
+    else {
+      import scala.math.{ ceil, log }
       
-      import Implicits.SeqOps      
-      
-      DirNode.Interior(
-          id = nextId(), 
-          children = jobs.toSeq.splitInto(numChunks).map(chunk => allocate(chunk, branchingFactor, nextId)))
+      //NB: log(desiredLeaves) / log(branchingFactor) == log base-branchingFactor of desiredLeaves
+      ceil(log(desiredLeaves) / log(branchingFactor)).toInt
     }
   }
   
@@ -38,7 +63,7 @@ object JobDirs {
     }
     
     def pathsByJob(jobDataDir: Path): Map[LJob, Path] = {
-      import LPaths.Implicits._
+      import loamstream.util.Paths.Implicits._
 
       def doPathsByJob(root: Path)(n: DirNode): Iterable[(LJob, Path)] = n match {
         case l @ DirNode.Leaf(job) => Seq(job -> (root / l.toSimplePathName).normalize)
@@ -53,8 +78,7 @@ object JobDirs {
     }
     
     def makeDirsUnder(root: Path): Boolean = {
-      import LPaths.Implicits._
-      import LFiles.createDirsIfNecessary
+      import loamstream.util.Files.createDirsIfNecessary
       
       val pathsToCreate = pathsByJob(root).values.iterator
       
@@ -85,26 +109,17 @@ object JobDirs {
     final case class Interior(id: String = nextId(), children: Iterable[DirNode]) extends DirNode {
       require(id.nonEmpty)
       require(children.nonEmpty)
+      
+      override def equals(other: Any): Boolean = other match {
+        case that: Interior => this.children == that.children
+        case _ => false
+      }
+      
+      override def hashCode: Int = children.hashCode
     }
     
     final case class Leaf(job: LJob) extends DirNode {
       require(job.name.nonEmpty)
-    }
-  }
-  
-  private[jobs] object Implicits {
-    final implicit class SeqOps[A](val as: Seq[A]) extends AnyVal {
-      def splitInto(numChunks: Int): Seq[Seq[A]] = {
-        require(numChunks > 0)
-        
-        if(as.isEmpty) { Nil }
-        else if(as.size < numChunks) { Seq(as) }
-        else {
-          val chunkSize = scala.math.round(as.size.toFloat / numChunks)
-          
-          as.grouped(chunkSize).toIndexedSeq
-        }
-      }
     }
   }
 }

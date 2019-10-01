@@ -45,7 +45,7 @@ final class AppWiringTest extends FunSuite with Matchers {
   private def appWiring(cli: Conf): AppWiring = {
     val intent = Intent.from(cli).right.get.asInstanceOf[Intent.RealRun]
     
-    AppWiring.forRealRun(intent, makeDao = AppWiring.makeDaoFrom(DbDescriptor.inMemory))
+    AppWiring.forRealRun(intent, makeDao = AppWiring.makeDaoFrom(DbDescriptor.inMemoryHsqldb))
   }
   
   test("Local execution, db-backed") {

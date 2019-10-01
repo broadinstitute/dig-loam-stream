@@ -49,7 +49,7 @@ final class SimpleLocalAndUgerPipelineTest extends FunSuite {
     doTest(UgerInContainer(image), jobFilterIntent = DontFilterByName, hashingStrategy = DontHashOutputs)
   }
   
-  private val dbDescriptor: DbDescriptor = IntegrationTestHelpers.inMemoryH2(this.getClass.getSimpleName)
+  private val dbDescriptor: DbDescriptor = IntegrationTestHelpers.inMemoryHsql(this.getClass.getSimpleName)
       
   private val dao: LoamDao = AppWiring.makeDaoFrom(dbDescriptor)
   

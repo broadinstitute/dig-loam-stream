@@ -53,10 +53,13 @@ final case class RxExecuter(
   
   import executionRecorder.record
   
-  override def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
+  override def execute(
+      executable: Executable, 
+      makeJobOracle: Executable => JobOracle = JobOracle.fromExecutable(executionConfig, _))(implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
+    
     import loamstream.util.Observables.Implicits._
     
-    val jobOracle = new JobOracle.ForJobs(executionConfig, executable.allJobs)
+    val jobOracle = makeJobOracle(executable)
     
     val ioScheduler: Scheduler = IOScheduler()
     

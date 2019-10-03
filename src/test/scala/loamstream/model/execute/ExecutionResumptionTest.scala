@@ -156,7 +156,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
   
   private def runWithExecuter(
       runningEverything: Boolean,
-      executer: Executer,
+      executer: RxExecuter,
       executable: Executable,
       mockJobs: (MockJob, MockJob, MockJob),
       expectations: Seq[JobStatus],

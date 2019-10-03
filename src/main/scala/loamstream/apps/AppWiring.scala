@@ -86,6 +86,7 @@ import loamstream.drm.DrmaaClient
 import loamstream.model.execute.FileSystemExecutionRecorder
 import loamstream.googlecloud.HailCtlDataProcClient
 import loamstream.googlecloud.HailConfig
+import loamstream.model.jobs.JobOracle
 
 
 /**
@@ -478,8 +479,11 @@ object AppWiring extends Loggable {
       val delegate: Executer,
       toStop: Terminable*) extends Executer {
 
-    override def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
-      delegate.execute(executable)(timeout)
+    override def execute(
+        executable: Executable, 
+        makeJobOracle: Executable => JobOracle)(implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
+      
+      delegate.execute(executable, makeJobOracle)(timeout)
     }
 
     override def jobFilter: JobFilter = delegate.jobFilter

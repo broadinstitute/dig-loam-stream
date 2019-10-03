@@ -170,7 +170,6 @@ object JobMonitor extends Loggable {
       jobIds: Iterable[String],
       multiplexed: ConnectableObservable[Map[String, Try[DrmStatus]]]): Map[String, Observable[Try[DrmStatus]]] = {
     
-    
     val tuples = for {
       jobId <- jobIds
     } yield {

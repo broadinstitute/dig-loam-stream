@@ -34,6 +34,7 @@ import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.util.Loggable
 import loamstream.util.Sequence
 import loamstream.model.jobs.PseudoExecution
+import loamstream.model.jobs.JobOracle
 
 
 
@@ -342,7 +343,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
     val executable = LoamEngine.toExecutable(graph)
 
-    val executions = engine.executer.execute(executable)
+    val executions = engine.executer.execute(executable, JobOracle.fromExecutable(engine.config.executionConfig, _))
 
     (executable, executions)
   }

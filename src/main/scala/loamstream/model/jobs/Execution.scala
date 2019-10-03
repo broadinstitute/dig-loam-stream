@@ -38,7 +38,7 @@ final case class Execution(
       environmentAndResourcesMatch, 
       s"Environment type and resources must match, but got $envType and $resources")
       
-  def envType: EnvironmentType = settings.envType
+  override def envType: EnvironmentType = settings.envType
       
   def isSuccess: Boolean = status.isSuccess
   def isFailure: Boolean = status.isFailure

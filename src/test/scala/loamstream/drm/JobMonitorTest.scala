@@ -1,15 +1,15 @@
 package loamstream.drm
 
 import scala.collection.Seq
-import scala.concurrent.Await
 import scala.concurrent.Future
-import scala.concurrent.duration.Duration
 import scala.util.Success
+import scala.util.Try
 
 import org.scalatest.FunSuite
 
 import loamstream.util.Observables
 import loamstream.util.RxSchedulers
+import loamstream.util.Tries
 
 import rx.lang.scala.Scheduler
 
@@ -19,7 +19,25 @@ import rx.lang.scala.Scheduler
  * date: Jul 6, 2016
  */
 final class JobMonitorTest extends FunSuite {
-  private def waitFor[A](f: Future[A]): A = Await.result(f, Duration.Inf) 
+  import loamstream.TestHelpers.waitFor 
+
+  test("getDrmStatusFor") {
+    import JobMonitor.getDrmStatusFor
+    
+    assert(getDrmStatusFor("foo")(Map.empty).isFailure)
+    
+    import DrmStatus.Done
+    import DrmStatus.Running
+    
+    val failure: Try[DrmStatus] = Tries.failure("blerg")
+    
+    val attempts = Map("foo" -> Success(Done), "bar" -> Success(Running), "baz" -> failure)
+    
+    assert(getDrmStatusFor("foo")(attempts) === Success(Done))
+    assert(getDrmStatusFor("bar")(attempts) === Success(Running))
+    assert(getDrmStatusFor("baz")(attempts) === failure)
+    assert(getDrmStatusFor("asdgasdf")(attempts).isFailure)
+  }
   
   test("stop()") {
     withThreadPoolScheduler(1) { scheduler =>

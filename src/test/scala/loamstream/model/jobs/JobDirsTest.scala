@@ -1,46 +1,56 @@
 package loamstream.model.jobs
 
-import org.scalatest.FunSuite
+import java.nio.file.Path
+
 import scala.collection.Seq
-import scala.annotation.tailrec
+
+import org.scalatest.FunSuite
+
 import loamstream.TestHelpers
 import loamstream.model.execute.LocalSettings
 import loamstream.util.Paths
-import java.nio.file.Path
+import loamstream.model.jobs.JobDirs.DirNode
+import org.scalactic.Equality
 
+/**
+ * @author clint
+ * Sep 26, 2019
+ */
 final class JobDirsTest extends FunSuite {
-  import JobDirsTest.NamedJob
   import JobDirs.DirNode._
+  import JobDirsTest.NamedJob
+  import JobDirsTest.DirNodeOps
   
-  test("Seq.splitInto") {
-    import JobDirs.Implicits.SeqOps
-    
-    intercept[Exception] {
-      Nil.splitInto(0)
+  private implicit object DirNodeEquality extends Equality[DirNode] {
+    override def areEqual(lhs: DirNode, a: Any): Boolean = a match {
+      case rhs: DirNode => lhs.equalsWithoutId(rhs)
+      case _ => false
     }
-    assert(Nil.splitInto(1) === Nil)
-    assert(Nil.splitInto(4) === Nil)
+  }
+  
+  test("findHeight") {
+    import JobDirs.findHeight
     
-    intercept[Exception] {
-      Seq(42).splitInto(0)
-    }
-    assert(Seq(42).splitInto(1) === Seq(Seq(42)))
-    assert(Seq(42).splitInto(2) === Seq(Seq(42)))
-    assert(Seq(42).splitInto(4) === Seq(Seq(42)))
+    assert(findHeight(1, 0) === 0)
+    assert(findHeight(2, 0) === 0)
     
+    assert(findHeight(2, 1) === 0)
+    assert(findHeight(4, 1) === 0)
+    assert(findHeight(8, 1) === 0)
     
-    intercept[Exception] {
-      Seq(1,2,3,4).splitInto(0)
-    }
-    assert(Seq(1,2,3,4).splitInto(1) === Seq(Seq(1, 2, 3, 4)))
-    assert(Seq(1,2,3,4).splitInto(2) === Seq(Seq(1, 2), Seq(3, 4)))
-    assert(Seq(1,2,3,4).splitInto(4) === Seq(Seq(1), Seq(2), Seq(3), Seq(4)))
+    assert(findHeight(2, 2) === 1)
+    assert(findHeight(4, 2) === 1)
+    assert(findHeight(8, 2) === 1)
     
-    assert(Seq(1,2,3,4,5).splitInto(1) === Seq(Seq(1, 2, 3, 4, 5)))
-    assert(Seq(1,2,3,4,5).splitInto(2) === Seq(Seq(1, 2, 3), Seq(4, 5)))
-    assert(Seq(1,2,3,4,5).splitInto(3) === Seq(Seq(1, 2), Seq(3, 4), Seq(5)))
-    assert(Seq(1,2,3,4,5).splitInto(4) === Seq(Seq(1), Seq(2), Seq(3), Seq(4), Seq(5)))
-    assert(Seq(1,2,3,4,5).splitInto(5) === Seq(Seq(1), Seq(2), Seq(3), Seq(4), Seq(5)))
+    assert(findHeight(2, 2) === 1)
+    assert(findHeight(4, 4) === 1)
+    assert(findHeight(8, 8) === 1)
+    
+    assert(findHeight(2, 4) === 2)
+    assert(findHeight(4, 8) === 2)
+    assert(findHeight(8, 16) === 2)
+    
+    assert(findHeight(10, 11) === 2)
   }
   
   test("toSimplePathName") {
@@ -302,10 +312,6 @@ final class JobDirsTest extends FunSuite {
     intercept[Exception] {
       allocate(Seq(job), 0)
     }
-    
-    intercept[Exception] {
-      allocate(Seq(job), 1)
-    }
   }
   
   test("allocate - fewer jobs than branching factor") {
@@ -375,6 +381,36 @@ final class JobDirsTest extends FunSuite {
     
     assert(isValid(node))
   }
+  
+  test("allocate - lots of jobs 2") {
+    val jobNames = Iterator.iterate(0)(_ + 1).map(_.toString)
+    
+    val jobs = jobNames.take(11).map(NamedJob(_))
+    
+    val branchingFactor = 10
+    
+    val node = JobDirs.allocate(jobs.toSeq, branchingFactor)
+    
+    val root = node.asInstanceOf[Interior]
+    
+    assert(root.children.size == 2)
+    
+    def isValid(n: JobDirs.DirNode): Boolean = n match {
+      case _: Leaf => true
+      case Interior(_, children) => children.size <= branchingFactor && children.forall(isValid)
+    }
+    
+    assert(isValid(node))
+    
+    val leftBranch = root.children.head.asInstanceOf[DirNode.Interior]
+    val rightBranch = root.children.drop(1).head.asInstanceOf[DirNode.Interior]
+    
+    val lhsLeaves = leftBranch.children.map(_.asInstanceOf[DirNode.Leaf])
+    val rhsLeaves = rightBranch.children.map(_.asInstanceOf[DirNode.Leaf])
+    
+    assert(lhsLeaves.map(_.job.name).toSet === (0 to 9).map(_.toString).toSet)
+    assert(rhsLeaves.map(_.job.name).toSet === Set("10"))
+  }
 }
 
 object JobDirsTest {
@@ -388,6 +424,16 @@ object JobDirsTest {
         jobStatus = JobStatus.Succeeded,
         jobResult = Some(JobResult.Success),
         terminationReasonOpt = None)
+    }
+  }
+  
+  private final implicit class DirNodeOps(val dirNode: DirNode) extends AnyVal {
+    def equalsWithoutId(other: DirNode): Boolean = (dirNode, other) match {
+      case (lhs: DirNode.Interior, rhs: DirNode.Interior) => {
+        lhs.children.iterator.zip(rhs.children.iterator).forall { case (l, r) => l.equalsWithoutId(r) }
+      }
+      case (lhs: DirNode.Leaf, rhs: DirNode.Leaf) => lhs == rhs
+      case _ => false
     }
   }
 }

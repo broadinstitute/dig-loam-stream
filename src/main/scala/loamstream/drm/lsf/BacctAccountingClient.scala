@@ -75,10 +75,8 @@ final class BacctAccountingClient(
     
     val joinedBacctOutput = rawBacctOutput.mkString(delim).replaceAll(s"${delim}\\s*", "")
     
-    def stripLineEndings(s: String): String = s.replaceAll("\\n?\\r", "")
-    
     def extract(regex: Regex): Option[String] = joinedBacctOutput match {
-      case regex(s) => Option(stripLineEndings(s).trim)
+      case regex(s) => Option(s.trim)
       case _ => None
     }
     

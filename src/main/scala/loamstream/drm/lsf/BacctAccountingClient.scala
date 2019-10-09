@@ -21,25 +21,27 @@ import loamstream.util.Options
 import loamstream.util.RetryingCommandInvoker
 import loamstream.util.Tries
 import loamstream.model.jobs.TerminationReason
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext
 
 /**
  * @author clint
  * Apr 18, 2019
  */
 final class BacctAccountingClient(
-    bacctInvoker: RetryingCommandInvoker[String]) extends AccountingClient with Loggable {
+    bacctInvoker: RetryingCommandInvoker[String])(implicit ec: ExecutionContext) extends AccountingClient with Loggable {
 
   import BacctAccountingClient._
 
-  override def getResourceUsage(jobId: String): Try[LsfResources] = {
-    getBacctOutputFor(jobId).flatMap(toResources)
+  override def getResourceUsage(jobId: String): Future[LsfResources] = {
+    getBacctOutputFor(jobId).flatMap(output => Future.fromTry(toResources(output)))
   }
   
-  override def getTerminationReason(jobId: String): Try[Option[TerminationReason]] = {
+  override def getTerminationReason(jobId: String): Future[Option[TerminationReason]] = {
     getBacctOutputFor(jobId).map(toTerminationReason)
   }
   
-  private def getBacctOutputFor(jobId: String): Try[Seq[String]] = bacctInvoker(jobId).map(_.stdout.map(_.trim))
+  private def getBacctOutputFor(jobId: String): Future[Seq[String]] = bacctInvoker(jobId).map(_.stdout.map(_.trim))
     
   private def toTerminationReason(bacctOutput: Seq[String]): Option[TerminationReason] = {
     bacctOutput.collectFirst { case Regexes.termReason(r) => r }.map(parseTerminationReason)
@@ -81,7 +83,7 @@ object BacctAccountingClient {
   /**
    * Make a QacctAccountingClient that will retrieve job metadata by running some executable, by default, `qacct`.
    */
-  def useActualBinary(lsfConfig: LsfConfig, binaryName: String = "bacct"): BacctAccountingClient = {
+  def useActualBinary(lsfConfig: LsfConfig, binaryName: String = "bacct")(implicit ec: ExecutionContext): BacctAccountingClient = {
     new BacctAccountingClient(BacctInvoker.useActualBinary(lsfConfig.maxBacctRetries, binaryName))
   }
   

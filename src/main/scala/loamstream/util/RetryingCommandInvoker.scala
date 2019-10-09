@@ -6,6 +6,8 @@ import RetryingCommandInvoker.InvocationFn
 import RetryingCommandInvoker.SuccessfulInvocationFn
 import scala.util.Success
 import scala.util.Failure
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext
 
 /**
  * @author clint
@@ -22,13 +24,13 @@ final class RetryingCommandInvoker[A](
     binaryName: String,
     delegateFn: InvocationFn[A],
     delayStart: Duration = RetryingCommandInvoker.defaultDelayStart,
-    delayCap: Duration = RetryingCommandInvoker.defaultDelayCap) extends (SuccessfulInvocationFn[A]) with Loggable {
+    delayCap: Duration = RetryingCommandInvoker.defaultDelayCap)(implicit ec: ExecutionContext) extends (SuccessfulInvocationFn[A]) with Loggable {
   
   //Memoize the function that retrieves the metadata, to avoid running something expensive, like invoking
   //bacct/qacct, more than necessary.
   //NB: If the operation fails, retry up to maxRetries times, by default waiting 
   //0.5, 1, 2, 4, ... up to 30s in between each one.
-  override def apply(param: A): Try[RunResults.Successful] = runCommand(param)
+  override def apply(param: A): Future[RunResults.Successful] = runCommand(param)
   
   private val runCommand: SuccessfulInvocationFn[A] = {
     doRetries(
@@ -62,18 +64,18 @@ final class RetryingCommandInvoker[A](
       case Failure(e) => Failure(e)
     }
     
-    val resultOpt = Loops.retryUntilSuccessWithBackoff(maxRuns, delayStart, delayCap) {
+    val resultOptFuture = Loops.retryUntilSuccessWithBackoffAsync(maxRuns, delayStart, delayCap) {
       invokeBinary()
     }
     
-    val result: Try[RunResults.Successful] = resultOpt match {
-      case Some(a) => Success(a)
+    val result: Future[RunResults.Successful] = resultOptFuture.flatMap {
+      case Some(a) => Future.successful(a)
       case _ => {
         val msg = s"Invoking '$binaryName' for with param '$param' failed after $maxRuns runs"
         
         debug(msg)
 
-        Tries.failure(msg)
+        Future.failed(new Exception(msg))
       }
     }
     
@@ -84,7 +86,7 @@ final class RetryingCommandInvoker[A](
 object RetryingCommandInvoker {
   type InvocationFn[A] = A => Try[RunResults]
   
-  type SuccessfulInvocationFn[A] = A => Try[RunResults.Successful]
+  type SuccessfulInvocationFn[A] = A => Future[RunResults.Successful]
   
   import scala.concurrent.duration._
   

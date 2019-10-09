@@ -3,6 +3,11 @@ package loamstream.util
 import scala.util.Try
 import scala.concurrent.duration._
 import scala.util.Success
+import scala.concurrent.Future
+import rx.lang.scala.Observable
+import scala.concurrent.Promise
+import scala.concurrent.ExecutionContext
+import scala.util.Failure
 
 /**
  * @author clint
@@ -50,6 +55,33 @@ object Loops {
     attempts.toStream.headOption match {
       case Some(Success(a)) => Some(a)
       case _ => None
+    }
+  }
+  
+  def retryUntilSuccessWithBackoffAsync[A](
+      maxRuns: Int, 
+      delayStart: Duration, 
+      delayCap: Duration)(op: => Try[A])(implicit ec: ExecutionContext): Future[Option[A]] = {
+    
+    val delays = Backoff.delaySequence(delayStart, delayCap)
+    
+    def delayAndThen[X](f: => X): Observable[X] = Observable.timer(delays.next()).map(_ => f)
+    
+    def next(tuple: (Int, Try[A])): Observable[(Int, Try[A])] = {
+      val (i, attempt) = tuple
+      
+      attempt match {
+        case Success(_) => Observable.just(tuple)
+        case Failure(_) if i >= maxRuns => Observable.empty
+        case _ => delayAndThen((i + 1) -> op).flatMap(next)
+      }
+    }
+    if(maxRuns == 0) { 
+      Future.successful(None)
+    } else {
+      import Observables.Implicits._
+      
+      next(1 -> op).collect { case (_, attempt) => attempt.toOption }.headOption.map(_.flatten).firstAsFuture
     }
   }
 }

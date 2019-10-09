@@ -3,6 +3,7 @@ package loamstream.drm
 import loamstream.util.RetryingCommandInvoker
 import loamstream.util.Processes
 import loamstream.util.Loggable
+import scala.concurrent.ExecutionContext
 
 /**
  * @author clint
@@ -13,7 +14,7 @@ object AccountingCommandInvoker {
     /**
      * Make a RetryingCommandInvoker that will retrieve job metadata by running some executable.
      */
-    def useActualBinary(maxRetries: Int, binaryName: String): RetryingCommandInvoker[String] = {
+    def useActualBinary(maxRetries: Int, binaryName: String)(implicit ec: ExecutionContext): RetryingCommandInvoker[String] = {
       def invokeBinaryFor(jobId: String) = {
         val tokens = makeTokens(binaryName, jobId)
         

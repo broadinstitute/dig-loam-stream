@@ -172,7 +172,8 @@ object DrmChunkRunner extends Loggable {
     }
   }
   
-  private[drm] def getAccountingInfoFor(accountingClient: AccountingClient)(jobId: String)(implicit ec: ExecutionContext): Future[Option[AccountingInfo]] = {
+  private[drm] def getAccountingInfoFor(accountingClient: AccountingClient)(jobId: String)
+                                       (implicit ec: ExecutionContext): Future[Option[AccountingInfo]] = {
     val infoAttempt = accountingClient.getAccountingInfo(jobId)
         
     //For side effect only
@@ -221,7 +222,8 @@ object DrmChunkRunner extends Loggable {
   private[drm] def toRunDatas(
     accountingClient: AccountingClient, 
     shouldRestart: LJob => Boolean,
-    jobsAndDrmStatusesById: Map[String, JobAndStatuses])(implicit ec: ExecutionContext): Observable[Map[LJob, RunData]] = {
+    jobsAndDrmStatusesById: Map[String, JobAndStatuses])
+    (implicit ec: ExecutionContext): Observable[Map[LJob, RunData]] = {
 
     val drmJobsToExecutionObservables: Iterable[(DrmJobWrapper, Observable[RunData])] = for {
       (jobId, (wrapper, drmJobStatuses)) <- jobsAndDrmStatusesById

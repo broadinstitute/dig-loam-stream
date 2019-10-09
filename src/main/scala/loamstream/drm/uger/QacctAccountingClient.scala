@@ -24,6 +24,7 @@ import loamstream.model.jobs.TerminationReason
 import scala.util.Success
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
+import loamstream.util.Futures
 
 /**
  * @author clint
@@ -34,36 +35,26 @@ import scala.concurrent.Future
  * job id, to facilitate unit testing.
  */
 final class QacctAccountingClient(
-    qacctInvoker: RetryingCommandInvoker[String])(implicit ec: ExecutionContext) extends AccountingClient with Loggable {
+    qacctInvoker: RetryingCommandInvoker[String])
+    (implicit ec: ExecutionContext) extends AccountingClient with Loggable {
 
   import QacctAccountingClient._
 
   private def getQacctOutputFor(jobId: String): Future[Seq[String]] = qacctInvoker(jobId).map(_.stdout)
 
   import Regexes.{ cpu, endTime, hostname, mem, qname, startTime }
-
-  private implicit final class FutureOps[A](val fa: Future[A]) {
-    def toOption: Future[Option[A]] = fa.transformWith(attempt => Future.successful(attempt.toOption))
-    def attempt[B](f: A => Try[B]): Future[B] = fa.flatMap(a => Future.fromTry(f(a)))
-  }
   
   override def getResourceUsage(jobId: String): Future[UgerResources] = {
-    for {
-      output <- getQacctOutputFor(jobId)
-      nodeOptF = findField(output, hostname).toOption
-      queueOptF = findField(output, qname).map(Queue(_)).toOption
-      memoryF = findField(output, mem).attempt(toMemory)
-      cpuTimeF = findField(output, cpu).attempt(toCpuTime)
-      startF = findField(output, startTime).attempt(toInstant("start"))
-      endF = findField(output, endTime).attempt(toInstant("end"))
-      resources <- for {
-        nodeOpt <- nodeOptF
-        queueOpt <- queueOptF
-        memory <- memoryF
-        cpuTime <- cpuTimeF
-        start <- startF
-        end <- endF
-      } yield {
+    def toResources(output: Seq[String]): Future[UgerResources] = {
+      val nodeOpt = findField(output, hostname).toOption
+      val queueOpt = findField(output, qname).map(Queue(_)).toOption
+      
+      val result = for {
+        memory <- findField(output, mem).flatMap(toMemory)
+        cpuTime <- findField(output, cpu).flatMap(toCpuTime)
+        start <- findField(output, startTime).flatMap(toInstant("start"))
+        end <- findField(output, endTime).flatMap(toInstant("end"))
+      } yield  {
         UgerResources(
           memory = memory,
           cpuTime = cpuTime,
@@ -73,7 +64,11 @@ final class QacctAccountingClient(
           endTime = end,
           raw = Some(output.mkString(System.lineSeparator)))
       }
-    } yield resources
+      
+      Future.fromTry(result)
+    }
+    
+    getQacctOutputFor(jobId).flatMap(toResources)
   }
   
   override def getTerminationReason(jobId: String): Future[Option[TerminationReason]] = {
@@ -87,7 +82,9 @@ object QacctAccountingClient extends Loggable {
   /**
    * Make a QacctAccountingClient that will retrieve job metadata by running some executable, by default, `qacct`.
    */
-  def useActualBinary(ugerConfig: UgerConfig, binaryName: String = "qacct")(implicit ec: ExecutionContext): QacctAccountingClient = {
+  def useActualBinary(
+      ugerConfig: UgerConfig, 
+      binaryName: String = "qacct")(implicit ec: ExecutionContext): QacctAccountingClient = {
     new QacctAccountingClient(QacctInvoker.useActualBinary(ugerConfig.maxQacctRetries, binaryName))
   }
   
@@ -117,10 +114,10 @@ object QacctAccountingClient extends Loggable {
     }
   }
 
-  private def findField(fields: Seq[String], regex: Regex): Future[String] = {
+  private def findField(fields: Seq[String], regex: Regex): Try[String] = {
     val opt = fields.collectFirst { case regex(value) => value.trim }.filter(_.nonEmpty)
     
-    Future.fromTry(Options.toTry(opt)(s"Couldn't find field that matched regex '$regex'"))
+    Options.toTry(opt)(s"Couldn't find field that matched regex '$regex'")
   }
   
   //Example date from qacct: 03/06/2017 17:49:50.455

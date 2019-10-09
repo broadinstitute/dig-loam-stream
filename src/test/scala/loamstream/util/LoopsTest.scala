@@ -4,6 +4,7 @@ import org.scalatest.FunSuite
 import scala.util.Try
 import scala.util.Success
 import scala.concurrent.duration._
+import loamstream.TestHelpers
 
 
 /**
@@ -22,33 +23,70 @@ final class LoopsTest extends FunSuite {
     }
   }
   
-  import Loops.retryUntilSuccessWithBackoff
-  
-  test("retryUntilSuccessWithBackoff - 0 times") {
-    assert(retryUntilSuccessWithBackoff(0, 0.1.seconds, 0.5.seconds)(alwaysWorks) === None)
-    assert(retryUntilSuccessWithBackoff(0, 0.1.seconds, 0.5.seconds)(alwaysFails) === None)
+  {
+    import Loops.retryUntilSuccessWithBackoff
     
-    val willWorkEventually = worksAfter(1, "foo")
+    test("retryUntilSuccessWithBackoff - 0 times") {
+      assert(retryUntilSuccessWithBackoff(0, 0.1.seconds, 0.5.seconds)(alwaysWorks) === None)
+      assert(retryUntilSuccessWithBackoff(0, 0.1.seconds, 0.5.seconds)(alwaysFails) === None)
+      
+      val willWorkEventually = worksAfter(1, "foo")
+      
+      assert(retryUntilSuccessWithBackoff(0, 0.01.seconds, 0.05.seconds)(willWorkEventually()) === None)
+    }
     
-    assert(retryUntilSuccessWithBackoff(0, 0.01.seconds, 0.05.seconds)(willWorkEventually()) === None)
+    test("retryUntilSuccessWithBackoff - 1 times") {
+      assert(retryUntilSuccessWithBackoff(1, 0.01.seconds, 0.05.seconds)(alwaysWorks) === Some(42))
+      assert(retryUntilSuccessWithBackoff(1, 0.01.seconds, 0.05.seconds)(alwaysFails) === None)
+      
+      val willWorkEventually = worksAfter(1, "foo")
+      
+      assert(retryUntilSuccessWithBackoff(1, 0.01.seconds, 0.05.seconds)(willWorkEventually()) === None)
+    }
+    
+    test("retryUntilSuccessWithBackoff - 3 times") {
+      assert(retryUntilSuccessWithBackoff(3, 0.01.seconds, 0.05.seconds)(alwaysWorks) === Some(42))
+      assert(retryUntilSuccessWithBackoff(3, 0.01.seconds, 0.05.seconds)(alwaysFails) === None)
+      
+      val willWorkEventually = worksAfter(2, "foo")
+      
+      assert(retryUntilSuccessWithBackoff(3, 0.01.seconds, 0.05.seconds)(willWorkEventually()) === Some("foo"))
+    }
   }
   
-  test("retryUntilSuccessWithBackoff - 1 times") {
-    assert(retryUntilSuccessWithBackoff(1, 0.01.seconds, 0.05.seconds)(alwaysWorks) === Some(42))
-    assert(retryUntilSuccessWithBackoff(1, 0.01.seconds, 0.05.seconds)(alwaysFails) === None)
+  {
+    import Loops.retryUntilSuccessWithBackoffAsync
+    import TestHelpers.waitFor
+    import scala.concurrent.ExecutionContext.Implicits.global
     
-    val willWorkEventually = worksAfter(1, "foo")
+    test("retryUntilSuccessWithBackoffAsync - 0 times") {
+      assert(waitFor(retryUntilSuccessWithBackoffAsync(0, 0.1.seconds, 0.5.seconds)(alwaysWorks)) === None)
+      assert(waitFor(retryUntilSuccessWithBackoffAsync(0, 0.1.seconds, 0.5.seconds)(alwaysFails)) === None)
+      
+      val willWorkEventually = worksAfter(1, "foo")
+      
+      assert(waitFor(retryUntilSuccessWithBackoffAsync(0, 0.01.seconds, 0.05.seconds)(willWorkEventually())) === None)
+    }
     
-    assert(retryUntilSuccessWithBackoff(1, 0.01.seconds, 0.05.seconds)(willWorkEventually()) === None)
-  }
-  
-  test("retryUntilSuccessWithBackoff - 3 times") {
-    assert(retryUntilSuccessWithBackoff(3, 0.01.seconds, 0.05.seconds)(alwaysWorks) === Some(42))
-    assert(retryUntilSuccessWithBackoff(3, 0.01.seconds, 0.05.seconds)(alwaysFails) === None)
+    test("retryUntilSuccessWithBackoffAsync - 1 times") {
+      assert(waitFor(retryUntilSuccessWithBackoffAsync(1, 0.01.seconds, 0.05.seconds)(alwaysWorks)) === Some(42))
+      assert(waitFor(retryUntilSuccessWithBackoffAsync(1, 0.01.seconds, 0.05.seconds)(alwaysFails)) === None)
+      
+      val willWorkEventually = worksAfter(1, "foo")
+      
+      assert(waitFor(retryUntilSuccessWithBackoffAsync(1, 0.01.seconds, 0.05.seconds)(willWorkEventually())) === None)
+    }
     
-    val willWorkEventually = worksAfter(2, "foo")
-    
-    assert(retryUntilSuccessWithBackoff(3, 0.01.seconds, 0.05.seconds)(willWorkEventually()) === Some("foo"))
+    test("retryUntilSuccessWithBackoffAsync - 3 times") {
+      assert(waitFor(retryUntilSuccessWithBackoffAsync(3, 0.01.seconds, 0.05.seconds)(alwaysWorks)) === Some(42))
+      assert(waitFor(retryUntilSuccessWithBackoffAsync(3, 0.01.seconds, 0.05.seconds)(alwaysFails)) === None)
+      
+      val willWorkEventually = worksAfter(2, "foo")
+      
+      assert(
+        waitFor(
+          retryUntilSuccessWithBackoffAsync(3, 0.01.seconds, 0.05.seconds)(willWorkEventually())) === Some("foo"))
+    }
   }
   
   test("delaySequence") {

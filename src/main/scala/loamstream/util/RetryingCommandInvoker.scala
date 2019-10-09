@@ -24,7 +24,8 @@ final class RetryingCommandInvoker[A](
     binaryName: String,
     delegateFn: InvocationFn[A],
     delayStart: Duration = RetryingCommandInvoker.defaultDelayStart,
-    delayCap: Duration = RetryingCommandInvoker.defaultDelayCap)(implicit ec: ExecutionContext) extends (SuccessfulInvocationFn[A]) with Loggable {
+    delayCap: Duration = RetryingCommandInvoker.defaultDelayCap)
+    (implicit ec: ExecutionContext) extends (SuccessfulInvocationFn[A]) with Loggable {
   
   //Memoize the function that retrieves the metadata, to avoid running something expensive, like invoking
   //bacct/qacct, more than necessary.

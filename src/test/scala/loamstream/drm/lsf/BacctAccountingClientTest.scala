@@ -14,12 +14,15 @@ import loamstream.util.RetryingCommandInvoker
 import loamstream.util.RunResults
 import scala.util.Try
 import loamstream.model.jobs.TerminationReason
+import loamstream.TestHelpers
 
 /**
  * @author clint
  * Apr 18, 2019
  */
 final class BacctAccountingClientTest extends FunSuite {
+  import TestHelpers.waitFor
+  
   private def runResultsAttempt(
       binaryName: String = "MOCK", 
       exitCode: Int = 0, 
@@ -28,11 +31,13 @@ final class BacctAccountingClientTest extends FunSuite {
   
   private def asTrimmedLines(s: String): Seq[String] = s.split("\\n").map(_.trim)
       
+  import scala.concurrent.ExecutionContext.Implicits.global
+  
   test("Parse actual bacct outpout - bad input") {
     def doTest(bacctOutput: Seq[String]): Unit = {
       val mockInvoker = new RetryingCommandInvoker[String](0, "MOCK", _ => runResultsAttempt(stdout = bacctOutput))
     
-      assert(new BacctAccountingClient(mockInvoker).getResourceUsage("foo").isFailure === true)
+      waitFor(new BacctAccountingClient(mockInvoker).getResourceUsage("foo").failed)
     }
     
     doTest(Nil)
@@ -44,7 +49,7 @@ final class BacctAccountingClientTest extends FunSuite {
     
     val mockInvoker = new RetryingCommandInvoker[String](0, "MOCK", _ => runResultsAttempt(stdout = splitOutput))
     
-    val actual = (new BacctAccountingClient(mockInvoker)).getResourceUsage("someJobId").get
+    val actual = waitFor((new BacctAccountingClient(mockInvoker)).getResourceUsage("someJobId"))
     
     val now = ZonedDateTime.now
     
@@ -79,9 +84,9 @@ final class BacctAccountingClientTest extends FunSuite {
       
       val mockInvoker = new RetryingCommandInvoker[String](0, "MOCK", _ => runResultsAttempt(stdout = splitOutput))
       
-      val actual = (new BacctAccountingClient(mockInvoker)).getTerminationReason("someJobId")
+      val actual = waitFor((new BacctAccountingClient(mockInvoker)).getTerminationReason("someJobId"))
       
-      assert(actual.get === expected)
+      assert(actual === expected)
     }
     
     doTest("", "blah blah", None)
@@ -106,7 +111,7 @@ final class BacctAccountingClientTest extends FunSuite {
     
     val mockInvoker = new RetryingCommandInvoker[String](0, "MOCK", _ => runResultsAttempt(stdout = splitOutput))
     
-    val actual = (new BacctAccountingClient(mockInvoker)).getResourceUsage("someJobId").get
+    val actual = waitFor((new BacctAccountingClient(mockInvoker)).getResourceUsage("someJobId"))
     
     val now = ZonedDateTime.now
     

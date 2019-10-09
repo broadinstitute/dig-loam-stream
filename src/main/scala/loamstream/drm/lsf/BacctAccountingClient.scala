@@ -29,7 +29,8 @@ import scala.concurrent.ExecutionContext
  * Apr 18, 2019
  */
 final class BacctAccountingClient(
-    bacctInvoker: RetryingCommandInvoker[String])(implicit ec: ExecutionContext) extends AccountingClient with Loggable {
+    bacctInvoker: RetryingCommandInvoker[String])
+    (implicit ec: ExecutionContext) extends AccountingClient with Loggable {
 
   import BacctAccountingClient._
 
@@ -54,14 +55,35 @@ final class BacctAccountingClient(
      */
     def stripLineEndings(s: String): String = s.replaceAll("\\n", "").replaceAll("\\r", "")
     
+    /*
+     * NB: The 10.x version of `bacct` drops the "unformatted" output option, and consequently is fairly eager 
+     * about inserting line breaks and odd amounts of indentation on broken lines.  For example, what the LSF 
+     * 9.x bacct would render as
+     * 
+     * A very, very, very long line with <embedded fields and things like that>
+     * 
+     * is rendered in 10.x as something like (narrow lines to make the point)
+     * 
+     * A very, very, ve
+     *   ry long line w
+     *   ith <embedded 
+     *   fields and thi
+     *   ngs like that>
+     *   
+     * The code below takes the sequence of lines from bacct, joins them with a conspicuous delimiter, and
+     * then removes the delimiter and any whitespace immediately following it. This gets rid of the line breaks
+     * and the added indentation, allowing fields delimited by angle brackets, etc, to be retrieved more easily.
+     */
+    
+    //Use a delimiter that won't occur in `bacct`'s output, so we can find where line-breaks used to be.
     val delim = "%%%%%%%%%%%%"
     
     val joinedBacctOutput = rawBacctOutput.mkString(delim)
     
-    def munge(s: String): String = s.replaceAll(s"${delim}\\s*", "")
+    def unBreakLines(s: String): String = s.replaceAll(s"${delim}\\s*", "")
     
     def extract(regex: Regex): Option[String] = joinedBacctOutput match {
-      case regex(s) => Option(stripLineEndings(munge(s).trim))
+      case regex(s) => Option(stripLineEndings(unBreakLines(s).trim))
       case _ => None
     }
     
@@ -83,7 +105,9 @@ object BacctAccountingClient {
   /**
    * Make a QacctAccountingClient that will retrieve job metadata by running some executable, by default, `qacct`.
    */
-  def useActualBinary(lsfConfig: LsfConfig, binaryName: String = "bacct")(implicit ec: ExecutionContext): BacctAccountingClient = {
+  def useActualBinary(
+      lsfConfig: LsfConfig, 
+      binaryName: String = "bacct")(implicit ec: ExecutionContext): BacctAccountingClient = {
     new BacctAccountingClient(BacctInvoker.useActualBinary(lsfConfig.maxBacctRetries, binaryName))
   }
   

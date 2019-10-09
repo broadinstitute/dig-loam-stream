@@ -14,7 +14,10 @@ object AccountingCommandInvoker {
     /**
      * Make a RetryingCommandInvoker that will retrieve job metadata by running some executable.
      */
-    def useActualBinary(maxRetries: Int, binaryName: String)(implicit ec: ExecutionContext): RetryingCommandInvoker[String] = {
+    def useActualBinary(
+        maxRetries: Int, 
+        binaryName: String)(implicit ec: ExecutionContext): RetryingCommandInvoker[String] = {
+      
       def invokeBinaryFor(jobId: String) = {
         val tokens = makeTokens(binaryName, jobId)
         

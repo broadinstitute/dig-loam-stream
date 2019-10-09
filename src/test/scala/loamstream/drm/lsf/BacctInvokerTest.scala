@@ -8,6 +8,6 @@ import org.scalatest.FunSuite
  */
 final class BacctInvokerTest extends FunSuite {
   test("makeTokens") {
-    assert(BacctInvoker.makeTokens("foo", "bar") === Seq("foo", "-l", "-UF", "bar"))
+    assert(BacctInvoker.makeTokens("foo", "bar") === Seq("foo", "-l", "bar"))
   }
 }

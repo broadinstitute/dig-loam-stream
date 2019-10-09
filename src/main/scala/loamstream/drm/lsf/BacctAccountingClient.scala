@@ -50,9 +50,22 @@ final class BacctAccountingClient(
      * Documentation on bacct's output format:
      * https://www.ibm.com/support/knowledgecenter/en/SSWRJV_10.1.0/lsf_command_ref/bacct.1.html
      */
-    val node = rawBacctOutput.collectFirst { case Regexes.node(n) => n }
+    def stripLineEndings(s: String): String = s.replaceAll("\\n", "").replaceAll("\\r", "")
     
-    val queue = rawBacctOutput.collectFirst { case Regexes.queue(q) => q }.map(Queue(_))
+    val delim = "%%%%%%%%%%%%"
+    
+    val joinedBacctOutput = rawBacctOutput.mkString(delim)
+    
+    def munge(s: String): String = s.replaceAll(s"${delim}\\s*", "")
+    
+    def extract(regex: Regex): Option[String] = joinedBacctOutput match {
+      case regex(s) => Option(stripLineEndings(munge(s).trim))
+      case _ => None
+    }
+    
+    val node = extract(Regexes.node)
+    
+    val queue = extract(Regexes.queue).map(Queue(_))
     
     val dataLineOpt = rawBacctOutput.sliding(2).collectFirst {
       case Seq(firstLine, nextLine) if isHeaderLine(firstLine) => nextLine.trim
@@ -184,7 +197,7 @@ object BacctAccountingClient {
   
   private[lsf] object Regexes {
     val node = ".*[Dd]ispatched to <(.+?)>.*".r
-    val queue = ".*Queue <(.+?)>.*".r
+    val queue = "(?s).*Queue <(.+?)>.*".r
     //Thu Apr 18 22:32:01: Dispatched to <ebi6-054>
     val startTime = "(.*):.*[Dd]ispatched\\sto.*".r
     //Thu Apr 18 22:32:01: Completed <exit>.

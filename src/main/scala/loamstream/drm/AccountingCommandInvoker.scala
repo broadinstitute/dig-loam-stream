@@ -9,7 +9,7 @@ import loamstream.util.Loggable
  * Apr 25, 2019
  */
 object AccountingCommandInvoker {
-  abstract class Companion[A] extends Loggable {
+  abstract class Companion extends Loggable {
     /**
      * Make a RetryingCommandInvoker that will retrieve job metadata by running some executable.
      */

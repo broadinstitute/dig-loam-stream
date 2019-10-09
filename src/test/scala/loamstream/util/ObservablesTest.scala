@@ -137,8 +137,8 @@ final class ObservablesTest extends FunSuite {
     
     {
       val tuples = Seq("a" -> Observable.just(1), "b" -> Observable.just(2, 22), "c" -> Observable.just(3))
-      
-      val expected = Seq(Map("a" -> 1, "b" -> 2, "c" -> 3), Map("a" -> 1, "b" -> 22, "c" -> 3))
+
+      val expected = Seq(Map("a" -> 1, "b" -> 22, "c" -> 3))
       
       assert(waitFor(toMap(tuples).to[Seq].firstAsFuture) == expected)
     }

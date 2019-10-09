@@ -54,6 +54,8 @@ object Observables extends Loggable {
    * @return an Observable producing map of keys to values
    */
   def toMap[A,B](tuples: Traversable[(A, Observable[B])]): Observable[Map[A,B]] = {
+    //NB: Use merge() instead of folding over the `tuples` Traversable to avoid blowing the stack.
+    
     val tupleObservables: Iterable[Observable[(A, B)]] = tuples.toIterable.map { case (a, bs) => bs.map(b => (a, b)) }
     
     val tupleObs: Observable[(A, B)] = merge(tupleObservables)

@@ -48,13 +48,11 @@ final class BacctAccountingClient(
     bacctOutput.collectFirst { case Regexes.termReason(r) => r }.map(parseTerminationReason)
   }
   
+  /*
+   * Documentation on bacct's output format:
+   * https://www.ibm.com/support/knowledgecenter/en/SSWRJV_10.1.0/lsf_command_ref/bacct.1.html
+   */
   private def toResources(rawBacctOutput: Seq[String]): Try[LsfResources] = {
-    /*
-     * Documentation on bacct's output format:
-     * https://www.ibm.com/support/knowledgecenter/en/SSWRJV_10.1.0/lsf_command_ref/bacct.1.html
-     */
-    def stripLineEndings(s: String): String = s.replaceAll("\\n", "").replaceAll("\\r", "")
-    
     /*
      * NB: The 10.x version of `bacct` drops the "unformatted" output option, and consequently is fairly eager 
      * about inserting line breaks and odd amounts of indentation on broken lines.  For example, what the LSF 
@@ -74,16 +72,14 @@ final class BacctAccountingClient(
      * then removes the delimiter and any whitespace immediately following it. This gets rid of the line breaks
      * and the added indentation, allowing fields delimited by angle brackets, etc, to be retrieved more easily.
      */
-    
+
     //Use a delimiter that won't occur in `bacct`'s output, so we can find where line-breaks used to be.
     val delim = "%%%%%%%%%%%%"
     
-    val joinedBacctOutput = rawBacctOutput.mkString(delim)
-    
-    def unBreakLines(s: String): String = s.replaceAll(s"${delim}\\s*", "")
+    val joinedBacctOutput = rawBacctOutput.mkString(delim).replaceAll(s"${delim}\\s*", "")
     
     def extract(regex: Regex): Option[String] = joinedBacctOutput match {
-      case regex(s) => Option(stripLineEndings(unBreakLines(s).trim))
+      case regex(s) => Option(s.trim)
       case _ => None
     }
     

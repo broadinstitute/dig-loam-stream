@@ -7,6 +7,7 @@ import scala.util.Failure
 import scala.util.Success
 
 import rx.lang.scala.Observable
+import scala.concurrent.duration.Duration
 
 /**
  * @author clint
@@ -53,18 +54,13 @@ object Observables extends Loggable {
    * @return an Observable producing map of keys to values
    */
   def toMap[A,B](tuples: Traversable[(A, Observable[B])]): Observable[Map[A,B]] = {
-    val z: Observable[Map[A,B]] = Observable.just(Map.empty)
+    //NB: Use merge() instead of folding over the `tuples` Traversable to avoid blowing the stack.
     
-    tuples.foldLeft(z) { (observableAcc, tuple) =>
-      val (a, obsB) = tuple
-      
-      for {
-        acc <- observableAcc
-        b <- obsB
-      } yield {
-        acc + (a -> b)
-      }
-    }
+    val tupleObservables: Iterable[Observable[(A, B)]] = tuples.toIterable.map { case (a, bs) => bs.map(b => (a, b)) }
+    
+    val tupleObs: Observable[(A, B)] = merge(tupleObservables)
+    
+    tupleObs.foldLeft(Map.empty[A,B])(_ + _)
   }
   
   /**

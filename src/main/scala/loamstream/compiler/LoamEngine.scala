@@ -1,35 +1,34 @@
 package loamstream.compiler
 
+import java.io.FileWriter
+import java.io.PrintWriter
 import java.nio.file.{ Files => JFiles }
 import java.nio.file.Path
-import java.nio.file.Paths
+import java.time.Instant
+
+import scala.util.control.NonFatal
 
 import loamstream.conf.LoamConfig
 import loamstream.googlecloud.CloudStorageClient
 import loamstream.loam.LoamGraph
 import loamstream.loam.LoamScript
 import loamstream.loam.LoamToolBox
+import loamstream.model.execute.DryRunner
 import loamstream.model.execute.Executable
 import loamstream.model.execute.Executer
 import loamstream.model.execute.RxExecuter
 import loamstream.model.jobs.Execution
-import loamstream.model.jobs.JobNode
+import loamstream.model.jobs.JobOracle
+import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.LJob
+import loamstream.model.jobs.commandline.HasCommandLine
+import loamstream.util.CanBeClosed
 import loamstream.util.Hit
+import loamstream.util.IoUtils
 import loamstream.util.Loggable
 import loamstream.util.Miss
 import loamstream.util.Shot
 import loamstream.util.StringUtils
-import loamstream.model.execute.JobFilter
-import loamstream.model.execute.DryRunner
-import java.io.PrintWriter
-import java.io.FileWriter
-import loamstream.util.CanBeClosed
-import java.time.Instant
-import loamstream.util.IoUtils
-import java.io.Writer
-import loamstream.conf.ExecutionConfig
-import loamstream.conf.Locations
 
 
 /**
@@ -111,11 +110,42 @@ final case class LoamEngine(
     
     info("Now going to execute.")
 
-    val executions = executer.execute(executable)
-
-    info(s"Done executing ${StringUtils.soMany(executions.size, "job")}.")
-
-    executions
+    val jobOracle = JobOracle.fromExecutable(config.executionConfig, executable)
+    
+    try {
+      val executions = executer.execute(executable, _ => jobOracle)
+  
+      info(s"Done executing ${StringUtils.soMany(executions.size, "job")}.")
+  
+      executions
+    } catch {
+      case NonFatal(e) => {
+        error(s"Caught exception when running, attempting to provide information about jobs for debugging.", e)
+        
+        makeExecutionMapInCaseOfException(executable, jobOracle)
+      }
+    }
+  }
+  
+  private def makeExecutionMapInCaseOfException(executable: Executable, jobOracle: JobOracle): Map[LJob, Execution] = {
+    def getCommand(j: LJob): Option[String] = j match {
+      case clj: HasCommandLine => Some(clj.commandLineString)
+      case _ => None
+    }
+    
+    executable.allJobs.map { job =>
+      val e = Execution(
+          cmd = getCommand(job),
+          settings = job.initialSettings,
+          status = JobStatus.Unknown,
+          result = None,
+          resources = None,
+          outputs = job.outputs.map(_.toStoreRecord),
+          jobDir = jobOracle.dirOptFor(job),
+          terminationReason = None)
+      
+      job -> e
+    }.toMap
   }
   
   private def listJobsThatCouldRun(executable: Executable, jobListOutputFile: Path): Unit = {

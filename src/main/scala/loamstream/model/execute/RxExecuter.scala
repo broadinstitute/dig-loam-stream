@@ -52,11 +52,14 @@ final case class RxExecuter(
   require(maxRunsPerJob >= 1, s"The maximum number of times to run each job must not be negative; got $maxRunsPerJob")
   
   import executionRecorder.record
+  import loamstream.util.Observables.Implicits._
   
-  override def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
-    import loamstream.util.Observables.Implicits._
+  override def execute(
+      executable: Executable, 
+      makeJobOracle: Executable => JobOracle = JobOracle.fromExecutable(executionConfig, _))
+     (implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
     
-    val jobOracle = new JobOracle.ForJobs(executionConfig, executable.allJobs)
+    val jobOracle = makeJobOracle(executable)
     
     val ioScheduler: Scheduler = IOScheduler()
     
@@ -98,12 +101,12 @@ final case class RxExecuter(
     }
     //NB: We no longer stop on the first failure, but run each sub-tree of jobs as far as possible.
     
-    val z: Map[LJob, Execution] = Map.empty
-    
-    val futureMergedResults = chunkResults.foldLeft(z)(_ ++ _).firstAsFuture
+    val futureMergedResults = chunkResults.foldLeft(emptyExecutionMap)(_ ++ _).firstAsFuture
 
     Await.result(futureMergedResults, timeout)
   }
+  
+  private val emptyExecutionMap: Map[LJob, Execution] = Map.empty
   
   private def logFinishedJobs(jobs: Map[LJob, Execution]): Unit = {
     for {

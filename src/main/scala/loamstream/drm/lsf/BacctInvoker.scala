@@ -18,8 +18,6 @@ object BacctInvoker extends AccountingCommandInvoker.Companion {
         actualBinary,
         //long format; displays everything we need, and lots we don't
         "-l", 
-        //"unformatted" output; basically omits some line breaks to make parsing easier
-        "-UF",
         jobId)
   }
 }

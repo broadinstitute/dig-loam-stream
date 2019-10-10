@@ -12,27 +12,15 @@ import loamstream.util.Loggable
  * @author kyuksel
  * Jun 26, 2017
  */
-trait LoamRunner {
-  def run(project: LoamProject): Either[LoamCompiler.Result, Map[LJob, Execution]]
-}
+final case class LoamRunner(loamEngine: LoamEngine) extends Loggable {
+  def run(project: LoamProject): Either[LoamCompiler.Result, Map[LJob, Execution]] = {
+    val compilationResults = loamEngine.compile(project)
+    
+    info(compilationResults.summary)
 
-object LoamRunner {
-  def apply(loamEngine: LoamEngine): LoamRunner = new Default(loamEngine)
-
-  private val emptyJobResults: Map[LJob, Execution] = Map.empty
-
-  private final class Default(loamEngine: LoamEngine) extends LoamRunner with Loggable {
-
-    override def run(project: LoamProject): Either[LoamCompiler.Result, Map[LJob, Execution]] = {
-
-      val compilationResults = loamEngine.compile(project)
-      
-      info(compilationResults.summary)
-
-      compilationResults match {
-        case success: LoamCompiler.Result.Success => Right(loamEngine.run(success.graph))
-        case _ => Left(compilationResults)
-      }
+    compilationResults match {
+      case success: LoamCompiler.Result.Success => Right(loamEngine.run(success.graph))
+      case _ => Left(compilationResults)
     }
   }
 }

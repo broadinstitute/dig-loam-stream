@@ -201,9 +201,13 @@ Accounting information about jobs that are:
   - accounted on all service classes.
 ------------------------------------------------------------------------------
 
-Job <2811237>, User <cgilbert>, Project <default>, Status <EXIT>, Queue <research-rh7>, Command <cp ./A.txt ./B.txt>, Share group charged </cgilbert>
+Job <2811237>, User <cgilbert>, Project <default>, Status <EXIT>, Queue <research-
+                     rh7>, Command <cp ./A.txt ./B.txt>, Share group charged </cgi
+                     lbert>
 Thu Apr 18 22:32:01: Submitted from host <ebi-cli-001>, CWD <$HOME>;
-Thu Apr 18 22:32:01: Dispatched to <ebi6-054>, Effective RES_REQ <select[type == local] order[r15s:pg] rusage[numcpus=1.00:duration=8h:decay=0] span[hosts=1] >;
+Thu Apr 18 22:32:01: Dispatched to <ebi6-054>, Effective RES_REQ <select[type == l
+                     ocal] order[r15s:pg] rusage[numcpus=1.00:duration=8h:decay=0]
+                      span[hosts=1] >;
 Thu Apr 18 23:34:12: Completed <exit>.
 
 Accounting information about this job:
@@ -238,9 +242,13 @@ Accounting information about jobs that are:
   - accounted on all service classes.
 ------------------------------------------------------------------------------
 
-Job <2119469>, User <cgilbert>, Project <default>, Status <EXIT>, Queue <research-rh7>, Command <java Hello 250000000 0>, Share group charged </cgilbert>
+Job <2119469>, User <cgilbert>, Project <default>, Status <EXIT>, Queue <research-
+                     rh7>, Command <java Hello 250000000 0>, Share group charged <
+                     /cgilbert>
 Mon May  6 22:58:01: Submitted from host <ebi-cli-001>, CWD <$$HOME>;
-Mon May  6 22:58:03: Dispatched to <ebi6-142>, Effective RES_REQ <select[type == local] order[r15s:pg] rusage[mem=1000.00:duration=8h:decay=0,numcpus=1.00:duration=8h:decay=0] span[hosts=1] >;
+Mon May  6 22:58:03: Dispatched to <ebi6-142>, Effective RES_REQ <select[type == l
+                     ocal] order[r15s:pg] rusage[mem=1000.00:duration=8h:decay=0,n
+                     umcpus=1.00:duration=8h:decay=0] span[hosts=1] >;
 Mon May  6 22:58:03: Completed <exit>; ${termReason}: ${termDesc}
 
 Accounting information about this job:

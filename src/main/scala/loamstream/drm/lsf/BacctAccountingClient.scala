@@ -45,14 +45,44 @@ final class BacctAccountingClient(
     bacctOutput.collectFirst { case Regexes.termReason(r) => r }.map(parseTerminationReason)
   }
   
+  /*
+   * Documentation on bacct's output format:
+   * https://www.ibm.com/support/knowledgecenter/en/SSWRJV_10.1.0/lsf_command_ref/bacct.1.html
+   */
   private def toResources(rawBacctOutput: Seq[String]): Try[LsfResources] = {
     /*
-     * Documentation on bacct's output format:
-     * https://www.ibm.com/support/knowledgecenter/en/SSWRJV_10.1.0/lsf_command_ref/bacct.1.html
+     * NB: The 10.x version of `bacct` drops the "unformatted" output option, and consequently is fairly eager 
+     * about inserting line breaks and odd amounts of indentation on broken lines.  For example, what the LSF 
+     * 9.x bacct would render as
+     * 
+     * A very, very, very long line with <embedded fields and things like that>
+     * 
+     * is rendered in 10.x as something like (narrow lines to make the point)
+     * 
+     * A very, very, ve
+     *   ry long line w
+     *   ith <embedded 
+     *   fields and thi
+     *   ngs like that>
+     *   
+     * The code below takes the sequence of lines from bacct, joins them with a conspicuous delimiter, and
+     * then removes the delimiter and any whitespace immediately following it. This gets rid of the line breaks
+     * and the added indentation, allowing fields delimited by angle brackets, etc, to be retrieved more easily.
      */
-    val node = rawBacctOutput.collectFirst { case Regexes.node(n) => n }
     
-    val queue = rawBacctOutput.collectFirst { case Regexes.queue(q) => q }.map(Queue(_))
+    //Use a delimiter that won't occur in `bacct`'s output, so we can find where line-breaks used to be.
+    val delim = "%%%%%%%%%%%%"
+    
+    val joinedBacctOutput = rawBacctOutput.mkString(delim).replaceAll(s"${delim}\\s*", "")
+    
+    def extract(regex: Regex): Option[String] = joinedBacctOutput match {
+      case regex(s) => Option(s.trim)
+      case _ => None
+    }
+    
+    val node = extract(Regexes.node)
+    
+    val queue = extract(Regexes.queue).map(Queue(_))
     
     val dataLineOpt = rawBacctOutput.sliding(2).collectFirst {
       case Seq(firstLine, nextLine) if isHeaderLine(firstLine) => nextLine.trim
@@ -184,7 +214,7 @@ object BacctAccountingClient {
   
   private[lsf] object Regexes {
     val node = ".*[Dd]ispatched to <(.+?)>.*".r
-    val queue = ".*Queue <(.+?)>.*".r
+    val queue = "(?s).*Queue <(.+?)>.*".r
     //Thu Apr 18 22:32:01: Dispatched to <ebi6-054>
     val startTime = "(.*):.*[Dd]ispatched\\sto.*".r
     //Thu Apr 18 22:32:01: Completed <exit>.

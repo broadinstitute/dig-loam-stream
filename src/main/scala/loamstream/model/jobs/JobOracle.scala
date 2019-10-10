@@ -2,6 +2,7 @@ package loamstream.model.jobs
 
 import java.nio.file.Path
 import loamstream.conf.ExecutionConfig
+import loamstream.model.execute.Executable
 
 /**
  * @author clint
@@ -20,6 +21,10 @@ trait JobOracle {
 }
 
 object JobOracle {
+  def fromExecutable(executionConfig: ExecutionConfig, executable: Executable): JobOracle = {
+    new JobOracle.ForJobs(executionConfig, executable.allJobs)
+  }
+  
   final class ForJobs(executionConfig: ExecutionConfig, jobs: Iterable[LJob]) extends JobOracle {
     private lazy val dirNode: JobDirs.DirNode = JobDirs.allocate(jobs, executionConfig.maxJobLogFilesPerDir)
     

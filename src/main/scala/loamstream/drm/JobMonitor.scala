@@ -1,11 +1,15 @@
 package loamstream.drm
 
+import scala.concurrent.duration.DurationDouble
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
+
 import org.ggf.drmaa.InvalidJobException
+
 import loamstream.util.Loggable
 import loamstream.util.Terminable
+import loamstream.util.Tries
 import loamstream.util.ValueBox
 import rx.lang.scala.Observable
 import rx.lang.scala.Scheduler
@@ -13,7 +17,6 @@ import rx.lang.scala.Subject
 import rx.lang.scala.observables.ConnectableObservable
 import rx.lang.scala.schedulers.IOScheduler
 import rx.lang.scala.subjects.PublishSubject
-import scala.concurrent.duration.DurationDouble
 
 /**
  * @author clint
@@ -25,6 +28,11 @@ final class JobMonitor(
     scheduler: Scheduler = IOScheduler(),
     poller: Poller, 
     pollingFrequencyInHz: Double = 1.0) extends Terminable with Loggable {
+  
+  import JobMonitor.allFinished
+  import JobMonitor.demultiplex
+  import JobMonitor.getDrmStatusFor
+  import JobMonitor.unpackThenFilterThenLimit
   
   private[this] val _isStopped: ValueBox[Boolean] = ValueBox(false)
   
@@ -84,7 +92,11 @@ final class JobMonitor(
     //NB: Defensively filter ticks based on isStopped and keepPolling flags to allow "forcibly" stopping polling, 
     //preventing cases where the app is shutting down (and releasing Drmaa resources like Sessions, etc) but 
     //polling, driven by `ticks` keeps going for a little while after.
-    val pollResults = ticks.takeWhile(_ => shouldContinue).map(_ => poll()).until(allFinished(keepPolling)).replay
+    val pollResults = ticks
+      .takeWhile(_ => shouldContinue)
+      .map(_ => poll())
+      .until(allFinished(keepPolling))
+      .replay
     
     val byJobId: Map[String, Observable[Try[DrmStatus]]] = demultiplex(jobIds, pollResults)
 
@@ -97,7 +109,9 @@ final class JobMonitor(
     try { result }
     finally { pollResults.connect }
   }
+}
 
+object JobMonitor extends Loggable {
   /**
    * Transforms the passed Observable by unpacking Trys, filtering out identical consecutive statuses, 
    * and completing when a 'terminal' status is seen.
@@ -159,18 +173,25 @@ final class JobMonitor(
     val tuples = for {
       jobId <- jobIds
     } yield {
-      val forJob = multiplexed.map(resultsById => resultsById(jobId))
+      val forJob = multiplexed.map(getDrmStatusFor(jobId))
         
       jobId -> forJob
     }
     
     tuples.toMap
   }
-
+  
+  private[drm] def getDrmStatusFor(jobId: String)(pollResultAttempts: Map[String, Try[DrmStatus]]): Try[DrmStatus] = {
+    pollResultAttempts.get(jobId) match {
+      case Some(pollResultAttempt) => pollResultAttempt
+      case None => Tries.failure(s"No data found for job id '$jobId' when polling, forging onward")
+    }
+  }
+  
   private def allFinished(keepPollingFlag: ValueBox[Boolean])(pollResults: Map[String, Try[DrmStatus]]): Boolean = {
     def unpack(attempt: Try[DrmStatus]): DrmStatus = attempt.getOrElse(DrmStatus.Undetermined)
     
-    val result = pollResults.values.map(unpack).forall(_.isFinished)
+    val result = pollResults.values.iterator.map(unpack).forall(_.isFinished)
     
     if(result) {
       val idsString = pollResults.keys.toSeq.sorted.mkString(",")

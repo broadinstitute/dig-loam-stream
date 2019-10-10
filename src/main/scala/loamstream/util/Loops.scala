@@ -1,13 +1,14 @@
 package loamstream.util
 
-import scala.util.Try
-import scala.concurrent.duration._
-import scala.util.Success
-import scala.concurrent.Future
-import rx.lang.scala.Observable
-import scala.concurrent.Promise
 import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
+import scala.concurrent.duration.Duration
+import scala.concurrent.duration.DurationInt
 import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
+
+import rx.lang.scala.Observable
 
 /**
  * @author clint

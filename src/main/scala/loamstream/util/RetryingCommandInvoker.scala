@@ -1,13 +1,14 @@
 package loamstream.util
 
-import scala.util.Try
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
 import scala.concurrent.duration.Duration
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
+
 import RetryingCommandInvoker.InvocationFn
 import RetryingCommandInvoker.SuccessfulInvocationFn
-import scala.util.Success
-import scala.util.Failure
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext
 
 /**
  * @author clint

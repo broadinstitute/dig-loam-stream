@@ -1,5 +1,8 @@
 package loamstream.drm
 
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
+
 import DrmStatus.toJobResult
 import DrmStatus.toJobStatus
 import loamstream.conf.DrmConfig
@@ -22,9 +25,6 @@ import loamstream.util.Loggable
 import loamstream.util.Observables
 import loamstream.util.Terminable
 import rx.lang.scala.Observable
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext
-import scala.util.Success
 
 
 /**

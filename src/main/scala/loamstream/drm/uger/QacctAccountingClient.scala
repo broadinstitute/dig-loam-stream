@@ -6,6 +6,8 @@ import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeFormatterBuilder
 
 import scala.collection.Seq
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
 import scala.concurrent.duration.DurationDouble
 import scala.util.Try
 import scala.util.matching.Regex
@@ -14,17 +16,13 @@ import loamstream.conf.UgerConfig
 import loamstream.drm.AccountingClient
 import loamstream.drm.Queue
 import loamstream.model.execute.Resources.UgerResources
+import loamstream.model.jobs.TerminationReason
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Memory
 import loamstream.util.Loggable
 import loamstream.util.Options
 import loamstream.util.RetryingCommandInvoker
 import loamstream.util.Tries
-import loamstream.model.jobs.TerminationReason
-import scala.util.Success
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
-import loamstream.util.Futures
 
 /**
  * @author clint

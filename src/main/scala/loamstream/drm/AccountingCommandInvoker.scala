@@ -1,9 +1,10 @@
 package loamstream.drm
 
-import loamstream.util.RetryingCommandInvoker
-import loamstream.util.Processes
-import loamstream.util.Loggable
 import scala.concurrent.ExecutionContext
+
+import loamstream.util.Loggable
+import loamstream.util.Processes
+import loamstream.util.RetryingCommandInvoker
 
 /**
  * @author clint

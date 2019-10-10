@@ -1,19 +1,10 @@
 package loamstream.drm
 
-import scala.concurrent.duration._
-import scala.util.Try
-import scala.util.Success
-import scala.util.Failure
-import loamstream.util.Loggable
-import loamstream.util.Functions
-import loamstream.util.RunResults
-import loamstream.util.Processes
-import loamstream.util.Tries
-import loamstream.util.Loops
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
+
 import loamstream.model.execute.Resources.DrmResources
 import loamstream.model.jobs.TerminationReason
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext
 
 /**
  * @author clint

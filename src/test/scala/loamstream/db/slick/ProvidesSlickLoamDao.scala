@@ -18,8 +18,8 @@ import org.scalactic.Equality
  * date: Aug 12, 2016
  */
 trait ProvidesSlickLoamDao extends TestDbOps with ExecutionEquality.Implicits  with TestDbHelpers {
-  
+
   protected val descriptor: DbDescriptor = DbDescriptor.inMemoryHsqldb
-  
+
   protected override lazy val dao: SlickLoamDao = new SlickLoamDao(descriptor)
 }

@@ -13,7 +13,7 @@ import loamstream.util.BashScript.Implicits._
  * Nov 2, 2017
  */
 final class GoogleSupportTest extends FunSuite {
-  private val gsutil = Paths.get("/humgen/diabetes/users/dig/loamstream/google-cloud-sdk/bin/gsutil")
+  private val gsutil = Paths.get("/path/to/google-cloud-sdk/bin/gsutil")
   private val gsutilPath = gsutil.toAbsolutePath.render
 
   test("googleCopy - one pair, no params") {

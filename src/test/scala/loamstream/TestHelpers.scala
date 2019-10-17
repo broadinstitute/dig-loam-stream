@@ -91,6 +91,7 @@ object TestHelpers {
     val rConfig = RConfig.fromConfig(config)
     val executionConfig = ExecutionConfig.fromConfig(config)
     val compilationConfig = CompilationConfig.fromConfig(config)
+    val awsConfig = LoamConfig.loadAwsConfig(config)
 
     LoamConfig( 
       ugerConfig.toOption,
@@ -100,7 +101,8 @@ object TestHelpers {
       pythonConfig.toOption,
       rConfig.toOption,
       executionConfig.getOrElse(ExecutionConfig.default),
-      compilationConfig.getOrElse(CompilationConfig.default))
+      compilationConfig.getOrElse(CompilationConfig.default),
+      awsConfig.toOption)
   }
   
   lazy val configWithUger = config.copy(drmSystem = Option(DrmSystem.Uger))

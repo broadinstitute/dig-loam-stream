@@ -11,6 +11,7 @@ import scala.util.Success
 import loamstream.model.execute.Resources.DrmResources
 import loamstream.util.RetryingCommandInvoker
 import loamstream.model.jobs.TerminationReason
+import scala.concurrent.Future
 
 /**
  * @author clint
@@ -43,6 +44,8 @@ final class MockQacctAccountingClient(
       delegateFn(jobId)
     }
 
+    import scala.concurrent.ExecutionContext.Implicits.global
+    
     val invoker = {
       new RetryingCommandInvoker[String](ugerConfig.maxQacctRetries, "MOCK", wrappedDelegateFn, delayStart, delayCap)
     }
@@ -50,13 +53,13 @@ final class MockQacctAccountingClient(
     new QacctAccountingClient(invoker)
   }
 
-  override def getResourceUsage(jobId: String): Try[DrmResources] = {
+  override def getResourceUsage(jobId: String): Future[DrmResources] = {
     timesGetResourceUsageInvokedBox.mutate(_ + 1)
     
     actualDelegate.getResourceUsage(jobId)
   }
   
-  override def getTerminationReason(jobId: String): Try[Option[TerminationReason]] = {
+  override def getTerminationReason(jobId: String): Future[Option[TerminationReason]] = {
     timesGetTerminationReasonInvokedBox.mutate(_ + 1)
     
     actualDelegate.getTerminationReason(jobId)

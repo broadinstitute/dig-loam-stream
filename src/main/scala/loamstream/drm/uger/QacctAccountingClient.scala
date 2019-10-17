@@ -6,6 +6,8 @@ import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeFormatterBuilder
 
 import scala.collection.Seq
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
 import scala.concurrent.duration.DurationDouble
 import scala.util.Try
 import scala.util.matching.Regex
@@ -14,14 +16,13 @@ import loamstream.conf.UgerConfig
 import loamstream.drm.AccountingClient
 import loamstream.drm.Queue
 import loamstream.model.execute.Resources.UgerResources
+import loamstream.model.jobs.TerminationReason
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Memory
 import loamstream.util.Loggable
 import loamstream.util.Options
 import loamstream.util.RetryingCommandInvoker
 import loamstream.util.Tries
-import loamstream.model.jobs.TerminationReason
-import scala.util.Success
 
 /**
  * @author clint
@@ -32,38 +33,45 @@ import scala.util.Success
  * job id, to facilitate unit testing.
  */
 final class QacctAccountingClient(
-    qacctInvoker: RetryingCommandInvoker[String]) extends AccountingClient with Loggable {
+    qacctInvoker: RetryingCommandInvoker[String])
+    (implicit ec: ExecutionContext) extends AccountingClient with Loggable {
 
   import QacctAccountingClient._
 
-  private def getQacctOutputFor(jobId: String): Try[Seq[String]] = qacctInvoker(jobId).map(_.stdout)
+  private def getQacctOutputFor(jobId: String): Future[Seq[String]] = qacctInvoker(jobId).map(_.stdout)
 
   import Regexes.{ cpu, endTime, hostname, mem, qname, startTime }
-
-  override def getResourceUsage(jobId: String): Try[UgerResources] = {
-    for {
-      output <- getQacctOutputFor(jobId)
-      nodeOpt = findField(output, hostname).toOption
-      queueOpt = findField(output, qname).map(Queue(_)).toOption
-      memory <- findField(output, mem).flatMap(toMemory)
-      cpuTime <- findField(output, cpu).flatMap(toCpuTime)
-      start <- findField(output, startTime).flatMap(toInstant("start"))
-      end <- findField(output, endTime).flatMap(toInstant("end"))
-    } yield {
-      UgerResources(
-        memory = memory,
-        cpuTime = cpuTime,
-        node = nodeOpt,
-        queue = queueOpt,
-        startTime = start,
-        endTime = end,
-        raw = Some(output.mkString(System.lineSeparator)))
+  
+  override def getResourceUsage(jobId: String): Future[UgerResources] = {
+    def toResources(output: Seq[String]): Future[UgerResources] = {
+      val nodeOpt = findField(output, hostname).toOption
+      val queueOpt = findField(output, qname).map(Queue(_)).toOption
+      
+      val result = for {
+        memory <- findField(output, mem).flatMap(toMemory)
+        cpuTime <- findField(output, cpu).flatMap(toCpuTime)
+        start <- findField(output, startTime).flatMap(toInstant("start"))
+        end <- findField(output, endTime).flatMap(toInstant("end"))
+      } yield  {
+        UgerResources(
+          memory = memory,
+          cpuTime = cpuTime,
+          node = nodeOpt,
+          queue = queueOpt,
+          startTime = start,
+          endTime = end,
+          raw = Some(output.mkString(System.lineSeparator)))
+      }
+      
+      Future.fromTry(result)
     }
+    
+    getQacctOutputFor(jobId).flatMap(toResources)
   }
   
-  override def getTerminationReason(jobId: String): Try[Option[TerminationReason]] = {
+  override def getTerminationReason(jobId: String): Future[Option[TerminationReason]] = {
     //NB: Uger/qacct does not provide this information directly. 
-    Success(None)
+    Future.successful(None)
   }
 }
 
@@ -72,7 +80,9 @@ object QacctAccountingClient extends Loggable {
   /**
    * Make a QacctAccountingClient that will retrieve job metadata by running some executable, by default, `qacct`.
    */
-  def useActualBinary(ugerConfig: UgerConfig, binaryName: String = "qacct"): QacctAccountingClient = {
+  def useActualBinary(
+      ugerConfig: UgerConfig, 
+      binaryName: String = "qacct")(implicit ec: ExecutionContext): QacctAccountingClient = {
     new QacctAccountingClient(QacctInvoker.useActualBinary(ugerConfig.maxQacctRetries, binaryName))
   }
   

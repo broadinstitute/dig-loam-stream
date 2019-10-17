@@ -11,6 +11,8 @@ import loamstream.conf.UgerConfig
 import loamstream.drm.Queue
 import loamstream.util.RunResults
 import loamstream.util.Tries
+import scala.concurrent.Await
+import loamstream.TestHelpers
 
 /**
  * @author clint
@@ -22,6 +24,7 @@ final class QacctAccountingClientTest extends FunSuite {
   import QacctTestHelpers.expectedResources
   import QacctTestHelpers.successfulRun
   import scala.concurrent.duration._
+  import TestHelpers.waitFor
 
   val newline = scala.util.Properties.lineSeparator
   
@@ -51,7 +54,7 @@ final class QacctAccountingClientTest extends FunSuite {
     assert(mockClient.timesGetQacctOutputForInvoked === 0)
     assert(mockClient.timesGetResourceUsageInvoked === 0)
     
-    assert(mockClient.getResourceUsage(jobId).isFailure)
+    val result = waitFor(mockClient.getResourceUsage(jobId).failed)
     
     assert(mockClient.timesGetQacctOutputForInvoked === 1)
     assert(mockClient.timesGetResourceUsageInvoked === 1)
@@ -72,7 +75,7 @@ final class QacctAccountingClientTest extends FunSuite {
     assert(mockClient.timesGetQacctOutputForInvoked === 0)
     assert(mockClient.timesGetResourceUsageInvoked === 0)
     
-    val actualResources = mockClient.getResourceUsage(jobId).get
+    val actualResources = waitFor(mockClient.getResourceUsage(jobId))
     
     assert(mockClient.timesGetQacctOutputForInvoked === 1)
     assert(mockClient.timesGetResourceUsageInvoked === 1)
@@ -94,13 +97,13 @@ final class QacctAccountingClientTest extends FunSuite {
     assert(mockClient.timesGetQacctOutputForInvoked === 0)
     assert(mockClient.timesGetResourceUsageInvoked === 0)
     
-    assert(mockClient.getResourceUsage(jobId).isFailure)
+    waitFor(mockClient.getResourceUsage(jobId).failed)
     
     //Should have retried 
     assert(mockClient.timesGetQacctOutputForInvoked === maxRuns)
     assert(mockClient.timesGetResourceUsageInvoked === 1)
     
-    assert(mockClient.getResourceUsage(jobId).isFailure)
+    waitFor(mockClient.getResourceUsage(jobId).failed)
     
     //should have memoized results, and not retried any more
     assert(mockClient.timesGetQacctOutputForInvoked === maxRuns)
@@ -138,13 +141,13 @@ final class QacctAccountingClientTest extends FunSuite {
     
     val expected = expectedResources(expectedRawData.mkString(newline), expectedNode, expectedQueue)
     
-    assert(mockClient.getResourceUsage(jobId).get === expected)
+    assert(waitFor(mockClient.getResourceUsage(jobId))=== expected)
     
     //Should have retried twice
     assert(mockClient.timesGetQacctOutputForInvoked === 3)
     assert(mockClient.timesGetResourceUsageInvoked === 1)
     
-    assert(mockClient.getResourceUsage(jobId).get === expected)
+    assert(waitFor(mockClient.getResourceUsage(jobId)) === expected)
     
     //should have memoized results, and not retried any more
     assert(mockClient.timesGetQacctOutputForInvoked === 3)
@@ -164,7 +167,7 @@ final class QacctAccountingClientTest extends FunSuite {
     
     val expected = expectedResources(expectedRawData.mkString(newline), None, expectedQueue)
     
-    assert(mockClient.getResourceUsage(jobId).get === expected)
+    assert(waitFor(mockClient.getResourceUsage(jobId)) === expected)
     
     assert(expected.queue === expectedQueue)
     assert(expected.node === None)
@@ -183,7 +186,7 @@ final class QacctAccountingClientTest extends FunSuite {
     
     val expected = expectedResources(expectedRawData.mkString(newline), expectedNode, None)
     
-    assert(mockClient.getResourceUsage(jobId).get === expected)
+    assert(waitFor(mockClient.getResourceUsage(jobId)) === expected)
     
     assert(expected.queue === None)
     assert(expected.node === expectedNode)
@@ -200,7 +203,7 @@ final class QacctAccountingClientTest extends FunSuite {
 
     val expected = expectedResources(expectedRawData.mkString(newline), None, None)
     
-    assert(mockClient.getResourceUsage(jobId).get === expected)
+    assert(waitFor(mockClient.getResourceUsage(jobId)) === expected)
     
     assert(expected.queue === None)
     assert(expected.node === None)
@@ -211,7 +214,7 @@ final class QacctAccountingClientTest extends FunSuite {
 
     val jobId = "12345"
 
-    assert(mockClient.getResourceUsage(jobId).isFailure)
+    waitFor(mockClient.getResourceUsage(jobId).failed)
   }
 
   test("getQueue,getExecutionNode - empty output") {
@@ -219,6 +222,6 @@ final class QacctAccountingClientTest extends FunSuite {
 
     val jobId = "12345"
 
-    assert(mockClient.getResourceUsage(jobId).isFailure)
+    waitFor(mockClient.getResourceUsage(jobId).failed)
   }
 }

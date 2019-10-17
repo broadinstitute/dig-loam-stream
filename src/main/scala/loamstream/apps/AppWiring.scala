@@ -87,6 +87,7 @@ import loamstream.model.execute.FileSystemExecutionRecorder
 import loamstream.googlecloud.HailCtlDataProcClient
 import loamstream.googlecloud.HailConfig
 import loamstream.model.jobs.JobOracle
+import scala.concurrent.ExecutionContext
 
 
 /**
@@ -217,11 +218,11 @@ object AppWiring extends Loggable {
       //TODO: Make the number of threads this uses configurable
       val numberOfCPUs = Runtime.getRuntime.availableProcessors
 
-      val (localEC, localEcHandle) = ExecutionContexts.threadPool(numberOfCPUs)
+      val (localEC, localEcHandle) = ExecutionContexts.threadPool(numberOfCPUs * 2)
 
       val localRunner = AsyncLocalChunkRunner(config.executionConfig)(localEC)
 
-      val (drmRunner, drmRunnerHandles) = drmChunkRunner(intent.confFile, config, threadPoolSize)
+      val (drmRunner, drmRunnerHandles) = drmChunkRunner(intent.confFile, config, threadPoolSize)(localEC)
       
       val googleRunner = googleChunkRunner(intent.confFile, config.googleConfig, config.hailConfig, localRunner)
 
@@ -292,7 +293,7 @@ object AppWiring extends Loggable {
   private def drmChunkRunner(
       confFile: Option[Path], 
       loamConfig: LoamConfig, 
-      threadPoolSize: Int): (Option[DrmChunkRunner], Seq[Terminable]) = {
+      threadPoolSize: Int)(implicit ec: ExecutionContext): (Option[DrmChunkRunner], Seq[Terminable]) = {
 
     loamConfig.drmSystem match {
       case Some(DrmSystem.Uger) => ugerChunkRunner(confFile, loamConfig, threadPoolSize)
@@ -304,7 +305,7 @@ object AppWiring extends Loggable {
   private def ugerChunkRunner(
       confFile: Option[Path], 
       loamConfig: LoamConfig, 
-      threadPoolSize: Int): (Option[DrmChunkRunner], Seq[Terminable]) = {
+      threadPoolSize: Int)(implicit ec: ExecutionContext): (Option[DrmChunkRunner], Seq[Terminable]) = {
     
     val result @ (ugerRunnerOption, _) = unpack(makeUgerChunkRunner(loamConfig, threadPoolSize))
 
@@ -322,7 +323,7 @@ object AppWiring extends Loggable {
   private def lsfChunkRunner(
       confFile: Option[Path], 
       loamConfig: LoamConfig, 
-      threadPoolSize: Int): (Option[DrmChunkRunner], Seq[Terminable]) = {
+      threadPoolSize: Int)(implicit ec: ExecutionContext): (Option[DrmChunkRunner], Seq[Terminable]) = {
     
     val (lsfRunnerOption, terminables) = unpack(makeLsfChunkRunner(loamConfig, threadPoolSize))
     
@@ -374,7 +375,7 @@ object AppWiring extends Loggable {
 
   private def makeUgerChunkRunner(
       loamConfig: LoamConfig, 
-      threadPoolSize: Int): Option[(DrmChunkRunner, Seq[Terminable])] = {
+      threadPoolSize: Int)(implicit ec: ExecutionContext): Option[(DrmChunkRunner, Seq[Terminable])] = {
     
     for {
       ugerConfig <- loamConfig.ugerConfig
@@ -417,7 +418,7 @@ object AppWiring extends Loggable {
   
   private def makeLsfChunkRunner(
       loamConfig: LoamConfig, 
-      threadPoolSize: Int): Option[(DrmChunkRunner, Seq[Terminable])] = {
+      threadPoolSize: Int)(implicit ec: ExecutionContext): Option[(DrmChunkRunner, Seq[Terminable])] = {
     
     for {
       lsfConfig <- loamConfig.lsfConfig

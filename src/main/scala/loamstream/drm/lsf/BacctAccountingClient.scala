@@ -6,6 +6,8 @@ import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeFormatterBuilder
 import java.time.temporal.ChronoField
 
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
 import scala.util.Success
 import scala.util.Try
 import scala.util.matching.Regex
@@ -14,32 +16,33 @@ import loamstream.conf.LsfConfig
 import loamstream.drm.AccountingClient
 import loamstream.drm.Queue
 import loamstream.model.execute.Resources.LsfResources
+import loamstream.model.jobs.TerminationReason
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Memory
 import loamstream.util.Loggable
 import loamstream.util.Options
 import loamstream.util.RetryingCommandInvoker
 import loamstream.util.Tries
-import loamstream.model.jobs.TerminationReason
 
 /**
  * @author clint
  * Apr 18, 2019
  */
 final class BacctAccountingClient(
-    bacctInvoker: RetryingCommandInvoker[String]) extends AccountingClient with Loggable {
+    bacctInvoker: RetryingCommandInvoker[String])
+    (implicit ec: ExecutionContext) extends AccountingClient with Loggable {
 
   import BacctAccountingClient._
 
-  override def getResourceUsage(jobId: String): Try[LsfResources] = {
-    getBacctOutputFor(jobId).flatMap(toResources)
+  override def getResourceUsage(jobId: String): Future[LsfResources] = {
+    getBacctOutputFor(jobId).flatMap(output => Future.fromTry(toResources(output)))
   }
   
-  override def getTerminationReason(jobId: String): Try[Option[TerminationReason]] = {
+  override def getTerminationReason(jobId: String): Future[Option[TerminationReason]] = {
     getBacctOutputFor(jobId).map(toTerminationReason)
   }
   
-  private def getBacctOutputFor(jobId: String): Try[Seq[String]] = bacctInvoker(jobId).map(_.stdout.map(_.trim))
+  private def getBacctOutputFor(jobId: String): Future[Seq[String]] = bacctInvoker(jobId).map(_.stdout.map(_.trim))
     
   private def toTerminationReason(bacctOutput: Seq[String]): Option[TerminationReason] = {
     bacctOutput.collectFirst { case Regexes.termReason(r) => r }.map(parseTerminationReason)
@@ -69,7 +72,7 @@ final class BacctAccountingClient(
      * then removes the delimiter and any whitespace immediately following it. This gets rid of the line breaks
      * and the added indentation, allowing fields delimited by angle brackets, etc, to be retrieved more easily.
      */
-    
+
     //Use a delimiter that won't occur in `bacct`'s output, so we can find where line-breaks used to be.
     val delim = "%%%%%%%%%%%%"
     
@@ -98,7 +101,9 @@ object BacctAccountingClient {
   /**
    * Make a QacctAccountingClient that will retrieve job metadata by running some executable, by default, `qacct`.
    */
-  def useActualBinary(lsfConfig: LsfConfig, binaryName: String = "bacct"): BacctAccountingClient = {
+  def useActualBinary(
+      lsfConfig: LsfConfig, 
+      binaryName: String = "bacct")(implicit ec: ExecutionContext): BacctAccountingClient = {
     new BacctAccountingClient(BacctInvoker.useActualBinary(lsfConfig.maxBacctRetries, binaryName))
   }
   

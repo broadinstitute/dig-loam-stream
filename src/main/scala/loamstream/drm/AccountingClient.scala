@@ -1,15 +1,8 @@
 package loamstream.drm
 
-import scala.concurrent.duration._
-import scala.util.Try
-import scala.util.Success
-import scala.util.Failure
-import loamstream.util.Loggable
-import loamstream.util.Functions
-import loamstream.util.RunResults
-import loamstream.util.Processes
-import loamstream.util.Tries
-import loamstream.util.Loops
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
+
 import loamstream.model.execute.Resources.DrmResources
 import loamstream.model.jobs.TerminationReason
 
@@ -20,11 +13,11 @@ import loamstream.model.jobs.TerminationReason
  * An abstraction for getting some environment-specific metadata that can't currently be accessed via DRMAA
  */
 trait AccountingClient {
-  def getResourceUsage(jobId: String): Try[DrmResources]
+  def getResourceUsage(jobId: String): Future[DrmResources]
   
-  def getTerminationReason(jobId: String): Try[Option[TerminationReason]]
+  def getTerminationReason(jobId: String): Future[Option[TerminationReason]]
   
-  def getAccountingInfo(jobId: String): Try[AccountingInfo] = {
+  def getAccountingInfo(jobId: String)(implicit ex: ExecutionContext): Future[AccountingInfo] = {
     for {
       rs <- getResourceUsage(jobId)
       tr <- getTerminationReason(jobId)

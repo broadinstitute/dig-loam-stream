@@ -56,6 +56,7 @@ final class DrmChunkRunnerTest extends FunSuite {
   import loamstream.TestHelpers.neverRestart
   import loamstream.model.jobs.JobStatus.FailedPermanently
   import loamstream.model.jobs.JobStatus.Succeeded
+  import scala.concurrent.ExecutionContext.Implicits.global
   
   private val tempDir = TestHelpers.getWorkDir(getClass.getSimpleName) 
   

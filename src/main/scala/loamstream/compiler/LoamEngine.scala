@@ -29,6 +29,7 @@ import loamstream.util.Loggable
 import loamstream.util.Miss
 import loamstream.util.Shot
 import loamstream.util.StringUtils
+import loamstream.loam.aws.AwsApi
 
 
 /**
@@ -38,16 +39,17 @@ import loamstream.util.StringUtils
 object LoamEngine {
   def default(
       config: LoamConfig,
-      csClient: Option[CloudStorageClient] = None): LoamEngine = {
+      csClient: Option[CloudStorageClient] = None,
+      awsApi: Option[AwsApi] = None): LoamEngine = {
     
     val compiler = LoamCompiler(config.compilationConfig, LoamCompiler.Settings.default) 
     
     LoamEngine(config, compiler, RxExecuter.default, csClient)
   }
 
-  def toExecutable(graph: LoamGraph, csClient: Option[CloudStorageClient] = None): Executable = {
+  def toExecutable(graph: LoamGraph, csClient: Option[CloudStorageClient] = None, awsApi: Option[AwsApi] = None): Executable = {
     
-    val toolBox = new LoamToolBox(csClient)
+    val toolBox = new LoamToolBox(csClient, awsApi)
 
     toolBox.createExecutable(graph)
   }

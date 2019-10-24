@@ -162,6 +162,7 @@ final class FileSystemExecutionRecorderTest extends FunSuite {
     
     val expected = Seq(
         "settings-type" -> "aws",
+        "max-clusters" -> "1",
         "cluster" -> "foo",
         "ami-id" -> "ami-some-ami-id",
         "instances" -> "42",

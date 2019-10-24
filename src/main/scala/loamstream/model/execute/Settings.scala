@@ -99,6 +99,6 @@ final case class GoogleSettings(
 /**
  * Execution-time settings for an AWS job 
  */
-final case class AwsSettings(clusterConfig: Cluster) extends Settings(EnvironmentType.Aws) {
+final case class AwsSettings(clusterConfig: Cluster, maxClusters: Int = 1) extends Settings(EnvironmentType.Aws) {
   def clusterId: String = clusterConfig.name
 }

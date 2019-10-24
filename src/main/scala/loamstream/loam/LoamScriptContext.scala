@@ -16,6 +16,7 @@ import loamstream.model.execute.Settings
 import loamstream.model.execute.LocalSettings
 import org.broadinstitute.dig.aws.config.AWSConfig
 import org.broadinstitute.dig.aws.AWS
+import loamstream.loam.aws.AwsApi
 
 /** Container for compile time and run time context for a script */
 final class LoamScriptContext(val projectContext: LoamProjectContext) {
@@ -80,7 +81,7 @@ final class LoamScriptContext(val projectContext: LoamProjectContext) {
   }
   
   object AwsSupport {
-    val aws: AWS = new AWS(awsConfig)
+    val awsApi: AwsApi = AwsApi(AWS.strict(awsConfig))
   }
 }
 

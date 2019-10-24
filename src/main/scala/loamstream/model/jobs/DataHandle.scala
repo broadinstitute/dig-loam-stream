@@ -11,6 +11,7 @@ import loamstream.util.HashType
 import loamstream.util.Hashes
 import loamstream.util.Paths
 import loamstream.util.Paths.normalizePath
+import loamstream.loam.aws.AwsApi
 
 /**
  * @author clint
@@ -75,6 +76,25 @@ object DataHandle {
     override lazy val hash: Option[Hash] = client.flatMap(_.hash(uri))
 
     override def lastModified: Option[Instant] = client.flatMap(_.lastModified(uri))
+
+    override def location: String = uri.toString
+
+    override def toStoreRecord: StoreRecord = {
+      StoreRecord( 
+          loc = location,
+          isPresent = isPresent,
+          makeHash = () => hashToString(hash),
+          makeHashType = () => hashTypeToString(hashType),
+          lastModified = lastModified)
+    }
+  }
+  
+  final case class S3UriHandle(uri: URI, awsApi: Option[AwsApi]) extends DataHandle {
+    override def isPresent = awsApi.exists(_.exists(uri))
+
+    override lazy val hash: Option[Hash] = None //client.flatMap(_.hash(uri))
+
+    override def lastModified: Option[Instant] = None //client.flatMap(_.lastModified(uri))
 
     override def location: String = uri.toString
 

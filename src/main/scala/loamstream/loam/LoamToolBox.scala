@@ -13,6 +13,10 @@ import loamstream.model.jobs.DataHandle
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.model.execute.LocalSettings
 import loamstream.model.execute.Settings
+import loamstream.loam.aws.AwsTool
+import loamstream.model.jobs.aws.AwsJob
+import loamstream.loam.aws.AwsApi
+import loamstream.aws.S3Uri
 
 /**
  * LoamStream
@@ -21,7 +25,7 @@ import loamstream.model.execute.Settings
  * 
  * Turns a LoamGraph into an Executable (a collection of jobs)
  */
-final class LoamToolBox(client: Option[CloudStorageClient] = None) {
+final class LoamToolBox(client: Option[CloudStorageClient] = None, awsApi: Option[AwsApi] = None) {
 
   @volatile private[this] var loamJobs: Map[Tool, JobNode] = Map.empty
 
@@ -66,6 +70,25 @@ final class LoamToolBox(client: Option[CloudStorageClient] = None) {
             inputs = inputs,
             outputs = outputs, 
             nameOpt = toolNameOpt))
+      case awsTool: AwsTool => {
+        require(awsApi.nonEmpty)
+        
+        val body: AwsApi => Any = awsTool match {
+          case AwsTool.UploadToS3AwsTool(src, dest) => _.copy(src, dest)
+          case AwsTool.DownloadFromS3AwsTool(src, dest) => _.copy(src, dest)
+          case AwsTool.PySparkAwsTool(cluster, script, args) => _.runPySparkJob(cluster, script, args)
+          case AwsTool.RunScriptAwsTool(cluster, script, args) => _.runScript(cluster, script, args)
+          case AwsTool.PooledAwsTool(cluster, maxClusters, awsJobDescs) => _.runOnClusterPool(cluster, maxClusters, awsJobDescs)
+        }
+        //TODO
+        Some(AwsJob(
+            body = body,
+            initialSettings = settings, 
+            dependencies = inputJobs,
+            inputs = inputs,
+            outputs = outputs,
+            nameOpt = toolNameOpt))
+      }
       case _ => None
     }
   }
@@ -78,6 +101,7 @@ final class LoamToolBox(client: Option[CloudStorageClient] = None) {
     def pathOrUriToOutput(store: Store): Option[DataHandle] = {
       store.pathOpt.orElse(store.uriOpt).map {
         case path: Path => DataHandle.PathHandle(path)
+        case S3Uri(uri) => DataHandle.S3UriHandle(uri, awsApi)
         case uri: URI   => DataHandle.GcsUriHandle(uri, client)
       }
     }

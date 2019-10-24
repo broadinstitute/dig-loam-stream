@@ -5,6 +5,8 @@ import loamstream.util.Paths
 import loamstream.util.Uris
 import loamstream.googlecloud.GoogleHelpers
 import loamstream.googlecloud.HailLoamSyntax
+import software.amazon.awssdk.awscore.util.AwsHeader
+import loamstream.loam.aws.AwsHelpers
 
 /**
  * @author clint
@@ -17,6 +19,7 @@ trait LoamSyntax extends
     Paths.Implicits with 
     Uris.Implicits with 
     GoogleHelpers with 
-    HailLoamSyntax
+    HailLoamSyntax with 
+    AwsHelpers
     
 object LoamSyntax extends LoamSyntax

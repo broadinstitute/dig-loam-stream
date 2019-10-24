@@ -97,6 +97,7 @@ object FileSystemExecutionRecorder extends ExecutionRecorder {
     val bootstrapSteps = "bootstraps-steps"
     val keepAliveWhenNoSteps = "keep-alive-when-no-steps"
     val visibleToAllUsers = "visible-to-all-users"
+    val maxClusters = "max-clusters"
   }
   
   private def line(key: String, value: String): String = s"${key}\t${value}"
@@ -134,8 +135,8 @@ object FileSystemExecutionRecorder extends ExecutionRecorder {
 
   def settingsToTuples(settings: Settings): Seq[(String, Any)] = settings match {
     case LocalSettings => Seq(typeTuple(EnvironmentType.Local.name))
-    case GoogleSettings(cluster, clusterConfig) => googleClusterConfigToTuples(cluster, clusterConfig)
-    case AwsSettings(clusterConfig) => awsClusterConfigToTuples(clusterConfig)
+    case gs: GoogleSettings => googleSettingsToTuples(gs)
+    case as: AwsSettings => awsSettingsToTuples(as)
     case DrmSettings(cores, memory, cpuTime, queueOpt, containerParamsOpt) => {
       val containerParamsTuples = Seq(
         Keys.singularityImageName -> containerParamsOpt.map(_.imageName).getOrElse(""))
@@ -150,12 +151,13 @@ object FileSystemExecutionRecorder extends ExecutionRecorder {
 
   private def typeTuple(envTypeName: String): (String, Any) = Keys.settingsType -> envTypeName
   
-  private def googleClusterConfigToTuples(cluster: String, clusterConfig: ClusterConfig): Seq[(String, Any)] = {
-    import clusterConfig._
+  private def googleSettingsToTuples(googleSettings: GoogleSettings): Seq[(String, Any)] = {
+    import googleSettings.clusterId
+    import googleSettings.clusterConfig._
         
     Seq(
       typeTuple(EnvironmentType.Google.name), 
-      Keys.cluster -> cluster,
+      Keys.cluster -> clusterId,
       Keys.zone -> zone,
       Keys.masterMachineType -> masterMachineType,
       Keys.masterBootDiskSize -> masterBootDiskSize,
@@ -168,13 +170,15 @@ object FileSystemExecutionRecorder extends ExecutionRecorder {
       Keys.maxClusterIdleTime -> maxClusterIdleTime)
   }
   
-  private def awsClusterConfigToTuples(clusterConfig: Cluster): Seq[(String, Any)] = {
-    import clusterConfig._
+  private def awsSettingsToTuples(awsSettings: AwsSettings): Seq[(String, Any)] = {
+    import awsSettings.clusterConfig._
+    import awsSettings.maxClusters
         
     def toString[A](as: Iterable[A]): String = as.mkString("[", ",", "]")
     
     Seq(
       typeTuple(EnvironmentType.Aws.name),
+      Keys.maxClusters -> maxClusters,
       Keys.cluster -> name,
       Keys.amiId -> amiId.map(_.value).getOrElse(""),
       Keys.instances -> instances,

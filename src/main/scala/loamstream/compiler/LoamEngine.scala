@@ -8,6 +8,7 @@ import java.time.Instant
 
 import scala.util.control.NonFatal
 
+import loamstream.aws.AwsClient
 import loamstream.conf.LoamConfig
 import loamstream.googlecloud.CloudStorageClient
 import loamstream.loam.LoamGraph
@@ -29,7 +30,6 @@ import loamstream.util.Loggable
 import loamstream.util.Miss
 import loamstream.util.Shot
 import loamstream.util.StringUtils
-import loamstream.loam.aws.AwsApi
 
 
 /**
@@ -40,26 +40,25 @@ object LoamEngine {
   def default(
       config: LoamConfig,
       csClient: Option[CloudStorageClient] = None,
-      awsApi: Option[AwsApi] = None): LoamEngine = {
+      awsApi: Option[AwsClient] = None): LoamEngine = {
     
     val compiler = LoamCompiler(config.compilationConfig, LoamCompiler.Settings.default) 
     
-    LoamEngine(config, compiler, RxExecuter.default, csClient)
+    LoamEngine(config, compiler, RxExecuter.default, csClient, awsApi)
   }
 
-  def toExecutable(graph: LoamGraph, csClient: Option[CloudStorageClient] = None, awsApi: Option[AwsApi] = None): Executable = {
-    
-    val toolBox = new LoamToolBox(csClient, awsApi)
-
-    toolBox.createExecutable(graph)
-  }
+  def toExecutable(
+      graph: LoamGraph, 
+      csClient: Option[CloudStorageClient] = None, 
+      awsClient: Option[AwsClient] = None): Executable = (new LoamToolBox(csClient, awsClient)).createExecutable(graph)
 }
 
 final case class LoamEngine(
     config: LoamConfig,
     compiler: LoamCompiler, 
     executer: Executer,
-    csClient: Option[CloudStorageClient] = None) extends Loggable {
+    csClient: Option[CloudStorageClient] = None,
+    awsClient: Option[AwsClient]) extends Loggable {
 
   def loadFile(file: Path): Shot[LoamScript] = {
     val fileShot = {
@@ -106,7 +105,7 @@ final case class LoamEngine(
   def run(graph: LoamGraph): Map[LJob, Execution] = {
     info("Making Executable from LoamGraph")
     
-    val executable = LoamEngine.toExecutable(graph, csClient)
+    val executable = LoamEngine.toExecutable(graph, csClient, awsClient)
     
     listJobsThatCouldRun(executable, config.executionConfig.dryRunOutputFile)
     

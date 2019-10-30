@@ -1,131 +1,156 @@
 package loamstream.aws
 
-import loamstream.model.execute.RxExecuter
-import loamstream.model.execute.CompositeChunkRunner
-import loamstream.model.execute.AsyncLocalChunkRunner
-import loamstream.conf.ExecutionConfig
-import org.scalatest.FunSuite
-import loamstream.conf.LoamConfig
-import loamstream.conf.ConfigParser
-import com.typesafe.config.ConfigFactory
-import loamstream.loam.LoamScriptContext
-import loamstream.loam.LoamProjectContext
-import loamstream.TestHelpers
-import loamstream.loam.LoamSyntax
-import loamstream.loam.aws.AwsApi
-import loamstream.compiler.LoamEngine
-import loamstream.loam.LoamGraph
-import java.nio.file.Files
+import java.net.URI
+import java.nio.file.Path
+import java.nio.file.Files.exists
+import java.time.Instant
+
 import org.broadinstitute.dig.aws.emr.Cluster
-import org.broadinstitute.dig.aws.emr.InstanceType
+import org.scalatest.FunSuite
+
+import loamstream.util.Hash
+import loamstream.util.Hashes
+import loamstream.util.HashType
+import loamstream.util.Files
+import loamstream.util.ValueBox
+import loamstream.aws.AwsChunkRunnerTest.MockAwsClient
+import loamstream.TestHelpers
+import loamstream.util.Observables
+import loamstream.model.jobs.MockJob
+import loamstream.model.jobs.JobStatus
+import loamstream.model.jobs.aws.AwsJob
+import loamstream.model.execute.AwsSettings
+import loamstream.util.Paths
 
 /**
  * @author clint
- * Oct 21, 2019
+ * Oct 30, 2019
  */
 final class AwsChunkRunnerTest extends FunSuite {
-
-  test("AWS ops: copy to/from AWS") {
-    val executionConfig = ExecutionConfig.default
+  import AwsChunkRunnerTest.MockAwsClient
+  import TestHelpers.DummyJobOracle
+  import TestHelpers.neverRestart
+  import TestHelpers.waitFor
+  import Observables.Implicits._
   
-    import scala.concurrent.ExecutionContext.Implicits.global
+  test("Empty input") {
+    val awsChunkRunner = new AwsChunkRunner(new MockAwsClient)
     
-    val localChunkRunner = AsyncLocalChunkRunner(executionConfig)
+    val obs = awsChunkRunner.run(Set.empty, DummyJobOracle, neverRestart)
+    
+    val result = waitFor(obs.lastAsFuture)
+    
+    assert(result === Map.empty)
+  }
   
-    val configString = """loamstream {
-      aws {
-        emr {
-          subnetId = "subnet-ab89bbf3"
-          sshKeyName = "GenomeStore REST"
-          securityGroupIds = [ "sg-2b58c961" ]
-        }
-        s3 { 
-          bucket = "dig-integration-tests" 
-        }
-      }
-    }"""
+  test("Guards") {
+    val awsChunkRunner = new AwsChunkRunner(new MockAwsClient)
     
-    val loamConfig = LoamConfig.fromConfig(ConfigFactory.parseString(configString)).get
+    //Local job
+    val mockJob = MockJob(JobStatus.Succeeded)
     
-    implicit val scriptContext = new LoamScriptContext(LoamProjectContext.empty(loamConfig))
-    
-    val awsBucket = loamConfig.awsConfig.get.s3.bucket
-    
-    val awsChunkRunner = new AwsChunkRunner(scriptContext.AwsSupport.awsApi)
-    
-    val executer = RxExecuter.default.copy(runner = new CompositeChunkRunner(Seq(localChunkRunner, awsChunkRunner)))
-    
-    def withS3Dir[A](testName: String)(body: String => A): A = {
-      val mungedName = testName.filter(_ != '/')
-    
-      val pseudoDirKey = s"integrationTests/${mungedName}"
-    
-      val aws = scriptContext.AwsSupport.awsApi.asInstanceOf[AwsApi.Default].aws
-      
-      def nukeTestDir() = {
-        println(s"%%%%%%%%% nuking test dir '${pseudoDirKey}'")
-        
-        aws.rmdir(s"${pseudoDirKey}/")
-      }
-    
-      nukeTestDir()
-    
-      try {
-        body(pseudoDirKey)
-      } finally {
-        //Test dir will be deleted after successful runs, but will live until the next run
-        //if there's a failure.
-        nukeTestDir()
-      }
+    intercept[Exception] {
+      awsChunkRunner.run(Set(mockJob), DummyJobOracle, neverRestart)
     }
     
-    val name = "AWS_ops_copy_to_from_AWS"
+    val awsJob = AwsJob(_ => ???, AwsSettings)
     
-    val inputFile = TestHelpers.path("src/test/resources/a.txt")
+    intercept[Exception] {
+      awsChunkRunner.run(Set(awsJob, mockJob), DummyJobOracle, neverRestart)
+    }
     
-    TestHelpers.withWorkDir(name) { workDir =>
-      
-      val outputFile = TestHelpers.path("/home/clint/a.txt")//workDir.resolve("a.txt")
-      
-      outputFile.toFile.delete()
-      
-      println(s"%%%%%%%%% output will be written to '${outputFile}'")
-      
-      withS3Dir(name) { testS3Dir =>
-        println(s"%%%%%%%%% output will be written to 's3://${awsBucket}/${testS3Dir}/a.txt'")
-        
-        import LoamSyntax._
-
-        val src = store(inputFile).asInput
-        
-        val dest = store(uri(s"s3://${awsBucket}/${testS3Dir}/a.txt"))
-        
-        val finalDest = store(outputFile)
+    intercept[Exception] {
+      awsChunkRunner.run(Set(awsJob, mockJob, awsJob), DummyJobOracle, neverRestart)
+    }
+  }
   
-        val cluster = Cluster(name = name, instances = 1)
-        
-        awsWith(cluster) {
-          awsCopy(src, dest)
+  test("run") {
+    val awsClient = new MockAwsClient
+    
+    val awsChunkRunner = new AwsChunkRunner(awsClient)
+    
+    TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
+      import Paths.Implicits._
+      
+      val src = workDir / "foo.txt"
+      val uri = URI.create("s3://foo/bar/baz")
+      val dest = workDir / "bar.txt" 
+      
+      Files.writeTo(src)("ASDF")
+      
+      assert(exists(src) === true)
+      assert(awsClient.exists(uri) === false)
+      assert(exists(dest) === false)
+      
+      val toS3 = AwsJob(_.copy(src, uri), AwsSettings)
+      val fromS3 = AwsJob(_.copy(uri, dest), AwsSettings)
+      
+      val obs0 = awsChunkRunner.run(Set(toS3), DummyJobOracle, neverRestart)
+      
+      val result0 = waitFor(obs0.firstAsFuture)
+      
+      assert(exists(src) === true)
+      assert(awsClient.exists(uri) === true)
+      assert(exists(dest) === false)
+      
+      val obs1 = awsChunkRunner.run(Set(fromS3), DummyJobOracle, neverRestart)
+      
+      val result1 = waitFor(obs1.firstAsFuture)
+      
+      val result = result0 ++ result1
+      
+      assert(result.values.forall(_.jobStatus.isSuccess))
+      
+      assert(exists(src) === true)
+      assert(awsClient.exists(uri) === true)
+      assert(exists(dest) === true)
+      
+      assert(Files.readFrom(src) === Files.readFrom(dest))
+    }
+  }
+}
+
+object AwsChunkRunnerTest {
+  final case class MockS3Entry(var value: String, var lastModified: Instant, var hash: String)
+  
+  final class MockAwsClient extends AwsClient {
+    
+    private[AwsChunkRunnerTest] val s3: ValueBox[Map[String, MockS3Entry]] = ValueBox(Map.empty)
+    
+    private def toKey(u: URI): String = u.toString
+    
+    override def copy(src: Path, dest: URI): Unit = {
+      import java.nio.file.{ Files => JFiles }
+      
+      require(JFiles.exists(src))
           
-          awsCopy(dest, finalDest)
-        }
-        
-        val graph = scriptContext.projectContext.graph
-        
-        import Files.exists
+      val key = toKey(dest)
       
-        assert(exists(outputFile) === false)
+      val fileContents = Files.readFrom(src)
+      val lastModified = Instant.now
+      val hashValue = Hashes.digest(HashType.Md5)(Iterator(JFiles.readAllBytes(src))).valueAsBase64String
       
-        val executable = LoamEngine.toExecutable(graph, awsApi = Some(scriptContext.AwsSupport.awsApi))
-      
-        executer.execute(executable)
-        
-        assert(exists(outputFile) === true)
-        
-        import loamstream.util.Files.readFrom
-        
-        assert(readFrom(inputFile) === readFrom(outputFile))
+      s3.mutate { s3Map =>
+        s3Map + (key -> MockS3Entry(fileContents, lastModified, hashValue))
       }
     }
+  
+    override def copy(src: URI, dest: Path): Unit = s3.foreach { s3Map =>
+      require(exists(src))
+      
+      Files.writeTo(dest)(s3Map(toKey(src)).value)
+    }
+  
+    override def exists(uri: URI): Boolean = s3.get(_.contains(toKey(uri)))
+  
+    override def hash(uri: URI): Option[Hash] = s3.get(_.get(toKey(uri))).map(s3e => Hash(s3e.hash, HashType.Md5))
+  
+    override def lastModified(uri: URI): Option[Instant] = s3.get(_.get(toKey(uri))).map(_.lastModified)
+  
+    override def runPySparkJob(cluster: Cluster, pySparkScriptUri: URI, scriptArgs: Seq[String]): Unit = ???
+  
+    override def runScript(cluster: Cluster, scriptUri: URI, scriptArgs: Seq[String]): Unit = ???
+  
+    override def runOnClusterPool(cluster: Cluster, maxClusters: Int, awsJobs: Seq[AwsJobDesc]): Unit = ???
   }
 }

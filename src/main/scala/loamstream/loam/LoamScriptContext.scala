@@ -3,20 +3,19 @@ package loamstream.loam
 import java.nio.file.Path
 import java.nio.file.Paths
 
+import org.broadinstitute.dig.aws.config.AWSConfig
+
+import loamstream.conf.LoamConfig
+import loamstream.conf.LsfConfig
+import loamstream.conf.PythonConfig
+import loamstream.conf.RConfig
+import loamstream.conf.UgerConfig
+import loamstream.googlecloud.GoogleCloudConfig
+import loamstream.googlecloud.HailConfig
+import loamstream.model.execute.LocalSettings
+import loamstream.model.execute.Settings
 import loamstream.util.DepositBox
 import loamstream.util.ValueBox
-import loamstream.conf.LoamConfig
-import loamstream.conf.RConfig
-import loamstream.conf.PythonConfig
-import loamstream.googlecloud.HailConfig
-import loamstream.googlecloud.GoogleCloudConfig
-import loamstream.conf.UgerConfig
-import loamstream.conf.LsfConfig
-import loamstream.model.execute.Settings
-import loamstream.model.execute.LocalSettings
-import org.broadinstitute.dig.aws.config.AWSConfig
-import org.broadinstitute.dig.aws.AWS
-import loamstream.loam.aws.AwsApi
 
 /** Container for compile time and run time context for a script */
 final class LoamScriptContext(val projectContext: LoamProjectContext) {
@@ -78,10 +77,6 @@ final class LoamScriptContext(val projectContext: LoamProjectContext) {
     require(opt.isDefined, missingMessage)
     
     opt.get
-  }
-  
-  object AwsSupport {
-    val awsApi: AwsApi = AwsApi(AWS.strict(awsConfig))
   }
 }
 

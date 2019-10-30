@@ -1,17 +1,17 @@
 package loamstream.model.jobs.aws
 
-import loamstream.model.jobs.LJob
-import loamstream.loam.aws.AwsApi
+import loamstream.aws.AwsClient
 import loamstream.model.execute.Settings
-import loamstream.model.jobs.JobNode
 import loamstream.model.jobs.DataHandle
+import loamstream.model.jobs.JobNode
+import loamstream.model.jobs.LJob
 
 /**
  * @author clint
  * Oct 21, 2019
  */
 final case class AwsJob(
-    body: AwsApi => Any,
+    body: AwsClient => Any,
     initialSettings: Settings,
     override val dependencies: Set[JobNode] = Set.empty,
     inputs: Set[DataHandle] = Set.empty,

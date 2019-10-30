@@ -4,7 +4,6 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-import loamstream.loam.aws.AwsApi
 import loamstream.model.execute.ChunkRunnerFor
 import loamstream.model.execute.EnvironmentType
 import loamstream.model.jobs.JobOracle
@@ -21,7 +20,7 @@ import loamstream.util.Observables
  * @author clint
  * Oct 21, 2019
  */
-final class AwsChunkRunner(awsApi: AwsApi) extends ChunkRunnerFor(EnvironmentType.Aws) {
+final class AwsChunkRunner(awsClient: AwsClient) extends ChunkRunnerFor(EnvironmentType.Aws) {
   override def maxNumJobs: Int = 1000 //TODO
 
   override def run(
@@ -38,18 +37,22 @@ final class AwsChunkRunner(awsApi: AwsApi) extends ChunkRunnerFor(EnvironmentTyp
       
       val awsJobs: Iterable[AwsJob] = jobs.collect { case aj: AwsJob => aj }
   
-      val subChunkStreams = groupBySettings(awsJobs).toSeq.map(runSubChunk(jobOracle))
+      val bySettings = groupBySettings(awsJobs)
+      
+      val subChunkStreams = bySettings.toSeq.map(runSubChunk(jobOracle))
       
       Observables.merge(subChunkStreams)
     }
   }
   
-  private def runSubChunk(jobOracle: JobOracle)(tuple: (AwsSettings, Iterable[AwsJob])): Observable[Map[LJob, RunData]] = {
-    val z: Map[LJob, RunData] = Map.empty
-    
+  private def runSubChunk(jobOracle: JobOracle)
+                         (tuple: (AwsSettings, Iterable[AwsJob])): Observable[Map[LJob, RunData]] = {
+
     val (awsSettings, awsJobs) = tuple
     
-    Observable.from(awsJobs).map(runSingleJob(jobOracle)).scan(z)(_ + _)
+    val z: Map[LJob, RunData] = Map.empty
+    
+    Observable.from(awsJobs).map(runSingleJob(jobOracle)).scan(z)(_ + _).filter(_.nonEmpty)
   }
   
   private def groupBySettings(jobs: Iterable[AwsJob]): Map[AwsSettings, Seq[AwsJob]] = {
@@ -61,11 +64,7 @@ final class AwsChunkRunner(awsApi: AwsApi) extends ChunkRunnerFor(EnvironmentTyp
   }
 
   private def runSingleJob(jobOracle: JobOracle)(j: AwsJob): (LJob, RunData) = {
-    def run(): Try[Any] = {
-      println(s"%%%%%%%%% Running '${j}'")
-      
-      Try(j.body(awsApi))
-    }
+    def run(): Try[Any] = Try(j.body(awsClient))
     
     val (status, result) = run() match {
       case Success(_) => (JobStatus.Succeeded, Some(JobResult.Success))

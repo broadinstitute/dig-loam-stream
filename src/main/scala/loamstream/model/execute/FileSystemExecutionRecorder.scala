@@ -171,26 +171,31 @@ object FileSystemExecutionRecorder extends ExecutionRecorder {
   }
   
   private def awsSettingsToTuples(awsSettings: AwsSettings): Seq[(String, Any)] = {
-    import awsSettings.clusterConfig._
-    import awsSettings.maxClusters
+    val tuples = awsSettings match {
+      case AwsSettings => Nil
+      case AwsClusterSettings(clusterConfig, maxClusters) => {
+        import clusterConfig._
+            
+        def toString[A](as: Iterable[A]): String = as.mkString("[", ",", "]")
         
-    def toString[A](as: Iterable[A]): String = as.mkString("[", ",", "]")
+        Seq(
+          Keys.maxClusters -> maxClusters,
+          Keys.cluster -> name,
+          Keys.amiId -> amiId.map(_.value).getOrElse(""),
+          Keys.instances -> instances,
+          Keys.masterInstanceType -> masterInstanceType.value,
+          Keys.slaveInstanceType -> slaveInstanceType.value,
+          Keys.masterVolumeSizeInGB -> masterVolumeSizeInGB,
+          Keys.slaveVolumeSizeInGB -> slaveVolumeSizeInGB,
+          Keys.applications -> toString(applications.map(_.value)),
+          Keys.configurations -> toString(configurations),
+          Keys.bootstrapScripts -> toString(bootstrapScripts.map(_.config.scriptBootstrapAction.path)),
+          Keys.bootstrapSteps -> toString(bootstrapSteps),
+          Keys.keepAliveWhenNoSteps -> keepAliveWhenNoSteps,
+          Keys.visibleToAllUsers -> visibleToAllUsers)
+      }
+    }
     
-    Seq(
-      typeTuple(EnvironmentType.Aws.name),
-      Keys.maxClusters -> maxClusters,
-      Keys.cluster -> name,
-      Keys.amiId -> amiId.map(_.value).getOrElse(""),
-      Keys.instances -> instances,
-      Keys.masterInstanceType -> masterInstanceType.value,
-      Keys.slaveInstanceType -> slaveInstanceType.value,
-      Keys.masterVolumeSizeInGB -> masterVolumeSizeInGB,
-      Keys.slaveVolumeSizeInGB -> slaveVolumeSizeInGB,
-      Keys.applications -> toString(applications.map(_.value)),
-      Keys.configurations -> toString(configurations),
-      Keys.bootstrapScripts -> toString(bootstrapScripts.map(_.config.scriptBootstrapAction.path)),
-      Keys.bootstrapSteps -> toString(bootstrapSteps),
-      Keys.keepAliveWhenNoSteps -> keepAliveWhenNoSteps,
-      Keys.visibleToAllUsers -> visibleToAllUsers)
+    typeTuple(EnvironmentType.Aws.name) +: tuples
   }
 }

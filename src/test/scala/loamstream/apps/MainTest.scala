@@ -20,6 +20,7 @@ import loamstream.conf.UgerConfig
 import loamstream.conf.LsfConfig
 import loamstream.conf.ExecutionConfig
 import loamstream.conf.CompilationConfig
+import loamstream.aws.AwsClient
 
 
 
@@ -60,6 +61,8 @@ object MainTest {
     override def executer: Executer = ???
 
     override def cloudStorageClient: Option[CloudStorageClient] = ???
+    
+    override def awsClient: Option[AwsClient] = ???
 
     override def jobFilter: JobFilter = ???
     

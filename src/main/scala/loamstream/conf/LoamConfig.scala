@@ -56,5 +56,5 @@ object LoamConfig extends ConfigParser[LoamConfig] with Loggable {
     }
   }
   
-  def loadAwsConfig(config: Config): Try[AWSConfig] = AWSConfig.fromConfig(config, "loamstream.aws")
+  def loadAwsConfig(config: Config): Try[AWSConfig] = AWSConfig.fromTypesafeConfig(config, "loamstream.aws")
 }

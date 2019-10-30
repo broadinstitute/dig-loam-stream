@@ -4,19 +4,21 @@ import java.net.URI
 import java.nio.file.Path
 import java.nio.file.Paths
 
+import loamstream.aws.AwsClient
+import loamstream.aws.S3Uri
 import loamstream.googlecloud.CloudStorageClient
+import loamstream.loam.aws.AwsTool
 import loamstream.model.Store
 import loamstream.model.Tool
 import loamstream.model.execute.Executable
-import loamstream.model.jobs.JobNode
-import loamstream.model.jobs.DataHandle
-import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.model.execute.LocalSettings
 import loamstream.model.execute.Settings
-import loamstream.loam.aws.AwsTool
+import loamstream.model.jobs.DataHandle
+import loamstream.model.jobs.JobNode
 import loamstream.model.jobs.aws.AwsJob
-import loamstream.loam.aws.AwsApi
-import loamstream.aws.S3Uri
+import loamstream.model.jobs.commandline.CommandLineJob
+import loamstream.model.execute.AwsSettings
+
 
 /**
  * LoamStream
@@ -25,7 +27,7 @@ import loamstream.aws.S3Uri
  * 
  * Turns a LoamGraph into an Executable (a collection of jobs)
  */
-final class LoamToolBox(client: Option[CloudStorageClient] = None, awsApi: Option[AwsApi] = None) {
+final class LoamToolBox(client: Option[CloudStorageClient] = None, awsClient: Option[AwsClient] = None) {
 
   @volatile private[this] var loamJobs: Map[Tool, JobNode] = Map.empty
 
@@ -71,16 +73,15 @@ final class LoamToolBox(client: Option[CloudStorageClient] = None, awsApi: Optio
             outputs = outputs, 
             nameOpt = toolNameOpt))
       case awsTool: AwsTool => {
-        require(awsApi.nonEmpty)
-        
-        val body: AwsApi => Any = awsTool match {
+        val body: AwsClient => Any = awsTool match {
           case AwsTool.UploadToS3AwsTool(src, dest) => _.copy(src, dest)
           case AwsTool.DownloadFromS3AwsTool(src, dest) => _.copy(src, dest)
           case AwsTool.PySparkAwsTool(cluster, script, args) => _.runPySparkJob(cluster, script, args)
           case AwsTool.RunScriptAwsTool(cluster, script, args) => _.runScript(cluster, script, args)
-          case AwsTool.PooledAwsTool(cluster, maxClusters, awsJobDescs) => _.runOnClusterPool(cluster, maxClusters, awsJobDescs)
+          case AwsTool.PooledAwsTool(cluster, maxClusters, awsJobDescs) => {
+            _.runOnClusterPool(cluster, maxClusters, awsJobDescs)
+          }
         }
-        //TODO
         Some(AwsJob(
             body = body,
             initialSettings = settings, 
@@ -101,7 +102,7 @@ final class LoamToolBox(client: Option[CloudStorageClient] = None, awsApi: Optio
     def pathOrUriToOutput(store: Store): Option[DataHandle] = {
       store.pathOpt.orElse(store.uriOpt).map {
         case path: Path => DataHandle.PathHandle(path)
-        case S3Uri(uri) => DataHandle.S3UriHandle(uri, awsApi)
+        case S3Uri(uri) => DataHandle.S3UriHandle(uri, awsClient)
         case uri: URI   => DataHandle.GcsUriHandle(uri, client)
       }
     }

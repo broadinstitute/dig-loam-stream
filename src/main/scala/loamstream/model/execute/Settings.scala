@@ -32,6 +32,8 @@ sealed abstract class Settings(val envType: EnvironmentType) {
   final def isUger: Boolean = envType.isUger
   
   final def isLsf: Boolean = envType.isLsf
+  
+  final def isAws: Boolean = envType.isAws
 }
 
 /**
@@ -99,6 +101,10 @@ final case class GoogleSettings(
 /**
  * Execution-time settings for an AWS job 
  */
-final case class AwsSettings(clusterConfig: Cluster, maxClusters: Int = 1) extends Settings(EnvironmentType.Aws) {
+sealed abstract class AwsSettings extends Settings(EnvironmentType.Aws)
+
+final case object AwsSettings extends AwsSettings
+
+final case class AwsClusterSettings(clusterConfig: Cluster, maxClusters: Int = 1) extends AwsSettings {
   def clusterId: String = clusterConfig.name
 }

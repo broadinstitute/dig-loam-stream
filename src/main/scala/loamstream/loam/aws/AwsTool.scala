@@ -19,40 +19,30 @@ import loamstream.aws.AwsJobDesc
 sealed trait AwsTool extends Tool 
 
 object AwsTool extends ToolSyntaxCompanion[AwsTool] {
-  /*def apply(body: AwsApi => Any)(implicit scriptContext: LoamScriptContext): AwsTool = {
-    val tool = new AwsTool(LId.newAnonId)(body)(scriptContext)
-    
-    addToGraph(tool)
-    
-    tool
-  }*/
-  
-  trait HasEmptyDefaultStores extends Tool {
+  trait HasEmptyDefaultStoresAndAnonId extends Tool {
     /** Input and output stores before any are specified using in or out */
     override def defaultStores: DefaultStores = DefaultStores.empty
-  }
-  
-  trait HasAnonId { self: Tool =>
+    
     override val id: LId = LId.newAnonId
   }
   
   final case class UploadToS3AwsTool private 
     (src: Path, dest: URI)
-    (implicit override val scriptContext: LoamScriptContext) extends AwsTool with HasEmptyDefaultStores with HasAnonId
+    (implicit override val scriptContext: LoamScriptContext) extends AwsTool with HasEmptyDefaultStoresAndAnonId
 
   final case class DownloadFromS3AwsTool private 
     (src: URI, dest: Path)
-    (implicit override val scriptContext: LoamScriptContext) extends AwsTool with HasEmptyDefaultStores with HasAnonId
+    (implicit override val scriptContext: LoamScriptContext) extends AwsTool with HasEmptyDefaultStoresAndAnonId
     
   final case class PySparkAwsTool private
     (cluster: Cluster, script: URI, args: Seq[String])
-    (implicit override val scriptContext: LoamScriptContext) extends AwsTool with HasEmptyDefaultStores with HasAnonId
+    (implicit override val scriptContext: LoamScriptContext) extends AwsTool with HasEmptyDefaultStoresAndAnonId
     
   final case class RunScriptAwsTool private
     (cluster: Cluster, script: URI, args: Seq[String])
-    (implicit override val scriptContext: LoamScriptContext) extends AwsTool with HasEmptyDefaultStores with HasAnonId
+    (implicit override val scriptContext: LoamScriptContext) extends AwsTool with HasEmptyDefaultStoresAndAnonId
     
   final case class PooledAwsTool private
     (cluster: Cluster, maxClusters: Int, jobs: Seq[AwsJobDesc])
-    (implicit override val scriptContext: LoamScriptContext) extends AwsTool with HasEmptyDefaultStores with HasAnonId
+    (implicit override val scriptContext: LoamScriptContext) extends AwsTool with HasEmptyDefaultStoresAndAnonId
 }

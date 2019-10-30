@@ -77,7 +77,8 @@ object IntegrationTestHelpers {
     rConfig = None,
     executionConfig = ExecutionConfig.default,
     compilationConfig = CompilationConfig.default,
-    drmSystem = None)
+    drmSystem = None,
+    awsConfig = None)
     
   def createTablesAndThen[A](dao: SlickLoamDao)(f: => A): A = {
     //NB: Use Try(...) to succinctly ignore failures

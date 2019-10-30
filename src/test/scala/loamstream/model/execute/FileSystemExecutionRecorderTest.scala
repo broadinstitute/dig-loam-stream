@@ -178,7 +178,9 @@ final class FileSystemExecutionRecorderTest extends FunSuite {
         "visible-to-all-users" -> "false"
         ).map { case (k, v) => s"${k}\t${v}" }.mkString("\n")
     
-    assert(settingsToString(AwsSettings(clusterConfig)) === expected)
+    assert(settingsToString(AwsClusterSettings(clusterConfig)) === expected)
+    
+    assert(settingsToString(AwsSettings) === s"settings-type\taws")
   }
   
   test("settingsToString - DRM settings") {

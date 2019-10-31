@@ -48,8 +48,12 @@ object AwsClient {
     override def exists(uri: URI): Boolean = aws.exists(AWS.keyOf(uri)).unsafeRunSync()
     
     override def hash(uri: URI): Option[Hash] = {
-      val eTagOpt = aws.hashOf(AWS.keyOf(uri)).unsafeRunSync()
+      val eTagOpt = aws.eTagOf(AWS.keyOf(uri)).unsafeRunSync()
       
+      //NB: AWS ETags might or might not be MD5 hashes, based on a variety of factors (upload method, crypto or no
+      //crypto, etc, etc) but in our case we can be reasonably sure they're MD5s.  In any case, the values from AWS
+      //just need to be consistent for the same file over time - which they are - and the exact HashType doesn't
+      //matter.
       eTagOpt.map(eTag => Hash(eTag, HashType.Md5))
     }
   

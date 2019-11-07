@@ -13,6 +13,7 @@ import loamstream.model.Store
 import loamstream.model.UriStore
 import loamstream.model.execute.AwsSettings
 import loamstream.model.execute.AwsClusterSettings
+import loamstream.aws.AwsClient
 
 /**
  * @author clint
@@ -20,6 +21,8 @@ import loamstream.model.execute.AwsClusterSettings
  */
 trait AwsHelpers {
   import AwsHelpers.addToGraph
+  
+  def awsUriOf(key: String)(implicit awsClient: AwsClient): URI = awsClient.uriOf(key)
   
   def awsCopy(
       srcs: Iterable[Store],

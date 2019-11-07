@@ -87,7 +87,7 @@ object Main extends Loggable {
   private[apps] final class Run extends Loggable {
     
     private def compile(loamEngine: LoamEngine, loams: Seq[Path]): LoamCompiler.Result = {
-      val compilationResultShot = loamEngine.compileFiles(loams)
+      val compilationResultShot = loamEngine.compileFiles(loams, propertiesForLoamCode = Nil)
   
       require(compilationResultShot.nonEmpty, compilationResultShot.message)
   
@@ -147,16 +147,16 @@ object Main extends Loggable {
       
       addShutdownHook(wiring)
   
-      val loamEngine = wiring.loamEngine
-  
       def loamScripts: Iterable[LoamScript] = {
         val loamFiles = intent.loams
-        val loamScriptsShot = loamEngine.scriptsFrom(loamFiles)
+        val loamScriptsShot = LoamEngine.scriptsFrom(loamFiles)
         
         require(loamScriptsShot.isHit, "Could not load loam scripts")
   
         loamScriptsShot.get
       }
+
+      val loamEngine = wiring.loamEngine
       
       try {
         val project = LoamProject(loamEngine.config, loamScripts)
@@ -164,7 +164,7 @@ object Main extends Loggable {
         //NB: Shut down before logging anything about jobs, so that potentially-noisy shutdown info is logged
         //before final job statuses.
         val runResults = shutdownAfter(wiring) {
-          wiring.loamRunner.run(project)
+          wiring.loamRunner.run(project, propertiesForLoamCode = Nil)
         }
         
         describeRunResults(loamEngine.config, runResults)

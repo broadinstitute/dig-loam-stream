@@ -30,13 +30,14 @@ import loamstream.util.Loggable
 import loamstream.util.Miss
 import loamstream.util.Shot
 import loamstream.util.StringUtils
+import loamstream.util.HeterogeneousMap
 
 
 /**
   * LoamStream
   * Created by oliverr on 7/5/2016.
   */
-object LoamEngine {
+object LoamEngine extends Loggable {
   def default(
       config: LoamConfig,
       csClient: Option[CloudStorageClient] = None,
@@ -51,15 +52,7 @@ object LoamEngine {
       graph: LoamGraph, 
       csClient: Option[CloudStorageClient] = None, 
       awsClient: Option[AwsClient] = None): Executable = (new LoamToolBox(csClient, awsClient)).createExecutable(graph)
-}
-
-final case class LoamEngine(
-    config: LoamConfig,
-    compiler: LoamCompiler, 
-    executer: Executer,
-    csClient: Option[CloudStorageClient] = None,
-    awsClient: Option[AwsClient]) extends Loggable {
-
+      
   def loadFile(file: Path): Shot[LoamScript] = {
     val fileShot = {
       if (JFiles.exists(file)) {
@@ -87,19 +80,37 @@ final case class LoamEngine(
       code <- codeShot
     } yield LoamScript(name, code, None)
   }
+  
+  def scriptsFrom(files: Iterable[Path]): Shot[Iterable[LoamScript]] = Shot.sequence(files.map(loadFile))
+}
 
-  def compileFiles(files: Iterable[Path]): Shot[LoamCompiler.Result] = {
+final case class LoamEngine(
+    config: LoamConfig,
+    compiler: LoamCompiler, 
+    executer: Executer,
+    csClient: Option[CloudStorageClient] = None,
+    awsClient: Option[AwsClient]) extends Loggable {
+
+  import LoamEngine.loadFile
+  
+  def compileFiles(
+      files: Iterable[Path],
+      propertiesForLoamCode: Iterable[HeterogeneousMap.Entry[_, _]]): Shot[LoamCompiler.Result] = {
+    
     def compileScripts(scripts: Iterable[LoamScript]): LoamCompiler.Result = {
-      compiler.compile(LoamProject(config, scripts))
+      compiler.compile(LoamProject(config, scripts), propertiesForLoamCode)
     }
     
     Shot.sequence(files.map(loadFile)).map(compileScripts)
   }
 
-  def compile(project: LoamProject): LoamCompiler.Result = {
+  def compile(
+      project: LoamProject, 
+      propertiesForLoamCode: Iterable[HeterogeneousMap.Entry[_, _]]): LoamCompiler.Result = {
+    
     info(s"Now compiling project with ${project.scripts.size} scripts.")
     
-    compiler.compile(project)
+    compiler.compile(project, propertiesForLoamCode)
   }
   
   def run(graph: LoamGraph): Map[LJob, Execution] = {
@@ -176,6 +187,4 @@ final case class LoamEngine(
       }
     }
   }
-
-  def scriptsFrom(files: Iterable[Path]): Shot[Iterable[LoamScript]] = Shot.sequence(files.map(loadFile))
 }

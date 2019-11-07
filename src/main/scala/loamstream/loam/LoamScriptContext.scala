@@ -16,11 +16,12 @@ import loamstream.model.execute.LocalSettings
 import loamstream.model.execute.Settings
 import loamstream.util.DepositBox
 import loamstream.util.ValueBox
+import loamstream.util.HeterogeneousMap
 
 /** Container for compile time and run time context for a script */
 final class LoamScriptContext(val projectContext: LoamProjectContext) {
 
-  val workDirBox: ValueBox[Path] = ValueBox(Paths.get("."))
+  private val workDirBox: ValueBox[Path] = ValueBox(Paths.get("."))
 
   def workDir: Path = workDirBox.value
 

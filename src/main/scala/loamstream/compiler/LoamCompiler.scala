@@ -26,6 +26,7 @@ import java.io.FileOutputStream
 import java.io.PrintStream
 import loamstream.util.TimeUtils
 import loamstream.conf.CompilationConfig
+import loamstream.util.HeterogeneousMap
 
 /** The compiler compiling Loam scripts into execution plans */
 object LoamCompiler extends Loggable {
@@ -287,8 +288,15 @@ final class LoamCompiler(
     f(new compiler.Run)
   }
 
-  private def depositProjectContextAndThen[A](project: LoamProject)(f: DepositBox.Receipt => A): A = {
-    val projectContextReceipt = LoamProjectContext.depositBox.deposit(LoamProjectContext.empty(project.config))
+  private def depositProjectContextAndThen[A](
+      project: LoamProject, 
+      propertiesForLoamCode: Iterable[HeterogeneousMap.Entry[_, _]])(f: DepositBox.Receipt => A): A = {
+    
+    val projectContext = LoamProjectContext.empty(project.config)
+    
+    projectContext.addToPropertiesMap(propertiesForLoamCode.toSeq: _*)
+    
+    val projectContextReceipt = LoamProjectContext.depositBox.deposit(projectContext)
 
     try { f(projectContextReceipt) }
     finally {
@@ -297,7 +305,13 @@ final class LoamCompiler(
   }
 
   /** Compiles Loam script into execution plan */
-  def compile(config: LoamConfig, script: LoamScript): LoamCompiler.Result = compile(LoamProject(config, script))
+  def compile(
+      config: LoamConfig, 
+      script: LoamScript,
+      propertiesForLoamCode: Iterable[HeterogeneousMap.Entry[_, _]]): LoamCompiler.Result = {
+    
+    compile(LoamProject(config, script), propertiesForLoamCode)
+  }
 
   private def failureDueToException(e: Throwable): LoamCompiler.Result = {
     error(s"${e.getClass.getName} while trying to compile: ${e.getMessage}", e)
@@ -306,8 +320,11 @@ final class LoamCompiler(
   }
 
   /** Compiles Loam script into execution plan */
-  def compile(project: LoamProject): LoamCompiler.Result = compileLock.synchronized {
-    depositProjectContextAndThen(project) { projectContextReceipt =>
+  def compile(
+      project: LoamProject, 
+      propertiesForLoamCode: Iterable[HeterogeneousMap.Entry[_, _]]): LoamCompiler.Result = compileLock.synchronized {
+    
+    depositProjectContextAndThen(project, propertiesForLoamCode) { projectContextReceipt =>
       try {
         val sourceFiles = project.scripts.map(LoamCompiler.toBatchSourceFile(projectContextReceipt))
 

@@ -35,7 +35,7 @@ object DepositBox {
 }
 
 /** Deposit object, get receipt, pick up later using receipt */
-case class DepositBox[A](stateBox: ValueBox[DepositBox.State[A]]) {
+final case class DepositBox[A](stateBox: ValueBox[DepositBox.State[A]]) {
 
   def deposit(a: A): Receipt = stateBox.getAndUpdate(_ + a)
 

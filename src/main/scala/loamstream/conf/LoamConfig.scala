@@ -9,6 +9,7 @@ import loamstream.util.Loggable
 import loamstream.util.Tries
 import loamstream.drm.DrmSystem
 import scala.collection.SortedMap.Default
+import org.broadinstitute.dig.aws.config.AWSConfig
 
 /**
  * @author clint
@@ -23,6 +24,7 @@ final case class LoamConfig(
     rConfig: Option[RConfig],
     executionConfig: ExecutionConfig,
     compilationConfig: CompilationConfig,
+    awsConfig: Option[AWSConfig],
     drmSystem: Option[DrmSystem] = None)
     
 object LoamConfig extends ConfigParser[LoamConfig] with Loggable {
@@ -34,7 +36,7 @@ object LoamConfig extends ConfigParser[LoamConfig] with Loggable {
     val pythonConfig = PythonConfig.fromConfig(config)
     val rConfig = RConfig.fromConfig(config)
     val executionConfig = ExecutionConfig.fromConfig(config)
-    val compilationConfig = CompilationConfig.default
+    val awsConfig = loadAwsConfig(config)
 
     if(executionConfig.isFailure) {
       debug(s"'loamstream.execution' section missing from config file, using defaults: ${ExecutionConfig.default}")
@@ -49,7 +51,10 @@ object LoamConfig extends ConfigParser[LoamConfig] with Loggable {
         pythonConfig.toOption,
         rConfig.toOption,
         executionConfig.getOrElse(ExecutionConfig.default),
-        compilationConfig)
+        CompilationConfig.default,
+        awsConfig.toOption)
     }
   }
+  
+  def loadAwsConfig(config: Config): Try[AWSConfig] = AWSConfig.fromTypesafeConfig(config, "loamstream.aws")
 }

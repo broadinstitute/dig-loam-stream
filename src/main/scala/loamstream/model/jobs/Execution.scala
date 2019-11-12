@@ -37,12 +37,12 @@ final case class Execution(
   require(
       environmentAndResourcesMatch, 
       s"Environment type and resources must match, but got $envType and $resources")
-      
+
   override def envType: EnvironmentType = settings.envType
-      
+
   def isSuccess: Boolean = status.isSuccess
   def isFailure: Boolean = status.isFailure
-  
+
   private def environmentAndResourcesMatch: Boolean = (envType, resources) match {
     case (_, None) => true
     case (EnvironmentType.Local, Some(_: LocalResources)) => true

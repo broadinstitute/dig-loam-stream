@@ -18,6 +18,12 @@ final case class Hash(value: mutable.WrappedArray[Byte], tpe: HashType) {
 }
 
 object Hash {
+  def apply(value: String, tpe: HashType): Hash = {
+    val bytes = DatatypeConverter.parseBase64Binary(value)
+    
+    Hash(bytes, tpe)
+  }
+  
   def fromStrings(value: Option[String], tpe: String): Option[Hash] = {
     for {
       bytes <- value.map(DatatypeConverter.parseBase64Binary)

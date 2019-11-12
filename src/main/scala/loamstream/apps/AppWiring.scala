@@ -88,6 +88,10 @@ import loamstream.googlecloud.HailCtlDataProcClient
 import loamstream.googlecloud.HailConfig
 import loamstream.model.jobs.JobOracle
 import scala.concurrent.ExecutionContext
+import org.broadinstitute.dig.aws.config.AWSConfig
+import loamstream.aws.AwsClient
+import loamstream.aws.AwsChunkRunner
+import org.broadinstitute.dig.aws.AWS
 
 
 /**
@@ -104,13 +108,15 @@ trait AppWiring {
 
   def cloudStorageClient: Option[CloudStorageClient]
   
+  def awsClient: Option[AwsClient]
+  
   def jobFilter: JobFilter
   
   def executionRecorder: ExecutionRecorder
   
   def shutdown(): Seq[Throwable]
   
-  lazy val loamEngine: LoamEngine = LoamEngine(config, LoamCompiler.default, executer, cloudStorageClient)
+  lazy val loamEngine: LoamEngine = LoamEngine(config, LoamCompiler.default, executer, cloudStorageClient, awsClient)
   
   lazy val loamRunner: LoamRunner = LoamRunner(loamEngine)
 }
@@ -172,6 +178,8 @@ object AppWiring extends Loggable {
     override def shutdown(): Seq[Throwable] = terminableExecuter.shutdown()
 
     override lazy val cloudStorageClient: Option[CloudStorageClient] = makeCloudStorageClient(intent.confFile, config)
+    
+    override lazy val awsClient: Option[AwsClient] = makeAwsClient(config)
 
     override lazy val jobFilter: JobFilter = makeJobFilter(intent.jobFilterIntent, intent.hashingStrategy, dao)
     
@@ -225,8 +233,10 @@ object AppWiring extends Loggable {
       val (drmRunner, drmRunnerHandles) = drmChunkRunner(intent.confFile, config, threadPoolSize)(localEC)
       
       val googleRunner = googleChunkRunner(intent.confFile, config.googleConfig, config.hailConfig, localRunner)
+      
+      val awsRunner = awsChunkRunner(config.awsConfig)
 
-      val compositeRunner = CompositeChunkRunner(localRunner +: (drmRunner.toSeq ++ googleRunner))
+      val compositeRunner = CompositeChunkRunner(localRunner +: (drmRunner.toSeq ++ googleRunner ++ awsRunner))
       
       val toBeStopped = compositeRunner +: localEcHandle +: (drmRunnerHandles ++ compositeRunner.components)
       
@@ -288,6 +298,23 @@ object AppWiring extends Loggable {
     } yield (googleConfig, hailConfig)
     
     configsOpt.fold(noConfigs)(configsPresent)
+  }
+  
+  private def awsChunkRunner(awsConfigOpt: Option[AWSConfig]): Option[AwsChunkRunner] = {
+    
+    //TODO: A better way to enable or disable AWS support; for now, this is purely expedient
+    
+    def noConfigs: Option[AwsChunkRunner] = {
+      debug("AWS support NOT enabled due to missing 'loamstream.aws' section in the config file")
+        
+      None
+    }
+    
+    def configsPresent(awsConfig: AWSConfig): Option[AwsChunkRunner] = {
+      Some(new AwsChunkRunner(AwsClient.Default(new AWS(awsConfig))))
+    }
+    
+    awsConfigOpt.fold(noConfigs)(configsPresent)
   }
   
   private def drmChunkRunner(
@@ -371,6 +398,19 @@ object AppWiring extends Loggable {
     }
 
     gcsClientAttempt.toOption
+  }
+  
+  private def makeAwsClient(config: LoamConfig): Option[AwsClient] = {
+    
+    def noAwsConfig: Option[AwsClient] = {
+      debug(s"Missing or malformed 'loamstream.aws' section in config file; AWS support will not be available.")
+      
+      None
+    }
+     
+    def configPresent(awsConfig: AWSConfig): Option[AwsClient] = Some(AwsClient.Default(new AWS(awsConfig)))
+    
+    config.awsConfig.fold(noAwsConfig)(configPresent)
   }
 
   private def makeUgerChunkRunner(

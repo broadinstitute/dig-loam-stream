@@ -19,7 +19,7 @@ import loamstream.conf.DynamicConfig
  */
 object LoamCmdSyntax extends LoamCmdSyntax
 
-trait LoamCmdSyntax {
+trait LoamCmdSyntax extends ToolSyntaxCompanion[LoamCmdTool] {
   implicit final class StringContextWithCmd(val stringContext: StringContext) {
     /** BEWARE: This method has the implicit side-effect of modifying the graph
      *          within scriptContext via the call to addToGraph()
@@ -54,13 +54,6 @@ trait LoamCmdSyntax {
       }
   
       updatedTool
-    }
-  }
-  
-  /** BEWARE: This method has the side-effect of modifying the graph within scriptContext */
-  private def addToGraph(tool: LoamCmdTool)(implicit scriptContext: LoamScriptContext): Unit = {
-    scriptContext.projectContext.updateGraph { graph =>
-      graph.withTool(tool, scriptContext)
     }
   }
 }

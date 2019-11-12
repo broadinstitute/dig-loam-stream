@@ -14,11 +14,11 @@ final class HashTest extends FunSuite {
   
   private val allZeroesArray: Array[Byte] = Array(0.toByte, 0.toByte, 0.toByte, 0.toByte)
   
-  private val allZeroes = Hash(mutable.WrappedArray.make(allZeroesArray), HashType.Sha1)
+  private val allZeroes = Hash(mutable.WrappedArray.make[Byte](allZeroesArray), HashType.Sha1)
 
   private val someOnesArray: Array[Byte] = Array(0.toByte, 255.toByte, 255.toByte, 0.toByte)
   
-  private val someOnes = Hash(mutable.WrappedArray.make(someOnesArray), HashType.Sha1)
+  private val someOnes = Hash(mutable.WrappedArray.make[Byte](someOnesArray), HashType.Sha1)
 
   private val realWorld = Hashes.sha1(path("src/test/resources/for-hashing/foo.txt"))
 

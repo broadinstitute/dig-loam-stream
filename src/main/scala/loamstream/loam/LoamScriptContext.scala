@@ -3,17 +3,19 @@ package loamstream.loam
 import java.nio.file.Path
 import java.nio.file.Paths
 
+import org.broadinstitute.dig.aws.config.AWSConfig
+
+import loamstream.conf.LoamConfig
+import loamstream.conf.LsfConfig
+import loamstream.conf.PythonConfig
+import loamstream.conf.RConfig
+import loamstream.conf.UgerConfig
+import loamstream.googlecloud.GoogleCloudConfig
+import loamstream.googlecloud.HailConfig
+import loamstream.model.execute.LocalSettings
+import loamstream.model.execute.Settings
 import loamstream.util.DepositBox
 import loamstream.util.ValueBox
-import loamstream.conf.LoamConfig
-import loamstream.conf.RConfig
-import loamstream.conf.PythonConfig
-import loamstream.googlecloud.HailConfig
-import loamstream.googlecloud.GoogleCloudConfig
-import loamstream.conf.UgerConfig
-import loamstream.conf.LsfConfig
-import loamstream.model.execute.Settings
-import loamstream.model.execute.LocalSettings
 
 /** Container for compile time and run time context for a script */
 final class LoamScriptContext(val projectContext: LoamProjectContext) {
@@ -65,6 +67,10 @@ final class LoamScriptContext(val projectContext: LoamProjectContext) {
   
   def googleConfig: GoogleCloudConfig = {
     getOpt(config.googleConfig, s"Google support requires a valid 'loamstream.googlecloud' section in the config file")
+  }
+  
+  def awsConfig: AWSConfig = {
+    getOpt(config.awsConfig, s"AWS support requires a valid 'loamstream.aws' section in the config file")
   }
   
   private def getOpt[A](opt: Option[A], missingMessage: => String): A = {

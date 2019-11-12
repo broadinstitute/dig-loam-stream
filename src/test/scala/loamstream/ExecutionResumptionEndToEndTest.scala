@@ -335,7 +335,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
   private def loamEngine = {
     val (executer, _) = makeLoggingExecuter
 
-    LoamEngine(TestHelpers.config, LoamCompiler.default, executer)
+    LoamEngine(TestHelpers.config, LoamCompiler.default, executer, awsClient = None)
   }
 
   private def compileAndRun(graph: LoamGraph): (Executable, Map[LJob, Execution]) = {

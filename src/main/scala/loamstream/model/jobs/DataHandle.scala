@@ -5,6 +5,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Instant
 
+import loamstream.aws.AwsClient
 import loamstream.googlecloud.CloudStorageClient
 import loamstream.util.Hash
 import loamstream.util.HashType
@@ -70,11 +71,30 @@ object DataHandle {
   }
 
   final case class GcsUriHandle(uri: URI, client: Option[CloudStorageClient]) extends DataHandle {
-    override def isPresent = client.exists(_.isPresent(uri))
+    override def isPresent: Boolean = client.exists(_.isPresent(uri))
 
     override lazy val hash: Option[Hash] = client.flatMap(_.hash(uri))
 
     override def lastModified: Option[Instant] = client.flatMap(_.lastModified(uri))
+
+    override def location: String = uri.toString
+
+    override def toStoreRecord: StoreRecord = {
+      StoreRecord( 
+          loc = location,
+          isPresent = isPresent,
+          makeHash = () => hashToString(hash),
+          makeHashType = () => hashTypeToString(hashType),
+          lastModified = lastModified)
+    }
+  }
+  
+  final case class S3UriHandle(uri: URI, awsClient: Option[AwsClient]) extends DataHandle {
+    override def isPresent: Boolean = awsClient.exists(_.exists(uri))
+
+    override lazy val hash: Option[Hash] = awsClient.flatMap(_.hash(uri))
+
+    override def lastModified: Option[Instant] = awsClient.flatMap(_.lastModified(uri))
 
     override def location: String = uri.toString
 

@@ -30,6 +30,7 @@ import java.net.URI
 import org.broadinstitute.dig.aws.emr.BootstrapScript
 import org.broadinstitute.dig.aws.emr.ApplicationConfig
 import org.broadinstitute.dig.aws.emr.ApplicationName
+import java.time.LocalDateTime
 
 /**
  * @author clint
@@ -38,7 +39,7 @@ import org.broadinstitute.dig.aws.emr.ApplicationName
 final class FileSystemExecutionRecorderTest extends FunSuite {
   import FileSystemExecutionRecorder.settingsToString
   import FileSystemExecutionRecorder.resourcesToString
-  private val startTime = Instant.now
+  private val startTime = LocalDateTime.now
   
   test("record") {
     TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
@@ -58,7 +59,7 @@ final class FileSystemExecutionRecorderTest extends FunSuite {
       
       val cpuTime = CpuTime.inSeconds(345)
       val nodeOpt = Option("foo.example.com")
-      val endTime = Instant.now
+      val endTime = LocalDateTime.now
       val rawData = Option("fofofofo")
       
       val resources = UgerResources(memoryPerCore, cpuTime, nodeOpt, queueOpt, startTime, endTime, rawData)
@@ -219,7 +220,7 @@ final class FileSystemExecutionRecorderTest extends FunSuite {
   }
   
   test("resourcesToString - local resources") {
-    val endTime = Instant.now
+    val endTime = LocalDateTime.now
     
     val resources = LocalResources(startTime, endTime)
     
@@ -227,7 +228,7 @@ final class FileSystemExecutionRecorderTest extends FunSuite {
   }
   
   test("resourcesToString - google resources") {
-    val endTime = Instant.now
+    val endTime = LocalDateTime.now
     
     val resources = GoogleResources("foo", startTime, endTime)
     
@@ -235,7 +236,7 @@ final class FileSystemExecutionRecorderTest extends FunSuite {
   }
   
   test("resourcesToString - AWS resources") {
-    val endTime = Instant.now
+    val endTime = LocalDateTime.now
     
     val resources = AwsResources("foo", startTime, endTime)
     
@@ -243,7 +244,7 @@ final class FileSystemExecutionRecorderTest extends FunSuite {
   }
   
   test("resourcesToString - DRM resources") {
-    val endTime = Instant.now
+    val endTime = LocalDateTime.now
     
     def doTest[R <: DrmResources](makeResources: DrmResources.ResourcesMaker[R]): Unit = {
       def doTestWith(nodeOpt: Option[String], queueOpt: Option[Queue]): Unit = {

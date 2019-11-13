@@ -44,7 +44,7 @@ object HeterogeneousMap extends App {
   }
   
   final case class Key[K, V](key: K)(implicit classTagOfV: ClassTag[V]) {
-    private [HeterogeneousMap] def castValue(a: Any): V = a match {
+    private[HeterogeneousMap] def castValue(a: Any): V = a match {
       case classTagOfV(v) => v
       case x => sys.error(s"Expected a ${classTagOfV.runtimeClass.getName} but got a ${x.getClass.getName}")
     }
@@ -57,13 +57,4 @@ object HeterogeneousMap extends App {
   }
   
   def keyFor[V : ClassTag]: KeyMaker[V] = new KeyMaker
-
-  val fooKey: Key[String, Int] = keyFor[Int].of("foo")
-  val barKey: Key[Int, String] = keyFor[String].of(456)
-  
-  val foo = HeterogeneousMap(fooKey ~> 123, barKey ~> "bar")
-  
-  foo.foreach {
-    case (k, v) => println(s"'${k}' (${k.getClass.getSimpleName}) => '${v}' (${v.getClass.getSimpleName})")
-  }
 }

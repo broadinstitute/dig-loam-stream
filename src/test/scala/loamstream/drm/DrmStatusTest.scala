@@ -9,6 +9,7 @@ import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.JobStatus
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Memory
+import java.time.LocalDateTime
 
 
 /**
@@ -26,8 +27,8 @@ final class DrmStatusTest extends FunSuite {
       CpuTime(1.second), 
       Some("example.com"), 
       Some(broadQueue),
-      Instant.now,
-      Instant.now)
+      LocalDateTime.now,
+      LocalDateTime.now)
       
   test("fromUgerStatusCode") {
     import org.ggf.drmaa.Session._

@@ -30,20 +30,22 @@ final class QacctAccountingClientTest extends FunSuite {
 
   private val newline: String = scala.util.Properties.lineSeparator
   
-  private def makeStartAndEndTime: (Instant, Instant) = {
-    val start = Instant.now
+  private def makeStartAndEndTime: (LocalDateTime, LocalDateTime) = {
+    val start = LocalDateTime.now
     
     val end = start.plusSeconds(42)
     
     (start, end)
   }
   
-  test("toInstant - round trip") {
-    val now = Instant.now
+  //NB: Instead of testing the deserialization of particular dates, we see if we can
+  //round-trip the current date.  This is unfortunately necessary because 
+  test("toLocalDateTime - round trip") {
+    val now = LocalDateTime.now
     
     val inUgerFormat = QacctTestHelpers.toUgerFormat(now)
     
-    val parsed = QacctAccountingClient.toInstant("foo")(inUgerFormat)
+    val parsed = QacctAccountingClient.toLocalDateTime("foo")(inUgerFormat)
     
     assert(parsed.get === now)
   }

@@ -16,6 +16,7 @@ import scala.util.Try
 import loamstream.model.jobs.TerminationReason
 import loamstream.TestHelpers
 import java.time.ZoneOffset
+import java.time.LocalDateTime
 
 /**
  * @author clint
@@ -32,8 +33,7 @@ final class BacctAccountingClientTest extends FunSuite {
   
   private def asTrimmedLines(s: String): Seq[String] = s.split("\\n").map(_.trim)
   
-  private val systemTimeZoneOffSet = "-04:00"
-  private val now = ZonedDateTime.now
+  private val now = LocalDateTime.now
   private val currentYear: Int = now.get(ChronoField.YEAR)
   
   import scala.concurrent.ExecutionContext.Implicits.global
@@ -61,8 +61,8 @@ final class BacctAccountingClientTest extends FunSuite {
             CpuTime.inSeconds(0.02), 
             Option("ebi6-054"),
             Option(Queue("research-rh7")),
-            ZonedDateTime.parse(s"${currentYear}-04-18T22:32:01.00${systemTimeZoneOffSet}").toInstant,
-            ZonedDateTime.parse(s"${currentYear}-04-18T23:34:12.00${systemTimeZoneOffSet}").toInstant,
+            LocalDateTime.parse(s"${currentYear}-04-18T22:32:01.00"),
+            LocalDateTime.parse(s"${currentYear}-04-18T23:34:12.00"),
             raw = Option(actualOutput))
     
     assert(actual.memory === expected.memory)
@@ -117,8 +117,8 @@ final class BacctAccountingClientTest extends FunSuite {
             CpuTime.inSeconds(0.58), 
             Option("ebi5-153"),
             Option(Queue("research-rh7")),
-            ZonedDateTime.parse(s"${currentYear}-05-01T22:42:24.00${systemTimeZoneOffSet}").toInstant,
-            ZonedDateTime.parse(s"${currentYear}-05-01T22:42:46.00${systemTimeZoneOffSet}").toInstant,
+            LocalDateTime.parse(s"${currentYear}-05-01T22:42:24.00"),
+            LocalDateTime.parse(s"${currentYear}-05-01T22:42:46.00"),
             raw = Option(problematicOutput))
     
     assert(actual.memory === expected.memory)
@@ -151,10 +151,15 @@ final class BacctAccountingClientTest extends FunSuite {
     import BacctAccountingClient.parseStartTime
     import BacctAccountingClient.parseEndTime
     
-    val april18 = ZonedDateTime.parse(s"${currentYear}-04-18T22:32:01.00${systemTimeZoneOffSet}").toInstant
-    val april1 = ZonedDateTime.parse(s"${currentYear}-04-01T22:32:01.00${systemTimeZoneOffSet}").toInstant
+    val april18 = LocalDateTime.parse(s"${currentYear}-04-18T22:32:01.00")
+    val april1 = LocalDateTime.parse(s"${currentYear}-04-01T22:32:01.00")
     
-    def doTest(date: String, expected: Instant, dateLinePart: String, parse: Seq[String] => Try[Instant]): Unit = {
+    def doTest(
+        date: String, 
+        expected: LocalDateTime, 
+        dateLinePart: String, 
+        parse: Seq[String] => Try[LocalDateTime]): Unit = {
+      
       assert(parse(Seq(s"${date}: ${dateLinePart} asdasdasdads")).get === expected)
     }
     
@@ -166,7 +171,7 @@ final class BacctAccountingClientTest extends FunSuite {
     doTest("Thu Apr 18 22:32:01", april18, "Completed", parseEndTime)
     doTest("Mon Apr  1 22:32:01", april1, "Completed", parseEndTime)
 
-    def doTestShouldFail(line: String, parse: Seq[String] => Try[Instant]): Unit = {
+    def doTestShouldFail(line: String, parse: Seq[String] => Try[LocalDateTime]): Unit = {
       assert(parse(Seq(line)).isFailure)
     }
     

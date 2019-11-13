@@ -40,8 +40,8 @@ object QacctTestHelpers {
       expectedRawData: String, 
       expectedNode: String, 
       expectedQueue: Queue,
-      expectedStartTime: Instant,
-      expectedEndTime: Instant): UgerResources = {
+      expectedStartTime: LocalDateTime,
+      expectedEndTime: LocalDateTime): UgerResources = {
     
     expectedResources(expectedRawData, Option(expectedNode), Option(expectedQueue), expectedStartTime, expectedEndTime)
   }
@@ -50,8 +50,8 @@ object QacctTestHelpers {
       expectedRawData: String, 
       expectedNode: Option[String], 
       expectedQueue: Option[Queue],
-      expectedStartTime: Instant,
-      expectedEndTime: Instant): UgerResources = {
+      expectedStartTime: LocalDateTime,
+      expectedEndTime: LocalDateTime): UgerResources = {
 
     UgerResources(
       memory = Memory.inKb(60092),
@@ -65,14 +65,14 @@ object QacctTestHelpers {
       raw = Option(expectedRawData))
   }
   
-  def toUgerFormat(i: Instant): String = QacctAccountingClient.dateFormatter.format(i)
+  def toUgerFormat(i: LocalDateTime): String = QacctAccountingClient.dateFormatter.format(i)
   
   //scalastyle:off method.length
   def actualQacctOutput(
       queue: Option[Queue], 
       node: Option[String],
-      expectedStartTime: Instant,
-      expectedEndTime: Instant): Seq[String] = s"""
+      expectedStartTime: LocalDateTime,
+      expectedEndTime: LocalDateTime): Seq[String] = s"""
 qname        ${queue.map(_.name).getOrElse("")}
 hostname     ${node.getOrElse("")}
 group        broad

@@ -16,7 +16,7 @@ import loamstream.util.HeterogeneousMap
 final case class LoamRunner(loamEngine: LoamEngine) extends Loggable {
   def run(
       project: LoamProject,
-      propertiesForLoamCode: Iterable[HeterogeneousMap.Entry[_, _]]): Either[LoamCompiler.Result, Map[LJob, Execution]] = {
+      propertiesForLoamCode: Iterable[HeterogeneousMap.Entry[_, _]]): LoamRunner.ExecutionResults = {
     val compilationResults = loamEngine.compile(project, propertiesForLoamCode)
     
     info(compilationResults.summary)
@@ -26,4 +26,8 @@ final case class LoamRunner(loamEngine: LoamEngine) extends Loggable {
       case _ => Left(compilationResults)
     }
   }
+}
+
+object LoamRunner {
+  type ExecutionResults = Either[LoamCompiler.Result, Map[LJob, Execution]]
 }

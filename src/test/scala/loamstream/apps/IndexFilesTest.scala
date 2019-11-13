@@ -17,6 +17,7 @@ import loamstream.model.jobs.LJob
 import loamstream.model.jobs.MockJob
 import loamstream.util.Files
 import loamstream.util.MissingFileTimeoutException
+import java.time.LocalDateTime
 
 
 /**
@@ -32,9 +33,9 @@ final class IndexFilesTest extends FunSuite {
     private val r1: Option[JobResult] = None
     private val r2: Option[JobResult] = Some(CommandResult(42))
     
-    private val t0 = Instant.now
-    private val t1 = Instant.ofEpochMilli(t0.toEpochMilli + 1)
-    private val t2 = Instant.ofEpochMilli(t0.toEpochMilli + 2)
+    private val t0 = LocalDateTime.now
+    private val t1 = t0.plusSeconds(1)
+    private val t2 = t0.plusSeconds(2)
     
     private val p0 = path("jobs/job0")
     private val p1 = path("jobs/job1")

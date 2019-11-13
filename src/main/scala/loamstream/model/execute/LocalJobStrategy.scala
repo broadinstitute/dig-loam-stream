@@ -13,6 +13,7 @@ import java.nio.file.Path
 import loamstream.util.Processes
 import scala.util.Try
 import java.time.Instant
+import java.time.LocalDateTime
 
 /**
  * @author clint
@@ -59,8 +60,8 @@ object LocalJobStrategy extends Loggable {
   
   private[execute] def makeRunData(
       exitValueAttempt: Try[Int], 
-      start: Instant, 
-      end: Instant, 
+      start: LocalDateTime, 
+      end: LocalDateTime, 
       commandLineJob: CommandLineJob, 
       jobDir: Path,
       processLogger: ToFilesProcessLogger): RunData = {

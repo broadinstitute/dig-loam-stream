@@ -23,6 +23,7 @@ import loamstream.util.Loggable
 import loamstream.util.Options
 import loamstream.util.RetryingCommandInvoker
 import loamstream.util.Tries
+import java.time.ZonedDateTime
 
 /**
  * @author clint
@@ -108,7 +109,7 @@ object QacctAccountingClient extends Loggable {
   //NB: qacct reports timestamps in a format like `03/06/2017 17:49:50.455` in the local time zone 
   private[uger] def toInstant(fieldType: String)(s: String): Try[Instant] = {
     orElseErrorMessage(s"Couldn't parse $fieldType timestamp from '$s'") {
-      QacctAccountingClient.dateFormatter.parse(s, Instant.from(_))
+      dateFormatter.parse(s, Instant.from(_))
     }
   }
 
@@ -119,7 +120,7 @@ object QacctAccountingClient extends Loggable {
   }
   
   //Example date from qacct: 03/06/2017 17:49:50.455
-  private val dateFormatter: DateTimeFormatter = {
+  private[uger] val dateFormatter: DateTimeFormatter = {
     (new DateTimeFormatterBuilder)
       .appendPattern("MM/dd/yyyy HH:mm:ss.SSS")
       .toFormatter

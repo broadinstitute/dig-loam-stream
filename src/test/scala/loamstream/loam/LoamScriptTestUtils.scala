@@ -77,7 +77,7 @@ object LoamScriptTestUtils extends Loggable {
   private def run(engine: LoamEngine, project: LoamProject): Result = {
     info(s"Now compiling project with ${project.scripts.size} scripts.")
     
-    val compileResults = engine.compile(project)
+    val compileResults = engine.compile(project = project, propertiesForLoamCode = Nil)
     
     compileResults match {
       case success @ LoamCompiler.Result.Success(_, _, graph) => {

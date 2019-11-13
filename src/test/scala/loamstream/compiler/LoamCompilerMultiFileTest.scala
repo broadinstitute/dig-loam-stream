@@ -52,7 +52,7 @@ final class LoamCompilerMultiFileTest extends FunSuite {
       """.stripMargin)
     val project = LoamProject(TestHelpers.config, scriptValues, scriptIndividualImport)
     val compiler = createNewCompiler
-    val compileResults = compiler.compile(project)
+    val compileResults = compiler.compile(project, propertiesForLoamCode = Nil)
     assertCompiledFine(compileResults, 0, 1)
     assertEchoCommand(compileResults)
   }
@@ -65,7 +65,7 @@ final class LoamCompilerMultiFileTest extends FunSuite {
       """.stripMargin)
     val project = LoamProject(TestHelpers.config, scriptValues, scriptIndividualImport)
     val compiler = createNewCompiler
-    val compileResults = compiler.compile(project)
+    val compileResults = compiler.compile(project, propertiesForLoamCode = Nil)
     assertCompiledFine(compileResults, 0, 1)
     assertEchoCommand(compileResults)
   }
@@ -78,7 +78,7 @@ final class LoamCompilerMultiFileTest extends FunSuite {
       """.stripMargin)
     val project = LoamProject(TestHelpers.config, scriptValues, scriptIndividualImport)
     val compiler = createNewCompiler
-    val compileResults = compiler.compile(project)
+    val compileResults = compiler.compile(project, propertiesForLoamCode = Nil)
     assertCompiledFine(compileResults, 0, 1)
     assertEchoCommand(compileResults)
   }
@@ -91,7 +91,7 @@ final class LoamCompilerMultiFileTest extends FunSuite {
       """.stripMargin)
     val project = LoamProject(TestHelpers.config, scriptValues, scriptWildcardImport)
     val compiler = createNewCompiler
-    val compileResults = compiler.compile(project)
+    val compileResults = compiler.compile(project, propertiesForLoamCode = Nil)
     assertCompiledFine(compileResults, 0, 1)
     assertEchoCommand(compileResults)
   }
@@ -116,7 +116,7 @@ final class LoamCompilerMultiFileTest extends FunSuite {
         """.stripMargin))
     val project = LoamProject(TestHelpers.config, scripts)
     val compiler = createNewCompiler
-    val compileResults = compiler.compile(project)
+    val compileResults = compiler.compile(project, propertiesForLoamCode = Nil)
     assertCompiledFine(compileResults, 0, 1)
     assertEchoCommand(compileResults)
   }

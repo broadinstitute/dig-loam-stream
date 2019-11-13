@@ -44,7 +44,7 @@ final class LoamRunnerTest extends FunSuite {
 
     val project = LoamProject(config, LoamScript.withGeneratedName(code))
     
-    val results = loamRunner.run(project)
+    val results = loamRunner.run(project, propertiesForLoamCode = Nil)
     
     val resultsToExecutions = results.right.toOption.get
     

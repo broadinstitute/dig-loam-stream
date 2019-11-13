@@ -15,6 +15,7 @@ import loamstream.util.RunResults
 import scala.util.Try
 import loamstream.model.jobs.TerminationReason
 import loamstream.TestHelpers
+import java.time.ZoneOffset
 
 /**
  * @author clint
@@ -30,7 +31,11 @@ final class BacctAccountingClientTest extends FunSuite {
       stderr: Seq[String] = Nil): Try[RunResults] = Success(RunResults(binaryName, exitCode, stdout, stderr))
   
   private def asTrimmedLines(s: String): Seq[String] = s.split("\\n").map(_.trim)
-      
+  
+  private val systemTimeZoneOffSet = "-04:00"
+  private val now = ZonedDateTime.now
+  private val currentYear: Int = now.get(ChronoField.YEAR)
+  
   import scala.concurrent.ExecutionContext.Implicits.global
   
   test("Parse actual bacct outpout - bad input") {
@@ -50,12 +55,6 @@ final class BacctAccountingClientTest extends FunSuite {
     val mockInvoker = new RetryingCommandInvoker[String](0, "MOCK", _ => runResultsAttempt(stdout = splitOutput))
     
     val actual = waitFor((new BacctAccountingClient(mockInvoker)).getResourceUsage("someJobId"))
-    
-    val now = ZonedDateTime.now
-    
-    val systemTimeZoneOffSet = now.getOffset.getId
-    
-    val currentYear: Int = now.get(ChronoField.YEAR)
     
     val expected = LsfResources(
             Memory.inMb(123), 
@@ -113,12 +112,6 @@ final class BacctAccountingClientTest extends FunSuite {
     
     val actual = waitFor((new BacctAccountingClient(mockInvoker)).getResourceUsage("someJobId"))
     
-    val now = ZonedDateTime.now
-    
-    val systemTimeZoneOffSet = now.getOffset.getId
-    
-    val currentYear: Int = now.get(ChronoField.YEAR)
-    
     val expected = LsfResources(
             Memory.inMb(28), 
             CpuTime.inSeconds(0.58), 
@@ -158,12 +151,6 @@ final class BacctAccountingClientTest extends FunSuite {
     import BacctAccountingClient.parseStartTime
     import BacctAccountingClient.parseEndTime
     
-    val now = ZonedDateTime.now
-    
-    val systemTimeZoneOffSet = now.getOffset.getId
-    
-    val currentYear: Int = now.get(ChronoField.YEAR)
-
     val april18 = ZonedDateTime.parse(s"${currentYear}-04-18T22:32:01.00${systemTimeZoneOffSet}").toInstant
     val april1 = ZonedDateTime.parse(s"${currentYear}-04-01T22:32:01.00${systemTimeZoneOffSet}").toInstant
     

@@ -241,7 +241,7 @@ object TestHelpers {
   def loamEngine: LoamEngine = LoamEngine.default(config)
 
   def compile(loamCode: String): LoamCompiler.Result = {
-    loamEngine.compiler.compile(config, LoamScript.withGeneratedName(loamCode))
+    loamEngine.compiler.compile(config, LoamScript.withGeneratedName(loamCode), propertiesForLoamCode = Nil)
   }
   
   val defaultUgerSettings: UgerDrmSettings = {

@@ -15,8 +15,6 @@ final class HeterogeneousMap private (delegate: Map[Key[_, _], Any]) {
   
   def ++(tuples: Iterable[Entry[_, _]]): HeterogeneousMap = tuples.foldLeft(this)(_ + _)
   
-  def ++(first: Entry[_, _], rest: Entry[_, _]*): HeterogeneousMap = this.++(first +: rest)
-  
   def apply[K, V](key: Key[K, V]): V = get(key).get
   
   def get[K, V](key: Key[K, V]): Option[V] = {

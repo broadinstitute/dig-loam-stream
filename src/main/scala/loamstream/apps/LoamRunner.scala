@@ -13,7 +13,7 @@ import loamstream.util.Loggable
  * Jun 26, 2017
  */
 final case class LoamRunner(loamEngine: LoamEngine) extends Loggable {
-  def run(project: LoamProject): Either[LoamCompiler.Result, Map[LJob, Execution]] = {
+  def run(project: LoamProject): LoamRunner.ExecutionResults = {
     val compilationResults = loamEngine.compile(project)
     
     info(compilationResults.summary)
@@ -23,4 +23,8 @@ final case class LoamRunner(loamEngine: LoamEngine) extends Loggable {
       case _ => Left(compilationResults)
     }
   }
+}
+
+object LoamRunner {
+  type ExecutionResults = Either[LoamCompiler.Result, Map[LJob, Execution]]
 }

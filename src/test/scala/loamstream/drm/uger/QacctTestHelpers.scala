@@ -34,29 +34,41 @@ object QacctTestHelpers {
     Success(RunResults(fakeBinaryName, exitCode = exitCode, stdout = stdout, stderr = stderr))
   }
   
-  def expectedResources(expectedRawData: String, expectedNode: String, expectedQueue: Queue): UgerResources = {
-    expectedResources(expectedRawData, Option(expectedNode), Option(expectedQueue))
+  def expectedResources(
+      expectedRawData: String, 
+      expectedNode: String, 
+      expectedQueue: Queue,
+      expectedStartTime: LocalDateTime,
+      expectedEndTime: LocalDateTime): UgerResources = {
+    
+    expectedResources(expectedRawData, Option(expectedNode), Option(expectedQueue), expectedStartTime, expectedEndTime)
   }
 
   def expectedResources(
       expectedRawData: String, 
       expectedNode: Option[String], 
-      expectedQueue: Option[Queue]): UgerResources = {
-    
-    val localTzOffset = ZonedDateTime.now.getOffset
-    
+      expectedQueue: Option[Queue],
+      expectedStartTime: LocalDateTime,
+      expectedEndTime: LocalDateTime): UgerResources = {
+
     UgerResources(
       memory = Memory.inKb(60092),
       cpuTime = CpuTime.inSeconds(2.487),
       node = expectedNode,
       queue = expectedQueue,
-      startTime = LocalDateTime.parse("2017-03-06T18:49:50.505").toInstant(localTzOffset),
-      endTime = LocalDateTime.parse("2017-03-06T18:49:57.464").toInstant(localTzOffset),
+      startTime = expectedStartTime,
+      endTime = expectedEndTime,
       raw = Option(expectedRawData))
   }
   
+  def toUgerFormat(i: LocalDateTime): String = QacctAccountingClient.dateFormatter.format(i)
+  
   //scalastyle:off method.length
-  def actualQacctOutput(queue: Option[Queue], node: Option[String]): Seq[String] = s"""
+  def actualQacctOutput(
+      queue: Option[Queue], 
+      node: Option[String],
+      expectedStartTime: LocalDateTime,
+      expectedEndTime: LocalDateTime): Seq[String] = s"""
 qname        ${queue.map(_.name).getOrElse("")}
 hostname     ${node.getOrElse("")}
 group        broad
@@ -72,8 +84,8 @@ cwd          /humgen/diabetes/users/cgilbert/run-dir/extra-uger-info
 submit_host  hw-uger-1003.broadinstitute.org
 submit_cmd   NONE
 qsub_time    03/06/2017 17:49:46.288
-start_time   03/06/2017 17:49:50.505
-end_time     03/06/2017 17:49:57.464
+start_time   ${toUgerFormat(expectedStartTime)}
+end_time     ${toUgerFormat(expectedEndTime)}
 granted_pe   NONE
 slots        1
 failed       0

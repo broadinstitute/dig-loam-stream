@@ -9,6 +9,7 @@ import loamstream.model.execute.Resources.DrmResources
 import loamstream.model.execute.Resources.LsfResources
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Memory
+import java.time.LocalDateTime
 
 /**
  * @author clint
@@ -19,7 +20,7 @@ final class DrmResourcesTest extends FunSuite {
   import Resources.UgerResources
   import scala.concurrent.duration._
 
-  private val now = Instant.now
+  private val now = LocalDateTime.now
 
   private val rawResourceData = "lalala lalala blah lalala"
   
@@ -46,7 +47,7 @@ final class DrmResourcesTest extends FunSuite {
           None,
           None,
           now,
-          now.plusMillis(offsetInMillis),
+          now.plusNanos(offsetInMillis * 1000 * 1000),
           Some(rawResourceData))
   
         assert(resources.elapsedTime === offsetInMillis.milliseconds)

@@ -23,6 +23,7 @@ import loamstream.util.Loggable
 import loamstream.util.Options
 import loamstream.util.RetryingCommandInvoker
 import loamstream.util.Tries
+import java.time.LocalDateTime
 
 /**
  * @author clint
@@ -163,15 +164,15 @@ object BacctAccountingClient {
    */
   private def parseCpuTime(s: String): Try[CpuTime] = Try(CpuTime.inSeconds(s.toDouble))
   
-  private[lsf] def parseStartTime(rawBacctOutput: Seq[String]): Try[Instant] = {
+  private[lsf] def parseStartTime(rawBacctOutput: Seq[String]): Try[LocalDateTime] = {
     parseTimestamp(rawBacctOutput)(Regexes.startTime, "start")
   }
   
-  private[lsf] def parseEndTime(rawBacctOutput: Seq[String]): Try[Instant] = {
+  private[lsf] def parseEndTime(rawBacctOutput: Seq[String]): Try[LocalDateTime] = {
     parseTimestamp(rawBacctOutput)(Regexes.endTime, "end")
   }
   
-  private def parseTimestamp(rawBacctOutput: Seq[String])(regex: Regex, fieldType: String): Try[Instant] = {
+  private def parseTimestamp(rawBacctOutput: Seq[String])(regex: Regex, fieldType: String): Try[LocalDateTime] = {
     val dateOpt = rawBacctOutput.collectFirst { case regex(v) => v }
     
     def failureMessage = s"Couldn't parse $fieldType timestamp from bacct output '$rawBacctOutput'"
@@ -180,11 +181,11 @@ object BacctAccountingClient {
     
     val (primaryFormatter, alternateFormatter) = dateFormatters 
     
-    def parseInstant(formatter: DateTimeFormatter): Try[Instant] = {
-      dateStringAttempt.map(ds => formatter.parse(ds, Instant.from))
+    def parseLocalDateTime(formatter: DateTimeFormatter): Try[LocalDateTime] = {
+      dateStringAttempt.map(ds => formatter.parse(ds, LocalDateTime.from))
     }
     
-    parseInstant(primaryFormatter).orElse(parseInstant(alternateFormatter))
+    parseLocalDateTime(primaryFormatter).orElse(parseLocalDateTime(alternateFormatter))
   }
   
   /*

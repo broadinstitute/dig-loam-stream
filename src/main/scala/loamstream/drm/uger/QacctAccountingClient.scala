@@ -1,6 +1,6 @@
 package loamstream.drm.uger
 
-import java.time.Instant
+import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeFormatterBuilder
@@ -23,6 +23,7 @@ import loamstream.util.Loggable
 import loamstream.util.Options
 import loamstream.util.RetryingCommandInvoker
 import loamstream.util.Tries
+
 
 /**
  * @author clint
@@ -50,8 +51,8 @@ final class QacctAccountingClient(
       val result = for {
         memory <- findField(output, mem).flatMap(toMemory)
         cpuTime <- findField(output, cpu).flatMap(toCpuTime)
-        start <- findField(output, startTime).flatMap(toInstant("start"))
-        end <- findField(output, endTime).flatMap(toInstant("end"))
+        start <- findField(output, startTime).flatMap(toLocalDateTime("start"))
+        end <- findField(output, endTime).flatMap(toLocalDateTime("end"))
       } yield  {
         UgerResources(
           memory = memory,
@@ -91,7 +92,7 @@ object QacctAccountingClient extends Loggable {
   }
   
   //NB: Uger reports cpu time as a floating-point number of cpu-seconds. 
-  private def toCpuTime(s: String) = {
+  private def toCpuTime(s: String): Try[CpuTime] = {
     orElseErrorMessage(s"Couldn't parse '$s' as CpuTime") {
       CpuTime(s.toDouble.seconds)
     }
@@ -106,9 +107,9 @@ object QacctAccountingClient extends Loggable {
   }
   
   //NB: qacct reports timestamps in a format like `03/06/2017 17:49:50.455` in the local time zone 
-  private[uger] def toInstant(fieldType: String)(s: String): Try[Instant] = {
+  private[uger] def toLocalDateTime(fieldType: String)(s: String): Try[LocalDateTime] = {
     orElseErrorMessage(s"Couldn't parse $fieldType timestamp from '$s'") {
-      QacctAccountingClient.dateFormatter.parse(s, Instant.from(_))
+      dateFormatter.parse(s, LocalDateTime.from(_))
     }
   }
 
@@ -119,11 +120,10 @@ object QacctAccountingClient extends Loggable {
   }
   
   //Example date from qacct: 03/06/2017 17:49:50.455
-  private val dateFormatter: DateTimeFormatter = {
+  private[uger] val dateFormatter: DateTimeFormatter = {
     (new DateTimeFormatterBuilder)
       .appendPattern("MM/dd/yyyy HH:mm:ss.SSS")
       .toFormatter
-      .withZone(ZoneId.systemDefault)
   }
   
   private object Regexes {

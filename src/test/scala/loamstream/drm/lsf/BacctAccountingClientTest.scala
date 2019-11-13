@@ -1,27 +1,27 @@
 package loamstream.drm.lsf
 
-import org.scalatest.FunSuite
-import loamstream.model.execute.Resources.LsfResources
-import loamstream.model.quantities.Memory
-import scala.util.Success
-import java.time.Instant
-import loamstream.drm.Queue
-import loamstream.model.quantities.CpuTime
-import java.time.ZoneId
+import java.time.LocalDateTime
 import java.time.temporal.ChronoField
-import java.time.ZonedDateTime
+
+import scala.util.Success
+import scala.util.Try
+
+import org.scalatest.FunSuite
+
+import loamstream.drm.Queue
+import loamstream.model.execute.Resources.LsfResources
+import loamstream.model.jobs.TerminationReason
+import loamstream.model.quantities.CpuTime
+import loamstream.model.quantities.Memory
 import loamstream.util.RetryingCommandInvoker
 import loamstream.util.RunResults
-import scala.util.Try
-import loamstream.model.jobs.TerminationReason
-import loamstream.TestHelpers
 
 /**
  * @author clint
  * Apr 18, 2019
  */
 final class BacctAccountingClientTest extends FunSuite {
-  import TestHelpers.waitFor
+  import loamstream.TestHelpers.waitFor
   
   private def runResultsAttempt(
       binaryName: String = "MOCK", 
@@ -30,7 +30,10 @@ final class BacctAccountingClientTest extends FunSuite {
       stderr: Seq[String] = Nil): Try[RunResults] = Success(RunResults(binaryName, exitCode, stdout, stderr))
   
   private def asTrimmedLines(s: String): Seq[String] = s.split("\\n").map(_.trim)
-      
+  
+  private val now = LocalDateTime.now
+  private val currentYear: Int = now.get(ChronoField.YEAR)
+  
   import scala.concurrent.ExecutionContext.Implicits.global
   
   test("Parse actual bacct outpout - bad input") {
@@ -51,19 +54,13 @@ final class BacctAccountingClientTest extends FunSuite {
     
     val actual = waitFor((new BacctAccountingClient(mockInvoker)).getResourceUsage("someJobId"))
     
-    val now = ZonedDateTime.now
-    
-    val systemTimeZoneOffSet = now.getOffset.getId
-    
-    val currentYear: Int = now.get(ChronoField.YEAR)
-    
     val expected = LsfResources(
             Memory.inMb(123), 
             CpuTime.inSeconds(0.02), 
             Option("ebi6-054"),
             Option(Queue("research-rh7")),
-            ZonedDateTime.parse(s"${currentYear}-04-18T22:32:01.00${systemTimeZoneOffSet}").toInstant,
-            ZonedDateTime.parse(s"${currentYear}-04-18T23:34:12.00${systemTimeZoneOffSet}").toInstant,
+            LocalDateTime.parse(s"${currentYear}-04-18T22:32:01.00"),
+            LocalDateTime.parse(s"${currentYear}-04-18T23:34:12.00"),
             raw = Option(actualOutput))
     
     assert(actual.memory === expected.memory)
@@ -113,19 +110,13 @@ final class BacctAccountingClientTest extends FunSuite {
     
     val actual = waitFor((new BacctAccountingClient(mockInvoker)).getResourceUsage("someJobId"))
     
-    val now = ZonedDateTime.now
-    
-    val systemTimeZoneOffSet = now.getOffset.getId
-    
-    val currentYear: Int = now.get(ChronoField.YEAR)
-    
     val expected = LsfResources(
             Memory.inMb(28), 
             CpuTime.inSeconds(0.58), 
             Option("ebi5-153"),
             Option(Queue("research-rh7")),
-            ZonedDateTime.parse(s"${currentYear}-05-01T22:42:24.00${systemTimeZoneOffSet}").toInstant,
-            ZonedDateTime.parse(s"${currentYear}-05-01T22:42:46.00${systemTimeZoneOffSet}").toInstant,
+            LocalDateTime.parse(s"${currentYear}-05-01T22:42:24.00"),
+            LocalDateTime.parse(s"${currentYear}-05-01T22:42:46.00"),
             raw = Option(problematicOutput))
     
     assert(actual.memory === expected.memory)
@@ -158,16 +149,15 @@ final class BacctAccountingClientTest extends FunSuite {
     import BacctAccountingClient.parseStartTime
     import BacctAccountingClient.parseEndTime
     
-    val now = ZonedDateTime.now
+    val april18 = LocalDateTime.parse(s"${currentYear}-04-18T22:32:01.00")
+    val april1 = LocalDateTime.parse(s"${currentYear}-04-01T22:32:01.00")
     
-    val systemTimeZoneOffSet = now.getOffset.getId
-    
-    val currentYear: Int = now.get(ChronoField.YEAR)
-
-    val april18 = ZonedDateTime.parse(s"${currentYear}-04-18T22:32:01.00${systemTimeZoneOffSet}").toInstant
-    val april1 = ZonedDateTime.parse(s"${currentYear}-04-01T22:32:01.00${systemTimeZoneOffSet}").toInstant
-    
-    def doTest(date: String, expected: Instant, dateLinePart: String, parse: Seq[String] => Try[Instant]): Unit = {
+    def doTest(
+        date: String, 
+        expected: LocalDateTime, 
+        dateLinePart: String, 
+        parse: Seq[String] => Try[LocalDateTime]): Unit = {
+      
       assert(parse(Seq(s"${date}: ${dateLinePart} asdasdasdads")).get === expected)
     }
     
@@ -179,7 +169,7 @@ final class BacctAccountingClientTest extends FunSuite {
     doTest("Thu Apr 18 22:32:01", april18, "Completed", parseEndTime)
     doTest("Mon Apr  1 22:32:01", april1, "Completed", parseEndTime)
 
-    def doTestShouldFail(line: String, parse: Seq[String] => Try[Instant]): Unit = {
+    def doTestShouldFail(line: String, parse: Seq[String] => Try[LocalDateTime]): Unit = {
       assert(parse(Seq(line)).isFailure)
     }
     

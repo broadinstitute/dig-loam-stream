@@ -23,12 +23,13 @@ import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.commandline.HasCommandLine
 import loamstream.util.CanBeClosed
-import loamstream.util.Hit
 import loamstream.util.IoUtils
 import loamstream.util.Loggable
-import loamstream.util.Miss
-import loamstream.util.Shot
 import loamstream.util.StringUtils
+import scala.util.Try
+import scala.util.Success
+import loamstream.util.Tries
+import scala.util.Failure
 
 
 /**
@@ -59,40 +60,40 @@ final case class LoamEngine(
     executer: Executer,
     csClient: Option[CloudStorageClient] = None) extends Loggable {
 
-  def loadFile(file: Path): Shot[LoamScript] = {
-    val fileShot = {
+  def loadFile(file: Path): Try[LoamScript] = {
+    val fileAttempt = {
       if (JFiles.exists(file)) {
-        Hit(file)
+        Success(file)
       }
       else {
-        Miss(s"Could not find '$file'.")
+        Tries.failure(s"Could not find '$file'.")
       }
     }
     
     import java.nio.file.Files.readAllBytes
     import loamstream.util.StringUtils.fromUtf8Bytes
 
-    val codeShot = fileShot.flatMap(file => Shot(fromUtf8Bytes(readAllBytes(file))))
+    val codeAttempt = fileAttempt.flatMap(file => Try(fromUtf8Bytes(readAllBytes(file))))
 
-    codeShot match {
-      case Hit(_) => info(s"Loaded '$file'.")
-      case miss: Miss => error(miss.toString)
+    codeAttempt match {
+      case Success(_) => info(s"Loaded '$file'.")
+      case Failure(e) => error(e.getMessage)
     }
     
     val nameShot = LoamScript.nameFromFilePath(file)
 
     for {
       name <- nameShot 
-      code <- codeShot
+      code <- codeAttempt
     } yield LoamScript(name, code, None)
   }
 
-  def compileFiles(files: Iterable[Path]): Shot[LoamCompiler.Result] = {
+  def compileFiles(files: Iterable[Path]): Try[LoamCompiler.Result] = {
     def compileScripts(scripts: Iterable[LoamScript]): LoamCompiler.Result = {
       compiler.compile(LoamProject(config, scripts))
     }
     
-    Shot.sequence(files.map(loadFile)).map(compileScripts)
+    Tries.sequence(files.map(loadFile)).map(compileScripts)
   }
 
   def compile(project: LoamProject): LoamCompiler.Result = {
@@ -176,5 +177,5 @@ final case class LoamEngine(
     }
   }
 
-  def scriptsFrom(files: Iterable[Path]): Shot[Iterable[LoamScript]] = Shot.sequence(files.map(loadFile))
+  def scriptsFrom(files: Iterable[Path]): Try[Iterable[LoamScript]] = Tries.sequence(files.map(loadFile))
 }

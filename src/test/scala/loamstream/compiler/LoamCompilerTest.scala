@@ -65,11 +65,11 @@ final class LoamCompilerTest extends FunSuite {
 
     val exampleFile = Paths.get("src/examples/loam/toyImpute.loam")
 
-    val scriptShot = TestHelpers.loamEngine.loadFile(exampleFile)
+    val scriptAttempt = TestHelpers.loamEngine.loadFile(exampleFile)
         
-    assert(scriptShot.nonEmpty)
+    assert(scriptAttempt.isSuccess)
     
-    val result = compiler.compile(LoamProject(TestHelpers.config, scriptShot.get))
+    val result = compiler.compile(LoamProject(TestHelpers.config, scriptAttempt.get))
     
     assert(result.errors.isEmpty)
     assert(result.warnings.isEmpty)

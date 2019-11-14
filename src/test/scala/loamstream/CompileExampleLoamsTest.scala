@@ -23,11 +23,11 @@ final class CompileExampleLoamsTest extends FunSuite {
     val loamEngine = TestHelpers.loamEngine
     
     for (loamFile <- loamFiles) {
-      val scriptShot = LoamEngine.loadFile(loamFile)
+      val scriptAttempt = LoamEngine.loadFile(loamFile)
       
-      assert(scriptShot.nonEmpty, scriptShot.message)
+      require(scriptAttempt.isSuccess, scriptAttempt.failed.get.getMessage)
       
-      val script = scriptShot.get
+      val script = scriptAttempt.get
       
       val compileResult = loamEngine.compile(
           project = LoamProject(TestHelpers.configWithUger, script), 

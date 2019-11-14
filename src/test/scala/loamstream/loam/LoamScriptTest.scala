@@ -2,7 +2,7 @@ package loamstream.loam
 
 import org.scalatest.FunSuite
 import loamstream.TestHelpers
-import loamstream.util.Shot
+import scala.util.Try
 
 /**
  * @author clint
@@ -17,7 +17,7 @@ final class LoamScriptTest extends FunSuite {
     
     val shot = nameAndEnclosingDirFromFilePath(a, path("src/test/loam/"))
     
-    val expected = Shot("a" -> None)
+    val expected = Try("a" -> None)
     
     assert(shot === expected)
   }
@@ -27,7 +27,7 @@ final class LoamScriptTest extends FunSuite {
     
     val shot = nameAndEnclosingDirFromFilePath(a, path("src/test/"))
     
-    val expected = Shot("a" -> Some(path("loam")))
+    val expected = Try("a" -> Some(path("loam")))
     
     assert(shot === expected)
   }
@@ -35,18 +35,18 @@ final class LoamScriptTest extends FunSuite {
   test("nameAndEnclosingDirFromFilePath - non-loam") {
     val a = path("src/test/loam/a.scala")
     
-    assert(nameAndEnclosingDirFromFilePath(a, path("src/test/")).isMiss)
+    assert(nameAndEnclosingDirFromFilePath(a, path("src/test/")).isFailure)
     
-    assert(nameAndEnclosingDirFromFilePath(a, path("src/test/loam")).isMiss)
+    assert(nameAndEnclosingDirFromFilePath(a, path("src/test/loam")).isFailure)
   }
   
   test("nameFromFilePath") {
     val aLoam = path("src/test/loam/a.loam")
     val aScala = path("src/test/loam/a.scala")
     
-    assert(nameFromFilePath(aLoam) === Shot("a"))
+    assert(nameFromFilePath(aLoam) === Try("a"))
     
-    assert(nameFromFilePath(aScala).isMiss)
+    assert(nameFromFilePath(aScala).isFailure)
   }
   
   test(".loam files import java.net.URI") {

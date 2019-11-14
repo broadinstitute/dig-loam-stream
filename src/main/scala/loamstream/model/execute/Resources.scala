@@ -1,16 +1,13 @@
 package loamstream.model.execute
 
 import java.time.Instant
+import java.time.LocalDateTime
 
 import scala.concurrent.duration.Duration
-import loamstream.util.Options
-import scala.util.Try
-import loamstream.drm.uger.UgerException
-import scala.util.Failure
-import loamstream.util.Tries
-import loamstream.model.quantities.Memory
-import loamstream.model.quantities.CpuTime
+
 import loamstream.drm.Queue
+import loamstream.model.quantities.CpuTime
+import loamstream.model.quantities.Memory
 
 /**
  * @author kyuksel
@@ -18,9 +15,9 @@ import loamstream.drm.Queue
  *         date: 3/9/17
  */
 sealed trait Resources {
-  def startTime: Instant
+  def startTime: LocalDateTime
 
-  def endTime: Instant
+  def endTime: LocalDateTime
   
   def raw: Option[String] = None
 
@@ -35,13 +32,13 @@ sealed trait Resources {
 
 object Resources {
   final case class LocalResources(
-      startTime: Instant,
-      endTime: Instant) extends Resources
+      startTime: LocalDateTime,
+      endTime: LocalDateTime) extends Resources
       
   final case class GoogleResources(
       clusterId: String,
-      startTime: Instant,
-      endTime: Instant) extends Resources
+      startTime: LocalDateTime,
+      endTime: LocalDateTime) extends Resources
   
   object GoogleResources {
     def fromClusterAndLocalResources(clusterId: String, localResources: LocalResources): GoogleResources = {
@@ -51,8 +48,8 @@ object Resources {
   
   final case class AwsResources(
       clusterId: String,
-      startTime: Instant,
-      endTime: Instant) extends Resources
+      startTime: LocalDateTime,
+      endTime: LocalDateTime) extends Resources
   
   trait DrmResources extends Resources {
     def memory: Memory
@@ -75,9 +72,9 @@ object Resources {
   
   object DrmResources {
     type ResourcesMaker[R <: DrmResources] = 
-      (Memory, CpuTime, Option[String], Option[Queue], Instant, Instant, Option[String]) => R
+      (Memory, CpuTime, Option[String], Option[Queue], LocalDateTime, LocalDateTime, Option[String]) => R
     
-    type FieldsTuple = (Memory, CpuTime, Option[String], Option[Queue], Instant, Instant, Option[String])
+    type FieldsTuple = (Memory, CpuTime, Option[String], Option[Queue], LocalDateTime, LocalDateTime, Option[String])
     
     def unapply(r: Resources): Option[FieldsTuple] = r match {
       case u: UgerResources => UgerResources.unapply(u)
@@ -91,8 +88,8 @@ object Resources {
       cpuTime: CpuTime,
       node: Option[String],
       queue: Option[Queue],
-      startTime: Instant,
-      endTime: Instant,
+      startTime: LocalDateTime,
+      endTime: LocalDateTime,
       override val raw: Option[String] = None) extends DrmResources {
     
     override def withNode(newNodeOpt: Option[String]): DrmResources = copy(node = newNodeOpt)
@@ -105,8 +102,8 @@ object Resources {
       cpuTime: CpuTime,
       node: Option[String],
       queue: Option[Queue],
-      startTime: Instant,
-      endTime: Instant,
+      startTime: LocalDateTime,
+      endTime: LocalDateTime,
       override val raw: Option[String] = None) extends DrmResources {
     
     override def withNode(newNodeOpt: Option[String]): DrmResources = copy(node = newNodeOpt)

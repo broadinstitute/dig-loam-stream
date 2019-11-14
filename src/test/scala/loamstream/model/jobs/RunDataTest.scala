@@ -9,6 +9,7 @@ import loamstream.TestHelpers
 import loamstream.model.execute.LocalSettings
 import loamstream.model.execute.GoogleSettings
 import loamstream.googlecloud.ClusterConfig
+import java.time.LocalDateTime
 
 
 /**
@@ -29,7 +30,7 @@ final class RunDataTest extends FunSuite {
     
     val runDataNoResources = RunData(j, LocalSettings, Succeeded, None, None, None, None)
     
-    val localResources = LocalResources(Instant.now, Instant.now)
+    val localResources = makeDummyResources
     
     assert(runDataNoResources.resourcesOpt === None)
     
@@ -75,7 +76,7 @@ final class RunDataTest extends FunSuite {
   test("toExecution - mock job, succeeded") {
     val j = MockJob(Succeeded)
     
-    val localResources = LocalResources(Instant.now, Instant.now)
+    val localResources = makeDummyResources
     
     val termReason = TerminationReason.Memory
     
@@ -106,7 +107,7 @@ final class RunDataTest extends FunSuite {
   test("toExecution - mock job, failed") {
     val j = MockJob(Succeeded)
     
-    val localResources = LocalResources(Instant.now, Instant.now)
+    val localResources = makeDummyResources
     
     val termReason = TerminationReason.Memory
     
@@ -137,7 +138,7 @@ final class RunDataTest extends FunSuite {
   test("toExecution - mock job, waiting-for-outputs") {
     val j = MockJob(WaitingForOutputs)
     
-    val localResources = LocalResources(Instant.now, Instant.now)
+    val localResources = makeDummyResources
     
     val termReason = TerminationReason.Memory
     
@@ -168,7 +169,7 @@ final class RunDataTest extends FunSuite {
   test("toExecution - command line job, succeeded") {
     val clj = CommandLineJob(dummyCommandLine, initialSettings = LocalSettings)
     
-    val localResources = LocalResources(Instant.now, Instant.now)
+    val localResources = makeDummyResources
     
     val termReason = TerminationReason.Memory
     
@@ -199,7 +200,7 @@ final class RunDataTest extends FunSuite {
   test("toExecution - command line job, failed") {
     val clj = CommandLineJob(dummyCommandLine, initialSettings = LocalSettings)
     
-    val localResources = LocalResources(Instant.now, Instant.now)
+    val localResources = makeDummyResources
     
     val termReason = TerminationReason.Memory
     
@@ -230,7 +231,7 @@ final class RunDataTest extends FunSuite {
   test("toExecution - command line job, waiting-for-outputs") {
     val clj = CommandLineJob(dummyCommandLine, initialSettings = LocalSettings)
     
-    val localResources = LocalResources(Instant.now, Instant.now)
+    val localResources = makeDummyResources
     
     val termReason = TerminationReason.Memory
     
@@ -257,4 +258,6 @@ final class RunDataTest extends FunSuite {
     
     assert(runData.toExecution === expected)
   }
+  
+  private def makeDummyResources: LocalResources = LocalResources(LocalDateTime.now, LocalDateTime.now)
 }

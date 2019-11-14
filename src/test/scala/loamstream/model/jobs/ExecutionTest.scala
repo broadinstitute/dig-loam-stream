@@ -27,6 +27,7 @@ import loamstream.model.execute.UgerDrmSettings
 import loamstream.model.execute.LsfDrmSettings
 import loamstream.model.execute.Settings
 import loamstream.googlecloud.ClusterConfig
+import java.time.LocalDateTime
 
 
 /**
@@ -130,28 +131,30 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     }
     val googleSettings = GoogleSettings("some-cluster", ClusterConfig.default)
 
-    val localResources = LocalResources(Instant.ofEpochMilli(123), Instant.ofEpochMilli(456))
+    val localResources = LocalResources(
+        TestHelpers.toLocalDateTime(123), 
+        TestHelpers.toLocalDateTime(456))
 
     val ugerResources = UgerResources(
         Memory.inGb(2.1),
         CpuTime.inSeconds(12.34),
         Some("nodeName"),
         Some(Queue("broad")),
-        Instant.ofEpochMilli(64532),
-        Instant.ofEpochMilli(9345345))
+        TestHelpers.toLocalDateTime(64532),
+        TestHelpers.toLocalDateTime(9345345))
         
     val lsfResources = LsfResources(
         Memory.inGb(1.2),
         CpuTime.inSeconds(34.21),
         Some("another-node"),
         Some(Queue("ebi")),
-        Instant.ofEpochMilli(12345),
-        Instant.ofEpochMilli(12346))
+        TestHelpers.toLocalDateTime(12345),
+        TestHelpers.toLocalDateTime(12346))
 
     val googleResources = GoogleResources(
         "clusterName",
-        Instant.ofEpochMilli(1), 
-        Instant.ofEpochMilli(72345))
+        TestHelpers.toLocalDateTime(1), 
+        TestHelpers.toLocalDateTime(72345))
       
     def doTest(settings: Settings, resources: Option[Resources], shouldThrow: Boolean): Unit = {
       type WrapperFn = (=> Any) => Unit

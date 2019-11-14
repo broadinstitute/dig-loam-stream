@@ -15,7 +15,7 @@ import loamstream.util.HashType
  */
 trait AwsClient {
   def uriOf(key: String): URI
-  
+
   def copy(src: Path, dest: URI): Unit
   
   def copy(src: URI, dest: Path): Unit
@@ -38,7 +38,7 @@ object AwsClient {
   
   final case class Default(aws: AWS) extends AwsClient {
     override def uriOf(key: String): URI = aws.uriOf(key)
-    
+
     override def copy(src: Path, dest: URI): Unit = {
       require(AWS.bucketOf(dest) == aws.bucket)
       

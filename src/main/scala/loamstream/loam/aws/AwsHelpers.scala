@@ -15,6 +15,7 @@ import loamstream.model.execute.AwsSettings
 import loamstream.model.execute.AwsClusterSettings
 import loamstream.aws.AwsClient
 
+
 /**
  * @author clint
  * Oct 17, 2019
@@ -23,7 +24,7 @@ trait AwsHelpers {
   import AwsHelpers.addToGraph
   
   def awsUriOf(key: String)(implicit awsClient: AwsClient): URI = awsClient.uriOf(key)
-  
+
   def awsCopy(
       srcs: Iterable[Store],
       dests: Iterable[Store])(implicit context: LoamScriptContext): Iterable[AwsTool] = {

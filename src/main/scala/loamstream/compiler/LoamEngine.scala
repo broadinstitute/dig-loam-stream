@@ -52,7 +52,7 @@ object LoamEngine extends Loggable {
       graph: LoamGraph, 
       csClient: Option[CloudStorageClient] = None, 
       awsClient: Option[AwsClient] = None): Executable = (new LoamToolBox(csClient, awsClient)).createExecutable(graph)
-      
+
   def loadFile(file: Path): Shot[LoamScript] = {
     val fileShot = {
       if (JFiles.exists(file)) {

@@ -60,8 +60,6 @@ object QacctTestHelpers {
       queue = expectedQueue,
       startTime = expectedStartTime,
       endTime = expectedEndTime,
-      //startTime = LocalDateTime.parse("2017-03-06T18:49:50.505").toInstant(localTzOffset),
-      //endTime = LocalDateTime.parse("2017-03-06T18:49:57.464").toInstant(localTzOffset),
       raw = Option(expectedRawData))
   }
   

@@ -38,8 +38,6 @@ final class QacctAccountingClientTest extends FunSuite {
     (start, end)
   }
   
-  //NB: Instead of testing the deserialization of particular dates, we see if we can
-  //round-trip the current date.  This is unfortunately necessary because 
   test("toLocalDateTime - round trip") {
     val now = LocalDateTime.now
     

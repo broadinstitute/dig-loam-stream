@@ -1,6 +1,6 @@
 package loamstream.drm.uger
 
-import java.time.Instant
+import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeFormatterBuilder
@@ -25,6 +25,7 @@ import loamstream.util.RetryingCommandInvoker
 import loamstream.util.Tries
 import java.time.ZonedDateTime
 import java.time.LocalDateTime
+
 
 /**
  * @author clint
@@ -125,7 +126,6 @@ object QacctAccountingClient extends Loggable {
     (new DateTimeFormatterBuilder)
       .appendPattern("MM/dd/yyyy HH:mm:ss.SSS")
       .toFormatter
-      .withZone(ZoneId.systemDefault)
   }
   
   private object Regexes {

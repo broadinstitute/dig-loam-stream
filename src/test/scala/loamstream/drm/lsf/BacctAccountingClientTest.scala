@@ -1,29 +1,27 @@
 package loamstream.drm.lsf
 
-import org.scalatest.FunSuite
-import loamstream.model.execute.Resources.LsfResources
-import loamstream.model.quantities.Memory
-import scala.util.Success
-import java.time.Instant
-import loamstream.drm.Queue
-import loamstream.model.quantities.CpuTime
-import java.time.ZoneId
+import java.time.LocalDateTime
 import java.time.temporal.ChronoField
-import java.time.ZonedDateTime
+
+import scala.util.Success
+import scala.util.Try
+
+import org.scalatest.FunSuite
+
+import loamstream.drm.Queue
+import loamstream.model.execute.Resources.LsfResources
+import loamstream.model.jobs.TerminationReason
+import loamstream.model.quantities.CpuTime
+import loamstream.model.quantities.Memory
 import loamstream.util.RetryingCommandInvoker
 import loamstream.util.RunResults
-import scala.util.Try
-import loamstream.model.jobs.TerminationReason
-import loamstream.TestHelpers
-import java.time.ZoneOffset
-import java.time.LocalDateTime
 
 /**
  * @author clint
  * Apr 18, 2019
  */
 final class BacctAccountingClientTest extends FunSuite {
-  import TestHelpers.waitFor
+  import loamstream.TestHelpers.waitFor
   
   private def runResultsAttempt(
       binaryName: String = "MOCK", 

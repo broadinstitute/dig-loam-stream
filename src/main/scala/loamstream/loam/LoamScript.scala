@@ -5,16 +5,16 @@ import java.nio.file.Path
 import loamstream.loam.LoamScript.LoamScriptBox
 import loamstream.loam.LoamScript.scriptsPackage
 import loamstream.util.DepositBox
-import loamstream.util.Hit
-import loamstream.util.Miss
 import loamstream.util.Sequence
-import loamstream.util.Shot
 import loamstream.util.StringUtils
 import loamstream.util.ValueBox
 import loamstream.util.code.ObjectId
 import loamstream.util.code.PackageId
 import loamstream.util.code.ScalaId
 import loamstream.util.code.SourceUtils
+import scala.util.Try
+import loamstream.util.Tries
+import scala.util.Success
 
 /** A named Loam script */
 object LoamScript {
@@ -34,25 +34,25 @@ object LoamScript {
   val scalaFileSuffix = ".scala"
 
   /** Extracts Loam script name from file Path with suffix .loam, removing suffix. */
-  def nameFromFilePath(path: Path): Shot[String] = {
+  def nameFromFilePath(path: Path): Try[String] = {
     val fileName = path.getFileName.toString
     if (fileName.endsWith(fileSuffix)) {
-      Hit(fileName.dropRight(fileSuffix.length))
+      Success(fileName.dropRight(fileSuffix.length))
     } else {
-      Miss(s"Missing suffix $fileSuffix")
+      Tries.failure(s"Missing suffix $fileSuffix")
     }
   }
   
-  def nameAndEnclosingDirFromFilePath(path: Path, rootDir: Path): Shot[(String, Option[Path])] = {
+  def nameAndEnclosingDirFromFilePath(path: Path, rootDir: Path): Try[(String, Option[Path])] = {
     val fileName = path.getFileName.toString
     
     if (fileName.endsWith(fileSuffix)) {
       //NB: the result of .getParent might be null
       val relativeEnclosingDir = Option(rootDir.relativize(path).getParent)
       
-      Hit(fileName.dropRight(fileSuffix.length) -> relativeEnclosingDir)
+      Success(fileName.dropRight(fileSuffix.length) -> relativeEnclosingDir)
     } else {
-      Miss(s"Missing suffix $fileSuffix")
+      Tries.failure(s"Missing suffix $fileSuffix")
     }
   }
 
@@ -64,20 +64,20 @@ object LoamScript {
   }
 
   /** Tries to read Loam script from file, deriving script name from file path. */
-  def read(path: Path): Shot[LoamScript] = {
+  def read(path: Path): Try[LoamScript] = {
     import loamstream.util.Files.readFromAsUtf8
     
     for {
       name <- nameFromFilePath(path)
-      code <- Shot(readFromAsUtf8(path))
+      code <- Try(readFromAsUtf8(path))
     } yield {
       LoamScript(name, code, None)
     }
   }
   
-  def read(path: Path, rootDir: Path): Shot[LoamScript] = {
+  def read(path: Path, rootDir: Path): Try[LoamScript] = {
     nameAndEnclosingDirFromFilePath(path, rootDir).flatMap { case (name, enclosingDirOpt) =>
-      Shot {
+      Try {
         val code = loamstream.util.Files.readFromAsUtf8(path)
         
         import scala.collection.JavaConverters._

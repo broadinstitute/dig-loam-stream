@@ -89,7 +89,7 @@ object Main extends Loggable {
     private def compile(loamEngine: LoamEngine, loams: Seq[Path]): LoamCompiler.Result = {
       val compilationResultShot = loamEngine.compileFiles(loams)
   
-      require(compilationResultShot.nonEmpty, compilationResultShot.message)
+      require(compilationResultShot.isSuccess, compilationResultShot.failed.get.getMessage)
   
       compilationResultShot.get
     }
@@ -151,11 +151,11 @@ object Main extends Loggable {
   
       def loamScripts: Iterable[LoamScript] = {
         val loamFiles = intent.loams
-        val loamScriptsShot = loamEngine.scriptsFrom(loamFiles)
+        val loamScriptsAttempt = loamEngine.scriptsFrom(loamFiles)
         
-        require(loamScriptsShot.isHit, "Could not load loam scripts")
+        require(loamScriptsAttempt.isSuccess, "Could not load loam scripts")
   
-        loamScriptsShot.get
+        loamScriptsAttempt.get
       }
       
       try {

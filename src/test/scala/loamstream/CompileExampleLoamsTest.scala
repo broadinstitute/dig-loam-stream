@@ -1,10 +1,11 @@
 package loamstream
 
 import java.nio.file.Paths
+
 import org.scalatest.FunSuite
-import loamstream.compiler.LoamCompiler
-import loamstream.compiler.LoamProject
+
 import loamstream.compiler.LoamEngine
+import loamstream.compiler.LoamProject
 
 /**
   * @author oliver

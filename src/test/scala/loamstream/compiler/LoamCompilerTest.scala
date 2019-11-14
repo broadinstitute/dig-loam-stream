@@ -2,13 +2,12 @@ package loamstream.compiler
 
 import java.nio.file.Paths
 
-import loamstream.loam.{LoamGraphValidation, LoamScript}
 import org.scalatest.FunSuite
+
 import loamstream.TestHelpers
-import loamstream.loam.LoamProjectContext
-import loamstream.util.ValueBox
-import loamstream.model.Store
 import loamstream.conf.CompilationConfig
+import loamstream.loam.LoamGraphValidation
+import loamstream.loam.LoamScript
 
 /**
   * LoamStream

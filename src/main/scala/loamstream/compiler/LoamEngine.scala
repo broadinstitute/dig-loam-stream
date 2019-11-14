@@ -6,6 +6,9 @@ import java.nio.file.{ Files => JFiles }
 import java.nio.file.Path
 import java.time.Instant
 
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 import scala.util.control.NonFatal
 
 import loamstream.aws.AwsClient
@@ -24,14 +27,11 @@ import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.commandline.HasCommandLine
 import loamstream.util.CanBeClosed
+import loamstream.util.HeterogeneousMap
 import loamstream.util.IoUtils
 import loamstream.util.Loggable
 import loamstream.util.StringUtils
-import loamstream.util.HeterogeneousMap
-import scala.util.Try
-import scala.util.Success
 import loamstream.util.Tries
-import scala.util.Failure
 
 
 /**

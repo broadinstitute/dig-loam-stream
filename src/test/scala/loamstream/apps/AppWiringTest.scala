@@ -25,6 +25,8 @@ import loamstream.model.execute.RxExecuter
 import loamstream.model.execute.RunsIfNoOutputsJobFilter
 import loamstream.model.execute.HashingStrategy
 import loamstream.model.execute.RequiresPresentInputsJobCanceler
+import loamstream.conf.ExecutionConfig
+import loamstream.cli.JobFilterIntent
 
 
 
@@ -46,6 +48,30 @@ final class AppWiringTest extends FunSuite with Matchers {
     val intent = Intent.from(cli).right.get.asInstanceOf[Intent.RealRun]
     
     AppWiring.forRealRun(intent, makeDao = AppWiring.makeDaoFrom(DbDescriptor.inMemoryHsqldb))
+  }
+  
+  test("executerWindowLength") {
+    import AppWiring.executerWindowLength
+    import scala.concurrent.duration._
+    
+    val config = ExecutionConfig.default.copy(windowLength = 42.seconds)
+    val runByNameIntent = Intent.RealRun(
+      confFile = None,
+      shouldValidate = false,
+      hashingStrategy = HashingStrategy.DontHashOutputs,
+      jobFilterIntent = JobFilterIntent.RunIfAllMatch(Nil),
+      drmSystemOpt = None,
+      loams = Nil)
+      
+    assert(executerWindowLength(config, runByNameIntent) === 1.millisecond)
+    
+    val dontRunByNameIntent = runByNameIntent.copy(jobFilterIntent = JobFilterIntent.DontFilterByName)
+    
+    assert(executerWindowLength(config, dontRunByNameIntent) === 42.seconds)
+    
+    val runEverythingIntent = runByNameIntent.copy(jobFilterIntent = JobFilterIntent.RunEverything)
+    
+    assert(executerWindowLength(config, runEverythingIntent) === 42.seconds)
   }
   
   test("Local execution, db-backed") {

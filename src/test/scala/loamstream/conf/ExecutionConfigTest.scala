@@ -29,7 +29,8 @@ final class ExecutionConfigTest extends FunSuite {
         Defaults.dbDir,
         Defaults.logDir,
         Defaults.jobDataDir,
-        Defaults.maxJobLogFilesPerDir)
+        Defaults.maxJobLogFilesPerDir,
+        Defaults.windowLength)
 
     assert(ExecutionConfig.default === expected)
   }
@@ -64,6 +65,7 @@ final class ExecutionConfigTest extends FunSuite {
     val expectedDryRunOutputFile = path("foo/asdkas/asdasd/asd.txt")
     val expectedAnonStoreDir = path("/alskdj/asd/asd")
     val expectedMaxJobLogFilesPerDir = 12345
+    val expectedWindowLength = 42.seconds
     
     val input = s"""|loamstream {
                     |  execution {
@@ -72,6 +74,7 @@ final class ExecutionConfigTest extends FunSuite {
                     |    outputPollingFrequencyInHz = 1.23
                     |    anonStoreDir = ${expectedAnonStoreDir.render}
                     |    maxJobLogFilesPerDir = $expectedMaxJobLogFilesPerDir
+                    |    windowLength = "42 seconds"
                     |  }
                     |}""".stripMargin
 
@@ -83,7 +86,8 @@ final class ExecutionConfigTest extends FunSuite {
         outputPollingFrequencyInHz = expectedOutputPollingFrequencyInHz,
         anonStoreDir = expectedAnonStoreDir,
         singularity = SingularityConfig.default,
-        maxJobLogFilesPerDir = expectedMaxJobLogFilesPerDir)
+        maxJobLogFilesPerDir = expectedMaxJobLogFilesPerDir,
+        windowLength = expectedWindowLength)
 
     assert(executionConfig === expected)
   }
@@ -100,6 +104,7 @@ final class ExecutionConfigTest extends FunSuite {
     val expectedSingularityExecutable = path("/foo/bar/baz")
     val mappedDir0 = path("/bar")
     val mappedDir1 = path("/baz/blerg/blip")
+    val expectedWindowLength = 42.seconds
     
     val input = s"""|loamstream {
                     |  execution {
@@ -107,6 +112,7 @@ final class ExecutionConfigTest extends FunSuite {
                     |    maxWaitTimeForOutputs = "99 seconds"
                     |    outputPollingFrequencyInHz = 1.23
                     |    anonStoreDir = ${expectedAnonStoreDir.render}
+                    |    windowLength = "42 seconds"
                     |    singularity {
                     |      executable = ${expectedSingularityExecutable.render}
                     |      mappedDirs = [${mappedDir0.render}, ${mappedDir1.render}]
@@ -121,6 +127,7 @@ final class ExecutionConfigTest extends FunSuite {
         maxWaitTimeForOutputs = expectedMaxWaitTime,
         outputPollingFrequencyInHz = expectedOutputPollingFrequencyInHz,
         anonStoreDir = expectedAnonStoreDir,
+        windowLength = expectedWindowLength,
         singularity = SingularityConfig(expectedSingularityExecutable.render, Seq(mappedDir0, mappedDir1)))
 
     assert(executionConfig === expected)
@@ -132,11 +139,13 @@ final class ExecutionConfigTest extends FunSuite {
 
     import scala.concurrent.duration._
     val expectedMaxWaitTime = 99.seconds
+    val expectedWindowLength = 42.seconds
 
     val input = s"""|loamstream {
                     |  execution {
                     |    maxRunsPerJob = $expectedMaxRunsPerJob
                     |    maxWaitTimeForOutputs = "99 seconds"
+                    |    windowLength = "42 seconds"
                     |  }
                     |}""".stripMargin
 
@@ -145,7 +154,8 @@ final class ExecutionConfigTest extends FunSuite {
     val expected = ExecutionConfig(
         maxRunsPerJob = expectedMaxRunsPerJob,
         maxWaitTimeForOutputs = expectedMaxWaitTime,
-        outputPollingFrequencyInHz = expectedOutputPollingFrequencyInHz)
+        outputPollingFrequencyInHz = expectedOutputPollingFrequencyInHz,
+        windowLength = expectedWindowLength)
 
     assert(executionConfig === expected)
   }

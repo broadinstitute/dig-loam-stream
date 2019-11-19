@@ -141,8 +141,6 @@ final class LoamEngineTest extends FunSuite {
     
     val localConfig = config.copy(executionConfig = ExecutionConfig.default)
     
-    val localEngine = LoamEngine.default(localConfig)
-    
     def job(commandLine: String) = {
       CommandLineJob(commandLineString = commandLine, initialSettings = LocalSettings)
     }
@@ -155,7 +153,7 @@ final class LoamEngineTest extends FunSuite {
     
     assert(JFiles.exists(outputFile) === false)
     
-    localEngine.listJobsThatCouldRun(jobs, outputFile)
+    LoamEngine.listJobsThatCouldRun(localConfig, jobs, Some(outputFile))
     
     assert(JFiles.exists(outputFile) === true)
     

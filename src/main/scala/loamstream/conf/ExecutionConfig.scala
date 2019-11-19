@@ -21,7 +21,8 @@ final case class ExecutionConfig(
     dbDir: Path = Defaults.dbDir,
     logDir: Path = Defaults.logDir,
     jobDataDir: Path = Defaults.jobDataDir,
-    maxJobLogFilesPerDir: Int = Defaults.maxJobLogFilesPerDir) {
+    maxJobLogFilesPerDir: Int = Defaults.maxJobLogFilesPerDir,
+    windowLength: Duration = Defaults.windowLength) {
   
   def toLocations: Locations = Locations.Literal(dbDir = dbDir, logDir = logDir, jobDataDir = jobDataDir)
 }
@@ -50,6 +51,8 @@ object ExecutionConfig extends ConfigParser[ExecutionConfig] {
     val jobDataDir: Path = Locations.Default.jobDataDir
     
     val maxJobLogFilesPerDir: Int = 3000
+    
+    val windowLength: Duration = 10.seconds
   }
   
   val default: ExecutionConfig = ExecutionConfig()
@@ -63,7 +66,8 @@ object ExecutionConfig extends ConfigParser[ExecutionConfig] {
     outputPollingFrequencyInHz: Double = Defaults.outputPollingFrequencyInHz,
     anonStoreDir: Path = Defaults.anonStoreDir,
     singularity: SingularityConfig = Defaults.singularityConfig,
-    maxJobLogFilesPerDir: Int = Defaults.maxJobLogFilesPerDir) {
+    maxJobLogFilesPerDir: Int = Defaults.maxJobLogFilesPerDir,
+    windowLength: Duration = Defaults.windowLength) {
     
     def toExecutionConfig: ExecutionConfig = ExecutionConfig(
       maxRunsPerJob = maxRunsPerJob, 
@@ -71,7 +75,8 @@ object ExecutionConfig extends ConfigParser[ExecutionConfig] {
       outputPollingFrequencyInHz = outputPollingFrequencyInHz,
       anonStoreDir = anonStoreDir,
       singularity = singularity,
-      maxJobLogFilesPerDir = maxJobLogFilesPerDir)
+      maxJobLogFilesPerDir = maxJobLogFilesPerDir,
+      windowLength = windowLength)
   }
   
   override def fromConfig(config: Config): Try[ExecutionConfig] = {

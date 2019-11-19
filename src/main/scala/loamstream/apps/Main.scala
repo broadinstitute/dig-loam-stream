@@ -87,11 +87,9 @@ object Main extends Loggable {
   private[apps] final class Run extends Loggable {
     
     private def compile(loamEngine: LoamEngine, loams: Seq[Path]): LoamCompiler.Result = {
-      val compilationResultShot = loamEngine.compileFiles(loams)
-  
-      require(compilationResultShot.isSuccess, compilationResultShot.failed.get.getMessage)
-  
-      compilationResultShot.get
+      //NB: .get is lame, but this code used to throw here on a Failure(_), and calling .get
+      //at least ensures that the underlying exception (with its stack trace) is exposed.
+      loamEngine.compileFiles(loams).get
     }
     
     def doCompileOnly(intent: Intent.CompileOnly): Unit = {
@@ -107,9 +105,7 @@ object Main extends Loggable {
     def doDryRun(intent: Intent.DryRun, makeDao: => LoamDao = AppWiring.makeDefaultDb): Unit = {
       val config = AppWiring.loamConfigFrom(intent.confFile, intent.drmSystemOpt, intent.shouldValidate) 
       
-      val loamEngine = LoamEngine.default(config)
-      
-      val compilationResult = compile(loamEngine, intent.loams)
+      val compilationResult = compile(LoamEngine.default(config), intent.loams)
   
       info(compilationResult.report)
       
@@ -134,7 +130,7 @@ object Main extends Loggable {
           info(s"Done listing ${jobsToBeRun.size} jobs that COULD run.")
           
           //Also write them to a file, like if we were running for real.
-          loamEngine.listJobsThatCouldRun(jobsToBeRun)
+          LoamEngine.listJobsThatCouldRun(config, jobsToBeRun)
         }
         //Any compilaiton errors will already have been logged by LoamCompiler 
         case _ => ()

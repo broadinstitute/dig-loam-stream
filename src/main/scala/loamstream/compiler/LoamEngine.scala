@@ -36,7 +36,7 @@ import scala.util.Failure
   * LoamStream
   * Created by oliverr on 7/5/2016.
   */
-object LoamEngine {
+object LoamEngine extends Loggable {
   def default(
       config: LoamConfig,
       csClient: Option[CloudStorageClient] = None): LoamEngine = {
@@ -51,6 +51,33 @@ object LoamEngine {
     val toolBox = new LoamToolBox(csClient)
 
     toolBox.createExecutable(graph)
+  }
+  
+  //TODO: Find a good place for this; it's exposed so it can be called from here and loamstream.apps.Main
+  def listJobsThatCouldRun(
+      config: LoamConfig, 
+      jobsThatCouldRun: => Iterable[LJob], 
+      outputFileOpt: Option[Path] = None): Unit = {
+    
+    val outputFile = outputFileOpt.getOrElse(config.executionConfig.dryRunOutputFile)
+    
+    lazy val jobs = jobsThatCouldRun
+    
+    val append = true
+    
+    CanBeClosed.enclosed(new PrintWriter(new FileWriter(outputFile.toFile, append))) { writer =>
+      info(s"Listing (${jobs.size}) jobs that could be run to ${outputFile}")
+      
+      for { 
+        job <- jobs 
+      } {
+        //NB: Don't log using SLF4J, since it's hard to make that happen such that the file where log messages end up
+        //is (conveniently) configurable at runtime, say via CLI params that we control (and aren't -D) and not by
+        //messing with `logback.xml`.
+        //TODO: Use SLF4J somehow.
+        IoUtils.printTo(writer)(s"[${Instant.now}] $job")
+      }
+    }
   }
 }
 
@@ -150,32 +177,8 @@ final case class LoamEngine(
   }
   
   private def listJobsThatCouldRun(executable: Executable, jobListOutputFile: Path): Unit = {
-    listJobsThatCouldRun(DryRunner.toBeRun(executer.jobFilter, executable), jobListOutputFile)
+    LoamEngine.listJobsThatCouldRun(config, DryRunner.toBeRun(executer.jobFilter, executable), Some(jobListOutputFile))
   }
   
-  //TODO: Find a good place for this; it's exposed so it can be called from here and loamstream.apps.Main
-  def listJobsThatCouldRun(
-      jobsThatCouldRun: => Iterable[LJob], 
-      outputFile: Path = config.executionConfig.dryRunOutputFile): Unit = {
-    
-    lazy val jobs = jobsThatCouldRun
-    
-    val append = true
-    
-    CanBeClosed.enclosed(new PrintWriter(new FileWriter(outputFile.toFile, append))) { writer =>
-      info(s"Listing (${jobs.size}) jobs that could be run to ${outputFile}")
-      
-      for { 
-        job <- jobs 
-      } {
-        //NB: Don't log using SLF4J, since it's hard to make that happen such that the file where log messages end up
-        //is (conveniently) configurable at runtime, say via CLI params that we control (and aren't -D) and not by
-        //messing with `logback.xml`.
-        //TODO: Use SLF4J somehow.
-        IoUtils.printTo(writer)(s"[${Instant.now}] $job")
-      }
-    }
-  }
-
   def scriptsFrom(files: Iterable[Path]): Try[Iterable[LoamScript]] = Tries.sequence(files.map(loadFile))
 }

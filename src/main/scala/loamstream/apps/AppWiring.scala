@@ -159,6 +159,16 @@ object AppWiring extends Loggable {
     FileSystemExecutionRecorder && (new DbBackedExecutionRecorder(getDao))
   }
   
+  private[apps] def executerWindowLength(executionConfig: ExecutionConfig, intent: Intent.RealRun): Duration = {
+    import scala.concurrent.duration._
+    
+    //NB: Stopgap hack: allow zipping through jobs quickly if we're running them by name.
+    intent.jobFilterIntent match {
+      case JobFilterIntent.AsByNameJobFilter(_) => 1.millisecond
+      case _ => executionConfig.windowLength
+    }
+  }
+  
   private final class DefaultAppWiring(
       intent: Intent.RealRun,
       makeDao: => LoamDao) extends AppWiring {
@@ -192,7 +202,7 @@ object AppWiring extends Loggable {
 
       import scala.concurrent.duration._
       
-      val windowLength = 30.seconds
+      val windowLength = executerWindowLength(config.executionConfig, intent)
       
       import config.executionConfig.{ maxRunsPerJob, maxWaitTimeForOutputs, outputPollingFrequencyInHz }
       

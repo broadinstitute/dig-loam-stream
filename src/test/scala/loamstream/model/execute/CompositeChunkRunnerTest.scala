@@ -63,16 +63,16 @@ final class CompositeChunkRunnerTest extends FunSuite {
     
     //Should throw if we can't run all the given jobs
     intercept[Exception] {
-      runner.run(Set(job2, job3), TestHelpers.DummyJobOracle, neverRestart)
+      runner.run(Set(job2, job3))
     }
     
     intercept[Exception] {
-      runner.run(Set(job1, job4), TestHelpers.DummyJobOracle, neverRestart)
+      runner.run(Set(job1, job4))
     }
     
     import Observables.Implicits._
     
-    val futureResults = runner.run(Set(job1, job2), TestHelpers.DummyJobOracle, neverRestart).lastAsFuture
+    val futureResults = runner.run(Set(job1, job2)).lastAsFuture
     
     val expected = Map(job1 -> JobStatus.Succeeded, job2 -> JobStatus.Failed)
     
@@ -81,7 +81,13 @@ final class CompositeChunkRunnerTest extends FunSuite {
 }
 
 object CompositeChunkRunnerTest {
-  private def local(n: Int) = AsyncLocalChunkRunner(ExecutionConfig.default, n)(ExecutionContext.global)
+  private def local(n: Int) = {
+    AsyncLocalChunkRunner(
+      executionConfig = ExecutionConfig.default,
+      jobOracle = TestHelpers.DummyJobOracle,
+      shouldRestart = TestHelpers.neverRestart,
+      maxNumJobs = n)(ExecutionContext.global)
+  }
   
   private final case class MockRunner(allowed: MockJob) extends ChunkRunner {
     override def maxNumJobs: Int = ???
@@ -90,9 +96,6 @@ object CompositeChunkRunnerTest {
     
     private val delegate = local(1)
     
-    override def run(
-        jobs: Set[LJob], 
-        jobOracle: JobOracle, 
-        shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = delegate.run(jobs, jobOracle, shouldRestart)
+    override def run(jobs: Set[LJob]): Observable[Map[LJob, RunData]] = delegate.run(jobs)
   }
 }

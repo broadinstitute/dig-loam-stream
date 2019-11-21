@@ -93,9 +93,12 @@ final class JobTest extends FunSuite with TestJobs {
   }
   
   test("lastStatus - simple") {
-    val runner = new AsyncLocalChunkRunner(ExecutionConfig.default)(ExecutionContext.global)
+    val runner = AsyncLocalChunkRunner(
+        ExecutionConfig.default, 
+        TestHelpers.DummyJobOracle, 
+        TestHelpers.neverRestart)(ExecutionContext.global)
 
-    def run(job: MockJob) = runner.run(Set(job), TestHelpers.DummyJobOracle, TestHelpers.neverRestart)
+    def run(job: MockJob) = runner.run(Set(job))
     
     def doTest(terminalStatus: JobStatus): Unit = {
       assert(terminalStatus.isTerminal)
@@ -138,9 +141,12 @@ final class JobTest extends FunSuite with TestJobs {
   }
   
   test("finalInputStatuses - some deps") {
-    val runner = new AsyncLocalChunkRunner(ExecutionConfig.default)(ExecutionContext.global)
+    val runner = AsyncLocalChunkRunner(
+        ExecutionConfig.default, 
+        TestHelpers.DummyJobOracle, 
+        TestHelpers.neverRestart)(ExecutionContext.global)
 
-    def run(jobs: Set[LJob]) = runner.run(jobs, TestHelpers.DummyJobOracle, TestHelpers.neverRestart)
+    def run(jobs: Set[LJob]) = runner.run(jobs)
     
     val deps: Set[LocalJob] = Set(MockJob(FailedPermanently), MockJob(Succeeded))
     
@@ -266,9 +272,12 @@ final class JobTest extends FunSuite with TestJobs {
   }
   
   test("runnables - no deps") {
-    val runner = new AsyncLocalChunkRunner(ExecutionConfig.default)(ExecutionContext.global)
+    val runner = AsyncLocalChunkRunner(
+        ExecutionConfig.default, 
+        TestHelpers.DummyJobOracle, 
+        TestHelpers.neverRestart)(ExecutionContext.global)
 
-    def run(job: LJob) = runner.run(Set(job), TestHelpers.DummyJobOracle, TestHelpers.neverRestart)
+    def run(job: LJob) = runner.run(Set(job))
     
     def doTest(resultStatus: JobStatus): Unit = {
       val job = MockJob(resultStatus)
@@ -298,9 +307,12 @@ final class JobTest extends FunSuite with TestJobs {
   
   test("runnables - some deps, no failures") {
     
-    val runner = new AsyncLocalChunkRunner(ExecutionConfig.default)(ExecutionContext.global)
+    val runner = AsyncLocalChunkRunner(
+        ExecutionConfig.default, 
+        TestHelpers.DummyJobOracle, 
+        TestHelpers.neverRestart)(ExecutionContext.global)
 
-    def run(jobs: LJob*) = runner.run(jobs.toSet, TestHelpers.DummyJobOracle, TestHelpers.neverRestart)
+    def run(jobs: LJob*) = runner.run(jobs.toSet)
     
     /*
      * gc0
@@ -350,9 +362,12 @@ final class JobTest extends FunSuite with TestJobs {
   
   test("runnables - some deps, some failures") {
     
-    val runner = new AsyncLocalChunkRunner(ExecutionConfig.default)(ExecutionContext.global)
+    val runner = AsyncLocalChunkRunner(
+        ExecutionConfig.default, 
+        TestHelpers.DummyJobOracle, 
+        TestHelpers.alwaysRestart)(ExecutionContext.global)
 
-    def run(jobs: LJob*) = runner.run(jobs.toSet, TestHelpers.DummyJobOracle, TestHelpers.alwaysRestart)
+    def run(jobs: LJob*) = runner.run(jobs.toSet)
     
     /*
      * gc0 (success)
@@ -425,9 +440,12 @@ final class JobTest extends FunSuite with TestJobs {
   }
   
   test("One job, multiple failures, ultimately succeeds") {
-    val runner = new AsyncLocalChunkRunner(ExecutionConfig.default)(ExecutionContext.global)
+    val runner = AsyncLocalChunkRunner(
+        ExecutionConfig.default, 
+        TestHelpers.DummyJobOracle, 
+        TestHelpers.alwaysRestart)(ExecutionContext.global)
 
-    def run(jobs: LJob*) = runner.run(jobs.toSet, TestHelpers.DummyJobOracle, TestHelpers.alwaysRestart)
+    def run(jobs: LJob*) = runner.run(jobs.toSet)
     
     val job = MockJob(Failed, "job")
     
@@ -464,9 +482,12 @@ final class JobTest extends FunSuite with TestJobs {
   }
   
   test("One job, multiple failures, ultimately fails") {
-    val runner = new AsyncLocalChunkRunner(ExecutionConfig.default)(ExecutionContext.global)
+    val runner = AsyncLocalChunkRunner(
+        ExecutionConfig.default, 
+        TestHelpers.DummyJobOracle, 
+        TestHelpers.alwaysRestart)(ExecutionContext.global)
 
-    def run(jobs: LJob*) = runner.run(jobs.toSet, TestHelpers.DummyJobOracle, TestHelpers.alwaysRestart)
+    def run(jobs: LJob*) = runner.run(jobs.toSet)
     
     val job = MockJob(Failed, "job")
     

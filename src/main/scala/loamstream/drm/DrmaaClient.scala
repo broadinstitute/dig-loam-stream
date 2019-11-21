@@ -46,11 +46,6 @@ trait DrmaaClient extends Terminable {
   def waitFor(jobId: String, timeout: Duration): Try[DrmStatus]
   
   /**
-   * Shut down this client and dispose of any DRMAA resources it has acquired (Sessions, etc)
-   */
-  override def stop(): Unit
-  
-  /**
    * Kill the job with the specified id, if the job is running.
    */
   def killJob(jobId: String): Unit

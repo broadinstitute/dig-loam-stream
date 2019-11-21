@@ -40,7 +40,7 @@ final class BsubJobSubmitter private[lsf] (
     }
   }
   
-  override def stop(): Unit = ()
+  override def stop(): Iterable[Throwable] = Nil
   
   private[lsf] def toDrmSubmissionResult(taskArray: DrmTaskArray)(runResults: RunResults): DrmSubmissionResult = {
     runResults match {

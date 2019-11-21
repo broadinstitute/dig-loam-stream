@@ -48,10 +48,12 @@ final class FileMonitor(pollingRateInHz: Double, maxWaitTime: Duration) extends 
     t
   }
   
-  override def stop(): Unit = watchedFiles.foreach { watched =>
-    timer.cancel()
+  override def stop(): Iterable[Throwable] = watchedFiles.get { watched =>
+    Throwables.failureOption {
+      timer.cancel()
     
-    watched.values.flatten.foreach(_.completeWithFailure("Shutting down Timer"))
+      watched.values.flatten.foreach(_.completeWithFailure("Shutting down Timer"))
+    }
   }
 }
 

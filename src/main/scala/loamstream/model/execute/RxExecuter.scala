@@ -39,7 +39,7 @@ import loamstream.model.jobs.JobOracle
  */
 final case class RxExecuter(
     executionConfig: ExecutionConfig,
-    runner: ChunkRunner,
+    private val makeRunner: ChunkRunner.Constructor[ChunkRunner],
     fileMonitor: FileMonitor,
     windowLength: Duration,
     jobCanceler: JobCanceler,
@@ -54,56 +54,64 @@ final case class RxExecuter(
   import executionRecorder.record
   import loamstream.util.Observables.Implicits._
   
+  private def withRunner[A](jobOracle: JobOracle)(body: ChunkRunner => A): A = {
+    val runner: ChunkRunner = makeRunner(shouldRestart, jobOracle)
+    
+    try { body(runner) } 
+    finally { runner.stop() }
+  }
+  
   override def execute(
       executable: Executable, 
       makeJobOracle: Executable => JobOracle = JobOracle.fromExecutable(executionConfig, _))
      (implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
     
     val jobOracle = makeJobOracle(executable)
-    
-    val ioScheduler: Scheduler = IOScheduler()
-    
-    //An Observable stream of job runs; each job is emitted when it becomes runnable.  This can be because the
-    //job's dependencies finished successfully, or because the job failed and we've decided to restart it.
-    //
-    //De-dupe jobs based on their ids and run counts.  This allows for re-running failed jobs, since while the
-    //job id would stay the same in that case, the run count would differ.  This is a blunt-force method that 
-    //prevents running the same job more than once concurrently in the face of "diamond-shaped" topologies.
-    val runnables: Observable[JobRun] = RxExecuter.deDupe(executable.multiplex(_.runnables))
-    
-    //An observable stream of "chunks" of runnable jobs, with each chunk represented as a Seq.
-    //Jobs are buffered up until the amount of time indicated by 'windowLength' elapses, or 'runner.maxNumJobs'
-    //are collected.  When that happens, the buffered "chunk" of jobs is emitted.
-    val chunks: Observable[Seq[JobRun]] = runnables.tumblingBuffer(windowLength, runner.maxNumJobs, ioScheduler)
-    
-    val chunkResults: Observable[Map[LJob, Execution]] = for {
-      //NB: .toSet is important: jobs in a chunk should be distinct, 
-      //so they're not run more than once before transitioning to a terminal state.
-      jobs <- chunks.map(_.toSet)
-      //NB: Filter out jobs from this chunk that finished when run as part of another chunk, so we don't run them
-      //more times than necessary.  This helps in the face of job-restarting, since we can't call `distinct()` 
-      //on `runnables` and declare victory like we did before, since that would filter out restarting jobs that 
-      //already ran 
-      (finishedJobs, notFinishedJobs) = jobs.partition(_.status.isTerminal)
-      if notFinishedJobs.nonEmpty
-      (jobsToMaybeRun, skippedJobs) = notFinishedJobs.map(_.job).partition(jobFilter.shouldRun)
-      (jobsToCancel, jobsToRun) = jobsToMaybeRun.partition(jobCanceler.shouldCancel)
-      _ = handleSkippedJobs(skippedJobs)
-      cancelledJobsMap = cancelJobs(jobsToCancel)
-      _ = record(jobOracle, cancelledJobsMap)
-      skippedResultMap = toSkippedResultMap(skippedJobs)
-      executionTupleOpt <- runJobs(jobsToRun, jobOracle)
-      _ = record(jobOracle, executionTupleOpt)
-      executionMap = cancelledJobsMap ++ executionTupleOpt
-      _ = logFinishedJobs(executionMap)
-    } yield {
-      executionMap ++ skippedResultMap
-    }
-    //NB: We no longer stop on the first failure, but run each sub-tree of jobs as far as possible.
-    
-    val futureMergedResults = chunkResults.foldLeft(emptyExecutionMap)(_ ++ _).firstAsFuture
 
-    Await.result(futureMergedResults, timeout)
+    withRunner(jobOracle) { runner =>
+      //An Observable stream of job runs; each job is emitted when it becomes runnable.  This can be because the
+      //job's dependencies finished successfully, or because the job failed and we've decided to restart it.
+      //
+      //De-dupe jobs based on their ids and run counts.  This allows for re-running failed jobs, since while the
+      //job id would stay the same in that case, the run count would differ.  This is a blunt-force method that 
+      //prevents running the same job more than once concurrently in the face of "diamond-shaped" topologies.
+      val runnables: Observable[JobRun] = RxExecuter.deDupe(executable.multiplex(_.runnables))
+      
+      //An observable stream of "chunks" of runnable jobs, with each chunk represented as a Seq.
+      //Jobs are buffered up until the amount of time indicated by 'windowLength' elapses, or 'runner.maxNumJobs'
+      //are collected.  When that happens, the buffered "chunk" of jobs is emitted.
+      //val chunks: Observable[Seq[JobRun]] = runnables.tumblingBuffer(1.milliseconds/*windowLength*/, 2 /*runner.maxNumJobs*/, IOScheduler())
+      val chunks: Observable[Seq[JobRun]] = runnables.tumblingBuffer(windowLength, runner.maxNumJobs, IOScheduler())
+      
+      val chunkResults: Observable[Map[LJob, Execution]] = for {
+        //NB: .toSet is important: jobs in a chunk should be distinct, 
+        //so they're not run more than once before transitioning to a terminal state.
+        jobs <- chunks.map(_.toSet)
+        //NB: Filter out jobs from this chunk that finished when run as part of another chunk, so we don't run them
+        //more times than necessary.  This helps in the face of job-restarting, since we can't call `distinct()` 
+        //on `runnables` and declare victory like we did before, since that would filter out restarting jobs that 
+        //already ran 
+        (finishedJobs, notFinishedJobs) = jobs.partition(_.status.isTerminal)
+        if notFinishedJobs.nonEmpty
+        (jobsToMaybeRun, skippedJobs) = notFinishedJobs.map(_.job).partition(jobFilter.shouldRun)
+        (jobsToCancel, jobsToRun) = jobsToMaybeRun.partition(jobCanceler.shouldCancel)
+        _ = handleSkippedJobs(skippedJobs)
+        cancelledJobsMap = cancelJobs(jobsToCancel)
+        _ = record(jobOracle, cancelledJobsMap)
+        skippedResultMap = toSkippedResultMap(skippedJobs)
+        executionTupleOpt <- runJobs(runner, jobsToRun)
+        _ = record(jobOracle, executionTupleOpt)
+        executionMap = cancelledJobsMap ++ executionTupleOpt
+        _ = logFinishedJobs(executionMap)
+      } yield {
+        executionMap ++ skippedResultMap
+      }
+      //NB: We no longer stop on the first failure, but run each sub-tree of jobs as far as possible.
+      
+      val futureMergedResults = chunkResults.foldLeft(emptyExecutionMap)(_ ++ _).firstAsFuture
+  
+      Await.result(futureMergedResults, timeout)
+    }
   }
   
   private val emptyExecutionMap: Map[LJob, Execution] = Map.empty
@@ -122,7 +130,7 @@ final case class RxExecuter(
   //Produce Optional LJob -> Execution tuples.  We need to be able to produce just one (empty) item,
   //instead of just returning Observable.empty, so that code chained onto this method's result with
   //flatMap will run.
-  private def runJobs(jobsToRun: Iterable[LJob], jobOracle: JobOracle): Observable[Option[(LJob, Execution)]] = {
+  private def runJobs(runner: ChunkRunner, jobsToRun: Iterable[LJob]): Observable[Option[(LJob, Execution)]] = {
     logJobsToBeRun(jobsToRun)
     
     import RxExecuter.toExecutionMap
@@ -131,7 +139,7 @@ final case class RxExecuter(
     
     if(jobsToRun.isEmpty) { Observable.just(None) }
     else {
-      val jobRunObs = runner.run(jobsToRun.toSet, jobOracle, shouldRestart)
+      val jobRunObs = runner.run(jobsToRun.toSet)
       
       jobRunObs.flatMap(toExecutionMap(fileMonitor, shouldRestart)).map(Option(_))
     }
@@ -207,7 +215,7 @@ object RxExecuter extends Loggable {
   def apply(runner: ChunkRunner)(implicit executionContext: ExecutionContext): RxExecuter = {
     new RxExecuter(
         Defaults.executionConfig,
-        runner, 
+        (_, _) => runner, 
         Defaults.fileMonitor, 
         Defaults.windowLengthInSec,
         Defaults.jobCanceler,
@@ -219,11 +227,17 @@ object RxExecuter extends Loggable {
   def default: RxExecuter = {
     val (executionContext, ecHandle) = ExecutionContexts.threadPool(Defaults.maxNumConcurrentJobs)
 
-    val chunkRunner = AsyncLocalChunkRunner(Defaults.executionConfig, Defaults.maxNumConcurrentJobs)(executionContext)
+    val makeChunkRunner: ChunkRunner.Constructor[ChunkRunner] = { (shouldRestart, jobOracle) =>
+      AsyncLocalChunkRunner(
+          Defaults.executionConfig, 
+          jobOracle, 
+          shouldRestart, 
+          Defaults.maxNumConcurrentJobs)(executionContext)
+    }
 
     new RxExecuter(
         Defaults.executionConfig,
-        chunkRunner, 
+        makeChunkRunner, 
         Defaults.fileMonitor,
         Defaults.windowLengthInSec, 
         Defaults.jobCanceler,

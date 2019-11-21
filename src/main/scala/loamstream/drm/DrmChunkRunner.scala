@@ -40,14 +40,17 @@ final case class DrmChunkRunner(
     drmConfig: DrmConfig,
     jobSubmitter: JobSubmitter,
     jobMonitor: JobMonitor,
-    accountingClient: AccountingClient)(implicit ec: ExecutionContext) extends ChunkRunnerFor(environmentType) with 
+    accountingClient: AccountingClient,
+    jobOracle: JobOracle, 
+    shouldRestart: LJob => Boolean,
+    additionalTerminableComponents: Iterable[Terminable] = Nil)(implicit ec: ExecutionContext) extends ChunkRunnerFor(environmentType) with 
         Terminable.StopsComponents with Loggable {
 
   require(environmentType.isUger || environmentType.isLsf, "Only UGER and LSF environments are supported")
   
   import DrmChunkRunner._
 
-  override protected val terminableComponents: Iterable[Terminable] = Seq(jobMonitor, jobSubmitter)
+  override protected val terminableComponents: Iterable[Terminable] = Seq(jobMonitor, jobSubmitter) ++ additionalTerminableComponents
 
   override def maxNumJobs: Int = drmConfig.maxNumJobs
 
@@ -58,10 +61,7 @@ final case class DrmChunkRunner(
    * NB: NoOpJobs are ignored.  Otherwise, this method expects that all the other jobs are CommandLineJobs, and
    * will throw otherwise.
    */
-  override def run(
-      jobs: Set[LJob], 
-      jobOracle: JobOracle, 
-      shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
+  override def run(jobs: Set[LJob]): Observable[Map[LJob, RunData]] = {
 
     debug(s"Running: ")
     jobs.foreach(job => debug(s"  $job"))

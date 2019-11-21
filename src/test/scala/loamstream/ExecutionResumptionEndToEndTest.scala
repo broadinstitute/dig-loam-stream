@@ -35,6 +35,9 @@ import loamstream.util.Loggable
 import loamstream.util.Sequence
 import loamstream.model.jobs.PseudoExecution
 import loamstream.model.jobs.JobOracle
+import loamstream.model.execute.ChunkRunnerLog
+import loamstream.model.execute.ChunkRunnerLog
+import loamstream.model.execute.ChunkRunner
 
 
 
@@ -316,20 +319,26 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
   private def makeWorkDir(): Path = TestHelpers.getWorkDir(getClass.getSimpleName)
 
-  private def makeLoggingExecuter: (RxExecuter, MockChunkRunner) = {
-    val asyncChunkRunner = AsyncLocalChunkRunner(ExecutionConfig.default)(ExecutionContext.global)
-
-    val mockRunner = MockChunkRunner(asyncChunkRunner)
+  private def makeLoggingExecuter: (RxExecuter, ChunkRunnerLog) = {
+    val log = new ChunkRunnerLog
+    
+    val makeChunkRunner: ChunkRunner.Constructor[ChunkRunner] = { (shouldRestart, jobOracle) =>
+      val localChunkRunner = {
+        AsyncLocalChunkRunner(ExecutionConfig.default, jobOracle, shouldRestart)(ExecutionContext.global)
+      }
+      
+      MockChunkRunner(localChunkRunner, log)
+    }
 
     val delegateExecuter: RxExecuter = {
       RxExecuter.defaultWith(new DbBackedJobFilter(dao), new DbBackedExecutionRecorder(dao))
     }
     
     val resultExecuter = {
-      delegateExecuter.copy(runner = mockRunner, maxRunsPerJob = 1)(delegateExecuter.executionContext)
+      delegateExecuter.copy(makeRunner = makeChunkRunner, maxRunsPerJob = 1)(delegateExecuter.executionContext)
     }
     
-    (resultExecuter, mockRunner)
+    (resultExecuter, log)
   }
 
   private def loamEngine = {

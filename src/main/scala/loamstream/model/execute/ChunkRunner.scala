@@ -15,7 +15,11 @@ trait ChunkRunner extends Terminable {
   
   def canRun(job: LJob): Boolean
   
-  def run(jobs: Set[LJob], jobOracle: JobOracle, shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]]
+  def run(jobs: Set[LJob]): Observable[Map[LJob, RunData]]
   
-  override def stop(): Unit = ()
+  override def stop(): Iterable[Throwable] = Nil
+}
+
+object ChunkRunner {
+  type Constructor[R <: ChunkRunner] = (LJob => Boolean, JobOracle) => R
 }

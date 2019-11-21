@@ -47,7 +47,7 @@ final class BjobsPoller private[lsf] (pollingFn: InvocationFn[Set[LsfJobId]]) ex
     result
   }
   
-  override def stop(): Unit = ()
+  override def stop(): Iterable[Throwable] = Nil
   
   private[lsf] def runChunk(lsfJobIds: Set[LsfJobId]): Map[LsfJobId, Try[DrmStatus]] = {
     val runResultsAttempt = pollingFn(lsfJobIds)

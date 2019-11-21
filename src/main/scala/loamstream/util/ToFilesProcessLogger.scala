@@ -24,8 +24,8 @@ final case class ToFilesProcessLogger(
   
   private val delegate = ProcessLogger(fout = writeToStdOut, ferr = writeToStdErr)
   
-  override def stop(): Unit = {
-    Throwables.quietly(s"Error closing $stdoutPath")(writeToStdOut.close())
+  override def stop(): Iterable[Throwable] = {
+    Throwables.quietly(s"Error closing $stdoutPath")(writeToStdOut.close()).toSeq ++
     Throwables.quietly(s"Error closing $stderrPath")(writeToStdErr.close())
   }
   

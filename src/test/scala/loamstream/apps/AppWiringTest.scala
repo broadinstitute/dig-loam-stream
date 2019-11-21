@@ -80,15 +80,9 @@ final class AppWiringTest extends FunSuite with Matchers {
     wiring.dao shouldBe a[SlickLoamDao]
     wiring.executer shouldBe a[AppWiring.TerminableExecuter]
     
-    wiring.executer.asInstanceOf[AppWiring.TerminableExecuter].delegate shouldBe a[RxExecuter]
+    wiring.executer.asInstanceOf[RxExecuter]
     
-    val executer = wiring.executer.asInstanceOf[AppWiring.TerminableExecuter].delegate.asInstanceOf[RxExecuter]
-    
-    executer.runner shouldBe a[CompositeChunkRunner]
-    
-    val compositeRunner = executer.runner.asInstanceOf[CompositeChunkRunner]
-    
-    compositeRunner.components.map(_.getClass) shouldBe(Seq(classOf[AsyncLocalChunkRunner]))
+    val executer = wiring.executer.asInstanceOf[RxExecuter]
     
     import JobFilter.{AndJobFilter, OrJobFilter}
     
@@ -97,6 +91,8 @@ final class AppWiringTest extends FunSuite with Matchers {
     assert(jf1 === RunsIfNoOutputsJobFilter)
     assert(jf2.dao eq wiring.dao)
     assert(jf2.outputHashingStrategy === HashingStrategy.HashOutputs)
+    
+    fail("TODO")
   }
   
   test("Local execution, run everything") {
@@ -104,17 +100,11 @@ final class AppWiringTest extends FunSuite with Matchers {
     
     wiring.executer shouldBe a[AppWiring.TerminableExecuter]
     
-    wiring.executer.asInstanceOf[AppWiring.TerminableExecuter].delegate shouldBe a[RxExecuter]
-    
-    val executer = wiring.executer.asInstanceOf[AppWiring.TerminableExecuter].delegate.asInstanceOf[RxExecuter]
-    
-    executer.runner shouldBe a[CompositeChunkRunner]
-    
-    val compositeRunner = executer.runner.asInstanceOf[CompositeChunkRunner]
-    
-    compositeRunner.components.map(_.getClass) shouldBe(Seq(classOf[AsyncLocalChunkRunner]))
+    val executer = wiring.executer.asInstanceOf[RxExecuter]
     
     executer.jobFilter shouldBe JobFilter.RunEverything
+    
+    fail("TODO")
   }
   
   private def toFlag(drmSystem: DrmSystem): String = drmSystem match {
@@ -130,15 +120,7 @@ final class AppWiringTest extends FunSuite with Matchers {
   
       assert(wiring.executer.isInstanceOf[AppWiring.TerminableExecuter])
       
-      assert(wiring.executer.asInstanceOf[AppWiring.TerminableExecuter].delegate.isInstanceOf[RxExecuter])
-      
-      val actualExecuter = wiring.executer.asInstanceOf[AppWiring.TerminableExecuter].delegate.asInstanceOf[RxExecuter]
-      
-      assert(actualExecuter.runner.isInstanceOf[CompositeChunkRunner])
-      
-      val runner = actualExecuter.runner.asInstanceOf[CompositeChunkRunner]
-      
-      assert(runner.components.map(_.getClass).toSet === Set(classOf[AsyncLocalChunkRunner], classOf[DrmChunkRunner]))
+      val actualExecuter = wiring.executer.asInstanceOf[RxExecuter]
       
       import JobFilter.{AndJobFilter, OrJobFilter}
       
@@ -147,6 +129,8 @@ final class AppWiringTest extends FunSuite with Matchers {
       assert(jf1 === RunsIfNoOutputsJobFilter)
       assert(jf2.dao eq wiring.dao)
       assert(jf2.outputHashingStrategy === HashingStrategy.HashOutputs)
+      
+      fail("TODO")
     }
     
     doTest(DrmSystem.Uger)
@@ -172,15 +156,9 @@ final class AppWiringTest extends FunSuite with Matchers {
   
       assert(wiring.executer.isInstanceOf[AppWiring.TerminableExecuter])
       
-      assert(wiring.executer.asInstanceOf[AppWiring.TerminableExecuter].delegate.isInstanceOf[RxExecuter])
+      val actualExecuter = wiring.executer.asInstanceOf[RxExecuter]
       
-      val actualExecuter = wiring.executer.asInstanceOf[AppWiring.TerminableExecuter].delegate.asInstanceOf[RxExecuter]
-      
-      assert(actualExecuter.runner.isInstanceOf[CompositeChunkRunner])
-      
-      val runner = actualExecuter.runner.asInstanceOf[CompositeChunkRunner]
-      
-      assert(runner.components.map(_.getClass).toSet === Set(classOf[AsyncLocalChunkRunner], classOf[DrmChunkRunner]))
+      fail("TODO")
     }
     
     doTest(DrmSystem.Uger, Conf.RunStrategies.AllOf)
@@ -201,17 +179,11 @@ final class AppWiringTest extends FunSuite with Matchers {
       
       assert(wiring.executer.isInstanceOf[AppWiring.TerminableExecuter])
       
-      assert(wiring.executer.asInstanceOf[AppWiring.TerminableExecuter].delegate.isInstanceOf[RxExecuter])
+      val actualExecuter = wiring.executer.asInstanceOf[RxExecuter]
       
-      val actualExecuter = wiring.executer.asInstanceOf[AppWiring.TerminableExecuter].delegate.asInstanceOf[RxExecuter]
+      actualExecuter.jobFilter shouldBe JobFilter.RunEverything
       
-      assert(actualExecuter.runner.isInstanceOf[CompositeChunkRunner])
-      
-      val runner = actualExecuter.runner.asInstanceOf[CompositeChunkRunner]
-      
-      assert(runner.components.map(_.getClass).toSet === Set(classOf[AsyncLocalChunkRunner], classOf[DrmChunkRunner]))
-      
-      actualExecuter.asInstanceOf[RxExecuter].jobFilter shouldBe JobFilter.RunEverything
+      fail("TODO")
     }
     
     doTest(DrmSystem.Uger)
@@ -224,15 +196,7 @@ final class AppWiringTest extends FunSuite with Matchers {
         appWiring(cliConf(s"${toFlag(drmSystem)} --conf $confFileForUger --loams $exampleFile"))
       }
       
-      val actualExecuter = wiring.executer.asInstanceOf[AppWiring.TerminableExecuter].delegate.asInstanceOf[RxExecuter]
-      
-      val runner = actualExecuter.runner.asInstanceOf[CompositeChunkRunner]
-      
-      assert(runner.components.map(_.getClass).toSet === Set(classOf[AsyncLocalChunkRunner], classOf[DrmChunkRunner]))
-      
-      val drmRunner = runner.components.collectFirst { case drmRunner: DrmChunkRunner => drmRunner }.get
-      
-      assert(drmRunner.pathBuilder === expectedPathBuilder)
+      fail("TODO")
     }
 
     val loamConfig = LoamConfig.fromPath(confFileForUger).get

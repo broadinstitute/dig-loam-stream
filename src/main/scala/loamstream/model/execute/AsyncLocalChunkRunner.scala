@@ -21,15 +21,14 @@ import rx.lang.scala.Observable
  */
 final case class AsyncLocalChunkRunner(
     executionConfig: ExecutionConfig,
+    jobOracle: JobOracle,
+    shouldRestart: LJob => Boolean,
     maxNumJobs: Int = defaultMaxNumJobs)
     (implicit context: ExecutionContext) extends ChunkRunnerFor(EnvironmentType.Local) {
 
   import AsyncLocalChunkRunner._
   
-  override def run(
-      jobs: Set[LJob], 
-      jobOracle: JobOracle, 
-      shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
+  override def run(jobs: Set[LJob]): Observable[Map[LJob, RunData]] = {
     
     if(jobs.isEmpty) { Observable.just(Map.empty) }
     else {
@@ -55,6 +54,16 @@ final case class AsyncLocalChunkRunner(
 }
 
 object AsyncLocalChunkRunner extends Loggable {
+  import ChunkRunner.Constructor
+  
+  def constructor(
+      executionConfig: ExecutionConfig,
+      maxNumJobs: Int = defaultMaxNumJobs)
+      (implicit context: ExecutionContext): Constructor[AsyncLocalChunkRunner] = { (jobOracle, shouldRestart) =>
+
+    AsyncLocalChunkRunner(executionConfig, shouldRestart, jobOracle, maxNumJobs)
+  }
+  
   def defaultMaxNumJobs: Int = Runtime.getRuntime.availableProcessors
   
   def executeSingle(

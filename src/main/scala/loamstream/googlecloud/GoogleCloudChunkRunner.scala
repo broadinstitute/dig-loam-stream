@@ -31,6 +31,7 @@ import loamstream.model.execute.GoogleSettings
 import GoogleCloudChunkRunner.ClusterStatus
 import loamstream.model.jobs.JobStatus
 import loamstream.util.ValueBox
+import loamstream.util.Throwables
 
 
 /**
@@ -54,25 +55,26 @@ final case class GoogleCloudChunkRunner(
 
   private val currentClusterConfig: ValueBox[Option[ClusterConfig]] = ValueBox(None)
   
-  override def run(
-      jobs: Set[LJob], 
-      jobOracle: JobOracle, 
-      shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
+  override def run(jobs: Set[LJob]): Observable[Map[LJob, RunData]] = {
     
     def emptyResults: Observable[Map[LJob, RunData]] = Observable.just(Map.empty)
   
     if(jobs.isEmpty) { emptyResults }
-    else { runJobsSequentially(jobs, jobOracle, shouldRestart) }
+    else { runJobsSequentially(jobs) }
   }
   
-  override def stop(): Unit = {
+  override def stop(): Iterable[Throwable] = {
     import loamstream.util.Throwables._
     import scala.concurrent.duration._
     
-    quietly("Error shutting down Executor")(ExecutorServices.shutdown(singleThreadedExecutor, 5.seconds))
+    val exceptionOpt = {
+      quietly("Error shutting down Executor")(ExecutorServices.shutdown(singleThreadedExecutor, 5.seconds))
+    }
     
     //Fail loudly here, since this could cost money
     deleteClusterIfNecessary()
+    
+    exceptionOpt
   }
   
   private[googlecloud] def deleteClusterIfNecessary(): Unit = {
@@ -117,10 +119,7 @@ final case class GoogleCloudChunkRunner(
     }
   }
   
-  private[googlecloud] def runJobsSequentially(
-      jobs: Set[LJob], 
-      jobOracle: JobOracle, 
-      shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
+  private[googlecloud] def runJobsSequentially(jobs: Set[LJob]): Observable[Map[LJob, RunData]] = {
     
     def doRunSingle(j: LJob): Map[LJob, RunData] = {
       def runDataForNonGoogleJob = RunData(
@@ -132,7 +131,7 @@ final case class GoogleCloudChunkRunner(
       
       j.initialSettings match {
         case GoogleSettings(_, clusterConfig) => withCluster(clusterConfig) {
-          runSingle(delegate, jobOracle, shouldRestart)(j)
+          runSingle(delegate)(j)
         }
         case settings => Map(j -> runDataForNonGoogleJob)
       }
@@ -141,10 +140,7 @@ final case class GoogleCloudChunkRunner(
     Observable.from(jobs).subscribeOn(singleThreadedScheduler).map(doRunSingle)
   }
 
-  private[googlecloud] def runSingle(
-      delegate: ChunkRunner, 
-      jobOracle: JobOracle, 
-      shouldRestart: LJob => Boolean)(job: LJob): Map[LJob, RunData] = {
+  private[googlecloud] def runSingle(delegate: ChunkRunner)(job: LJob): Map[LJob, RunData] = {
     
     //NB: Enforce single-threaded execution, since we don't want multiple jobs running 
     import GoogleCloudChunkRunner.addCluster
@@ -157,7 +153,7 @@ final case class GoogleCloudChunkRunner(
     }
     
     val futureResult = {
-      delegate.run(Set(job), jobOracle, shouldRestart).map(addCluster(googleSettings.clusterId)).lastAsFuture
+      delegate.run(Set(job)).map(addCluster(googleSettings.clusterId)).lastAsFuture
     }
     
     //TODO: add some timeout

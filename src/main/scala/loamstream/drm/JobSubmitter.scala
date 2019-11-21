@@ -34,6 +34,6 @@ object JobSubmitter {
       drmaaClient.submitJob(drmSettings, drmConfig, taskArray)
     }
     
-    override def stop(): Unit = drmaaClient.stop()
+    override def stop(): Iterable[Throwable] = drmaaClient.stop()
   }
 }

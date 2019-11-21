@@ -31,16 +31,26 @@ final class RxExecuterTest extends FunSuite {
   import RxExecuterTest.JobOrderOps
   import scala.concurrent.ExecutionContext.Implicits.global
   
-  private def makeExecuter(maxRestarts: Int, maxSimultaneousJobs: Int = 8): (RxExecuter, MockChunkRunner) = {
+  private def makeExecuter(maxRestarts: Int, maxSimultaneousJobs: Int = 8): (RxExecuter, ChunkRunnerLog) = {
     import scala.concurrent.duration._
     
-    val runner = MockChunkRunner(AsyncLocalChunkRunner(ExecutionConfig.default, maxSimultaneousJobs))
+    val log = new ChunkRunnerLog
+    
+    val makeRunner: ChunkRunner.Constructor[MockChunkRunner] = { (shouldRestart, jobOracle) =>
+      val localRunner = AsyncLocalChunkRunner(
+          executionConfig = ExecutionConfig.default,
+          jobOracle = jobOracle,
+          shouldRestart = shouldRestart,
+          maxNumJobs = maxSimultaneousJobs)
+      
+      MockChunkRunner(localRunner, log)
+    }
     
     import RxExecuter.Defaults.fileMonitor
     
     val executer = RxExecuter(
         RxExecuter.Defaults.executionConfig,
-        runner, 
+        makeRunner, 
         fileMonitor, 
         0.1.seconds, 
         JobCanceler.NeverCancel,
@@ -48,13 +58,13 @@ final class RxExecuterTest extends FunSuite {
         ExecutionRecorder.DontRecord, 
         maxRunsPerJob = maxRestarts + 1)
         
-    (executer, runner)
+    (executer, log)
   }
   
-  private def doExec(executer: RxExecuter, runner: MockChunkRunner, jobs: Set[RxMockJob]): ExecutionResults = {
+  private def doExec(executer: RxExecuter, log: ChunkRunnerLog, jobs: Set[RxMockJob]): ExecutionResults = {
     ExecutionResults(
         executer.execute(Executable(jobs.asInstanceOf[Set[JobNode]])), 
-        runner.chunks.value.filter(_.nonEmpty).map(_.asInstanceOf[Set[RxMockJob]]))
+        log.chunks.value.filter(_.nonEmpty).map(_.asInstanceOf[Set[RxMockJob]]))
   }
   
   private def exec(
@@ -62,9 +72,9 @@ final class RxExecuterTest extends FunSuite {
       maxRestarts: Int,
       maxSimultaneousJobs: Int = 8): ExecutionResults = {
     
-    val (executer, runner) = makeExecuter(maxRestarts, maxSimultaneousJobs)
+    val (executer, log) = makeExecuter(maxRestarts, maxSimultaneousJobs)
     
-    doExec(executer, runner, jobs)
+    doExec(executer, log, jobs)
   }
   
   test("deDupe") {
@@ -172,7 +182,7 @@ final class RxExecuterTest extends FunSuite {
     
     val executionConfig = ExecutionConfig.default
     
-    val runner = MockChunkRunner(AsyncLocalChunkRunner(executionConfig, 8))
+    val makeRunner = AsyncLocalChunkRunner.constructor(executionConfig, 8)
     
     import RxExecuter.Defaults.fileMonitor
     
@@ -181,19 +191,19 @@ final class RxExecuterTest extends FunSuite {
     val executionRecorder = ExecutionRecorder.DontRecord
     
     intercept[Exception] {
-      RxExecuter(executionConfig, runner, fileMonitor, 0.25.seconds, jobCanceler, jobFilter, executionRecorder, -1)
+      RxExecuter(executionConfig, makeRunner, fileMonitor, 0.25.seconds, jobCanceler, jobFilter, executionRecorder, -1)
     }
     
     intercept[Exception] {
-      RxExecuter(executionConfig, runner, fileMonitor, 0.25.seconds, jobCanceler, jobFilter, executionRecorder, 0)
+      RxExecuter(executionConfig, makeRunner, fileMonitor, 0.25.seconds, jobCanceler, jobFilter, executionRecorder, 0)
     }
     
     intercept[Exception] {
-      RxExecuter(executionConfig, runner, fileMonitor, 0.25.seconds, jobCanceler, jobFilter, executionRecorder, -100)
+      RxExecuter(executionConfig, makeRunner, fileMonitor, 0.25.seconds, jobCanceler, jobFilter, executionRecorder, -100)
     }
     
-    RxExecuter(executionConfig, runner, fileMonitor, 0.25.seconds, jobCanceler, jobFilter, executionRecorder, 1)
-    RxExecuter(executionConfig, runner, fileMonitor, 0.25.seconds, jobCanceler, jobFilter, executionRecorder, 42)
+    RxExecuter(executionConfig, makeRunner, fileMonitor, 0.25.seconds, jobCanceler, jobFilter, executionRecorder, 1)
+    RxExecuter(executionConfig, makeRunner, fileMonitor, 0.25.seconds, jobCanceler, jobFilter, executionRecorder, 42)
   }
 
   test("Single successful job") {
@@ -758,24 +768,30 @@ final class RxExecuterTest extends FunSuite {
   private def executeWithMockRunner(
       maxSimultaneousJobs: Int, 
       maxRestartsAllowed: Int,
-      jobs: Set[LJob]): (MockChunkRunner, Map[LJob, Execution]) = {
+      jobs: Set[LJob]): (ChunkRunnerLog, Map[LJob, Execution]) = {
     
     import scala.concurrent.duration._
       
-    val realRunner = AsyncLocalChunkRunner(ExecutionConfig.default, maxSimultaneousJobs)
-  
-    assert(realRunner.maxNumJobs === maxSimultaneousJobs)
+    val log = new ChunkRunnerLog
     
-    val runner = MockChunkRunner(realRunner)
+    val makeRunner: ChunkRunner.Constructor[ChunkRunner] =  { (shouldRestart, jobOracle) =>
+      val realRunner = AsyncLocalChunkRunner(ExecutionConfig.default, jobOracle, shouldRestart, maxSimultaneousJobs)
       
-    assert(runner.maxNumJobs === maxSimultaneousJobs)
+      assert(realRunner.maxNumJobs === maxSimultaneousJobs)
+      
+      val runner = MockChunkRunner(realRunner, log)
+      
+      assert(runner.maxNumJobs === maxSimultaneousJobs)
+      
+      runner
+    }
     
     import RxExecuter.Defaults.fileMonitor
     
     val executer = {
       RxExecuter(
           RxExecuter.Defaults.executionConfig,
-          runner, 
+          makeRunner, 
           fileMonitor, 
           0.1.seconds, 
           JobCanceler.NeverCancel,
@@ -784,7 +800,7 @@ final class RxExecuterTest extends FunSuite {
           maxRestartsAllowed + 1)
     }
     
-    (runner, executer.execute(Executable(jobs.asInstanceOf[Set[JobNode]])))
+    (log, executer.execute(Executable(jobs.asInstanceOf[Set[JobNode]])))
   }
 
   test("maxNumJobs is taken into account") {
@@ -893,24 +909,6 @@ object RxExecuterTest {
       assert(
         lhsIndex < rhsIndex, 
         s"lhs index ($lhsIndex) not < rhs index ($rhsIndex) in $executions")
-    }
-  }
-  
-  private final case class MockChunkRunner(delegate: ChunkRunner) extends ChunkRunner {
-    override def maxNumJobs: Int = delegate.maxNumJobs
-    
-    override def canRun(job: LJob): Boolean = delegate.canRun(job)
-    
-    val chunks: ValueBox[Seq[Set[LJob]]] = ValueBox(Vector.empty)
-
-    override def run(
-        jobs: Set[LJob], 
-        jobOracle: JobOracle, 
-        shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
-      
-      chunks.mutate(_ :+ jobs)
-
-      delegate.run(jobs, jobOracle, shouldRestart)
     }
   }
 }

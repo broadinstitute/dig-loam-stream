@@ -20,6 +20,6 @@ trait Executer extends Terminable {
       executable: Executable, 
       makeJobOracle: Executable => JobOracle)(implicit timeout: Duration = Duration.Inf): Map[LJob, Execution]
   
-  override def stop(): Unit = ()
+  override def stop(): Iterable[Throwable] = Nil
   
 }

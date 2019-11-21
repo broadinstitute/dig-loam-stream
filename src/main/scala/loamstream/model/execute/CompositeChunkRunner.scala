@@ -7,21 +7,22 @@ import loamstream.util.Loggable
 import loamstream.util.Observables
 import loamstream.util.Throwables
 import rx.lang.scala.Observable
+import loamstream.util.Terminable
 
 /**
  * @author clint
  * Nov 22, 2016
  */
-final case class CompositeChunkRunner(components: Seq[ChunkRunner]) extends ChunkRunner with Loggable {
+final case class CompositeChunkRunner(
+    components: Seq[ChunkRunner],
+    private val additionalTerminables: Iterable[Terminable] = Nil) extends 
+        ChunkRunner with Terminable.StopsComponents with Loggable {
   
   override def maxNumJobs: Int = components.map(_.maxNumJobs).sum
   
   override def canRun(job: LJob): Boolean = components.exists(_.canRun(job))
   
-  override def run(
-      jobs: Set[LJob], 
-      jobOracle: JobOracle, 
-      shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
+  override def run(jobs: Set[LJob]): Observable[Map[LJob, RunData]] = {
     
     require(jobs.forall(canRun), s"Don't know how to run ${jobs.filterNot(canRun)}")
     
@@ -32,7 +33,7 @@ final case class CompositeChunkRunner(components: Seq[ChunkRunner]) extends Chun
     val resultObservables = for {
       (runner, jobsForRunner) <- byRunner
     } yield {
-      runner.run(jobsForRunner, jobOracle, shouldRestart)
+      runner.run(jobsForRunner)
     }
     
     val z: Map[LJob, RunData] = Map.empty
@@ -42,11 +43,5 @@ final case class CompositeChunkRunner(components: Seq[ChunkRunner]) extends Chun
     Observables.merge(resultObservables).scan(z)(_ ++ _).distinct
   }
   
-  override def stop(): Unit = {
-    for {
-      component <- components
-    } {
-      Throwables.quietly("Error shutting down: ")(component.stop())
-    }
-  }
+  override protected def terminableComponents: Iterable[Terminable] = components ++ additionalTerminables
 }

@@ -87,7 +87,7 @@ final class DrmChunkRunnerTest extends FunSuite {
   private object JustFailsMockPoller extends Poller {
     override def poll(jobIds: Iterable[String]): Map[String, Try[DrmStatus]] = ???
     
-    override def stop(): Unit = ()
+    override def stop(): Iterable[Throwable] = Nil
   }
   
   private val ugerPathBuilder = new UgerPathBuilder(UgerScriptBuilderParams(ugerConfig))
@@ -102,9 +102,11 @@ final class DrmChunkRunnerTest extends FunSuite {
         jobSubmitter = JobSubmitter.Drmaa(mockDrmClient, ugerConfig),
         //NB: The poller can always fail, since it should never be invoked
         jobMonitor = new JobMonitor(scheduler, JustFailsMockPoller),
-        accountingClient = MockAccountingClient.NeverWorks)
+        accountingClient = MockAccountingClient.NeverWorks,
+        jobOracle = TestHelpers.DummyJobOracle,
+        shouldRestart = neverRestart)
     
-    val result = waitFor(runner.run(Set.empty, TestHelpers.DummyJobOracle, neverRestart).firstAsFuture)
+    val result = waitFor(runner.run(Set.empty).firstAsFuture)
     
     assert(result === Map.empty)
   }
@@ -119,9 +121,11 @@ final class DrmChunkRunnerTest extends FunSuite {
         jobSubmitter = new MockJobSubmitter,
         //NB: The poller can always fail, since it should never be invoked
         jobMonitor = new JobMonitor(scheduler, JustFailsMockPoller),
-        accountingClient = MockAccountingClient.NeverWorks)
+        accountingClient = MockAccountingClient.NeverWorks,
+        jobOracle = TestHelpers.DummyJobOracle,
+        shouldRestart = neverRestart)
     
-    val result = waitFor(runner.run(Set.empty, TestHelpers.DummyJobOracle, neverRestart).firstAsFuture)
+    val result = waitFor(runner.run(Set.empty).firstAsFuture)
     
     assert(result === Map.empty)
   }
@@ -417,7 +421,9 @@ final class DrmChunkRunnerTest extends FunSuite {
             drmConfig = ugerConfig,
             jobSubmitter = mockJobSubmitter,
             jobMonitor = new JobMonitor(poller = JustFailsMockPoller),
-            accountingClient = MockAccountingClient.NeverWorks)
+            accountingClient = MockAccountingClient.NeverWorks,
+            jobOracle = TestHelpers.DummyJobOracle,
+            shouldRestart = neverRestart)
       }
       case DrmSystem.Lsf => {
         DrmChunkRunner(
@@ -427,7 +433,9 @@ final class DrmChunkRunnerTest extends FunSuite {
             drmConfig = lsfConfig,
             jobSubmitter = mockJobSubmitter,
             jobMonitor = new JobMonitor(poller = JustFailsMockPoller),
-            accountingClient = MockAccountingClient.NeverWorks)
+            accountingClient = MockAccountingClient.NeverWorks,
+            jobOracle = TestHelpers.DummyJobOracle,
+            shouldRestart = neverRestart)
       }
     }
     
@@ -454,7 +462,7 @@ final class DrmChunkRunnerTest extends FunSuite {
           
       
       val results = {
-        waitFor(chunkRunner.run(jobs.map(_.job).toSet, TestHelpers.DummyJobOracle, neverRestart).firstAsFuture)
+        waitFor(chunkRunner.run(jobs.map(_.job).toSet).firstAsFuture)
       }
       
       val actualSubmissionParams = mockJobSubmitter.params
@@ -504,7 +512,9 @@ final class DrmChunkRunnerTest extends FunSuite {
             drmConfig = ugerConfig,
             jobSubmitter = mockJobSubmitter,
             jobMonitor = new JobMonitor(poller = new DrmaaPoller(mockDrmaaClient)),
-            accountingClient = MockAccountingClient.NeverWorks)
+            accountingClient = MockAccountingClient.NeverWorks,
+            jobOracle = TestHelpers.DummyJobOracle,
+            shouldRestart = neverRestart)
       }
       case DrmSystem.Lsf => {
         DrmChunkRunner(
@@ -515,7 +525,9 @@ final class DrmChunkRunnerTest extends FunSuite {
             jobSubmitter = mockJobSubmitter,
             //NB: The poller can fail, since we're not checking execution results, just config-propagation
             jobMonitor = new JobMonitor(poller = JustFailsMockPoller),
-            accountingClient = MockAccountingClient.NeverWorks)
+            accountingClient = MockAccountingClient.NeverWorks,
+            jobOracle = TestHelpers.DummyJobOracle,
+            shouldRestart = neverRestart)
       }
     }
     
@@ -550,7 +562,7 @@ final class DrmChunkRunnerTest extends FunSuite {
       val chunkRunner = makeChunkRunner(drmSystem, mockJobSubmitter)
           
       val results = {
-        waitFor(chunkRunner.run(jobs.map(_.job).toSet, TestHelpers.DummyJobOracle, neverRestart).firstAsFuture)
+        waitFor(chunkRunner.run(jobs.map(_.job).toSet).firstAsFuture)
       }
       
       val actualSubmissionParams = mockJobSubmitter.params
@@ -618,7 +630,7 @@ object DrmChunkRunnerTest {
       DrmSubmissionResult.SubmissionSuccess(Map.empty)
     }
     
-    override def stop(): Unit = ()
+    override def stop(): Iterable[Throwable] = Nil
   }
   
   final case class MockDrmJob(name: String, statusesToReturn: DrmStatus*) extends LocalJob with HasCommandLine {

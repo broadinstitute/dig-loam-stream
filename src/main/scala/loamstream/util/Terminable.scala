@@ -5,21 +5,19 @@ package loamstream.util
  * Nov 23, 2016
  */
 trait Terminable {
-  def stop(): Unit
+  def stop(): Iterable[Throwable]
 }
 
 object Terminable {
+  private def doStop(t: Terminable): Option[Throwable] = Throwables.failureOption(t.stop())
+  
   trait StopsComponents extends Terminable { self: Loggable =>
     protected def terminableComponents: Iterable[Terminable]
     
-    override def stop(): Unit = {
-      def doStop(t: Terminable) = Throwables.quietly(s"Error stopping $t")(t.stop())
-      
-      terminableComponents.foreach(doStop)
-    }
+    override def stop(): Iterable[Throwable] = terminableComponents.flatMap(doStop)
   }
   
-  def apply(doStop: => Unit): Terminable = new Terminable {
-    override def stop(): Unit = doStop
+  def apply(body: => Unit): Terminable = new Terminable {
+    override def stop(): Iterable[Throwable] = Throwables.failureOption(body)
   }
 }

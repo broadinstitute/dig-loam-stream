@@ -10,24 +10,15 @@ import loamstream.model.jobs.JobOracle
  * @author clint
  * Oct 12, 2016
  */
-final case class MockChunkRunner(delegate: ChunkRunner) extends ChunkRunner {
+final case class MockChunkRunner(delegate: ChunkRunner, log: ChunkRunnerLog) extends ChunkRunner {
   override def maxNumJobs: Int = delegate.maxNumJobs
   
   override def canRun(job: LJob): Boolean = delegate.canRun(job)
   
-  val chunks: ValueBox[Seq[Set[LJob]]] = ValueBox(Vector.empty)
-  
-  val chunksWithSettings: ValueBox[Seq[Set[(LJob, Settings)]]] = ValueBox(Vector.empty)
-
-  override def run(
-      chunk: Set[LJob], 
-      jobOracle: JobOracle, 
-      shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
+  override def run(chunk: Set[LJob]): Observable[Map[LJob, RunData]] = {
     
-    chunks.mutate(_ :+ chunk)
-    
-    chunksWithSettings.mutate( _ :+ chunk.map(j => j -> j.initialSettings))
+    log.log(chunk)
 
-    delegate.run(chunk, jobOracle, shouldRestart)
+    delegate.run(chunk)
   }
 }

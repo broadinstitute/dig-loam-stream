@@ -13,7 +13,7 @@ import loamstream.util.Loggable
  */
 final class DrmaaPoller(client: DrmaaClient) extends Poller with Loggable {
   
-  override def stop(): Unit = client.stop()
+  override def stop(): Iterable[Throwable] = client.stop()
   
   override def poll(jobIds: Iterable[String]): Map[String, Try[DrmStatus]] = {
     

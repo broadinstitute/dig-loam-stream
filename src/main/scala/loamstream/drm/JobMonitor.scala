@@ -43,7 +43,7 @@ final class JobMonitor(
   /**
    * Stop all polling and prevent further polling by this JobMonitor.  Useful at app-shutdown-time. 
    */
-  override def stop(): Unit = {
+  override def stop(): Iterable[Throwable] = {
     _isStopped.update(true)
     
     stopSignal.onNext(())

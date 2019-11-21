@@ -88,6 +88,10 @@ import loamstream.googlecloud.HailCtlDataProcClient
 import loamstream.googlecloud.HailConfig
 import loamstream.model.jobs.JobOracle
 import scala.concurrent.ExecutionContext
+import loamstream.conf.DrmConfig
+import loamstream.drm.PathBuilder
+import loamstream.conf.LsfConfig
+import loamstream.util.Functions
 
 
 /**
@@ -108,7 +112,7 @@ trait AppWiring {
   
   def executionRecorder: ExecutionRecorder
   
-  def shutdown(): Seq[Throwable]
+  def shutdown(): Iterable[Throwable]
   
   lazy val loamEngine: LoamEngine = LoamEngine(config, LoamCompiler.default, executer, cloudStorageClient)
   
@@ -179,7 +183,7 @@ object AppWiring extends Loggable {
     
     override def executer: Executer = terminableExecuter
 
-    override def shutdown(): Seq[Throwable] = terminableExecuter.shutdown()
+    override def shutdown(): Iterable[Throwable] = terminableExecuter.stop()
 
     override lazy val cloudStorageClient: Option[CloudStorageClient] = makeCloudStorageClient(intent.confFile, config)
 
@@ -193,7 +197,7 @@ object AppWiring extends Loggable {
       //TODO: Make this configurable?
       val threadPoolSize = 50
 
-      val (compositeRunner: ChunkRunner, runnerHandles: Seq[Terminable]) = makeChunkRunner(threadPoolSize)
+      val makeCompositeRunner: ChunkRunner.Constructor[CompositeChunkRunner] = makeChunkRunner(threadPoolSize)
 
       import loamstream.model.execute.ExecuterHelpers._
       import ExecutionContexts.threadPool
@@ -206,41 +210,37 @@ object AppWiring extends Loggable {
       
       import config.executionConfig.{ maxRunsPerJob, maxWaitTimeForOutputs, outputPollingFrequencyInHz }
       
-      val rxExecuter = {
-        RxExecuter(
-            config.executionConfig,
-            compositeRunner, 
-            new FileMonitor(outputPollingFrequencyInHz, maxWaitTimeForOutputs),
-            windowLength, 
-            defaultJobCanceller,
-            jobFilter, 
-            executionRecorder,
-            maxRunsPerJob)(executionContextWithThreadPool)
-      }
-
-      val handles: Seq[Terminable] = threadPoolHandle +: runnerHandles 
-
-      new TerminableExecuter(rxExecuter, handles: _*)
+      RxExecuter(
+          config.executionConfig,
+          makeCompositeRunner, 
+          new FileMonitor(outputPollingFrequencyInHz, maxWaitTimeForOutputs),
+          windowLength, 
+          defaultJobCanceller,
+          jobFilter, 
+          executionRecorder,
+          maxRunsPerJob,
+          terminableComponents = Seq(threadPoolHandle))(executionContextWithThreadPool)
     }
     
-    private def makeChunkRunner(threadPoolSize: Int): (ChunkRunner, Seq[Terminable]) = {
-      
-      //TODO: Make the number of threads this uses configurable
-      val numberOfCPUs = Runtime.getRuntime.availableProcessors
-
-      val (localEC, localEcHandle) = ExecutionContexts.threadPool(numberOfCPUs * 2)
-
-      val localRunner = AsyncLocalChunkRunner(config.executionConfig)(localEC)
-
-      val (drmRunner, drmRunnerHandles) = drmChunkRunner(intent.confFile, config, threadPoolSize)(localEC)
-      
-      val googleRunner = googleChunkRunner(intent.confFile, config.googleConfig, config.hailConfig, localRunner)
-
-      val compositeRunner = CompositeChunkRunner(localRunner +: (drmRunner.toSeq ++ googleRunner))
-      
-      val toBeStopped = compositeRunner +: localEcHandle +: (drmRunnerHandles ++ compositeRunner.components)
-      
-      (compositeRunner, toBeStopped.distinct)
+    private def makeChunkRunner(threadPoolSize: Int): ChunkRunner.Constructor[CompositeChunkRunner] = {
+      (shouldRestart, jobOracle) => {
+        //TODO: Make the number of threads this uses configurable
+        val numberOfCPUs = Runtime.getRuntime.availableProcessors
+  
+        val (localEC, localEcHandle) = ExecutionContexts.threadPool(numberOfCPUs * 2)
+  
+        val localRunner = AsyncLocalChunkRunner(config.executionConfig, jobOracle, shouldRestart)(localEC)
+  
+        val makeDrmRunnerOpt = drmChunkRunner(intent.confFile, config, threadPoolSize)(localEC)
+        
+        val drmRunnerOpt = makeDrmRunnerOpt.map(creationFn => creationFn(shouldRestart, jobOracle))
+        
+        val googleRunnerOpt = googleChunkRunner(intent.confFile, config.googleConfig, config.hailConfig, localRunner)
+  
+        CompositeChunkRunner(
+            components = localRunner +: (googleRunnerOpt.toSeq ++ drmRunnerOpt),
+            additionalTerminables = Seq(localEcHandle))
+      }
     }
   }
   
@@ -303,58 +303,44 @@ object AppWiring extends Loggable {
   private def drmChunkRunner(
       confFile: Option[Path], 
       loamConfig: LoamConfig, 
-      threadPoolSize: Int)(implicit ec: ExecutionContext): (Option[DrmChunkRunner], Seq[Terminable]) = {
+      threadPoolSize: Int)(implicit ec: ExecutionContext): Option[ChunkRunner.Constructor[DrmChunkRunner]] = {
 
-    loamConfig.drmSystem match {
-      case Some(DrmSystem.Uger) => ugerChunkRunner(confFile, loamConfig, threadPoolSize)
-      case Some(DrmSystem.Lsf) => lsfChunkRunner(confFile, loamConfig, threadPoolSize)
-      case None => (None, Nil)
+    loamConfig.drmSystem.flatMap {
+      case DrmSystem.Uger => ugerChunkRunner(confFile, loamConfig, threadPoolSize)
+      case DrmSystem.Lsf => lsfChunkRunner(confFile, loamConfig, threadPoolSize)
     }
   }
   
   private def ugerChunkRunner(
       confFile: Option[Path], 
       loamConfig: LoamConfig, 
-      threadPoolSize: Int)(implicit ec: ExecutionContext): (Option[DrmChunkRunner], Seq[Terminable]) = {
+      threadPoolSize: Int)(implicit ec: ExecutionContext): Option[ChunkRunner.Constructor[DrmChunkRunner]] = {
     
-    val result @ (ugerRunnerOption, _) = unpack(makeUgerChunkRunner(loamConfig, threadPoolSize))
-
     //TODO: A better way to enable or disable Uger support; for now, this is purely expedient
-    if(ugerRunnerOption.isEmpty) {
+    if(loamConfig.ugerConfig.isEmpty) {
       val msg = s"""Uger support is NOT enabled. It can be enabled by defining loamstream.uger section
                    |in the config file (${confFile}).""".stripMargin
         
       debug(msg)
     }
     
-    result
+    makeUgerChunkRunner(loamConfig, threadPoolSize)
   }
   
   private def lsfChunkRunner(
       confFile: Option[Path], 
       loamConfig: LoamConfig, 
-      threadPoolSize: Int)(implicit ec: ExecutionContext): (Option[DrmChunkRunner], Seq[Terminable]) = {
+      threadPoolSize: Int)(implicit ec: ExecutionContext): Option[ChunkRunner.Constructor[DrmChunkRunner]] = {
     
-    val (lsfRunnerOption, terminables) = unpack(makeLsfChunkRunner(loamConfig, threadPoolSize))
-    
-    val jobKillerTerminable = Terminable {
-      BkillJobKiller.fromExecutable().killAllJobs()
-    }
-
     //TODO: A better way to enable or disable Uger support; for now, this is purely expedient
-    if(lsfRunnerOption.isEmpty) {
+    if(loamConfig.lsfConfig.isEmpty) {
       val msg = s"""LSF support is NOT enabled. It can be enabled by defining loamstream.lsf section
                    |in the config file (${confFile}).""".stripMargin
         
       debug(msg)
     }
     
-    (lsfRunnerOption, terminables :+ jobKillerTerminable)
-  }
-  
-  private def unpack[A,B](o: Option[(A, Seq[B])]): (Option[A], Seq[B]) = o match {
-    case Some((a, b)) => (Some(a), b)
-    case None => (None, Nil)
+    makeLsfChunkRunner(loamConfig, threadPoolSize)
   }
 
   private def makeCloudStorageClient(confFile: Option[Path], config: LoamConfig): Option[CloudStorageClient] = {
@@ -383,88 +369,103 @@ object AppWiring extends Loggable {
     gcsClientAttempt.toOption
   }
 
-  private def makeUgerChunkRunner(
-      loamConfig: LoamConfig, 
-      threadPoolSize: Int)(implicit ec: ExecutionContext): Option[(DrmChunkRunner, Seq[Terminable])] = {
+  private def makeDrmChunkRunner[C <: DrmConfig](
+      threadPoolSize: Int,
+      loamConfig: LoamConfig,
+      configField: LoamConfig => Option[C],
+      makePoller: C => Poller,
+      makeJobSubmitter: C => JobSubmitter,
+      makeAccountingClient: C => AccountingClient,
+      makePathBuilder: C => PathBuilder,
+      makeAdditionalTerminables: C => Iterable[Terminable] = (c: C) => Nil
+      )(implicit ec: ExecutionContext): Option[ChunkRunner.Constructor[DrmChunkRunner]] = {
     
     for {
-      ugerConfig <- loamConfig.ugerConfig
+      drmConfig <- configField(loamConfig)
     } yield {
-      debug("Creating Uger ChunkRunner...")
-
-      val drmaaClient = new Drmaa1Client(UgerNativeSpecBuilder(ugerConfig))
-
-      import loamstream.model.execute.ExecuterHelpers._
-
-      val poller = new DrmaaPoller(drmaaClient)
-
-      val (scheduler, schedulerHandle) = RxSchedulers.backedByThreadPool(threadPoolSize)
-
-      val ugerRunner = {
+      (shouldRestart, jobOracle) => {
+        debug("Creating Uger ChunkRunner...")
+  
+        val poller = makePoller(drmConfig)
+  
+        import loamstream.model.execute.ExecuterHelpers._
+  
+        val (scheduler, schedulerHandle) = RxSchedulers.backedByThreadPool(threadPoolSize)
+  
         //TODO: Make configurable?
         val pollingFrequencyInHz = 0.1
         
         val jobMonitor = new JobMonitor(scheduler, poller, pollingFrequencyInHz)
 
-        val jobSubmitter = JobSubmitter.Drmaa(drmaaClient, ugerConfig)
+        val jobSubmitter = makeJobSubmitter(drmConfig)
         
-        val accountingClient = QacctAccountingClient.useActualBinary(ugerConfig)
+        val accountingClient = makeAccountingClient(drmConfig)
+        
+        val environmentType: EnvironmentType = drmConfig match {
+          case _: UgerConfig => EnvironmentType.Uger
+          case _: LsfConfig => EnvironmentType.Lsf
+        }
         
         DrmChunkRunner(
-            environmentType = EnvironmentType.Uger,
-            pathBuilder = new UgerPathBuilder(UgerScriptBuilderParams(ugerConfig)),
+            environmentType = environmentType,
+            pathBuilder = makePathBuilder(drmConfig),
             executionConfig = loamConfig.executionConfig, 
-            drmConfig = ugerConfig, 
+            drmConfig = drmConfig, 
             jobSubmitter = jobSubmitter, 
             jobMonitor = jobMonitor,
-            accountingClient = accountingClient)
+            accountingClient = accountingClient,
+            shouldRestart = shouldRestart,
+            jobOracle = jobOracle,
+            additionalTerminableComponents = Seq(schedulerHandle) ++ makeAdditionalTerminables(drmConfig))
       }
-
-      val handles = Seq(schedulerHandle, ugerRunner)
-
-      (ugerRunner, handles)
     }
+  }
+  
+  private def makeUgerChunkRunner(
+      loamConfig: LoamConfig, 
+      threadPoolSize: Int)(implicit ec: ExecutionContext): Option[ChunkRunner.Constructor[DrmChunkRunner]] = {
+    
+    val makeDrmaaClient: UgerConfig => DrmaaClient = Functions.memoize { ugerConfig =>
+      new Drmaa1Client(UgerNativeSpecBuilder(ugerConfig))
+    }
+    
+    def makePoller(ugerConfig: UgerConfig): Poller = new DrmaaPoller(makeDrmaaClient(ugerConfig))
+    
+    def makeJobSubmitter(ugerConfig: UgerConfig): JobSubmitter = {
+      JobSubmitter.Drmaa(makeDrmaaClient(ugerConfig), ugerConfig)
+    }
+    
+    def makeAccountingClient(ugerConfig: UgerConfig): AccountingClient = QacctAccountingClient.useActualBinary(ugerConfig)
+    
+    def makePathBuilder(ugerConfig: UgerConfig) = new UgerPathBuilder(UgerScriptBuilderParams(ugerConfig))
+    
+    makeDrmChunkRunner(
+      threadPoolSize, 
+      loamConfig, 
+      _.ugerConfig, 
+      makePoller, 
+      makeJobSubmitter, 
+      makeAccountingClient, 
+      makePathBuilder)
   }
   
   private def makeLsfChunkRunner(
       loamConfig: LoamConfig, 
-      threadPoolSize: Int)(implicit ec: ExecutionContext): Option[(DrmChunkRunner, Seq[Terminable])] = {
+      threadPoolSize: Int)(implicit ec: ExecutionContext): Option[ChunkRunner.Constructor[DrmChunkRunner]] = {
     
-    for {
-      lsfConfig <- loamConfig.lsfConfig
-    } yield {
-      debug("Creating LSF ChunkRunner...")
-
-      import loamstream.model.execute.ExecuterHelpers._
-
-      val (scheduler, schedulerHandle) = RxSchedulers.backedByThreadPool(threadPoolSize)
-
-      val lsfRunner = {
-        //TODO: Make configurable?
-        val pollingFrequencyInHz = 0.1
-
-        val poller = BjobsPoller.fromExecutable()
-        
-        val jobMonitor = new JobMonitor(scheduler, poller, pollingFrequencyInHz)
-
-        val jobSubmitter = BsubJobSubmitter.fromExecutable(lsfConfig)
-
-        val accountingClient = BacctAccountingClient.useActualBinary(lsfConfig)
-        
-        DrmChunkRunner(
-            environmentType = EnvironmentType.Lsf,
-            pathBuilder = LsfPathBuilder,
-            executionConfig = loamConfig.executionConfig, 
-            drmConfig = lsfConfig, 
-            jobSubmitter = jobSubmitter, 
-            jobMonitor = jobMonitor,
-            accountingClient = accountingClient)
-      }
-
-      val handles = Seq(schedulerHandle, lsfRunner)
-
-      (lsfRunner, handles)
-    }
+    def makeAdditionalTerminables(c: LsfConfig): Seq[Terminable] = Seq(Terminable { 
+      BkillJobKiller.fromExecutable().killAllJobs()
+    })
+    
+    makeDrmChunkRunner(
+      threadPoolSize = threadPoolSize, 
+      loamConfig = loamConfig, 
+      configField = _.lsfConfig, 
+      makePoller = (_: LsfConfig) => BjobsPoller.fromExecutable(), 
+      makeJobSubmitter = BsubJobSubmitter.fromExecutable(_: LsfConfig), 
+      makeAccountingClient = BacctAccountingClient.useActualBinary(_: LsfConfig), 
+      makePathBuilder = (_: LsfConfig) => LsfPathBuilder,
+      makeAdditionalTerminables = makeAdditionalTerminables)
   }
   
   private def loadConfig(confFileOpt: Option[Path]): Config = {
@@ -486,32 +487,11 @@ object AppWiring extends Loggable {
   
   private[apps] def makeDefaultDb: LoamDao = makeDaoFrom(DbDescriptor.onDiskDefault)
   
-  private[apps] final class TerminableExecuter(
-      val delegate: Executer,
-      toStop: Terminable*) extends Executer {
-
-    override def execute(
-        executable: Executable, 
-        makeJobOracle: Executable => JobOracle)(implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
-      
-      delegate.execute(executable, makeJobOracle)(timeout)
-    }
-
-    override def jobFilter: JobFilter = delegate.jobFilter
-    
-    def shutdown(): Seq[Throwable] = {
-      import Throwables.quietly
-      
-      for {
-        terminable <- toStop
-        e <- quietly("Error shutting down: ")(terminable.stop()) 
-      } yield e
-    }
-  }
-  
   private[apps] def defaultJobCanceller: JobCanceler = RequiresPresentInputsJobCanceler
   
   private[apps] def defaultJobFilter(dao: LoamDao, outputHashingStrategy: HashingStrategy): JobFilter = {
     RunsIfNoOutputsJobFilter || new DbBackedJobFilter(dao, outputHashingStrategy)
   }
+  
+  type TerminableExecuter = Executer with Terminable
 }

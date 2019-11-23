@@ -182,7 +182,7 @@ final class RxExecuterTest extends FunSuite {
     
     val executionConfig = ExecutionConfig.default
     
-    val makeRunner = AsyncLocalChunkRunner.constructor(executionConfig, 8)
+    val makeRunner = AsyncLocalChunkRunner.constructor(executionConfig, maxNumJobs = 8)
     
     import RxExecuter.Defaults.fileMonitor
     
@@ -775,7 +775,7 @@ final class RxExecuterTest extends FunSuite {
     val log = new ChunkRunnerLog
     
     val makeRunner: ChunkRunner.Constructor[ChunkRunner] =  { (shouldRestart, jobOracle) =>
-      val realRunner = AsyncLocalChunkRunner(ExecutionConfig.default, jobOracle, shouldRestart, maxSimultaneousJobs)
+      val realRunner = AsyncLocalChunkRunner(ExecutionConfig.default, jobOracle, shouldRestart, maxNumJobs = maxSimultaneousJobs)
       
       assert(realRunner.maxNumJobs === maxSimultaneousJobs)
       

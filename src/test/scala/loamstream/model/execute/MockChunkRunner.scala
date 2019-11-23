@@ -21,4 +21,6 @@ final case class MockChunkRunner(delegate: ChunkRunner, log: ChunkRunnerLog) ext
 
     delegate.run(chunk)
   }
+  
+  override def stop(): Iterable[Throwable] = delegate.stop()
 }

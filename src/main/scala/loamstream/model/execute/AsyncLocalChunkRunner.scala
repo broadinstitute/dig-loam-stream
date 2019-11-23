@@ -4,6 +4,8 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 
 import AsyncLocalChunkRunner.defaultMaxNumJobs
+import AsyncLocalChunkRunner.defaultWindowLength
+import AsyncLocalChunkRunner.defaultMaxBufferSize
 import loamstream.conf.ExecutionConfig
 import loamstream.model.jobs.JobOracle
 import loamstream.model.jobs.JobStatus
@@ -14,6 +16,7 @@ import loamstream.util.Loggable
 import loamstream.util.Observables
 import loamstream.util.Throwables
 import rx.lang.scala.Observable
+import scala.concurrent.duration._
 
 /**
  * @author clint
@@ -23,12 +26,18 @@ final case class AsyncLocalChunkRunner(
     executionConfig: ExecutionConfig,
     jobOracle: JobOracle,
     shouldRestart: LJob => Boolean,
+    windowLength: Duration = defaultWindowLength,
+    maxBufferSize: Int = defaultMaxBufferSize,
     maxNumJobs: Int = defaultMaxNumJobs)
-    (implicit context: ExecutionContext) extends ChunkRunnerFor(EnvironmentType.Local) {
+    (implicit context: ExecutionContext) extends 
+        ChunkRunnerFor(EnvironmentType.Local) {
+        //BufferingChunkRunner(EnvironmentType.Local, windowLength, maxBufferSize) {
 
   import AsyncLocalChunkRunner._
   
-  override def run(jobs: Set[LJob]): Observable[Map[LJob, RunData]] = {
+  override def run(chunk: Set[LJob]): Observable[Map[LJob, RunData]] = {
+    
+    val jobs = chunk.toSet
     
     if(jobs.isEmpty) { Observable.just(Map.empty) }
     else {
@@ -39,7 +48,7 @@ final case class AsyncLocalChunkRunner(
           s"Expected only LocalJobs, but found ${jobs.filterNot(canBeRun).mkString(",")}")
       
       def exec(job: LJob): Observable[RunData] = {
-        Observable.from(executeSingle(executionConfig, jobOracle, job, shouldRestart))
+        Observable.from(executeSingle(executionConfig, jobOracle, shouldRestart, job))
       }
 
       val executionObservables: Seq[Observable[RunData]] = jobs.toSeq.map(exec)
@@ -58,19 +67,25 @@ object AsyncLocalChunkRunner extends Loggable {
   
   def constructor(
       executionConfig: ExecutionConfig,
+      windowLength: Duration = defaultWindowLength,
+      maxBufferSize: Int = defaultMaxBufferSize,
       maxNumJobs: Int = defaultMaxNumJobs)
       (implicit context: ExecutionContext): Constructor[AsyncLocalChunkRunner] = { (jobOracle, shouldRestart) =>
 
-    AsyncLocalChunkRunner(executionConfig, shouldRestart, jobOracle, maxNumJobs)
+    AsyncLocalChunkRunner(executionConfig, shouldRestart, jobOracle, windowLength, maxBufferSize, maxNumJobs)
   }
   
   def defaultMaxNumJobs: Int = Runtime.getRuntime.availableProcessors
   
+  val defaultWindowLength: Duration = 0.seconds
+  
+  val defaultMaxBufferSize: Int = 0
+  
   def executeSingle(
       executionConfig: ExecutionConfig,
       jobOracle: JobOracle,
-      job: LJob, 
-      shouldRestart: LJob => Boolean)(implicit executor: ExecutionContext): Future[RunData] = {
+      shouldRestart: LJob => Boolean,
+      job: LJob)(implicit executor: ExecutionContext): Future[RunData] = {
     
     job.transitionTo(JobStatus.Running)
     

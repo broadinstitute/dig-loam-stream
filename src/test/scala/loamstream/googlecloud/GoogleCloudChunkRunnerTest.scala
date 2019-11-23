@@ -745,7 +745,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
           ExecutionConfig.default, 
           jobOracle = TestHelpers.DummyJobOracle,
           shouldRestart = neverRestart,
-          1)(ExecutionContext.global)
+          maxNumJobs = 1)(ExecutionContext.global)
       
       val googleRunner = GoogleCloudChunkRunner(client, googleConfig, localRunner)
       

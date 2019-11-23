@@ -34,7 +34,7 @@ import rx.lang.scala.Observable
  *         A ChunkRunner that runs groups of command line jobs as UGER task arrays, via the provided JobSubmitter.
  */
 final case class DrmChunkRunner(
-    environmentType: EnvironmentType,
+    override val environmentType: EnvironmentType,
     pathBuilder: PathBuilder,
     executionConfig: ExecutionConfig,
     drmConfig: DrmConfig,

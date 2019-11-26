@@ -91,7 +91,7 @@ object Observables extends Loggable {
     
     val javaIterableOfJavaObservables: java.lang.Iterable[rx.Observable[A]] = javaObservables.asJava
     
-    toScalaObservable(rx.Observable.merge(javaIterableOfJavaObservables))
+    toScalaObservable(rx.Observable.mergeDelayError(javaIterableOfJavaObservables))
   }
   
   /**

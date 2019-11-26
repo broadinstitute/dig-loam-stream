@@ -31,6 +31,8 @@ import loamstream.util.FileMonitor
 import loamstream.util.Futures
 import jdk.nashorn.internal.runtime.FinalScriptFunctionData
 import loamstream.model.jobs.JobOracle
+import rx.lang.scala.observables.ConnectableObservable
+import rx.lang.scala.Subscription
 
 /**
  * @author kaan
@@ -54,29 +56,8 @@ final case class RxExecuter(
   import executionRecorder.record
   import loamstream.util.Observables.Implicits._
   
-  override def execute(
-      executable: Executable, 
-      makeJobOracle: Executable => JobOracle = JobOracle.fromExecutable(executionConfig, _))
-     (implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
-    
-    val jobOracle = makeJobOracle(executable)
-    
-    val ioScheduler: Scheduler = IOScheduler()
-    
-    //An Observable stream of job runs; each job is emitted when it becomes runnable.  This can be because the
-    //job's dependencies finished successfully, or because the job failed and we've decided to restart it.
-    //
-    //De-dupe jobs based on their ids and run counts.  This allows for re-running failed jobs, since while the
-    //job id would stay the same in that case, the run count would differ.  This is a blunt-force method that 
-    //prevents running the same job more than once concurrently in the face of "diamond-shaped" topologies.
-    val runnables: Observable[JobRun] = RxExecuter.deDupe(executable.multiplex(_.runnables))
-    
-    //An observable stream of "chunks" of runnable jobs, with each chunk represented as a Seq.
-    //Jobs are buffered up until the amount of time indicated by 'windowLength' elapses, or 'runner.maxNumJobs'
-    //are collected.  When that happens, the buffered "chunk" of jobs is emitted.
-    val chunks: Observable[Seq[JobRun]] = runnables.tumblingBuffer(windowLength, runner.maxNumJobs, ioScheduler)
-    
-    val chunkResults: Observable[Map[LJob, Execution]] = for {
+  private def runChunks(jobOracle: JobOracle)(chunks: Observable[Seq[JobRun]]) : Observable[Map[LJob, Execution]] = {
+    for {
       //NB: .toSet is important: jobs in a chunk should be distinct, 
       //so they're not run more than once before transitioning to a terminal state.
       jobs <- chunks.map(_.toSet)
@@ -99,10 +80,69 @@ final case class RxExecuter(
     } yield {
       executionMap ++ skippedResultMap
     }
-    //NB: We no longer stop on the first failure, but run each sub-tree of jobs as far as possible.
-    
-    val futureMergedResults = chunkResults.foldLeft(emptyExecutionMap)(_ ++ _).firstAsFuture
+  }
 
+  def buffer[A](scheduler: Scheduler)(as: Observable[A]): Observable[Seq[A]] = {
+    as.tumblingBuffer(windowLength, runner.maxNumJobs, scheduler)
+  }
+  
+  private def splitByEnvironment(jobRuns: Observable[JobRun]): Map[EnvironmentType, Observable[JobRun]] = {
+    import EnvironmentType._
+    
+    val envType: JobRun => EnvironmentType = _.job.initialSettings.envType
+    
+    val toPredicate: (EnvironmentType => Boolean) => JobRun => Boolean = envType.andThen(_)
+    
+    Map(
+      Local -> jobRuns.filter(toPredicate(_.isLocal)),
+      Google -> jobRuns.filter(toPredicate(_.isGoogle)),
+      Uger -> jobRuns.filter(toPredicate(_.isUger)),
+      Lsf -> jobRuns.filter(toPredicate(_.isLsf)),
+      Aws -> jobRuns.filter(toPredicate(_.isAws)))
+  }
+  
+  def connectAfter[A, B](cr: ConnectableObservable[A])(body: => B): (B, Subscription) = {
+    val b = body
+    val subscription = cr.connect
+    
+    b -> subscription
+  }
+  
+  override def execute(
+      executable: Executable, 
+      makeJobOracle: Executable => JobOracle = JobOracle.fromExecutable(executionConfig, _))
+     (implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
+    
+    val jobOracle = makeJobOracle(executable)
+    
+    val ioScheduler: Scheduler = IOScheduler()
+    
+    //An Observable stream of job runs; each job is emitted when it becomes runnable.  This can be because the
+    //job's dependencies finished successfully, or because the job failed and we've decided to restart it.
+    //
+    //De-dupe jobs based on their ids and run counts.  This allows for re-running failed jobs, since while the
+    //job id would stay the same in that case, the run count would differ.  This is a blunt-force method that 
+    //prevents running the same job more than once concurrently in the face of "diamond-shaped" topologies.
+    val runnables: ConnectableObservable[JobRun] = RxExecuter.deDupe(executable.multiplex(_.runnables)).publish//.share
+    
+    val (futureMergedResults, _) = connectAfter(runnables) {
+      val byEnvironment: Map[EnvironmentType, Observable[JobRun]] = splitByEnvironment(runnables)
+  
+      import Maps.Implicits._
+      
+      val bufferedRunsByEnvironment = byEnvironment.strictMapValues(buffer(ioScheduler))
+      
+      val chunkResults: Observable[Map[LJob, Execution]] = {
+        val allJobRuns: Observable[Seq[JobRun]] = Observables.merge(bufferedRunsByEnvironment.values)
+        
+        runChunks(jobOracle)(allJobRuns)
+      }
+      
+      //NB: We no longer stop on the first failure, but run each sub-tree of jobs as far as possible.
+      
+      chunkResults.foldLeft(emptyExecutionMap)(_ ++ _).firstAsFuture
+    }
+    
     Await.result(futureMergedResults, timeout)
   }
   

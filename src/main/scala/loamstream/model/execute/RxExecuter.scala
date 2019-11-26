@@ -56,58 +56,6 @@ final case class RxExecuter(
   import executionRecorder.record
   import loamstream.util.Observables.Implicits._
   
-  private def runChunks(jobOracle: JobOracle)(chunks: Observable[Seq[JobRun]]) : Observable[Map[LJob, Execution]] = {
-    for {
-      //NB: .toSet is important: jobs in a chunk should be distinct, 
-      //so they're not run more than once before transitioning to a terminal state.
-      jobs <- chunks.map(_.toSet)
-      //NB: Filter out jobs from this chunk that finished when run as part of another chunk, so we don't run them
-      //more times than necessary.  This helps in the face of job-restarting, since we can't call `distinct()` 
-      //on `runnables` and declare victory like we did before, since that would filter out restarting jobs that 
-      //already ran 
-      (finishedJobs, notFinishedJobs) = jobs.partition(_.status.isTerminal)
-      if notFinishedJobs.nonEmpty
-      (jobsToMaybeRun, skippedJobs) = notFinishedJobs.map(_.job).partition(jobFilter.shouldRun)
-      (jobsToCancel, jobsToRun) = jobsToMaybeRun.partition(jobCanceler.shouldCancel)
-      _ = handleSkippedJobs(skippedJobs)
-      cancelledJobsMap = cancelJobs(jobsToCancel)
-      _ = record(jobOracle, cancelledJobsMap)
-      skippedResultMap = toSkippedResultMap(skippedJobs)
-      executionTupleOpt <- runJobs(jobsToRun, jobOracle)
-      _ = record(jobOracle, executionTupleOpt)
-      executionMap = cancelledJobsMap ++ executionTupleOpt
-      _ = logFinishedJobs(executionMap)
-    } yield {
-      executionMap ++ skippedResultMap
-    }
-  }
-
-  def buffer[A](scheduler: Scheduler)(as: Observable[A]): Observable[Seq[A]] = {
-    as.tumblingBuffer(windowLength, runner.maxNumJobs, scheduler)
-  }
-  
-  private def splitByEnvironment(jobRuns: Observable[JobRun]): Map[EnvironmentType, Observable[JobRun]] = {
-    import EnvironmentType._
-    
-    val envType: JobRun => EnvironmentType = _.job.initialSettings.envType
-    
-    val toPredicate: (EnvironmentType => Boolean) => JobRun => Boolean = envType.andThen(_)
-    
-    Map(
-      Local -> jobRuns.filter(toPredicate(_.isLocal)),
-      Google -> jobRuns.filter(toPredicate(_.isGoogle)),
-      Uger -> jobRuns.filter(toPredicate(_.isUger)),
-      Lsf -> jobRuns.filter(toPredicate(_.isLsf)),
-      Aws -> jobRuns.filter(toPredicate(_.isAws)))
-  }
-  
-  def connectAfter[A, B](cr: ConnectableObservable[A])(body: => B): (B, Subscription) = {
-    val b = body
-    val subscription = cr.connect
-    
-    b -> subscription
-  }
-  
   override def execute(
       executable: Executable, 
       makeJobOracle: Executable => JobOracle = JobOracle.fromExecutable(executionConfig, _))
@@ -125,25 +73,101 @@ final case class RxExecuter(
     //prevents running the same job more than once concurrently in the face of "diamond-shaped" topologies.
     val runnables: ConnectableObservable[JobRun] = RxExecuter.deDupe(executable.multiplex(_.runnables)).publish//.share
     
-    val (futureMergedResults, _) = connectAfter(runnables) {
+    val (futureMergedResults, _) = andThenConnect(runnables) {
+      //Split stream of runnable jobs into one stream for each environment type, so that they may be handled
+      //differently, say by buffering.
       val byEnvironment: Map[EnvironmentType, Observable[JobRun]] = splitByEnvironment(runnables)
-  
-      import Maps.Implicits._
-      
-      val bufferedRunsByEnvironment = byEnvironment.strictMapValues(buffer(ioScheduler))
+
+      //Transform streams of jobs by (optionally) buffering them.
+      val bufferedRunsByEnvironment = buffer(ioScheduler)(byEnvironment)
       
       val chunkResults: Observable[Map[LJob, Execution]] = {
+        //Merge all the per-environment streams of chunks of runnable jobs into one stream of chunks of runnable jobs,
+        //then run the chunks 
         val allJobRuns: Observable[Seq[JobRun]] = Observables.merge(bufferedRunsByEnvironment.values)
         
         runChunks(jobOracle)(allJobRuns)
       }
-      
+
+      //Accumulate results of running chunks of jobs in a map; emit the accumulated map once all chunks are done.
       //NB: We no longer stop on the first failure, but run each sub-tree of jobs as far as possible.
-      
       chunkResults.foldLeft(emptyExecutionMap)(_ ++ _).firstAsFuture
     }
     
     Await.result(futureMergedResults, timeout)
+  }
+  
+  private def runChunks(jobOracle: JobOracle)(chunks: Observable[Seq[JobRun]]) : Observable[Map[LJob, Execution]] = {
+    def isTerminal(jr: JobRun): Boolean = jr.status.isTerminal
+    
+    for {
+      //NB: .toSet is important: jobs in a chunk should be distinct, 
+      //so they're not run more than once before transitioning to a terminal state.
+      jobs <- chunks.map(_.toSet)
+      //NB: Filter out jobs from this chunk that finished when run as part of another chunk, so we don't run them
+      //more times than necessary.  This helps in the face of job-restarting, since we can't call `distinct()` 
+      //on `runnables` and declare victory like we did before, since that would filter out restarting jobs that 
+      //already ran 
+      (finishedJobs, notFinishedJobs) = jobs.partition(isTerminal)
+      if notFinishedJobs.nonEmpty
+      (jobsToMaybeRun, skippedJobs) = notFinishedJobs.map(_.job).partition(jobFilter.shouldRun)
+      (jobsToCancel, jobsToRun) = jobsToMaybeRun.partition(jobCanceler.shouldCancel)
+      _ = handleSkippedJobs(skippedJobs)
+      cancelledJobsMap = cancelJobs(jobsToCancel)
+      _ = record(jobOracle, cancelledJobsMap)
+      skippedJobsMap = toSkippedResultMap(skippedJobs)
+      executedJobTupleOpt <- runJobs(jobsToRun, jobOracle)
+      _ = record(jobOracle, executedJobTupleOpt)
+      executedJobsMap = cancelledJobsMap ++ executedJobTupleOpt
+      _ = logFinishedJobs(executedJobsMap)
+    } yield {
+      executedJobsMap ++ skippedJobsMap
+    }
+  }
+
+  /**
+   * Buffer streams of JobRuns differently for different environments.
+   */
+  private def buffer[A](scheduler: Scheduler)
+               (byEnvironment: Map[EnvironmentType, Observable[A]]): Map[EnvironmentType, Observable[Seq[A]]] = {
+    
+    byEnvironment.map { 
+      //Don't buffer local jobs - process them right away
+      case (EnvironmentType.Local, as) => (EnvironmentType.Local, as.map(Seq(_)))
+      //Otherwise, buffer up runnable jobs, for example to make sure that as many jobs as possible
+      //are run in a single Uger/LSF task array, etc.
+      case (et, as) => (et, as.tumblingBuffer(windowLength, runner.maxNumJobs, scheduler))
+    }
+  }
+  
+  /**
+   * Split a stream of JobRuns into several streams, one for each environment type, so we can buffer JobRuns
+   * differently for different environments.
+   */
+  private def splitByEnvironment(jobRuns: Observable[JobRun]): Map[EnvironmentType, Observable[JobRun]] = {
+    import EnvironmentType._
+    
+    def envType(jr: JobRun): EnvironmentType = jr.job.initialSettings.envType
+    
+    def toPredicate(et: EnvironmentType)(jr:JobRun): Boolean = envType(jr) == et 
+    
+    def runsForEnv(et: EnvironmentType): Observable[JobRun] = jobRuns.filter(toPredicate(et))
+    
+    def tupleFor(et: EnvironmentType): (EnvironmentType, Observable[JobRun]) = et -> runsForEnv(et)
+    
+    Map(
+      tupleFor(Local),
+      tupleFor(Google),
+      tupleFor(Uger),
+      tupleFor(Lsf),
+      tupleFor(Aws))
+  }
+  
+  private def andThenConnect[A, B](cr: ConnectableObservable[A])(body: => B): (B, Subscription) = {
+    val b = body
+    val subscription = cr.connect
+    
+    b -> subscription
   }
   
   private val emptyExecutionMap: Map[LJob, Execution] = Map.empty

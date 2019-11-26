@@ -560,14 +560,10 @@ final class RxExecuterTest extends FunSuite {
       // check that relationships are maintained
       job1 assertRanBefore job2
       job1 assertRanBefore job3
-      
-      assert(chunks === Seq(Set(job1), Set(job2, job3)))
     }
     
     doTest(0)
-    //doTest(2)
-    
-    
+    doTest(2)
   }
   
   test("Diamond-shaped pipeline works") {
@@ -733,9 +729,21 @@ final class RxExecuterTest extends FunSuite {
   
       assert(result.size === 9)
   
-      // NB: Don't check for specific chunks, since this is non-deterministic now that RxExecuter samples
-      // The stream of runnables with Observable.tumbling.
-  
+        /* A four-step pipeline:
+     *
+     *           Job21
+     *          /      \
+     * Job11 --          -- Job31
+     *          \      /         \
+     *           Job22            \
+     *                              -- Job4
+     *           Job23            /
+     *          /      \         /
+     * Job12 --          -- Job32
+     *          \      /
+     *           Job24
+     */
+      
       // Check that relationships are maintained,
       job11 assertRanBefore job21 ; job11 assertRanBefore job22
       
@@ -743,7 +751,6 @@ final class RxExecuterTest extends FunSuite {
       
       job21 assertRanBefore job31 ; job22 assertRanBefore job31
       
-      job23 assertRanBefore job31 ; job24 assertRanBefore job31
       job23 assertRanBefore job32 ; job24 assertRanBefore job32
   
       job31 assertRanBefore job32 
@@ -892,7 +899,7 @@ object RxExecuterTest {
       
       assert(
         lhsIndex < rhsIndex, 
-        s"lhs index ($lhsIndex) not < rhs index ($rhsIndex) in $executions")
+        s"lhs index ($lhsIndex) not < rhs index ($rhsIndex) (${lhs.name} not before ${rhs.name}) in $executions")
     }
   }
   

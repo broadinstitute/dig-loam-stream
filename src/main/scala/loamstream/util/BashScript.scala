@@ -8,9 +8,9 @@ import scala.sys.process.ProcessBuilder
 
 /** A class representing a Bash script */
 final case class BashScript(path: Path) {
-  def processBuilder(workDir: Path): ProcessBuilder = {
-    Process(Seq("sh", BashScript.escapeString(path.toString)), workDir.toFile)
-  }
+  def commandTokens: Seq[String] = Seq("sh", BashScript.escapeString(path.toString))
+  
+  def processBuilder(workDir: Path): ProcessBuilder = Process(commandTokens, workDir.toFile)
 }
 
 object BashScript extends Loggable {

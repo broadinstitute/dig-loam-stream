@@ -119,6 +119,8 @@ object AwsChunkRunnerTest {
     
     private def toKey(u: URI): String = u.toString
     
+    override def uriOf(key: String): URI = ???
+
     override def copy(src: Path, dest: URI): Unit = {
       import java.nio.file.{ Files => JFiles }
       

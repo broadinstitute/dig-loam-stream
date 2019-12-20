@@ -1,8 +1,10 @@
 package loamstream
 
 import java.nio.file.Paths
+
 import org.scalatest.FunSuite
-import loamstream.compiler.LoamCompiler
+
+import loamstream.compiler.LoamEngine
 import loamstream.compiler.LoamProject
 
 /**
@@ -22,13 +24,15 @@ final class CompileExampleLoamsTest extends FunSuite {
     val loamEngine = TestHelpers.loamEngine
     
     for (loamFile <- loamFiles) {
-      val scriptShot = loamEngine.loadFile(loamFile)
+      val scriptAttempt = LoamEngine.loadFile(loamFile)
       
-      assert(scriptShot.nonEmpty, scriptShot.message)
+      require(scriptAttempt.isSuccess, scriptAttempt.failed.get.getMessage)
       
-      val script = scriptShot.get
+      val script = scriptAttempt.get
       
-      val compileResult = loamEngine.compile(LoamProject(TestHelpers.configWithUger, script))
+      val compileResult = loamEngine.compile(
+          project = LoamProject(TestHelpers.configWithUger, script), 
+          propertiesForLoamCode = Nil)
       
       val message = s"; Compilation failed for $loamFile:\n${compileResult.report}"
       

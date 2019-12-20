@@ -4,6 +4,7 @@ import org.scalatest.FunSuite
 import scala.util.Success
 import scala.util.Failure
 import java.time.Instant
+import java.time.LocalDateTime
 
 /**
  * @author clint
@@ -11,11 +12,23 @@ import java.time.Instant
  */
 final class TimeUtilsTest extends FunSuite {
 
+  import TimeUtils.toEpochMilli
+  
+  test("toEpochMilli") {
+    val t0 = LocalDateTime.now
+    val t1 = t0.plusSeconds(42)
+    
+    val expectedOffsetInMs = 42 * 1000
+    
+    assert((toEpochMilli(t1) - toEpochMilli(t0)) === expectedOffsetInMs)
+    assert((toEpochMilli(t0) - toEpochMilli(t1)) === -expectedOffsetInMs)
+  }
+  
   test("startAndEndTime") {
     val (attempt, (start, end)) = TimeUtils.startAndEndTime { 42 }
     
     assert(attempt === Success(42))
-    assert(start.toEpochMilli <= end.toEpochMilli)
+    assert(toEpochMilli(start) <= toEpochMilli(end))
   }
   
   test("startAndEndTime - exception") {
@@ -24,7 +37,7 @@ final class TimeUtilsTest extends FunSuite {
     val (attempt, (start, end)) = TimeUtils.startAndEndTime { throw e }
     
     assert(attempt === Failure(e))
-    assert(start.toEpochMilli <= end.toEpochMilli)
+    assert(toEpochMilli(start) <= toEpochMilli(end))
   }
   
   test("Ordering on Instants") {

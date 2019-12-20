@@ -20,7 +20,7 @@ import loamstream.util.ValueBox
 /** Container for compile time and run time context for a script */
 final class LoamScriptContext(val projectContext: LoamProjectContext) {
 
-  val workDirBox: ValueBox[Path] = ValueBox(Paths.get("."))
+  private val workDirBox: ValueBox[Path] = ValueBox(Paths.get("."))
 
   def workDir: Path = workDirBox.value
 

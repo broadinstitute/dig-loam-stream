@@ -2,13 +2,12 @@ package loamstream.compiler
 
 import java.nio.file.Paths
 
-import loamstream.loam.{LoamGraphValidation, LoamScript}
 import org.scalatest.FunSuite
+
 import loamstream.TestHelpers
-import loamstream.loam.LoamProjectContext
-import loamstream.util.ValueBox
-import loamstream.model.Store
 import loamstream.conf.CompilationConfig
+import loamstream.loam.LoamGraphValidation
+import loamstream.loam.LoamScript
 
 /**
   * LoamStream
@@ -42,7 +41,11 @@ final class LoamCompilerTest extends FunSuite {
       """
       // scalastyle:on regex
     }
-    val result = compiler.compile(TestHelpers.config, LoamScript("LoamCompilerTestScript1", code))
+    val result = compiler.compile(
+        TestHelpers.config, 
+        LoamScript("LoamCompilerTestScript1", code), 
+        propertiesForLoamCode = Nil)
+        
     assert(result.errors === Nil)
     assert(result.warnings === Nil)
   }
@@ -56,7 +59,11 @@ final class LoamCompilerTest extends FunSuite {
     and social setting, and whose awareness inevitably and necessarily gives him a sense of social responsibility.
       """
     }
-    val result = compiler.compile(TestHelpers.config, LoamScript("LoamCompilerTestScript2", code))
+    val result = compiler.compile(
+        TestHelpers.config, 
+        LoamScript("LoamCompilerTestScript2", code), 
+        propertiesForLoamCode = Nil)
+        
     assert(result.errors.nonEmpty)
   }
   
@@ -65,11 +72,13 @@ final class LoamCompilerTest extends FunSuite {
 
     val exampleFile = Paths.get("src/examples/loam/toyImpute.loam")
 
-    val scriptShot = TestHelpers.loamEngine.loadFile(exampleFile)
+    val scriptAttempt = LoamEngine.loadFile(exampleFile)
         
-    assert(scriptShot.nonEmpty)
+    assert(scriptAttempt.isSuccess)
     
-    val result = compiler.compile(LoamProject(TestHelpers.config, scriptShot.get))
+    val result = compiler.compile(
+        project = LoamProject(TestHelpers.config, scriptAttempt.get), 
+        propertiesForLoamCode = Nil)
     
     assert(result.errors.isEmpty)
     assert(result.warnings.isEmpty)

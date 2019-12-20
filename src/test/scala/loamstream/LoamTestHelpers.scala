@@ -37,7 +37,7 @@ trait LoamTestHelpers extends Loggable {
 
     val compiler = LoamCompiler.default
 
-    val compileResults = compiler.compile(project)
+    val compileResults = compiler.compile(project = project, propertiesForLoamCode = Nil)
 
     if(throwOnError) {
       if (!compileResults.isValid) {

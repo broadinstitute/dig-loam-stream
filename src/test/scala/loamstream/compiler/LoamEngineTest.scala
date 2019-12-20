@@ -26,7 +26,7 @@ final class LoamEngineTest extends FunSuite {
   private val firstDotLoam = path("src/examples/loam/first.loam")
   
   test("loadFile") {
-    val script = engine.loadFile(cpDotLoam).get
+    val script = LoamEngine.loadFile(cpDotLoam).get
     
     assert(script.name === "cp")
     assert(script.subPackage === None)
@@ -35,11 +35,11 @@ final class LoamEngineTest extends FunSuite {
   
   test("scriptsFrom") {
     //Empty list of files
-    assert(engine.scriptsFrom(Nil).get === Nil)
+    assert(LoamEngine.scriptsFrom(Nil).get === Nil)
     
     //One file
     {
-      val scripts = engine.scriptsFrom(Seq(cpDotLoam)).get
+      val scripts = LoamEngine.scriptsFrom(Seq(cpDotLoam)).get
       
       assert(scripts.size === 1)
       
@@ -53,7 +53,7 @@ final class LoamEngineTest extends FunSuite {
     //Multiple files
     val loamFiles = Seq(cpDotLoam, firstDotLoam)
         
-    val scripts = engine.scriptsFrom(loamFiles).get
+    val scripts = LoamEngine.scriptsFrom(loamFiles).get
     
     val cpScript = scripts.find(_.name == "cp").get
     
@@ -69,11 +69,13 @@ final class LoamEngineTest extends FunSuite {
   }
   
   test("compile") {
-    val script = engine.loadFile(firstDotLoam).get
+    val script = LoamEngine.loadFile(firstDotLoam).get
     
     val project = LoamProject(config, Set(script))
     
-    val results @ LoamCompiler.Result.Success(warnings, infos, graph) = engine.compile(project)
+    val results @ LoamCompiler.Result.Success(warnings, infos, graph) = {
+      engine.compile(project, propertiesForLoamCode = Nil)
+    }
     
     assert(results.errors === Nil)
     assert(infos === Nil)
@@ -85,7 +87,7 @@ final class LoamEngineTest extends FunSuite {
   
   test("compileFiles") {
     val results @ LoamCompiler.Result.Success(warnings, infos, graph) = {
-      engine.compileFiles(Seq(cpDotLoam, firstDotLoam)).get
+      engine.compileFiles(Seq(cpDotLoam, firstDotLoam), propertiesForLoamCode = Nil).get
     }
     
     assert(results.errors === Nil)

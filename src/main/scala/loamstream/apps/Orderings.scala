@@ -2,6 +2,7 @@ package loamstream.apps
 
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.LJob
+import loamstream.util.TimeUtils
 
 /**
  * @author clint
@@ -17,7 +18,9 @@ object Orderings {
 
     (executionA.resources, executionB.resources) match {
       case (Some(resourcesA), Some(resourcesB)) => {
-        resourcesA.startTime.toEpochMilli < resourcesB.startTime.toEpochMilli
+        import TimeUtils.toEpochMilli
+        
+        toEpochMilli(resourcesA.startTime) < toEpochMilli(resourcesB.startTime)
       }
       case (_, None) => false
       case _ => true

@@ -1,18 +1,20 @@
 package loamstream.loam
 
-import java.nio.file.{Path, Files => JFiles}
+import java.nio.file.{ Files => JFiles }
+import java.nio.file.Path
 
-import loamstream.compiler.LoamEngine
-import loamstream.util.Files
+import scala.util.Success
+import scala.util.Try
+
 import loamstream.TestHelpers
-import loamstream.compiler.LoamProject
-import loamstream.util.Loggable
-import loamstream.util.Hit
-import loamstream.util.Miss
 import loamstream.compiler.LoamCompiler
-import loamstream.util.Shot
-import loamstream.model.jobs.LJob
+import loamstream.compiler.LoamEngine
+import loamstream.compiler.LoamProject
 import loamstream.model.jobs.Execution
+import loamstream.model.jobs.LJob
+import loamstream.util.Files
+import loamstream.util.Loggable
+import loamstream.util.Tries
 
 /** Utils for testing specific LoamScripts */
 object LoamScriptTestUtils extends Loggable {
@@ -66,28 +68,28 @@ object LoamScriptTestUtils extends Loggable {
     
     val results = run(engine, LoamProject(TestHelpers.config, scripts))
     
-    assert(results.jobExecutionsOpt.nonEmpty, results.compileResultOpt)
+    assert(results.jobExecutionsOpt.isSuccess, results.compileResultOpt)
     assertOutputFilesExist(filePaths)
   }
 
   private final case class Result(
-      compileResultOpt: Shot[LoamCompiler.Result],
-      jobExecutionsOpt: Shot[Map[LJob, Execution]])
+      compileResultOpt: Try[LoamCompiler.Result],
+      jobExecutionsOpt: Try[Map[LJob, Execution]])
   
   private def run(engine: LoamEngine, project: LoamProject): Result = {
     info(s"Now compiling project with ${project.scripts.size} scripts.")
     
-    val compileResults = engine.compile(project)
+    val compileResults = engine.compile(project = project, propertiesForLoamCode = Nil)
     
     compileResults match {
       case success @ LoamCompiler.Result.Success(_, _, graph) => {
         info(success.summary)
         val jobResults = engine.run(graph)
-        Result(Hit(success), Hit(jobResults))
+        Result(Success(success), Success(jobResults))
       }
       case _ => {
         error("Could not compile.")
-        Result(Hit(compileResults), Miss("Could not compile"))
+        Result(Success(compileResults), Tries.failure("Could not compile"))
       }
     }
   }

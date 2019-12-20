@@ -55,6 +55,8 @@ import loamstream.model.execute.Settings
 import loamstream.model.execute.LocalSettings
 import loamstream.model.jobs.JobOracle
 import loamstream.model.execute.EnvironmentType
+import java.time.LocalDateTime
+import java.time.ZoneId
 
 /**
   * @author clint
@@ -109,18 +111,22 @@ object TestHelpers {
   lazy val configWithLsf = config.copy(drmSystem = Option(DrmSystem.Lsf))
   
   lazy val localResources: LocalResources = { 
-    val now = Instant.now
+    val now = LocalDateTime.now
       
     LocalResources(now, now)
   }
   
   val broadQueue = Queue("broad")
   
+  def toLocalDateTime(epochMilli: Long): LocalDateTime = {
+    Instant.ofEpochMilli(epochMilli).atZone(ZoneId.systemDefault).toLocalDateTime
+  }
+  
   lazy val ugerResources: UgerResources = {
     val mem = Memory.inGb(2.1)
     val cpu = CpuTime.inSeconds(12.34)
-    val startTime = Instant.ofEpochMilli(64532) // scalastyle:ignore magic.number
-    val endTime = Instant.ofEpochMilli(9345345) // scalastyle:ignore magic.number
+    val startTime = toLocalDateTime(64532) // scalastyle:ignore magic.number
+    val endTime = toLocalDateTime(9345345) // scalastyle:ignore magic.number
 
     UgerResources(mem, cpu, Some("nodeName"), Some(broadQueue), startTime, endTime)
   }
@@ -128,13 +134,13 @@ object TestHelpers {
   lazy val lsfResources: LsfResources = {
     val mem = Memory.inGb(1.2)
     val cpu = CpuTime.inSeconds(43.21)
-    val startTime = Instant.ofEpochMilli(64532) // scalastyle:ignore magic.number
-    val endTime = Instant.ofEpochMilli(9345345) // scalastyle:ignore magic.number
+    val startTime = toLocalDateTime(64532) // scalastyle:ignore magic.number
+    val endTime = toLocalDateTime(9345345) // scalastyle:ignore magic.number
 
     LsfResources(mem, cpu, Some("nodeName"), Some(broadQueue), startTime, endTime)
   }
   
-  lazy val googleResources: GoogleResources = GoogleResources("some-cluster-id", Instant.now, Instant.now)
+  lazy val googleResources: GoogleResources = GoogleResources("some-cluster-id", LocalDateTime.now, LocalDateTime.now)
 
   def runDataFrom(
       job: LJob,
@@ -241,7 +247,7 @@ object TestHelpers {
   def loamEngine: LoamEngine = LoamEngine.default(config)
 
   def compile(loamCode: String): LoamCompiler.Result = {
-    loamEngine.compiler.compile(config, LoamScript.withGeneratedName(loamCode))
+    loamEngine.compiler.compile(config, LoamScript.withGeneratedName(loamCode), propertiesForLoamCode = Nil)
   }
   
   val defaultUgerSettings: UgerDrmSettings = {

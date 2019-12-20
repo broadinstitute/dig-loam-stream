@@ -17,6 +17,7 @@ import loamstream.util.ToFilesProcessLogger
 import loamstream.conf.UgerConfig
 import loamstream.conf.LsfConfig
 import loamstream.googlecloud.ClusterConfig
+import java.time.LocalDateTime
 
 /**
  * @author clint
@@ -29,8 +30,8 @@ final class LocalJobStrategyTest extends FunSuite {
     def doTest(exitCode: Int, settings: Settings): Unit = {
       TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
         val exitValueAttempt = Success(exitCode) 
-        val start = Instant.now
-        val end = Instant.now
+        val start = LocalDateTime.now
+        val end = LocalDateTime.now
         val commandLineJob = CommandLineJob(commandLineString = "foo --bar", initialSettings = settings)
         val jobDir = workDir
         val processLogger = ToFilesProcessLogger(workDir.resolve("stdout"), workDir.resolve("stderr"))

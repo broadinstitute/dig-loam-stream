@@ -5,8 +5,10 @@ package loamstream.loam.intake
  * @author clint
  * Dec 17, 2019
  */
-object Interpolators {
-  final implicit class StringOps(val stringContext: StringContext) extends AnyVal {
+object Interpolators extends Interpolators
+
+trait Interpolators {
+  final implicit class StringOps(val stringContext: StringContext) {
     def strexpr(args: Any*): RowParser[String] = { row =>
       val stringArgs: Seq[String] = args.map {
         case columnExpr: ColumnExpr[_] => columnExpr.render(row)

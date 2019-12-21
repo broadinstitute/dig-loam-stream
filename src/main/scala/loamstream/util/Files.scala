@@ -100,6 +100,18 @@ object Files {
     
     file
   }
+  
+  def writeLinesTo(file: Path)(lines: TraversableOnce[String]): Path = {
+    val lineSeparator = System.lineSeparator
+    
+    CanBeClosed.enclosed(JFiles.newBufferedWriter(file, StandardCharsets.UTF_8)) { writer =>
+      def addLineEndingIfNeeded(line: String) = if(line.endsWith(lineSeparator)) line else s"${line}${lineSeparator}"
+      
+      lines.map(addLineEndingIfNeeded) .foreach(writer.write)
+    }
+    
+    file
+  }
 
   def readFrom(file: Path): String = readFromAsUtf8(file)
 

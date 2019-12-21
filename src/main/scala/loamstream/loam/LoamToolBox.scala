@@ -13,6 +13,7 @@ import loamstream.model.jobs.DataHandle
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.model.execute.LocalSettings
 import loamstream.model.execute.Settings
+import loamstream.model.jobs.NativeJob
 
 /**
  * LoamStream
@@ -57,7 +58,7 @@ final class LoamToolBox(client: Option[CloudStorageClient] = None) {
     val toolNameOpt = graph.nameOf(tool)
 
     tool match {
-      case cmdTool: LoamCmdTool =>
+      case cmdTool: LoamCmdTool => {
         Some(CommandLineJob(
             commandLineString = cmdTool.commandLine, 
             workDir = workDir, 
@@ -66,6 +67,16 @@ final class LoamToolBox(client: Option[CloudStorageClient] = None) {
             inputs = inputs,
             outputs = outputs, 
             nameOpt = toolNameOpt))
+      }
+      case nativeTool: NativeTool => {
+        Some(NativeJob(
+            body = nativeTool.body,
+            initialSettings = settings, 
+            dependencies = inputJobs,
+            inputs = inputs,
+            outputs = outputs, 
+            nameOpt = toolNameOpt))
+      }
       case _ => None
     }
   }

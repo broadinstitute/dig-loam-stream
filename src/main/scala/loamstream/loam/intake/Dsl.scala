@@ -1,4 +1,4 @@
-package loamstream.loam.intake
+/*package loamstream.loam.intake
 
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -8,8 +8,6 @@ import org.apache.commons.csv.CSVRecord
 import loamstream.util.TakesEndingActionIterator
 import loamstream.util.BashScript
 
-import scala.language.implicitConversions
-import scala.language.dynamics
 import loamstream.util.Sequence
 import loamstream.util.Maps
 import java.io.FileReader
@@ -22,12 +20,12 @@ import loamstream.util.Loggable
 
 object Dsl extends App with Loggable {
   
+  import IntakeSyntax._
+  
   //val src: CsvSource = CsvSource.FromFile(Paths.get("data.txt"))
   val src: CsvSource = CsvSource.FromCommand("cat data.txt")
 
   object ColumnNames {
-    import ColumnName.ColumnNameOps
-    
     val VARID = "VAR_ID".asColumnName
     val CHROM = "CHROM".asColumnName
     val POS = "POS".asColumnName
@@ -48,7 +46,7 @@ object Dsl extends App with Loggable {
     val StdErr = "StdErr".asColumnName
     val PDashValue = "P-value".asColumnName
     
-    /*VAR_ID	${}
+    VAR_ID	${}
   CHROM   $CHROM	$CHROM	"zcat some/file | add_chrom_pos"
   
   Effect_Allele   =uc(Allele1)    =uc(Allele2)    "zcat some/file | add_chrom_pos"
@@ -61,93 +59,56 @@ object Dsl extends App with Loggable {
   SE      StdErr  StdErr  "zcat some/file | add_chrom_pos"
   P_VALUE P-value P-value "zcat some/file | add_chrom_pos"
   * 
-  */
+  
   }
   
   object ColumnDefs {
-    import Interpolators._
     import ColumnNames._
     
-    val varId = ColumnDefinition(
+    val varId = ColumnDef(
       VARID,
-      strexpr"${CHROM}_${POS}_${Allele2 ~> (_.toUpperCase)}_${Allele1 ~> (_.toUpperCase)}",
-      strexpr"${CHROM}_${POS}_${Allele1 ~> (_.toUpperCase)}_${Allele2 ~> (_.toUpperCase)}",
-      src)
+      strexpr"${CHROM}_${POS}_${Allele2.asUpperCase}_${Allele1.asUpperCase}",
+      strexpr"${CHROM}_${POS}_${Allele1.asUpperCase}_${Allele2.asUpperCase}").from(src)
     
-    val chrom: ColumnDefinition = ColumnDefinition(CHROM, src)
-    val pos: ColumnDefinition = ColumnDefinition(POS, src)
+    val chrom = ColumnDef(CHROM).from(src)
+    val pos = ColumnDef(POS).from(src)
     
-    val referenceAllele = ColumnDefinition(
-      ReferenceAllele,
-      Allele2 ~> (_.toUpperCase),
-      Allele1 ~> (_.toUpperCase),
-      src)
+    val referenceAllele = ColumnDef(ReferenceAllele, Allele2.asUpperCase, Allele1.asUpperCase).from(src)
       
-    val effectAllele = ColumnDefinition(
-      EffectAllele,
-      Allele1 ~> (_.toUpperCase),
-      Allele2 ~> (_.toUpperCase),
-      src)
+    val effectAllele = ColumnDef(EffectAllele, Allele1.asUpperCase, Allele2.asUpperCase).from(src)
     
-    val effectAllelePh = ColumnDefinition(
-      EffectAllelePH,
-      Allele1 ~> (_.toUpperCase),
-      Allele2 ~> (_.toUpperCase),
-      src)
+    val effectAllelePh = ColumnDef(EffectAllelePH, Allele1.asUpperCase, Allele2.asUpperCase).from(src)
       
-    val eaf = ColumnDefinition(
-      EAF,
-      Freq1,
-      Freq1 ~> (_.toDouble) ~> (1 - _), //TODO
-      src)
+    val eaf = ColumnDef(EAF, Freq1, 1.0 - Freq1.asDouble).from(src)
       
-    val eafPh = ColumnDefinition(
-      EAFPH,
-      Freq1,
-      Freq1 ~> (_.toDouble) ~> (1 - _), //TODO
-      src)
+    val eafPh = ColumnDef(EAFPH, Freq1, 1.0 - Freq1.asDouble).from(src)
       
-    val maf = ColumnDefinition(
+    val maf = ColumnDef(
       MAF,
       //TODO
-      Freq1 ~> (_.toDouble) ~>  { 
-        case x if x > 0.5 => 1.0 - x 
-        case x => x 
-      },
-      None,
-      src)
+      Freq1.asDouble ~> { x => 
+        if(x > 0.5) 1.0 - x else x 
+      }).from(src)
       
-    val mafPh = ColumnDefinition(
+    val mafPh = ColumnDef(
       MAFPH,
       //TODO
-      Freq1 ~> (_.toDouble) ~>  { 
-        case x if x > 0.5 => 1.0 - x 
-        case x => x 
-      },
-      None,
-      src)
+      Freq1.asDouble ~> { x => 
+        if(x > 0.5) 1.0 - x else x 
+      }).from(src)
       
-    val oddsRatio = ColumnDefinition(
-      OddsRatio,
-      Effect ~> (_.toDouble) ~> scala.math.exp,
-      Effect ~> (-(_).toDouble) ~> scala.math.exp,
-      src)
+    val oddsRatio = ColumnDef(
+        OddsRatio, 
+        (scala.math.exp _)(Effect.asDouble),//Effect.asDouble ~> scala.math.exp, 
+        (-(Effect.asDouble)) ~> scala.math.exp).from(src)
       
-    val se = ColumnDefinition(
-      SE,
-      StdErr,
-      StdErr,
-      src)
+    val se = ColumnDef(SE, StdErr, StdErr).from(src)
 
-    val pv = ColumnDefinition(
-      PValue,
-      PDashValue,
-      PDashValue, //TODO
-      src)
+    val pv = ColumnDef(PValue, PDashValue, PDashValue).from(src)
       
   }
   val (header, rows) = TimeUtils.time("Making DataRow iterator") {
-    parse(Seq(
+    process(src.producing(Seq(
         ColumnDefs.varId, 
         ColumnDefs.chrom, 
         ColumnDefs.pos, 
@@ -160,7 +121,7 @@ object Dsl extends App with Loggable {
         ColumnDefs.mafPh,
         ColumnDefs.oddsRatio,
         ColumnDefs.se,
-        ColumnDefs.pv))
+        ColumnDefs.pv)))
   }
   
   val renderer = Renderer(CsvSource.Defaults.tabDelimitedWithHeaderCsvFormat)
@@ -173,7 +134,7 @@ object Dsl extends App with Loggable {
   
   println(s)
 
-  /*
+  
   VAR_ID  =CHROM ."_". POS ."_". uc(Allele2) ."_". uc(Allele1)    =CHROM ."_". POS ."_". uc(Allele1) ."_". uc(Allele2)    ="zcat $rawDataPrefix/humgen/diabetes2/users/mvg/portal/IFMRS/GEFOS/dv1/ALLFX_GWAS_build37.txt.gz | $path/add_CHROM_POS.pl |"
   CHROM   CHROM   CHROM   ="zcat $rawDataPrefix/humgen/diabetes2/users/mvg/portal/IFMRS/GEFOS/dv1/ALLFX_GWAS_build37.txt.gz | $path/add_CHROM_POS.pl |"
   POS     POS     POS     ="zcat $rawDataPrefix/humgen/diabetes2/users/mvg/portal/IFMRS/GEFOS/dv1/ALLFX_GWAS_build37.txt.gz | $path/add_CHROM_POS.pl |"
@@ -188,50 +149,7 @@ object Dsl extends App with Loggable {
   SE      StdErr  StdErr  ="zcat $rawDataPrefix/humgen/diabetes2/users/mvg/portal/IFMRS/GEFOS/dv1/ALLFX_GWAS_build37.txt.gz | $path/add_CHROM_POS.pl |"
   P_VALUE P-value P-value ="zcat $rawDataPrefix/humgen/diabetes2/users/mvg/portal/IFMRS/GEFOS/dv1/ALLFX_GWAS_build37.txt.gz | $path/add_CHROM_POS.pl |"
   * 
-  */
+  
 
-  def fuse(columnDefs: Seq[ColumnDefinition]): ParseFn = {
-    row => {
-      val dataRowValues: Map[ColumnDefinition, String] = Map.empty ++ columnDefs.map { columnDef =>
-        val columnValue = columnDef.getValueFromSource(row).toString
-        
-        columnDef -> columnValue
-      }
-    
-      DataRow(dataRowValues)
-    }
-  }
-
-  def parse(columnDefs: Seq[ColumnDefinition]): (HeaderRow, Iterator[DataRow]) = {
-    val bySource = columnDefs.groupBy(_.source)
-    
-    import Maps.Implicits._
-    
-    val parsingFunctionsBySource = bySource.strictMapValues(fuse).toSeq
-    
-    val sourceHeaders = HeaderRow(columnDefs.sortBy(_.index).map(_.name.name))
-    
-    val isToFns = parsingFunctionsBySource.map { case (src, parseFn) => 
-      (src.records, parseFn) 
-    }
-      
-    val header = HeaderRow(columnDefs.sortBy(_.index).map(_.name.name))
-    
-    val rows = new Iterator[DataRow] {
-      override def hasNext: Boolean = isToFns.forall { case (records, _) => records.hasNext }
-      override def next(): DataRow = {
-        def parseNext(t: (Iterator[CSVRecord], CSVRecord => DataRow)): DataRow = {
-          val (records, parseFn) = t
-          
-          val record = records.next()
-          
-          parseFn(record)
-        }
-        
-        isToFns.map(parseNext).foldLeft(DataRow.empty)(_ ++ _)
-      }
-    }
-    
-    (header, rows)
-  }
 }
+*/

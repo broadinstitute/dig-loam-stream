@@ -40,19 +40,23 @@ sealed abstract class Store protected (val id: LId) extends LId.HasId {
   
   override def hashCode: Int = id.hashCode
   
-  override def toString: String = s"store($id)@$render"
+  final override def toString: String = s"store($id)@$render"
   
-  def projectContext: LoamProjectContext = scriptContext.projectContext
+  final def projectContext: LoamProjectContext = scriptContext.projectContext
 
-  def asInput: Store = {
+  final def asInput: Store = {
     projectContext.updateGraph(_.withStoreAsInput(this))
 
     this
   }
   
-  def isInput: Boolean = graph.inputStores.contains(this)
+  final def isInput: Boolean = graph.inputStores.contains(this)
 
-  def graph: LoamGraph = projectContext.graph
+  final def graph: LoamGraph = projectContext.graph
+  
+  final def isPathStore: Boolean = this.isInstanceOf[PathStore]
+  
+  final def isUriStore: Boolean = this.isInstanceOf[UriStore]
 }
 
 final case class PathStore(

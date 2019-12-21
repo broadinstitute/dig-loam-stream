@@ -13,7 +13,7 @@ sealed trait Row {
 
 final case class HeaderRow(values: Seq[String]) extends Row
 
-final case class DataRow(valuesByColumn: Map[ColumnDefinition, String]) extends Row {
+final case class DataRow(valuesByColumn: Map[ColumnDef, String]) extends Row {
   override def values: Seq[String] = {
     val sortedColumnDefs = valuesByColumn.keys.toSeq.sortBy(_.index)
     

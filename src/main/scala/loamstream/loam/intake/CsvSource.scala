@@ -20,6 +20,10 @@ import java.io.InputStreamReader
  */
 sealed trait CsvSource {
   def records: Iterator[CSVRecord]
+  
+  private final def addSourceTo(columnDef: UnsourcedColumnDef): SourcedColumnDef = SourcedColumnDef(columnDef, this) 
+  
+  final def producing(columnDefs: Seq[UnsourcedColumnDef]): Seq[SourcedColumnDef] = columnDefs.map(addSourceTo)
 }
   
 object CsvSource extends Loggable {

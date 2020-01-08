@@ -9,31 +9,39 @@ import loamstream.util.Sequence
  */
 trait ColumnDef {
   def name: ColumnName
-  def getValueFromSource: RowParser[Any]
-  def getValueFromSourceWhenFlipNeeded: Option[RowParser[Any]]
+  def getValueFromSource: ColumnExpr[_]
+  def getValueFromSourceWhenFlipNeeded: Option[ColumnExpr[_]]
   def index: Int
+  
+  final def dataType: DataType = getValueFromSource.dataType
+  
+  final def getTypedValueFromSource: RowParser[TypedData] = { row =>
+    val rawValue = getValueFromSource(row)
+    
+    TypedData(rawValue.toString, dataType)
+  }
 }
 
 object ColumnDef {
   def apply(
     name: ColumnName, 
-    getValueFromSource: RowParser[Any],
-    getValueFromSourceWhenFlipNeeded: RowParser[Any]): UnsourcedColumnDef = {
+    getValueFromSource: ColumnExpr[_],
+    getValueFromSourceWhenFlipNeeded: ColumnExpr[_]): UnsourcedColumnDef = {
     
     new UnsourcedColumnDef(name, getValueFromSource, Some(getValueFromSourceWhenFlipNeeded))
   }
   
   def apply(
     name: String, 
-    srcColumn: RowParser[Any],
-    srcColumnWhenFlipNeeded: RowParser[Any]): UnsourcedColumnDef = {
+    srcColumn: ColumnExpr[_],
+    srcColumnWhenFlipNeeded: ColumnExpr[_]): UnsourcedColumnDef = {
     
     apply(ColumnName(name), srcColumn, srcColumnWhenFlipNeeded)
   }
   
-  def apply(name: String, srcColumn: RowParser[Any]): UnsourcedColumnDef = apply(ColumnName(name), srcColumn)
+  def apply(name: String, srcColumn: ColumnExpr[_]): UnsourcedColumnDef = apply(ColumnName(name), srcColumn)
   
-  def apply(name: ColumnName, srcColumn: RowParser[Any]): UnsourcedColumnDef = {
+  def apply(name: ColumnName, srcColumn: ColumnExpr[_]): UnsourcedColumnDef = {
     new UnsourcedColumnDef(name, srcColumn, None)
   }
   
@@ -46,12 +54,12 @@ object ColumnDef {
 
 final case class UnsourcedColumnDef(
     name: ColumnName, 
-    getValueFromSource: RowParser[Any],
-    getValueFromSourceWhenFlipNeeded: Option[RowParser[Any]] = None) extends ColumnDef {
+    getValueFromSource: ColumnExpr[_],
+    getValueFromSourceWhenFlipNeeded: Option[ColumnExpr[_]] = None) extends ColumnDef {
   
   override val index: Int = ColumnDef.nextColumnIndex()
   
-  //def from(source: CsvSource): SourcedColumnDef = source.producing(Seq(this))
+  def from(source: CsvSource): SourcedColumnDef = source.producing(this)
 }
 
 /**
@@ -60,8 +68,8 @@ final case class UnsourcedColumnDef(
  */
 final case class SourcedColumnDef(columnDef: ColumnDef, source: CsvSource) extends ColumnDef {
   override def name: ColumnName = columnDef.name
-  override def getValueFromSource: RowParser[Any] = columnDef.getValueFromSource
-  override def getValueFromSourceWhenFlipNeeded: Option[RowParser[Any]] = columnDef.getValueFromSourceWhenFlipNeeded
+  override def getValueFromSource: ColumnExpr[_] = columnDef.getValueFromSource
+  override def getValueFromSourceWhenFlipNeeded: Option[ColumnExpr[_]] = columnDef.getValueFromSourceWhenFlipNeeded
   override def index: Int = columnDef.index
 }
  

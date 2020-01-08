@@ -6,6 +6,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import scala.util.Success
 import scala.util.Failure
+import loamstream.util.Loggable
 
 /**
  * @author clint
@@ -17,7 +18,7 @@ final case class NativeJob(
     dependencies: Set[JobNode] = Set.empty,
     inputs: Set[DataHandle] = Set.empty,
     outputs: Set[DataHandle] = Set.empty,
-    private val nameOpt: Option[String] = None) extends LocalJob {
+    private val nameOpt: Option[String] = None) extends LocalJob with Loggable {
   
   override def name: String = nameOpt.getOrElse(id.toString)
   
@@ -38,7 +39,10 @@ final case class NativeJob(
         jobDirOpt = None,
         terminationReasonOpt = None)
     
-    def onFailure(e: Throwable) = RunData(
+    def onFailure(e: Throwable) = {
+      error(s"Error running native job $id", e)
+      
+      RunData(
         job = this,
         settings = initialSettings,
         jobStatus = JobStatus.Failed,
@@ -46,6 +50,7 @@ final case class NativeJob(
         resourcesOpt = None,
         jobDirOpt = None,
         terminationReasonOpt = None)
+    }
         
     Future(body()).transform {
       case Success(_) => Success(onSuccess)

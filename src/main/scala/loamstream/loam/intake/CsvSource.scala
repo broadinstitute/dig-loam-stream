@@ -13,6 +13,7 @@ import java.nio.file.Paths
 import java.io.BufferedReader
 import java.io.Reader
 import java.io.InputStreamReader
+import loamstream.model.jobs.commandline.HasCommandLine
 
 /**
  * @author clint
@@ -23,6 +24,8 @@ sealed trait CsvSource {
   
   private final def addSourceTo(columnDef: UnsourcedColumnDef): SourcedColumnDef = SourcedColumnDef(columnDef, this) 
   
+  final def producing(columnDef: UnsourcedColumnDef): SourcedColumnDef = addSourceTo(columnDef)
+  
   final def producing(columnDefs: Seq[UnsourcedColumnDef]): Seq[SourcedColumnDef] = columnDefs.map(addSourceTo)
 }
   
@@ -30,6 +33,8 @@ object CsvSource extends Loggable {
   
   object Defaults {
     val tabDelimitedWithHeaderCsvFormat: CSVFormat = CSVFormat.DEFAULT.withDelimiter('\t').withFirstRecordAsHeader
+    
+    val thisDir: Path = Paths.get(".")
   }
   
   final case class FromFile(
@@ -42,7 +47,7 @@ object CsvSource extends Loggable {
   final case class FromCommand(
       command: String,
       csvFormat: CSVFormat = Defaults.tabDelimitedWithHeaderCsvFormat,
-      workDir: Path = Paths.get(".")) extends CsvSource {
+      workDir: Path = Defaults.thisDir) extends CsvSource {
     
     override def records: Iterator[CSVRecord] = {
       val bashScriptForCommand = BashScript.fromCommandLineString(command)
@@ -55,6 +60,14 @@ object CsvSource extends Loggable {
           new InputStreamReader(process.getInputStream), 
           csvFormat)
     }
+  }
+  
+  def fromCommandLine(
+      command: HasCommandLine,
+      csvFormat: CSVFormat = Defaults.tabDelimitedWithHeaderCsvFormat,
+      workDir: Path = Defaults.thisDir): CsvSource = {
+    
+    FromCommand(command.commandLineString, csvFormat, workDir)
   }
   
   private def toCsvRecordIterator(reader: Reader, csvFormat: CSVFormat): Iterator[CSVRecord] = {

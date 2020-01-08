@@ -32,7 +32,26 @@ trait IntakeSyntax extends Interpolators {
         
         val rowsToWrite: Iterator[Row] = Iterator(headerRow) ++ dataRows
         
+        
+        
         Files.writeLinesTo(dest.path)(rowsToWrite.map(renderer.render))
+      }.out(dest)
+      
+      addToGraph(tool)
+      
+      tool
+    }
+  }
+  
+  final class SchemaFileTarget(dest: Store) {
+    def from(columnDefs: ColumnDef*)(implicit scriptContext: LoamScriptContext): NativeTool = {
+      val headerRow = headerRowFrom(columnDefs)
+      
+      val csvFormat = CsvSource.Defaults.tabDelimitedWithHeaderCsvFormat
+      
+      //TODO: How to wire up inputs (if any)?
+      val tool = NativeTool {
+        Files.writeTo(dest.path)(headerRow.toSchemaFile(csvFormat))
       }.out(dest)
       
       addToGraph(tool)
@@ -48,22 +67,36 @@ trait IntakeSyntax extends Interpolators {
     }
   }
   
+  private def requireFsPath(s: Store): Unit = {
+    require(s.isPathStore, s"Only writing to a destination on the FS is supported, but got ${s}")
+  }
+  
+  def produceSchemaFile(dest: Store): SchemaFileTarget = {
+    requireFsPath(dest)
+    
+    new SchemaFileTarget(dest)
+  }
+  
   def produceCsv(dest: Store): TransformationTarget = {
-    require(dest.isPathStore, s"Only writing to a destination on the FS is supported, but got $dest")
+    requireFsPath(dest)
     
     new TransformationTarget(dest)
   }
   
   private[intake] def fuse(columnDefs: Seq[ColumnDef]): ParseFn = {
     row => {
-      val dataRowValues: Map[ColumnDef, String] = Map.empty ++ columnDefs.map { columnDef =>
-        val columnValue = columnDef.getValueFromSource(row).toString
+      val dataRowValues: Map[ColumnDef, TypedData] = Map.empty ++ columnDefs.map { columnDef =>
+        val typedColumnValue = columnDef.getTypedValueFromSource(row)
         
-        columnDef -> columnValue
+        columnDef -> typedColumnValue
       }
     
       DataRow(dataRowValues)
     }
+  }
+  
+  private def headerRowFrom(columnDefs: Seq[ColumnDef]): HeaderRow = {
+    HeaderRow(columnDefs.sortBy(_.index).map(cd => (cd.name.name, cd.getValueFromSource.dataType)))
   }
 
   def process(columnDefs: Seq[SourcedColumnDef]): (HeaderRow, Iterator[DataRow]) = {
@@ -73,13 +106,11 @@ trait IntakeSyntax extends Interpolators {
     
     val parsingFunctionsBySource = bySource.strictMapValues(fuse).toSeq
     
-    val sourceHeaders = HeaderRow(columnDefs.sortBy(_.index).map(_.name.name))
+    val header = headerRowFrom(columnDefs)
     
     val isToFns = parsingFunctionsBySource.map { case (src, parseFn) => 
       (src.records, parseFn) 
     }
-      
-    val header = HeaderRow(columnDefs.sortBy(_.index).map(_.name.name))
     
     val rows = new Iterator[DataRow] {
       override def hasNext: Boolean = isToFns.forall { case (records, _) => records.hasNext }

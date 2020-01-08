@@ -1,21 +1,24 @@
 package loamstream.loam.intake
 
 import org.apache.commons.csv.CSVRecord
+import scala.reflect.runtime.universe._
 
 
 /**
  * @author clint
  * Dec 17, 2019
  */
-sealed trait ColumnExpr[A] extends RowParser[A] {
+sealed abstract class ColumnExpr[A : TypeTag] extends RowParser[A] {
   def eval(row: CSVRecord): A
+  
+  final def dataType: DataType = DataType.fromTypeTag(typeTag[A])
   
   final def render(row: CSVRecord): String = eval(row).toString
   
-  final def map[B](f: A => B): ColumnExpr[B] = this ~> f
-  final def ~>[B](f: A => B): ColumnExpr[B] = MappedColumnExpr(f, this)
+  final def map[B: TypeTag](f: A => B): ColumnExpr[B] = this ~> f
+  final def ~>[B: TypeTag](f: A => B): ColumnExpr[B] = MappedColumnExpr(f, this)
   
-  final def flatMap[B](f: A => ColumnExpr[B]): ColumnExpr[B] = FlatMappedColumnExpr(f, this)
+  final def flatMap[B: TypeTag](f: A => ColumnExpr[B]): ColumnExpr[B] = FlatMappedColumnExpr(f, this)
   
   final def flatten(row: CSVRecord)(implicit ev: A =:= String): ColumnName = ColumnName(eval(row))
   
@@ -27,6 +30,8 @@ sealed trait ColumnExpr[A] extends RowParser[A] {
   
   final def asInt(implicit ev: ConvertableToNumber[A]): ColumnExpr[Int] = this.map(ev.toInt(_))
   
+  final def asLong(implicit ev: ConvertableToNumber[A]): ColumnExpr[Long] = this.map(ev.toLong(_))
+  
   final def asDouble(implicit ev: ConvertableToNumber[A]): ColumnExpr[Double] = this.map(ev.toDouble(_))
   
   final def asUpperCase(implicit ev: A =:= String): ColumnExpr[String] = this.map(a => ev(a).toUpperCase)
@@ -36,6 +41,10 @@ sealed trait ColumnExpr[A] extends RowParser[A] {
   final def +(expr: ColumnExpr[A])(implicit ev: Numeric[A]): ColumnExpr[A] = arithmeticOp(expr)(_.plus)
     
   final def *(expr: ColumnExpr[A])(implicit ev: Numeric[A]): ColumnExpr[A] = arithmeticOp(expr)(_.times)
+  
+  /*final def /(expr: ColumnExpr[A])(implicit ev: Numeric[A]): ColumnExpr[A] = arithmeticOp(expr) {
+    
+  }*/
     
   final def unary_-(implicit ev: Numeric[A]): ColumnExpr[A] = {
     this.map(a => implicitly[Numeric[A]].mkNumericOps(a).unary_-())
@@ -51,10 +60,14 @@ sealed trait ColumnExpr[A] extends RowParser[A] {
 }
 
 object ColumnExpr {
+  def fromRowParser[A: TypeTag](rowParser: RowParser[A]): ColumnExpr[A] = new ColumnExpr[A] {
+    override def eval(row: CSVRecord): A = rowParser(row)
+  }
+  
   implicit final class ExprOps[A](val a: A) extends AnyVal {
-    def +(rhs: ColumnExpr[A])(implicit ev: Numeric[A]): ColumnExpr[A] = Literal(a) + rhs
-    def -(rhs: ColumnExpr[A])(implicit ev: Numeric[A]): ColumnExpr[A] = Literal(a) - rhs
-    def *(rhs: ColumnExpr[A])(implicit ev: Numeric[A]): ColumnExpr[A] = Literal(a) * rhs
+    def +(rhs: ColumnExpr[A])(implicit ev: Numeric[A], tt: TypeTag[A]): ColumnExpr[A] = Literal(a) + rhs
+    def -(rhs: ColumnExpr[A])(implicit ev: Numeric[A], tt: TypeTag[A]): ColumnExpr[A] = Literal(a) - rhs
+    def *(rhs: ColumnExpr[A])(implicit ev: Numeric[A], tt: TypeTag[A]): ColumnExpr[A] = Literal(a) * rhs
   }
   
   trait ConvertableToNumber[A] {
@@ -82,9 +95,10 @@ object ColumnExpr {
   
   import scala.language.implicitConversions
   
-  implicit def lift[A, B](f: A => B): ColumnExpr[A] => ColumnExpr[B] = _.map(f)
+  implicit def lift[A: TypeTag, B: TypeTag](f: A => B): ColumnExpr[A] => ColumnExpr[B] = _.map(f)
   
-  implicit def lift2[A, B, C](f: (A, B) => C): (ColumnExpr[A], ColumnExpr[B]) => ColumnExpr[C] = { (lhsExpr, rhsExpr) =>
+  implicit def lift2[A: TypeTag, B: TypeTag, C: TypeTag]
+      (f: (A, B) => C): (ColumnExpr[A], ColumnExpr[B]) => ColumnExpr[C] = { (lhsExpr, rhsExpr) =>
     for {
       lhs <- lhsExpr
       rhs <- rhsExpr
@@ -92,7 +106,9 @@ object ColumnExpr {
   }
 }
 
-final case class Literal[A](value: A) extends ColumnExpr[A] {
+final case class Literal[A: TypeTag](value: A) extends ColumnExpr[A] {
+  override def toString: String = value.toString 
+  
   override def eval(ignored: CSVRecord): A = value
   
   override def asString: ColumnExpr[String] = value match {
@@ -107,10 +123,10 @@ final case class ColumnName(name: String) extends ColumnExpr[String] {
   override def asString: ColumnExpr[String] = Literal(name)
 }
 
-final case class MappedColumnExpr[A, B](f: A => B, dependsOn: ColumnExpr[A]) extends ColumnExpr[B] {
+final case class MappedColumnExpr[A: TypeTag, B: TypeTag](f: A => B, dependsOn: ColumnExpr[A]) extends ColumnExpr[B] {
   override def eval(row: CSVRecord): B = f(dependsOn.eval(row))
 }
 
-final case class FlatMappedColumnExpr[A, B](f: A => ColumnExpr[B], dependsOn: ColumnExpr[A]) extends ColumnExpr[B] {
+final case class FlatMappedColumnExpr[A: TypeTag, B: TypeTag](f: A => ColumnExpr[B], dependsOn: ColumnExpr[A]) extends ColumnExpr[B] {
   override def eval(row: CSVRecord): B = f(dependsOn.eval(row)).eval(row)
 }

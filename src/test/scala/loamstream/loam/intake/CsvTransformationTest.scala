@@ -17,6 +17,8 @@ final class CsvTransformationTest extends FunSuite {
     TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
       val mungedOutputPath = workDir.resolve("munged.txt")
       val schemaFilePath = workDir.resolve("schema.txt")
+      val dataListFilePath = workDir.resolve("data.list")
+      val schemaListFilePath = workDir.resolve("schema.list")
       
       val graph = TestHelpers.makeGraph { implicit scriptContext =>
         import LoamSyntax._
@@ -30,6 +32,8 @@ final class CsvTransformationTest extends FunSuite {
         
         val storeC = store(mungedOutputPath)
         val storeSchema = store(schemaFilePath)
+        val storeDataList = store(dataListFilePath)
+        val storeSchemaList = store(schemaListFilePath)
         
         object ColumnNames {
           val VARID = "VAR_ID".asColumnName
@@ -66,14 +70,11 @@ final class CsvTransformationTest extends FunSuite {
             ColumnDef(ReferenceAllele, Allele2.asUpperCase, Allele1.asUpperCase),
             ColumnDef(EffectAllele, Allele1.asUpperCase, Allele2.asUpperCase),
             ColumnDef(EffectAllelePH, Allele1.asUpperCase, Allele2.asUpperCase),
-            ColumnDef(EAF, Freq1.asDouble, 1.0 - Freq1.asDouble),
-            ColumnDef(EAFPH, Freq1.asDouble, 1.0 - Freq1.asDouble),
-            ColumnDef(MAF, Freq1.asDouble ~> { x => if(x > 0.5) 1.0 - x else x }),
-            ColumnDef(MAFPH, Freq1.asDouble ~> { x => if(x > 0.5) 1.0 - x else x }),
-            ColumnDef(
-              OddsRatio, 
-              (scala.math.exp _)(Effect.asDouble),//Effect.asDouble ~> scala.math.exp, 
-              (-(Effect.asDouble)) ~> scala.math.exp),
+            ColumnDef(EAF, Freq1.asDouble, Freq1.asDouble.complement),
+            ColumnDef(EAFPH, Freq1.asDouble, Freq1.asDouble.complement),
+            ColumnDef(MAF, Freq1.asDouble.complementIf(_ > 0.5)),
+            ColumnDef(MAFPH, Freq1.asDouble.complementIf(_ > 0.5)),
+            ColumnDef(OddsRatio, Effect.asDouble.exp, Effect.asDouble.negate.exp),
             ColumnDef(SE, StdErr.asDouble, StdErr.asDouble),
             ColumnDef(PValue, PDashValue.asDouble, PDashValue.asDouble))
         }
@@ -83,6 +84,8 @@ final class CsvTransformationTest extends FunSuite {
         produceCsv(storeC).from(source.producing(columns): _*).in(storeB)
         
         produceSchemaFile(storeSchema).from(columns: _*)
+        
+        produceListFiles(storeDataList, storeSchemaList).from(storeC, storeSchema)
       }
       
       val executer = RxExecuter.default
@@ -90,7 +93,7 @@ final class CsvTransformationTest extends FunSuite {
       
       val results = executer.execute(executable)
       
-      assert(results.size === 3)
+      assert(results.size === 4)
       assert(results.values.forall(_.isSuccess))
           
       val tab = '\t'
@@ -128,6 +131,9 @@ P_VALUE${tab}FLOAT"""
       assert(Files.readFrom(mungedOutputPath) === expectedMungedContents)
       
       assert(Files.readFrom(schemaFilePath) === expectedSchemaFileContents)
+      
+      assert(Files.readFrom(dataListFilePath) === s"${mungedOutputPath.toString}${System.lineSeparator}")
+      assert(Files.readFrom(schemaListFilePath) === s"${schemaFilePath.toString}${System.lineSeparator}")
     }
   }
 }

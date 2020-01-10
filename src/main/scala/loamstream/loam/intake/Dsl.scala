@@ -1,4 +1,4 @@
-/*package loamstream.loam.intake
+package loamstream.loam.intake
 
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -46,7 +46,7 @@ object Dsl extends App with Loggable {
     val StdErr = "StdErr".asColumnName
     val PDashValue = "P-value".asColumnName
     
-    VAR_ID	${}
+    /*VAR_ID	${}
   CHROM   $CHROM	$CHROM	"zcat some/file | add_chrom_pos"
   
   Effect_Allele   =uc(Allele1)    =uc(Allele2)    "zcat some/file | add_chrom_pos"
@@ -57,8 +57,8 @@ object Dsl extends App with Loggable {
   MAF_PH  =Freq1 > 0.5 ? 1-Freq1 : Freq1  DONOTHING       "zcat some/file | add_chrom_pos"
   ODDS_RATIO      =exp(Effect)    =exp(-Effect)   "zcat some/file | add_chrom_pos"
   SE      StdErr  StdErr  "zcat some/file | add_chrom_pos"
-  P_VALUE P-value P-value "zcat some/file | add_chrom_pos"
-  * 
+  P_VALUE P-value P-value "zcat some/file | add_chrom_pos"*/
+
   
   }
   
@@ -68,43 +68,39 @@ object Dsl extends App with Loggable {
     val varId = ColumnDef(
       VARID,
       strexpr"${CHROM}_${POS}_${Allele2.asUpperCase}_${Allele1.asUpperCase}",
-      strexpr"${CHROM}_${POS}_${Allele1.asUpperCase}_${Allele2.asUpperCase}").from(src)
+      strexpr"${CHROM}_${POS}_${Allele1.asUpperCase}_${Allele2.asUpperCase}")
     
-    val chrom = ColumnDef(CHROM).from(src)
-    val pos = ColumnDef(POS).from(src)
+    val chrom = ColumnDef(CHROM)
+    val pos = ColumnDef(POS)
     
-    val referenceAllele = ColumnDef(ReferenceAllele, Allele2.asUpperCase, Allele1.asUpperCase).from(src)
+    val referenceAllele = ColumnDef(ReferenceAllele, Allele2.asUpperCase, Allele1.asUpperCase)
       
-    val effectAllele = ColumnDef(EffectAllele, Allele1.asUpperCase, Allele2.asUpperCase).from(src)
+    val effectAllele = ColumnDef(EffectAllele, Allele1.asUpperCase, Allele2.asUpperCase)
     
-    val effectAllelePh = ColumnDef(EffectAllelePH, Allele1.asUpperCase, Allele2.asUpperCase).from(src)
+    val effectAllelePh = ColumnDef(EffectAllelePH, Allele1.asUpperCase, Allele2.asUpperCase)
       
-    val eaf = ColumnDef(EAF, Freq1, 1.0 - Freq1.asDouble).from(src)
+    val eaf = ColumnDef(EAF, Freq1, Freq1.asDouble.complement)
       
-    val eafPh = ColumnDef(EAFPH, Freq1, 1.0 - Freq1.asDouble).from(src)
+    val eafPh = ColumnDef(EAFPH, Freq1, Freq1.asDouble.complement)
       
     val maf = ColumnDef(
       MAF,
       //TODO
-      Freq1.asDouble ~> { x => 
-        if(x > 0.5) 1.0 - x else x 
-      }).from(src)
+      Freq1.asDouble.complementIf(_ > 0.5))
       
     val mafPh = ColumnDef(
       MAFPH,
       //TODO
-      Freq1.asDouble ~> { x => 
-        if(x > 0.5) 1.0 - x else x 
-      }).from(src)
+      Freq1.asDouble.complementIf(_ > 0.5))
       
     val oddsRatio = ColumnDef(
         OddsRatio, 
-        (scala.math.exp _)(Effect.asDouble),//Effect.asDouble ~> scala.math.exp, 
-        (-(Effect.asDouble)) ~> scala.math.exp).from(src)
+        Effect.asDouble |> scala.math.exp, 
+        Effect.asDouble.negate |> scala.math.exp)
       
-    val se = ColumnDef(SE, StdErr, StdErr).from(src)
+    val se = ColumnDef(SE, StdErr, StdErr)
 
-    val pv = ColumnDef(PValue, PDashValue, PDashValue).from(src)
+    val pv = ColumnDef(PValue, PDashValue, PDashValue)
       
   }
   val (header, rows) = TimeUtils.time("Making DataRow iterator") {
@@ -134,7 +130,7 @@ object Dsl extends App with Loggable {
   
   println(s)
 
-  
+/*  
   VAR_ID  =CHROM ."_". POS ."_". uc(Allele2) ."_". uc(Allele1)    =CHROM ."_". POS ."_". uc(Allele1) ."_". uc(Allele2)    ="zcat $rawDataPrefix/humgen/diabetes2/users/mvg/portal/IFMRS/GEFOS/dv1/ALLFX_GWAS_build37.txt.gz | $path/add_CHROM_POS.pl |"
   CHROM   CHROM   CHROM   ="zcat $rawDataPrefix/humgen/diabetes2/users/mvg/portal/IFMRS/GEFOS/dv1/ALLFX_GWAS_build37.txt.gz | $path/add_CHROM_POS.pl |"
   POS     POS     POS     ="zcat $rawDataPrefix/humgen/diabetes2/users/mvg/portal/IFMRS/GEFOS/dv1/ALLFX_GWAS_build37.txt.gz | $path/add_CHROM_POS.pl |"
@@ -148,8 +144,7 @@ object Dsl extends App with Loggable {
   ODDS_RATIO      =exp(Effect)    =exp(-Effect)   ="zcat $rawDataPrefix/humgen/diabetes2/users/mvg/portal/IFMRS/GEFOS/dv1/ALLFX_GWAS_build37.txt.gz | $path/add_CHROM_POS.pl |"
   SE      StdErr  StdErr  ="zcat $rawDataPrefix/humgen/diabetes2/users/mvg/portal/IFMRS/GEFOS/dv1/ALLFX_GWAS_build37.txt.gz | $path/add_CHROM_POS.pl |"
   P_VALUE P-value P-value ="zcat $rawDataPrefix/humgen/diabetes2/users/mvg/portal/IFMRS/GEFOS/dv1/ALLFX_GWAS_build37.txt.gz | $path/add_CHROM_POS.pl |"
-  * 
+  */ 
   
 
 }
-*/

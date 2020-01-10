@@ -2,6 +2,7 @@ package loamstream.loam.intake
 
 import org.apache.commons.csv.CSVRecord
 import scala.reflect.runtime.universe._
+import scala.util.matching.Regex
 
 
 /**
@@ -15,8 +16,8 @@ sealed abstract class ColumnExpr[A : TypeTag] extends RowParser[A] {
   
   final def render(row: CSVRecord): String = eval(row).toString
   
-  final def map[B: TypeTag](f: A => B): ColumnExpr[B] = this ~> f
-  final def ~>[B: TypeTag](f: A => B): ColumnExpr[B] = MappedColumnExpr(f, this)
+  final def map[B: TypeTag](f: A => B): ColumnExpr[B] = this |> f
+  final def |>[B: TypeTag](f: A => B): ColumnExpr[B] = MappedColumnExpr(f, this)
   
   final def flatMap[B: TypeTag](f: A => ColumnExpr[B]): ColumnExpr[B] = FlatMappedColumnExpr(f, this)
   
@@ -49,7 +50,31 @@ sealed abstract class ColumnExpr[A : TypeTag] extends RowParser[A] {
   final def unary_-(implicit ev: Numeric[A]): ColumnExpr[A] = {
     this.map(a => implicitly[Numeric[A]].mkNumericOps(a).unary_-())
   }
+  
+  final def negate(implicit ev: Numeric[A]): ColumnExpr[A] = this.unary_-
+  
+  final def complement(implicit ev: Numeric[A]): ColumnExpr[A] = {
+    this.map { a => ev.minus(ev.one, a) }
+  }
+  
+  final def complementIf(p: A => Boolean)(implicit ev: Numeric[A]): ColumnExpr[A] = {
+    this.map { a => if(p(a)) ev.minus(ev.one, a) else a }
+  }
+  
+  final def exp(implicit ev: A =:= Double): ColumnExpr[Double] = this.map(a => scala.math.exp(ev(a)))
     
+  final def mapRegex[B: TypeTag](regexString: String)(f: PartialFunction[Seq[String], B]): ColumnExpr[Option[B]] = {
+    val regex = regexString.r
+    
+    val ff: Seq[String] => Option[B] = strs => if(f.isDefinedAt(strs)) Some(f(strs)) else None
+    
+    this.asString.map(s => regex.unapplySeq(s).flatMap(ff))
+  }
+  
+  final def orElse[B: TypeTag](default: => B)(implicit ev: A =:= Option[B]): ColumnExpr[B] = {
+    this.map(a => ev(a).getOrElse(default))
+  }
+  
   private def arithmeticOp(
       expr: ColumnExpr[A])(op: Numeric[A] => (A, A) => A)(implicit ev: Numeric[A]): ColumnExpr[A] = {
 

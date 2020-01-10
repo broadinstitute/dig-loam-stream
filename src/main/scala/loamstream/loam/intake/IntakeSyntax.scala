@@ -32,8 +32,6 @@ trait IntakeSyntax extends Interpolators {
         
         val rowsToWrite: Iterator[Row] = Iterator(headerRow) ++ dataRows
         
-        
-        
         Files.writeLinesTo(dest.path)(rowsToWrite.map(renderer.render))
       }.out(dest)
       
@@ -60,6 +58,20 @@ trait IntakeSyntax extends Interpolators {
     }
   }
   
+  final class ListFilesTarget(dataListFile: Store, schemaListFile: Store) {
+    def from(dataFile: Store, schemaFile: Store)(implicit scriptContext: LoamScriptContext): NativeTool = {
+      //TODO: How to wire up inputs (if any)?
+      val tool = NativeTool {
+        Files.writeLinesTo(dataListFile.path)(Iterator(dataFile.path.toString))
+        Files.writeLinesTo(schemaListFile.path)(Iterator(schemaFile.path.toString))
+      }.out(dataListFile, schemaListFile)
+      
+      addToGraph(tool)
+      
+      tool
+    }
+  }
+  
   /** BEWARE: This method has the side-effect of modifying the graph within scriptContext */
   private def addToGraph(tool: Tool)(implicit scriptContext: LoamScriptContext): Unit = {
     scriptContext.projectContext.updateGraph { graph =>
@@ -75,6 +87,13 @@ trait IntakeSyntax extends Interpolators {
     requireFsPath(dest)
     
     new SchemaFileTarget(dest)
+  }
+  
+  def produceListFiles(dataListFile: Store, schemaListFile: Store): ListFilesTarget = {
+    requireFsPath(dataListFile)
+    requireFsPath(schemaListFile)
+    
+    new ListFilesTarget(dataListFile, schemaListFile)
   }
   
   def produceCsv(dest: Store): TransformationTarget = {

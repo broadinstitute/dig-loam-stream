@@ -14,11 +14,21 @@ trait ColumnDef {
   def index: Int
   
   final def dataType: DataType = getValueFromSource.dataType
+  final def dataTypeFlipped: Option[DataType] = getValueFromSourceWhenFlipNeeded.map(_.dataType)
   
   final def getTypedValueFromSource: RowParser[TypedData] = { row =>
     val rawValue = getValueFromSource(row)
     
     TypedData(rawValue.toString, dataType)
+  }
+  
+  final def getTypedValueFromSourceWhenFlipNeeded: RowParser[TypedData] = { row =>
+    (for {
+      rawValue <- getValueFromSourceWhenFlipNeeded.map(_.apply(row).toString)
+      dataType <- dataTypeFlipped
+    } yield {
+      TypedData(rawValue, dataType)
+    }).get //TODO
   }
 }
 

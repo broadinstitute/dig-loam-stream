@@ -22,19 +22,33 @@ import loamstream.model.jobs.commandline.HasCommandLine
 sealed trait CsvSource {
   def records: Iterator[CSVRecord]
   
+  def filter(p: RowPredicate): CsvSource = fromCombinator(_.filter(p))
+  
+  def filterNot(p: RowPredicate): CsvSource = fromCombinator(_.filterNot(p))
+  
   private final def addSourceTo(columnDef: UnsourcedColumnDef): SourcedColumnDef = SourcedColumnDef(columnDef, this) 
   
   final def producing(columnDef: UnsourcedColumnDef): SourcedColumnDef = addSourceTo(columnDef)
   
   final def producing(columnDefs: Seq[UnsourcedColumnDef]): Seq[SourcedColumnDef] = columnDefs.map(addSourceTo)
+  
+  private final def fromCombinator(f: Iterator[CSVRecord] => Iterator[CSVRecord]): CsvSource = {
+    new CsvSource.FromIterator(f(records))
+  }
 }
   
 object CsvSource extends Loggable {
   
   object Defaults {
-    val tabDelimitedWithHeaderCsvFormat: CSVFormat = CSVFormat.DEFAULT.withDelimiter('\t').withFirstRecordAsHeader
+    val tabDelimited: CSVFormat = CSVFormat.DEFAULT.withDelimiter('\t')
+    
+    val tabDelimitedWithHeaderCsvFormat: CSVFormat = tabDelimited.withFirstRecordAsHeader
     
     val thisDir: Path = Paths.get(".")
+  }
+  
+  private final class FromIterator(iterator: => Iterator[CSVRecord]) extends CsvSource {
+    override def records: Iterator[CSVRecord] = iterator
   }
   
   final case class FromFile(

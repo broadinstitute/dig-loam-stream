@@ -104,8 +104,14 @@ object Dsl extends App with Loggable {
       
   }
   val (header, rows) = TimeUtils.time("Making DataRow iterator") {
-    process(src.producing(Seq(
-        ColumnDefs.varId, 
+    val flipDetector = new FlipDetector(
+      referenceDir = Paths.get("/home/clint/workspace/marcins-scripts/reference"),
+      isVarDataType = true,
+      pathTo26kMap = Paths.get("/home/clint/workspace/marcins-scripts/26k_id.map"))
+    
+    val rowDef = RowDef(
+      ColumnDefs.varId.from(src), 
+      src.producing(Seq(
         ColumnDefs.chrom, 
         ColumnDefs.pos, 
         ColumnDefs.referenceAllele,
@@ -118,6 +124,8 @@ object Dsl extends App with Loggable {
         ColumnDefs.oddsRatio,
         ColumnDefs.se,
         ColumnDefs.pv)))
+    
+    process(flipDetector)(rowDef)
   }
   
   val renderer = Renderer(CsvSource.Defaults.tabDelimitedWithHeaderCsvFormat)

@@ -12,6 +12,8 @@ import scala.util.matching.Regex
 sealed abstract class ColumnExpr[A : TypeTag] extends RowParser[A] {
   def eval(row: CSVRecord): A
   
+  def isDefinedAt(row: CSVRecord): Boolean = true
+  
   final def dataType: DataType = DataType.fromTypeTag(typeTag[A])
   
   final def render(row: CSVRecord): String = eval(row).toString
@@ -63,17 +65,26 @@ sealed abstract class ColumnExpr[A : TypeTag] extends RowParser[A] {
   
   final def exp(implicit ev: A =:= Double): ColumnExpr[Double] = this.map(a => scala.math.exp(ev(a)))
     
-  final def mapRegex[B: TypeTag](regexString: String)(f: PartialFunction[Seq[String], B]): ColumnExpr[Option[B]] = {
-    val regex = regexString.r
-    
-    val ff: Seq[String] => Option[B] = strs => if(f.isDefinedAt(strs)) Some(f(strs)) else None
-    
-    this.asString.map(s => regex.unapplySeq(s).flatMap(ff))
+  final def mapRegex[B: TypeTag](regexString: String)(f: Seq[String] => B): ColumnExpr[B] = mapRegex(regexString.r)(f)
+  
+  final def mapRegex[B: TypeTag](regex: Regex)(f: Seq[String] => B): ColumnExpr[B] = {
+    this.asString.map { columnValue => 
+      regex.unapplySeq(columnValue).map(f).getOrElse {
+        throw new Exception(s"Column value '${columnValue}' doesn't match regex $regex")
+      }
+    }
   }
   
   final def orElse[B: TypeTag](default: => B)(implicit ev: A =:= Option[B]): ColumnExpr[B] = {
     this.map(a => ev(a).getOrElse(default))
   }
+  
+  final def matches(regex: String): RowPredicate = matches(regex.r)
+  
+  final def matches(regex: Regex): RowPredicate = this.asString.map(regex.pattern.matcher(_).matches)
+  
+  final def ===(rhs: A): RowPredicate = this.map(_ == rhs)
+  final def !==(rhs: A): RowPredicate = this.map(_ != rhs)
   
   private def arithmeticOp(
       expr: ColumnExpr[A])(op: Numeric[A] => (A, A) => A)(implicit ev: Numeric[A]): ColumnExpr[A] = {
@@ -88,6 +99,8 @@ object ColumnExpr {
   def fromRowParser[A: TypeTag](rowParser: RowParser[A]): ColumnExpr[A] = new ColumnExpr[A] {
     override def eval(row: CSVRecord): A = rowParser(row)
   }
+  
+  def fromPartialRowParser[A: TypeTag](rowParser: PartialRowParser[A]): ColumnExpr[A] = new PartialColumnExpr(rowParser)
   
   implicit final class ExprOps[A](val a: A) extends AnyVal {
     def +(rhs: ColumnExpr[A])(implicit ev: Numeric[A], tt: TypeTag[A]): ColumnExpr[A] = Literal(a) + rhs
@@ -129,6 +142,12 @@ object ColumnExpr {
       rhs <- rhsExpr
     } yield f(lhs, rhs)
   }
+}
+
+final class PartialColumnExpr[A: TypeTag](pf: PartialFunction[CSVRecord, A]) extends ColumnExpr[A] {
+  override def eval(row: CSVRecord): A = pf(row)
+  
+  override def isDefinedAt(row: CSVRecord): Boolean = pf.isDefinedAt(row)
 }
 
 final case class Literal[A: TypeTag](value: A) extends ColumnExpr[A] {

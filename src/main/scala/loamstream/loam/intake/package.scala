@@ -8,7 +8,11 @@ import org.apache.commons.csv.CSVRecord
  * Dec 17, 2019
  */
 package object intake {
+  type PartialRowParser[A] = PartialFunction[CSVRecord, A]
+  
   type RowParser[A] = CSVRecord => A
   
-  type ParseFn = CSVRecord => DataRow
+  type RowPredicate = RowParser[Boolean]
+  
+  type ParseFn = (String, CSVRecord) => DataRow
 }

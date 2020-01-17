@@ -34,38 +34,37 @@ POS	BEG	BEG	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis
 Reference_Allele	=MARKER_ID=~/^\d+:\d+_([ATCG]+)\/[ATCG]+_/ ? $1 : next	=MARKER_ID=~/^\d+:\d+_[ATCG]+\/([ATCG]+)_/ ? $1 : next	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
 */
     object Regexes {
+      val rightFormat = """^\d+:\d+_[ATCG]+\/([ATCG]+_"""
       val all4 = """^(\d+):(\d+)_([ATCG]+)\/([ATCG]+)_"""
       val part2 = """^\d+:\d+_([ATCG]+)\/[ATCG]+_"""
       val part3 = """^\d+:\d+_[ATCG]+\/([ATCG]+)_"""
     }
     
-    type ?>[A, B] = PartialFunction[A, B]
-    
-    val getMatch: Seq[String] ?> String = { case Seq(a) => a }
+    val getSingleMatch: Seq[String] => String = { case Seq(a) => a }
     
     val varId = {
-      val notFlipped: Seq[String] ?> String = { case Seq(a, b, c, d) => s"${a}_${b}_${c}_${d}" }
-      val ifFlipped: Seq[String] ?> String = { case Seq(a, b, c, d) => s"${a}_${b}_${d}_${c}" }
+      val notFlipped: Seq[String] => String = { case Seq(a, b, c, d) => s"${a}_${b}_${c}_${d}" }
+      val ifFlipped: Seq[String] => String = { case Seq(a, b, c, d) => s"${a}_${b}_${d}_${c}" }
       
-      val fromMarkerId = MARKER_ID.mapRegex(Regexes.all4)(notFlipped).orElse("next")
+      val fromMarkerId: ColumnExpr[String] = MARKER_ID.mapRegex(Regexes.all4)(notFlipped)
       
-      val fromMarkerIdFlip = MARKER_ID.mapRegex(Regexes.all4)(ifFlipped).orElse("next")
+      val fromMarkerIdFlip: ColumnExpr[String] = MARKER_ID.mapRegex(Regexes.all4)(ifFlipped)
       
       ColumnDef(VARID, fromMarkerId, fromMarkerIdFlip)
     }
     val chrom = ColumnDef(CHROM)
     val pos = ColumnDef(POS, BEG, BEG)
     val referenceAllele = {
-      val fromMarkerId = MARKER_ID.mapRegex(Regexes.part2)(getMatch).orElse("next")
+      val fromMarkerId = MARKER_ID.mapRegex(Regexes.part2)(getSingleMatch)
       
-      val fromMarkerIdFlip = MARKER_ID.mapRegex(Regexes.part3)(getMatch).orElse("next")
+      val fromMarkerIdFlip = MARKER_ID.mapRegex(Regexes.part3)(getSingleMatch)
       
       ColumnDef(ReferenceAllele, fromMarkerId, fromMarkerIdFlip)
     }
     val effectAllele = {
-      val fromMarkerId = MARKER_ID.mapRegex(Regexes.part3)(getMatch).orElse("next")
+      val fromMarkerId = MARKER_ID.mapRegex(Regexes.part3)(getSingleMatch)
       
-      val fromMarkerIdFlip = MARKER_ID.mapRegex(Regexes.part2)(getMatch).orElse("next")
+      val fromMarkerIdFlip = MARKER_ID.mapRegex(Regexes.part2)(getSingleMatch)
       
       ColumnDef(EffectAllele, fromMarkerId, fromMarkerIdFlip)
     }
@@ -75,8 +74,12 @@ Reference_Allele	=MARKER_ID=~/^\d+:\d+_([ATCG]+)\/[ATCG]+_/ ? $1 : next	=MARKER_
     val mafPh = ColumnDef(MAFPH, MAF, MAF)
     val pValue = ColumnDef(PValue, PValueNoUnderscore, PValueNoUnderscore)
     val oddsRatio = ColumnDef(OddsRatio, Beta.asDouble.exp, Beta.asDouble.negate.exp)
-    val se = ColumnDef(SE, SEBeta, SEBeta) 
+    val se = ColumnDef(SE, SEBeta, SEBeta)
+    
+    val source = CsvSource.FromCommand("").filter(MARKER_ID.matches(Regexes.rightFormat))
   }
+  
+  
     
 /*
 VAR_ID	=MARKER_ID=~/^(\d+):(\d+)_([ATCG]+)\/([ATCG]+)_/ ? $1 ."_". $2 ."_". $3 ."_". $4 : next	=MARKER_ID=~/^(\d+):(\d+)_([ATCG]+)\/([ATCG]+)_/ ? $1 ."_". $2 ."_". $4 ."_". $3 : next	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"

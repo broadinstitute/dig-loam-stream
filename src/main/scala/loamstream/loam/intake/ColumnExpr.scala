@@ -10,22 +10,22 @@ import scala.util.matching.Regex
  * Dec 17, 2019
  */
 sealed abstract class ColumnExpr[A : TypeTag] extends RowParser[A] {
-  def eval(row: CSVRecord): A
+  def eval(row: CsvRow): A
   
-  def isDefinedAt(row: CSVRecord): Boolean = true
+  def isDefinedAt(row: CsvRow): Boolean = true
   
   final def dataType: DataType = DataType.fromTypeTag(typeTag[A])
   
-  final def render(row: CSVRecord): String = eval(row).toString
+  final def render(row: CsvRow): String = eval(row).toString
   
   final def map[B: TypeTag](f: A => B): ColumnExpr[B] = this |> f
   final def |>[B: TypeTag](f: A => B): ColumnExpr[B] = MappedColumnExpr(f, this)
   
   final def flatMap[B: TypeTag](f: A => ColumnExpr[B]): ColumnExpr[B] = FlatMappedColumnExpr(f, this)
   
-  final def flatten(row: CSVRecord)(implicit ev: A =:= String): ColumnName = ColumnName(eval(row))
+  final def flatten(row: CsvRow)(implicit ev: A =:= String): ColumnName = ColumnName(eval(row))
   
-  final override def apply(row: CSVRecord): A = eval(row)
+  final override def apply(row: CsvRow): A = eval(row)
   
   import ColumnExpr._
   
@@ -97,7 +97,7 @@ sealed abstract class ColumnExpr[A : TypeTag] extends RowParser[A] {
 
 object ColumnExpr {
   def fromRowParser[A: TypeTag](rowParser: RowParser[A]): ColumnExpr[A] = new ColumnExpr[A] {
-    override def eval(row: CSVRecord): A = rowParser(row)
+    override def eval(row: CsvRow): A = rowParser(row)
   }
   
   def fromPartialRowParser[A: TypeTag](rowParser: PartialRowParser[A]): ColumnExpr[A] = new PartialColumnExpr(rowParser)
@@ -144,16 +144,16 @@ object ColumnExpr {
   }
 }
 
-final class PartialColumnExpr[A: TypeTag](pf: PartialFunction[CSVRecord, A]) extends ColumnExpr[A] {
-  override def eval(row: CSVRecord): A = pf(row)
+final class PartialColumnExpr[A: TypeTag](pf: PartialRowParser[A]) extends ColumnExpr[A] {
+  override def eval(row: CsvRow): A = pf(row)
   
-  override def isDefinedAt(row: CSVRecord): Boolean = pf.isDefinedAt(row)
+  override def isDefinedAt(row: CsvRow): Boolean = pf.isDefinedAt(row)
 }
 
 final case class Literal[A: TypeTag](value: A) extends ColumnExpr[A] {
   override def toString: String = value.toString 
   
-  override def eval(ignored: CSVRecord): A = value
+  override def eval(ignored: CsvRow): A = value
   
   override def asString: ColumnExpr[String] = value match {
     case s: String => this.asInstanceOf[Literal[String]]
@@ -162,15 +162,15 @@ final case class Literal[A: TypeTag](value: A) extends ColumnExpr[A] {
 }
 
 final case class ColumnName(name: String) extends ColumnExpr[String] {
-  override def eval(row: CSVRecord): String = row.get(name)
+  override def eval(row: CsvRow): String = row.get(name)
   
   override def asString: ColumnExpr[String] = Literal(name)
 }
 
 final case class MappedColumnExpr[A: TypeTag, B: TypeTag](f: A => B, dependsOn: ColumnExpr[A]) extends ColumnExpr[B] {
-  override def eval(row: CSVRecord): B = f(dependsOn.eval(row))
+  override def eval(row: CsvRow): B = f(dependsOn.eval(row))
 }
 
 final case class FlatMappedColumnExpr[A: TypeTag, B: TypeTag](f: A => ColumnExpr[B], dependsOn: ColumnExpr[A]) extends ColumnExpr[B] {
-  override def eval(row: CSVRecord): B = f(dependsOn.eval(row)).eval(row)
+  override def eval(row: CsvRow): B = f(dependsOn.eval(row)).eval(row)
 }

@@ -128,7 +128,7 @@ object Dsl extends App with Loggable {
     process(flipDetector)(rowDef)
   }
   
-  val renderer = Renderer(CsvSource.Defaults.tabDelimitedWithHeaderCsvFormat)
+  val renderer = CommonsCsvRenderer(CsvSource.Defaults.tabDelimitedWithHeaderCsvFormat)
   
   println(renderer.render(header))
 

@@ -3,7 +3,6 @@ package loamstream.loam.intake
 import loamstream.loam.NativeTool
 import loamstream.loam.LoamScriptContext
 import loamstream.util.Maps
-import org.apache.commons.csv.CSVRecord
 import loamstream.model.Store
 import loamstream.util.Files
 import loamstream.model.Tool
@@ -36,7 +35,7 @@ trait IntakeSyntax extends Interpolators {
         
         val csvFormat = CsvSource.Defaults.tabDelimitedWithHeaderCsvFormat
         
-        val renderer = Renderer(csvFormat)
+        val renderer = CommonsCsvRenderer(csvFormat)
         
         val rowsToWrite: Iterator[Row] = Iterator(headerRow) ++ dataRows
         
@@ -167,7 +166,7 @@ trait IntakeSyntax extends Interpolators {
     
     val parseFnsBySourceNonVarId: Map[CsvSource, ParseFn] = nonVarIdColumnDefsBySource.strictMapValues(fuse(flipDetector))
     
-    val recordsAndParsersNonVarId: Seq[(Iterator[CSVRecord], ParseFn)] = {
+    val recordsAndParsersNonVarId: Seq[(Iterator[CsvRow], ParseFn)] = {
       parseFnsBySourceNonVarId.toSeq.map { case (source, parseFn) => (source.records, parseFn) }
     }
     
@@ -178,7 +177,7 @@ trait IntakeSyntax extends Interpolators {
     val rows: Iterator[DataRow] = new Iterator[DataRow] {
       override def hasNext: Boolean = varIdSourceRecords.hasNext && recordsAndParsersNonVarId.forall { case (records, _) => records.hasNext }
       override def next(): DataRow = {
-        def parseNext(varId: String)(t: (Iterator[CSVRecord], ParseFn)): DataRow = {
+        def parseNext(varId: String)(t: (Iterator[CsvRow], ParseFn)): DataRow = {
           val (records, parseFn) = t
           
           val record = records.next()
@@ -210,7 +209,7 @@ trait IntakeSyntax extends Interpolators {
     
     //val parseFn = rowDef.parseFn(flipDetector)
     
-    val parsingFunctionsBySource: Seq[(CsvSource, CSVRecord => DataRow)] = ???//bySource.strictMapValues().toSeq
+    val parsingFunctionsBySource: Seq[(CsvSource, CsvRow => DataRow)] = ???//bySource.strictMapValues().toSeq
     
     val header = headerRowFrom(rowDef.columnDefs)
     
@@ -221,7 +220,7 @@ trait IntakeSyntax extends Interpolators {
     val rows: Iterator[DataRow] = new Iterator[DataRow] {
       override def hasNext: Boolean = isToFns.forall { case (records, _) => records.hasNext }
       override def next(): DataRow = {
-        def parseNext(t: (Iterator[CSVRecord], CSVRecord => DataRow)): DataRow = {
+        def parseNext(t: (Iterator[CsvRow], CsvRow => DataRow)): DataRow = {
           val (records, parseFn) = t
           
           val record = records.next()

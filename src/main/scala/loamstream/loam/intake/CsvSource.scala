@@ -20,7 +20,7 @@ import loamstream.model.jobs.commandline.HasCommandLine
  * Dec 17, 2019
  */
 sealed trait CsvSource {
-  def records: Iterator[CSVRecord]
+  def records: Iterator[CsvRow]
   
   def filter(p: RowPredicate): CsvSource = fromCombinator(_.filter(p))
   
@@ -32,7 +32,7 @@ sealed trait CsvSource {
   
   final def producing(columnDefs: Seq[UnsourcedColumnDef]): Seq[SourcedColumnDef] = columnDefs.map(addSourceTo)
   
-  private final def fromCombinator(f: Iterator[CSVRecord] => Iterator[CSVRecord]): CsvSource = {
+  private final def fromCombinator(f: Iterator[CsvRow] => Iterator[CsvRow]): CsvSource = {
     new CsvSource.FromIterator(f(records))
   }
 }
@@ -47,15 +47,15 @@ object CsvSource extends Loggable {
     val thisDir: Path = Paths.get(".")
   }
   
-  private final class FromIterator(iterator: => Iterator[CSVRecord]) extends CsvSource {
-    override def records: Iterator[CSVRecord] = iterator
+  private final class FromIterator(iterator: => Iterator[CsvRow]) extends CsvSource {
+    override def records: Iterator[CsvRow] = iterator
   }
   
   final case class FromFile(
       path: Path, 
       csvFormat: CSVFormat = Defaults.tabDelimitedWithHeaderCsvFormat) extends CsvSource {
     
-    override def records: Iterator[CSVRecord] = toCsvRecordIterator(new FileReader(path.toFile), csvFormat)
+    override def records: Iterator[CsvRow] = toCsvRowIterator(new FileReader(path.toFile), csvFormat)
   }
   
   final case class FromCommand(
@@ -63,14 +63,14 @@ object CsvSource extends Loggable {
       csvFormat: CSVFormat = Defaults.tabDelimitedWithHeaderCsvFormat,
       workDir: Path = Defaults.thisDir) extends CsvSource {
     
-    override def records: Iterator[CSVRecord] = {
+    override def records: Iterator[CsvRow] = {
       val bashScriptForCommand = BashScript.fromCommandLineString(command)
       
       val processBuilder = new java.lang.ProcessBuilder(bashScriptForCommand.commandTokens: _*)
       
       val process = processBuilder.start()
             
-      toCsvRecordIterator(
+      toCsvRowIterator(
           new InputStreamReader(process.getInputStream), 
           csvFormat)
     }
@@ -84,7 +84,7 @@ object CsvSource extends Loggable {
     FromCommand(command.commandLineString, csvFormat, workDir)
   }
   
-  private def toCsvRecordIterator(reader: Reader, csvFormat: CSVFormat): Iterator[CSVRecord] = {
+  private def toCsvRowIterator(reader: Reader, csvFormat: CSVFormat): Iterator[CsvRow] = {
     import scala.collection.JavaConverters._
       
     val parser = new CSVParser(reader, csvFormat)

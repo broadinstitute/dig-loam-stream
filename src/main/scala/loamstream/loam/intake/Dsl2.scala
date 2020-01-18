@@ -46,9 +46,13 @@ Reference_Allele	=MARKER_ID=~/^\d+:\d+_([ATCG]+)\/[ATCG]+_/ ? $1 : next	=MARKER_
       val notFlipped: Seq[String] => String = { case Seq(a, b, c, d) => s"${a}_${b}_${c}_${d}" }
       val ifFlipped: Seq[String] => String = { case Seq(a, b, c, d) => s"${a}_${b}_${d}_${c}" }
       
-      val fromMarkerId: ColumnExpr[String] = MARKER_ID.mapRegex(Regexes.all4)(notFlipped)
+      val fromMarkerId: ColumnExpr[String] = MARKER_ID.mapRegex(Regexes.all4) {
+        case Seq(a, b, c, d) => s"${a}_${b}_${c}_${d}"
+      }
       
-      val fromMarkerIdFlip: ColumnExpr[String] = MARKER_ID.mapRegex(Regexes.all4)(ifFlipped)
+      val fromMarkerIdFlip: ColumnExpr[String] = MARKER_ID.mapRegex(Regexes.all4) {
+        case Seq(a, b, c, d) => s"${a}_${b}_${d}_${c}"
+      }
       
       ColumnDef(VARID, fromMarkerId, fromMarkerIdFlip)
     }
@@ -76,7 +80,7 @@ Reference_Allele	=MARKER_ID=~/^\d+:\d+_([ATCG]+)\/[ATCG]+_/ ? $1 : next	=MARKER_
     val oddsRatio = ColumnDef(OddsRatio, Beta.asDouble.exp, Beta.asDouble.negate.exp)
     val se = ColumnDef(SE, SEBeta, SEBeta)
     
-    val source = CsvSource.FromCommand("").filter(MARKER_ID.matches(Regexes.rightFormat))
+    val source = CsvSource.FastCsv.fromCommandLine("").filter(MARKER_ID.matches(Regexes.rightFormat))
   }
   
   

@@ -3,7 +3,7 @@ package loamstream.loam.intake
 import org.scalatest.FunSuite
 import loamstream.TestHelpers
 import loamstream.loam.LoamSyntax
-import loamstream.loam.intake.CsvSource.FromCommand
+import loamstream.loam.intake.CsvSource.FastCsv.FromCommand
 import loamstream.model.execute.RxExecuter
 import loamstream.compiler.LoamEngine
 import loamstream.util.Files
@@ -79,9 +79,17 @@ final class CsvTransformationTest extends FunSuite {
             ColumnDef(PValue, PDashValue.asDouble, PDashValue.asDouble))
         }
         
-        val source: CsvSource = CsvSource.FromCommand(s"cat ${storeB.path}")
+        val source: CsvSource = FromCommand(s"cat ${storeB.path}")
         
-        produceCsv(storeC).from(source.producing(columns): _*).in(storeB)
+        val flipDetector = new FlipDetector(
+          referenceDir = path("/home/clint/workspace/marcins-scripts/reference"),
+          isVarDataType = true,
+          pathTo26kMap = path("/home/clint/workspace/marcins-scripts/26k_id.map"))
+        
+        val varIdColumn = columns.head.from(source)
+        val otherColumns = source.producing(columns.tail)
+        
+        produceCsv(storeC).from(varIdColumn, otherColumns: _*).using(flipDetector).in(storeB)
         
         produceSchemaFile(storeSchema).from(columns: _*)
         

@@ -1,19 +1,19 @@
 package loamstream.loam.intake
 
-import org.apache.commons.csv.CSVRecord
-import org.apache.commons.csv.CSVFormat
-import java.nio.file.Path
 import java.io.FileReader
-import org.apache.commons.csv.CSVParser
+import java.io.InputStreamReader
+import java.io.Reader
+import java.nio.file.Path
+import java.nio.file.Paths
+
+import org.apache.commons.csv.CSVFormat
+
+import de.siegmar.fastcsv.reader.CsvParser
+import de.siegmar.fastcsv.reader.CsvReader
+import loamstream.util.BashScript
+import loamstream.util.Loggable
 import loamstream.util.TakesEndingActionIterator
 import loamstream.util.Throwables
-import loamstream.util.Loggable
-import loamstream.util.BashScript
-import java.nio.file.Paths
-import java.io.BufferedReader
-import java.io.Reader
-import java.io.InputStreamReader
-import loamstream.model.jobs.commandline.HasCommandLine
 
 /**
  * @author clint
@@ -40,9 +40,18 @@ sealed trait CsvSource {
 object CsvSource extends Loggable {
   
   object Defaults {
-    val tabDelimited: CSVFormat = CSVFormat.DEFAULT.withDelimiter('\t')
+    object CommonsCsv {
+      object Formats {
+        val tabDelimited: CSVFormat = CSVFormat.DEFAULT.withDelimiter('\t')
+      
+        val tabDelimitedWithHeaderCsvFormat: CSVFormat = tabDelimited.withFirstRecordAsHeader
+      }
+    }
     
-    val tabDelimitedWithHeaderCsvFormat: CSVFormat = tabDelimited.withFirstRecordAsHeader
+    object FastCsv {
+      val delimiter: Char = '\t'
+      val containsHeader: Boolean = true 
+    }
     
     val thisDir: Path = Paths.get(".")
   }
@@ -50,50 +59,72 @@ object CsvSource extends Loggable {
   private final class FromIterator(iterator: => Iterator[CsvRow]) extends CsvSource {
     override def records: Iterator[CsvRow] = iterator
   }
-  
-  final case class FromFile(
-      path: Path, 
-      csvFormat: CSVFormat = Defaults.tabDelimitedWithHeaderCsvFormat) extends CsvSource {
-    
-    override def records: Iterator[CsvRow] = toCsvRowIterator(new FileReader(path.toFile), csvFormat)
-  }
-  
-  final case class FromCommand(
-      command: String,
-      csvFormat: CSVFormat = Defaults.tabDelimitedWithHeaderCsvFormat,
-      workDir: Path = Defaults.thisDir) extends CsvSource {
-    
-    override def records: Iterator[CsvRow] = {
-      val bashScriptForCommand = BashScript.fromCommandLineString(command)
+
+  object FastCsv {
+    def fromFile(
+        file: Path, 
+        delimiter: Char = Defaults.FastCsv.delimiter, 
+        containsHeader: Boolean = Defaults.FastCsv.containsHeader): CsvSource = {
       
-      val processBuilder = new java.lang.ProcessBuilder(bashScriptForCommand.commandTokens: _*)
-      
-      val process = processBuilder.start()
-            
-      toCsvRowIterator(
-          new InputStreamReader(process.getInputStream), 
-          csvFormat)
+      new FromIterator(toCsvRowIterator(new FileReader(file.toFile), delimiter, containsHeader))
     }
-  }
-  
-  def fromCommandLine(
-      command: HasCommandLine,
-      csvFormat: CSVFormat = Defaults.tabDelimitedWithHeaderCsvFormat,
-      workDir: Path = Defaults.thisDir): CsvSource = {
     
-    FromCommand(command.commandLineString, csvFormat, workDir)
-  }
-  
-  private def toCsvRowIterator(reader: Reader, csvFormat: CSVFormat): Iterator[CsvRow] = {
-    import scala.collection.JavaConverters._
+    private def toCsvRowIterator(reader: Reader, delimiter: Char, containsHeader: Boolean): Iterator[de.siegmar.fastcsv.reader.CsvRow] = {
+        
+      val csvReader = new CsvReader
       
-    val parser = new CSVParser(reader, csvFormat)
+      csvReader.setFieldSeparator(delimiter)
+      csvReader.setContainsHeader(containsHeader)
+      
+      val csvParser: CsvParser = csvReader.parse(reader)
+      
+      import de.siegmar.fastcsv.reader.CsvRow
+      
+      val iterator: Iterator[CsvRow] = new Iterator[CsvRow] {
+        private[this] var currentRow: CsvRow = csvParser.nextRow()
+        
+        private[this] def read(): Unit = {
+          currentRow = csvParser.nextRow()
+        }
+        
+        override def hasNext: Boolean = currentRow != null
+        
+        override def next(): CsvRow = {
+          try { if(currentRow != null) currentRow else throw new Exception("No more CSV rows") } 
+          finally { read() }
+        }
+      }
+      
+      TakesEndingActionIterator(iterator) {
+        Throwables.quietly("Closing CSV parser")(csvParser.close())
+        Throwables.quietly("Closing underlying reader")(reader.close())
+      }
+    }
     
-    val iterator = parser.iterator.asScala
+    final case class FromCommand(
+        command: String,
+        workDir: Path = Defaults.thisDir,
+        delimiter: Char = Defaults.FastCsv.delimiter,
+        containsHeader: Boolean = Defaults.FastCsv.containsHeader) extends CsvSource {
+      
+      override def records: Iterator[CsvRow] = {
+        val bashScriptForCommand = BashScript.fromCommandLineString(command)
+        
+        val processBuilder = new java.lang.ProcessBuilder(bashScriptForCommand.commandTokens: _*)
+        
+        val process = processBuilder.start()
+              
+        toCsvRowIterator(new InputStreamReader(process.getInputStream), delimiter, containsHeader)
+      }
+    }
     
-    TakesEndingActionIterator(iterator) {
-      Throwables.quietly("Closing CSV parser")(parser.close())
-      Throwables.quietly("Closing underlying reader")(reader.close())
+    def fromCommandLine(
+        command: String,
+        workDir: Path = Defaults.thisDir,
+        delimiter: Char = Defaults.FastCsv.delimiter,
+        containsHeader: Boolean = Defaults.FastCsv.containsHeader): CsvSource = {
+    
+      FromCommand(command, workDir, delimiter, containsHeader)
     }
   }
 }

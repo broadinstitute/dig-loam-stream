@@ -1,9 +1,8 @@
 package loamstream.loam.intake
 
-import org.apache.commons.csv.CSVRecord
-import scala.reflect.runtime.universe._
+import scala.reflect.runtime.universe.TypeTag
+import scala.reflect.runtime.universe.typeTag
 import scala.util.matching.Regex
-
 
 /**
  * @author clint
@@ -18,8 +17,8 @@ sealed abstract class ColumnExpr[A : TypeTag] extends RowParser[A] {
   
   final def render(row: CsvRow): String = eval(row).toString
   
-  final def map[B: TypeTag](f: A => B): ColumnExpr[B] = this |> f
-  final def |>[B: TypeTag](f: A => B): ColumnExpr[B] = MappedColumnExpr(f, this)
+  final def map[B: TypeTag](f: A => B): ColumnExpr[B] = MappedColumnExpr(f, this)
+  final def |>[B: TypeTag](f: A => B): ColumnExpr[B] = this.map(f)
   
   final def flatMap[B: TypeTag](f: A => ColumnExpr[B]): ColumnExpr[B] = FlatMappedColumnExpr(f, this)
   
@@ -45,10 +44,6 @@ sealed abstract class ColumnExpr[A : TypeTag] extends RowParser[A] {
     
   final def *(expr: ColumnExpr[A])(implicit ev: Numeric[A]): ColumnExpr[A] = arithmeticOp(expr)(_.times)
   
-  /*final def /(expr: ColumnExpr[A])(implicit ev: Numeric[A]): ColumnExpr[A] = arithmeticOp(expr) {
-    
-  }*/
-    
   final def unary_-(implicit ev: Numeric[A]): ColumnExpr[A] = {
     this.map(a => implicitly[Numeric[A]].mkNumericOps(a).unary_-())
   }
@@ -162,7 +157,13 @@ final case class Literal[A: TypeTag](value: A) extends ColumnExpr[A] {
 }
 
 final case class ColumnName(name: String) extends ColumnExpr[String] {
-  override def eval(row: CsvRow): String = row.get(name)
+  override def eval(row: CsvRow): String = {
+    val value = row.getField(name)
+    
+    require(value != null, s"Field named '$name' not found in row $row") 
+    
+    value
+  }
   
   override def asString: ColumnExpr[String] = Literal(name)
 }

@@ -1,29 +1,15 @@
 package loamstream.loam.intake
 
-import java.nio.file.Path
 import java.nio.file.Paths
-import org.apache.commons.csv.CSVFormat
-import org.apache.commons.csv.CSVParser
-import org.apache.commons.csv.CSVRecord
-import loamstream.util.TakesEndingActionIterator
-import loamstream.util.BashScript
 
-import loamstream.util.Sequence
-import loamstream.util.Maps
-import java.io.FileReader
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext
-import loamstream.util.ExecutorServices
-import scala.concurrent.Await
-import loamstream.util.TimeUtils
 import loamstream.util.Loggable
+import loamstream.util.TimeUtils
 
 object Dsl extends App with Loggable {
   
   import IntakeSyntax._
   
-  //val src: CsvSource = CsvSource.FromFile(Paths.get("data.txt"))
-  val src: CsvSource = CsvSource.FromCommand("cat data.txt")
+  val src: CsvSource = CsvSource.FastCsv.fromCommandLine("cat data.txt")
 
   object ColumnNames {
     val VARID = "VAR_ID".asColumnName
@@ -128,7 +114,7 @@ object Dsl extends App with Loggable {
     process(flipDetector)(rowDef)
   }
   
-  val renderer = CommonsCsvRenderer(CsvSource.Defaults.tabDelimitedWithHeaderCsvFormat)
+  val renderer = CommonsCsvRenderer(CsvSource.Defaults.CommonsCsv.Formats.tabDelimitedWithHeaderCsvFormat)
   
   println(renderer.render(header))
 

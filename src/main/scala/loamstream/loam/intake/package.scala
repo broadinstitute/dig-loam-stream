@@ -1,14 +1,11 @@
 package loamstream.loam
 
-import org.apache.commons.csv.CSVRecord
-
-
 /**
  * @author clint
  * Dec 17, 2019
  */
 package object intake {
-  type CsvRow = CSVRecord
+  type CsvRow = de.siegmar.fastcsv.reader.CsvRow
   
   type PartialRowParser[A] = PartialFunction[CsvRow, A]
   

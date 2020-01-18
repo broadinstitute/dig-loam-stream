@@ -1,18 +1,15 @@
 package loamstream.loam.intake
 
-import scala.util.matching.Regex
-import loamstream.util.Files
-import java.io.Reader
 import java.io.FileReader
-import java.nio.file.Paths
 import java.nio.file.Files.exists
-import loamstream.util.CanBeClosed
-import java.io.File
-import loamstream.util.Options
 import java.nio.file.Path
-import org.apache.commons.csv.CSVParser
-import loamstream.util.TimeUtils
+import java.nio.file.Paths
+
+import scala.util.matching.Regex
+
+import loamstream.util.CanBeClosed
 import loamstream.util.Loggable
+import loamstream.util.TimeUtils
 
 object FlipDetector extends Loggable {
   def default: FlipDetector = new FlipDetector
@@ -139,19 +136,9 @@ final class FlipDetector(
   }
 
   private val variantsFrom26k: Set[String] = TimeUtils.time("Reading 26k map", info(_)) {
-    /*CanBeClosed.enclosed(new FileReader(pathTo26kMap.toFile)) { fileReader =>
-      CanBeClosed.enclosed(new CSVParser(fileReader, CsvSource.Defaults.tabDelimited)) { csvParser =>
-        import scala.collection.JavaConverters._
-        
-        val iterator = csvParser.iterator.asScala
-        
-        iterator.map(_.get(0)).toSet
-      }
-    }*/
+    val iterator = CsvSource.FastCsv.fromFile(pathTo26kMap, containsHeader = false).records
     
-    import scala.collection.JavaConverters._
-    
-    java.nio.file.Files.lines(pathTo26kMap).iterator.asScala.map(line => line.split("\t").apply(0)).toSet
+    iterator.map(_.getField(0)).toSet
   }
 
   private lazy val referenceFiles = FlipDetector.ReferenceFiles(referenceDir, knownChroms)
@@ -168,12 +155,12 @@ final class FlipDetector(
       val extractor1 = FlipDetector.Variant.Extractor(regex1, referenceFiles, variantsFrom26k)
       val extractor2 = FlipDetector.Variant.Extractor(regex2, referenceFiles, variantsFrom26k)
       
-      import Options.Implicits._
       import FlipDetector.n2c
+      import loamstream.util.Options.Implicits._
       
       variantId match {
         case extractor1(variant) => {
-          import variant.{reference, alt}
+          import variant.{ alt, reference }
 
           variant.isIn26k ||
           variant.isIn26kMunged ||
@@ -184,11 +171,11 @@ final class FlipDetector(
           }.orElseFalse
         }// case regex1
         case extractor2(variant) => {
-          import variant.{reference, alt}
-          
           def munge(s: String): String = {
             s.replaceAll("A", "X").replaceAll("T", "A").replaceAll("X", "T").replaceAll("C", "X").replaceAll("G", "C").replaceAll("X", "G")
           }
+          
+          import variant.{ alt, reference }
           
           (for {
             ref <- variant.refFromReferenceGenome

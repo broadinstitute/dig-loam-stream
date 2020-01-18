@@ -1,12 +1,10 @@
 package loamstream.loam.intake
 
-import loamstream.loam.NativeTool
 import loamstream.loam.LoamScriptContext
-import loamstream.util.Maps
+import loamstream.loam.NativeTool
 import loamstream.model.Store
-import loamstream.util.Files
 import loamstream.model.Tool
-import loamstream.model.PathStore
+import loamstream.util.Files
 import loamstream.util.Hashes
 
 
@@ -33,7 +31,7 @@ trait IntakeSyntax extends Interpolators {
       val tool = NativeTool {
         val (headerRow, dataRows) = process(???)(RowDef(varIdColumnDef, otherColumnDefs))
         
-        val csvFormat = CsvSource.Defaults.tabDelimitedWithHeaderCsvFormat
+        val csvFormat = CsvSource.Defaults.CommonsCsv.Formats.tabDelimitedWithHeaderCsvFormat
         
         val renderer = CommonsCsvRenderer(csvFormat)
         
@@ -52,7 +50,7 @@ trait IntakeSyntax extends Interpolators {
     def from(columnDefs: ColumnDef*)(implicit scriptContext: LoamScriptContext): NativeTool = {
       val headerRow = headerRowFrom(columnDefs)
       
-      val csvFormat = CsvSource.Defaults.tabDelimitedWithHeaderCsvFormat
+      val csvFormat = CsvSource.Defaults.CommonsCsv.Formats.tabDelimitedWithHeaderCsvFormat
       
       //TODO: How to wire up inputs (if any)?
       val tool = NativeTool {
@@ -162,7 +160,7 @@ trait IntakeSyntax extends Interpolators {
     
     val withSameSourceAsVarID: Seq[ColumnDef] = nonVarIdColumnDefsBySource.get(varIdSource).getOrElse(Nil)
     
-    import Maps.Implicits._
+    import loamstream.util.Maps.Implicits._
     
     val parseFnsBySourceNonVarId: Map[CsvSource, ParseFn] = nonVarIdColumnDefsBySource.strictMapValues(fuse(flipDetector))
     
@@ -205,7 +203,6 @@ trait IntakeSyntax extends Interpolators {
   def process2(flipDetector: FlipDetector)(rowDef: RowDef): (HeaderRow, Iterator[DataRow]) = {
     val bySource = rowDef.columnDefs.groupBy(_.source)
     
-    import Maps.Implicits._
     
     //val parseFn = rowDef.parseFn(flipDetector)
     

@@ -29,7 +29,7 @@ trait IntakeSyntax extends Interpolators {
     def using(flipDetector: FlipDetector)(implicit scriptContext: LoamScriptContext): NativeTool = {
       //TODO: How to wire up inputs (if any)?
       val tool = NativeTool {
-        val (headerRow, dataRows) = process(???)(RowDef(varIdColumnDef, otherColumnDefs))
+        val (headerRow, dataRows) = process()(RowDef(varIdColumnDef, otherColumnDefs))
         
         val csvFormat = CsvSource.Defaults.CommonsCsv.Formats.tabDelimitedWithHeaderCsvFormat
         

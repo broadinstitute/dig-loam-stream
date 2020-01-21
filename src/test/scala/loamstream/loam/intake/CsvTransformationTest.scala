@@ -89,11 +89,11 @@ final class CsvTransformationTest extends FunSuite {
         val varIdColumn = columns.head.from(source)
         val otherColumns = source.producing(columns.tail)
         
-        produceCsv(storeC).from(varIdColumn, otherColumns: _*).using(flipDetector).in(storeB)
+        produceCsv(storeC).from(varIdColumn, otherColumns: _*).using(flipDetector).tag("makeCSV").in(storeB)
         
-        produceSchemaFile(storeSchema).from(columns: _*)
+        produceSchemaFile(storeSchema).from(columns: _*).tag("makeSchemaFile")
         
-        produceListFiles(storeDataList, storeSchemaList).from(storeC, storeSchema)
+        produceListFiles(storeDataList, storeSchemaList).from(storeC, storeSchema).tag("makeListFiles")
       }
       
       val executer = RxExecuter.default

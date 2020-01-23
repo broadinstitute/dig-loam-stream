@@ -9,46 +9,35 @@ object Dsl extends App with Loggable {
   
   import IntakeSyntax._
   
-  val src: CsvSource = CsvSource.FastCsv.fromCommandLine("cat data.txt")
-
-  object ColumnNames {
-    val VARID = "VAR_ID".asColumnName
-    val CHROM = "CHROM".asColumnName
-    val POS = "POS".asColumnName
-    val Allele1 = "Allele1".asColumnName
-    val Allele2 = "Allele2".asColumnName
-    val ReferenceAllele = "Reference_Allele".asColumnName
-    val EffectAllele = "Effect_Allele".asColumnName
-    val EffectAllelePH = "Effect_Allele_PH".asColumnName
-    val EAF = "EAF".asColumnName
-    val EAFPH = "EAF_PH".asColumnName
-    val MAF = "MAF".asColumnName
-    val MAFPH = "MAF_PH".asColumnName
-    val OddsRatio = "ODDS_RATIO".asColumnName
-    val SE = "SE".asColumnName
-    val PValue = "P_VALUE".asColumnName
-    val Freq1 = "Freq1".asColumnName
-    val Effect = "Effect".asColumnName
-    val StdErr = "StdErr".asColumnName
-    val PDashValue = "P-value".asColumnName
-    
-    /*VAR_ID	${}
-  CHROM   $CHROM	$CHROM	"zcat some/file | add_chrom_pos"
-  
-  Effect_Allele   =uc(Allele1)    =uc(Allele2)    "zcat some/file | add_chrom_pos"
-  Effect_Allele_PH        =uc(Allele1)    =uc(Allele2)    "zcat some/file | add_chrom_pos"
-  EAF     Freq1   =1-Freq1        "zcat some/file | add_chrom_pos"
-  EAF_PH  Freq1   =1-Freq1        "zcat some/file | add_chrom_pos"
-  MAF     =Freq1 > 0.5 ? 1-Freq1 : Freq1  DONOTHING       "zcat some/file | add_chrom_pos"
-  MAF_PH  =Freq1 > 0.5 ? 1-Freq1 : Freq1  DONOTHING       "zcat some/file | add_chrom_pos"
-  ODDS_RATIO      =exp(Effect)    =exp(-Effect)   "zcat some/file | add_chrom_pos"
-  SE      StdErr  StdErr  "zcat some/file | add_chrom_pos"
-  P_VALUE P-value P-value "zcat some/file | add_chrom_pos"*/
-
-  
-  }
-  
   object ColumnDefs {
+    /*
+    VAR_ID	=CHROM ."_". POS ."_". uc(Allele2) ."_". uc(Allele1)	=CHROM ."_". POS ."_". uc(Allele1) ."_". uc(Allele2)	="cat /home/clint/workspace/dig\-loam\-stream/data\.txt |"
+    
+    CHROM	CHROM	CHROM	="cat /home/clint/workspace/dig\-loam\-stream/data\.txt |"
+    
+    POS	POS	POS	="cat /home/clint/workspace/dig\-loam\-stream/data\.txt |"
+    
+    Reference_Allele	=uc(Allele2)	=uc(Allele1)	="cat /home/clint/workspace/dig\-loam\-stream/data\.txt |"
+    
+    Effect_Allele	=uc(Allele1)	=uc(Allele2)	="cat /home/clint/workspace/dig\-loam\-stream/data\.txt |"
+    
+    Effect_Allele_PH	=uc(Allele1)	=uc(Allele2)	="cat /home/clint/workspace/dig\-loam\-stream/data\.txt |"
+    
+    EAF	Freq1	=1-Freq1	="cat /home/clint/workspace/dig\-loam\-stream/data\.txt |"
+    
+    EAF_PH	Freq1	=1-Freq1	="cat /home/clint/workspace/dig\-loam\-stream/data\.txt |"
+    
+    MAF	=Freq1 > 0.5 ? 1-Freq1 : Freq1	DONOTHING	="cat /home/clint/workspace/dig\-loam\-stream/data\.txt |"
+    
+    MAF_PH	=Freq1 > 0.5 ? 1-Freq1 : Freq1	DONOTHING	="cat /home/clint/workspace/dig\-loam\-stream/data\.txt |"
+    
+    ODDS_RATIO	=exp(Effect)	=exp(-Effect)	="cat /home/clint/workspace/dig\-loam\-stream/data\.txt |"
+    
+    SE	StdErr	StdErr	="cat /home/clint/workspace/dig\-loam\-stream/data\.txt |"
+    
+    P_VALUE	P-value	P-value	="cat /home/clint/workspace/dig\-loam\-stream/data\.txt |"
+		*/
+    
     import ColumnNames._
     
     val varId = ColumnDef(
@@ -69,26 +58,42 @@ object Dsl extends App with Loggable {
       
     val eafPh = ColumnDef(EAFPH, Freq1, Freq1.asDouble.complement)
       
-    val maf = ColumnDef(
-      MAF,
-      //TODO
-      Freq1.asDouble.complementIf(_ > 0.5))
+    val maf = ColumnDef(MAF, Freq1.asDouble.complementIf(_ > 0.5))
+    
       
-    val mafPh = ColumnDef(
-      MAFPH,
-      //TODO
-      Freq1.asDouble.complementIf(_ > 0.5))
+    val mafPh = ColumnDef(MAFPH, Freq1.asDouble.complementIf(_ > 0.5))
       
-    val oddsRatio = ColumnDef(
-        OddsRatio, 
-        Effect.asDouble |> scala.math.exp, 
-        Effect.asDouble.negate |> scala.math.exp)
+    val oddsRatio = ColumnDef(OddsRatio, Effect.asDouble.exp, Effect.asDouble.negate.exp)
       
     val se = ColumnDef(SE, StdErr, StdErr)
 
     val pv = ColumnDef(PValue, PDashValue, PDashValue)
-      
   }
+  
+  object ColumnNames {
+    val VARID = "VAR_ID".asColumnName
+    val CHROM = "CHROM".asColumnName
+    val POS = "POS".asColumnName
+    val Allele1 = "Allele1".asColumnName
+    val Allele2 = "Allele2".asColumnName
+    val ReferenceAllele = "Reference_Allele".asColumnName
+    val EffectAllele = "Effect_Allele".asColumnName
+    val EffectAllelePH = "Effect_Allele_PH".asColumnName
+    val EAF = "EAF".asColumnName
+    val EAFPH = "EAF_PH".asColumnName
+    val MAF = "MAF".asColumnName
+    val MAFPH = "MAF_PH".asColumnName
+    val OddsRatio = "ODDS_RATIO".asColumnName
+    val SE = "SE".asColumnName
+    val PValue = "P_VALUE".asColumnName
+    val Freq1 = "Freq1".asColumnName
+    val Effect = "Effect".asColumnName
+    val StdErr = "StdErr".asColumnName
+    val PDashValue = "P-value".asColumnName
+  }
+  
+  val src: CsvSource = CsvSource.FastCsv.fromCommandLine("cat data.txt")
+  
   val (header, rows) = TimeUtils.time("Making DataRow iterator") {
     val flipDetector = new FlipDetector(
       referenceDir = Paths.get("/home/clint/workspace/marcins-scripts/reference"),

@@ -93,7 +93,7 @@ final class CsvTransformationTest extends FunSuite {
         
         produceSchemaFile(storeSchema).from(columns: _*).tag("makeSchemaFile")
         
-        produceListFiles(storeDataList, storeSchemaList).from(storeC, storeSchema).tag("makeListFiles")
+        produceListFiles(storeDataList, storeSchemaList).from(storeC, storeSchema).tag("makeListFiles").in(storeC, storeSchema)
       }
       
       val executer = RxExecuter.default

@@ -6,6 +6,8 @@ import loamstream.model.Store
 import loamstream.model.Tool
 import loamstream.util.Files
 import loamstream.util.Hashes
+import loamstream.util.TimeUtils
+import loamstream.util.Loggable
 
 
 /**
@@ -25,19 +27,21 @@ trait IntakeSyntax extends Interpolators {
     }
   }    
     
-  final class ProcessTarget(dest: Store, varIdColumnDef: SourcedColumnDef, otherColumnDefs: SourcedColumnDef*) {
+  final class ProcessTarget(dest: Store, varIdColumnDef: SourcedColumnDef, otherColumnDefs: SourcedColumnDef*) extends Loggable {
     def using(flipDetector: FlipDetector)(implicit scriptContext: LoamScriptContext): NativeTool = {
       //TODO: How to wire up inputs (if any)?
       val tool = NativeTool {
-        val (headerRow, dataRows) = process()(RowDef(varIdColumnDef, otherColumnDefs))
-        
-        val csvFormat = CsvSource.Defaults.CommonsCsv.Formats.tabDelimitedWithHeaderCsvFormat
-        
-        val renderer = CommonsCsvRenderer(csvFormat)
-        
-        val rowsToWrite: Iterator[Row] = Iterator(headerRow) ++ dataRows
-        
-        Files.writeLinesTo(dest.path)(rowsToWrite.map(renderer.render))
+        TimeUtils.time(s"Producing ${dest.path}", info(_)) {
+          val (headerRow, dataRows) = process(flipDetector)(RowDef(varIdColumnDef, otherColumnDefs))
+          
+          val csvFormat = CsvSource.Defaults.CommonsCsv.Formats.tabDelimitedWithHeaderCsvFormat
+          
+          val renderer = CommonsCsvRenderer(csvFormat)
+          
+          val rowsToWrite: Iterator[Row] = Iterator(headerRow) ++ dataRows
+          
+          Files.writeLinesTo(dest.path)(rowsToWrite.map(renderer.render))
+        }
       }.out(dest)
       
       addToGraph(tool)
@@ -129,10 +133,12 @@ trait IntakeSyntax extends Interpolators {
   }
   
   private[intake] def fuse(flipDetector: FlipDetector)(columnDefs: Seq[ColumnDef]): ParseFn = { (varIdValue, row) =>
+    val flipDetected = flipDetector.isFlipped(varIdValue)
+    
     val dataRowValues: Map[ColumnDef, TypedData] = {
       Map.empty ++ columnDefs.map { columnDef =>
         val columnValueFn: RowParser[TypedData] = {
-          if(flipDetector.isFlipped(varIdValue)) { columnDef.getTypedValueFromSourceWhenFlipNeeded }
+          if(flipDetected) { columnDef.getTypedValueFromSourceWhenFlipNeeded }
           else { columnDef.getTypedValueFromSource } 
         }
         
@@ -152,13 +158,11 @@ trait IntakeSyntax extends Interpolators {
   def process(flipDetector: FlipDetector)(rowDef: RowDef): (HeaderRow, Iterator[DataRow]) = {
     val varIdSource = rowDef.varIdDef.source
     
-    val nonVarIdColumnDefsBySource: Map[CsvSource, Seq[ColumnDef]] = {
-      val nonVarIdColumnDefsBySource: Map[CsvSource, Seq[ColumnDef]] = rowDef.otherColumns.groupBy(_.source)
-      
-      nonVarIdColumnDefsBySource - varIdSource
-    }
+    val columnDefsBySource: Map[CsvSource, Seq[ColumnDef]] = rowDef.otherColumns.groupBy(_.source)
     
-    val withSameSourceAsVarID: Seq[ColumnDef] = nonVarIdColumnDefsBySource.get(varIdSource).getOrElse(Nil)
+    val nonVarIdColumnDefsBySource: Map[CsvSource, Seq[ColumnDef]] = columnDefsBySource - varIdSource
+    
+    val columnDefsWithSameSourceAsVarID: Seq[ColumnDef] = columnDefsBySource.get(varIdSource).getOrElse(Nil)
     
     import loamstream.util.Maps.Implicits._
     
@@ -170,7 +174,7 @@ trait IntakeSyntax extends Interpolators {
     
     val varIdSourceRecords = varIdSource.records
     
-    val parseFnForOtherColumnsFromVarIdSource: ParseFn = fuse(flipDetector)(withSameSourceAsVarID) 
+    val parseFnForOtherColumnsFromVarIdSource: ParseFn = fuse(flipDetector)(columnDefsWithSameSourceAsVarID) 
     
     val rows: Iterator[DataRow] = new Iterator[DataRow] {
       override def hasNext: Boolean = varIdSourceRecords.hasNext && recordsAndParsersNonVarId.forall { case (records, _) => records.hasNext }
@@ -185,49 +189,21 @@ trait IntakeSyntax extends Interpolators {
         
         val varIdSourceRecord = varIdSourceRecords.next()
         
-        val varIdValue = rowDef.varIdDef.getTypedValueFromSource(varIdSourceRecord).raw
+        val varIdTypedValue = rowDef.varIdDef.getTypedValueFromSource(varIdSourceRecord)
+        
+        val varIdValue = varIdTypedValue.raw
+        
+        val dataRowForVarId = DataRow(rowDef.varIdDef -> varIdTypedValue)
         
         val dataRowFromVarIdSource = parseFnForOtherColumnsFromVarIdSource(varIdValue, varIdSourceRecord)
         
         val dataRowFromOtherSources = recordsAndParsersNonVarId.map(parseNext(varIdValue)).foldLeft(DataRow.empty)(_ ++ _)
         
-        dataRowFromVarIdSource ++ dataRowFromOtherSources
+        dataRowForVarId ++ dataRowFromVarIdSource ++ dataRowFromOtherSources
       }
     }
     
     val header = headerRowFrom(rowDef.columnDefs)
-    
-    (header, rows)
-  }
-  
-  def process2(flipDetector: FlipDetector)(rowDef: RowDef): (HeaderRow, Iterator[DataRow]) = {
-    val bySource = rowDef.columnDefs.groupBy(_.source)
-    
-    
-    //val parseFn = rowDef.parseFn(flipDetector)
-    
-    val parsingFunctionsBySource: Seq[(CsvSource, CsvRow => DataRow)] = ???//bySource.strictMapValues().toSeq
-    
-    val header = headerRowFrom(rowDef.columnDefs)
-    
-    val isToFns = parsingFunctionsBySource.map { case (src, parseFn) => 
-      (src.records, parseFn) 
-    }
-    
-    val rows: Iterator[DataRow] = new Iterator[DataRow] {
-      override def hasNext: Boolean = isToFns.forall { case (records, _) => records.hasNext }
-      override def next(): DataRow = {
-        def parseNext(t: (Iterator[CsvRow], CsvRow => DataRow)): DataRow = {
-          val (records, parseFn) = t
-          
-          val record = records.next()
-          
-          parseFn(record)
-        }
-        
-        isToFns.map(parseNext).foldLeft(DataRow.empty)(_ ++ _)
-      }
-    }
     
     (header, rows)
   }

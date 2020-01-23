@@ -87,6 +87,7 @@ object FlipDetector extends Loggable {
       val position: Int, 
       val alt: String, 
       val reference: String) {
+    
     def toKey: String = s"${chrom}_${position}_${alt}_${reference}"
     
     def toKeyMunged: String = s"${chrom}_${position}_${n2c(alt)}_${n2c(reference)}"

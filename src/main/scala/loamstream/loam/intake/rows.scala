@@ -34,5 +34,7 @@ final case class DataRow(valuesByColumn: Map[ColumnDef, TypedData]) extends Row 
 }
 
 object DataRow {
-  val empty: DataRow = DataRow(Map.empty)
+  def apply(tuples: (ColumnDef, TypedData)*): DataRow = new DataRow(Map(tuples: _*))
+  
+  val empty: DataRow = DataRow()
 }

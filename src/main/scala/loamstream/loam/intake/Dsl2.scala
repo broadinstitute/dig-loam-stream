@@ -1,7 +1,78 @@
 package loamstream.loam.intake
 
-object Dsl2 {
+import loamstream.util.TimeUtils
+import java.nio.file.Paths
+import loamstream.util.Loggable
+
+object Dsl2 extends App with Loggable {
   import IntakeSyntax._
+  
+  object ColumnDefs {
+    import ColumnNames._
+    
+  /*
+    VAR_ID	=MARKER_ID=~/^(\d+):(\d+)_([ATCG]+)\/([ATCG]+)_/ ? $1 ."_". $2 ."_". $3 ."_". $4 : next	=MARKER_ID=~/^(\d+):(\d+)_([ATCG]+)\/([ATCG]+)_/ ? $1 ."_". $2 ."_". $4 ."_". $3 : next	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
+  
+    CHROM	CHROM	CHROM	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
+  
+    POS	BEG	BEG	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
+  
+    Reference_Allele	=MARKER_ID=~/^\d+:\d+_([ATCG]+)\/[ATCG]+_/ ? $1 : next	=MARKER_ID=~/^\d+:\d+_[ATCG]+\/([ATCG]+)_/ ? $1 : next	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
+  
+    Effect_Allele	=MARKER_ID=~/^\d+:\d+_[ATCG]+\/([ATCG]+)_/ ? $1 : next	=MARKER_ID=~/^\d+:\d+_([ATCG]+)\/[ATCG]+_/ ? $1 : next	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
+  
+    Effect_Allele_PH	=MARKER_ID=~/^\d+:\d+_[ATCG]+\/([ATCG]+)_/ ? $1 : next	=MARKER_ID=~/^\d+:\d+_([ATCG]+)\/[ATCG]+_/ ? $1 : next	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
+  
+    N_PH	NS	NS	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
+  
+    MAF	MAF	MAF	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
+  
+    MAF_PH	MAF	MAF	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
+  
+    P_VALUE	PVALUE	PVALUE	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
+  
+    ODDS_RATIO	=exp(BETA)	=exp(-BETA)	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
+  
+    SE	SEBETA	SEBETA	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
+  */
+    
+    object Regexes {
+      val rightFormat = """^\d+:\d+_[ATCG]+\/([ATCG]+_"""
+      val all4 = """^(\d+):(\d+)_([ATCG]+)\/([ATCG]+)_"""
+      val part2 = """^\d+:\d+_([ATCG]+)\/[ATCG]+_"""
+      val part3 = """^\d+:\d+_[ATCG]+\/([ATCG]+)_"""
+    }
+    
+    def getSingleMatch(strs: Seq[String]): String = strs match { 
+      case Seq(a) => a 
+    }
+    
+    val varId = ColumnDef(
+      VARID, 
+      MARKER_ID.mapRegex(Regexes.all4) { case Seq(a, b, c, d) => s"${a}_${b}_${c}_${d}" },
+      MARKER_ID.mapRegex(Regexes.all4) { case Seq(a, b, c, d) => s"${a}_${b}_${d}_${c}" })
+
+    val chrom = ColumnDef(CHROM)
+    val pos = ColumnDef(POS, BEG, BEG)
+    
+    val referenceAllele = ColumnDef(
+      ReferenceAllele, 
+      MARKER_ID.mapRegex(Regexes.part2)(getSingleMatch), 
+      MARKER_ID.mapRegex(Regexes.part3)(getSingleMatch))
+
+    val effectAllele = ColumnDef(
+      EffectAllele, 
+      MARKER_ID.mapRegex(Regexes.part3)(getSingleMatch), 
+      MARKER_ID.mapRegex(Regexes.part2)(getSingleMatch))
+
+    val effectAllelePH = effectAllele.copy(name = EffectAllelePH)
+    val nPH = ColumnDef(NPH, NS, NS)
+    val maf = ColumnDef(MAF)
+    val mafPh = ColumnDef(MAFPH, MAF, MAF)
+    val pValue = ColumnDef(PValue, PValueNoUnderscore, PValueNoUnderscore)
+    val oddsRatio = ColumnDef(OddsRatio, Beta.asDouble.exp, Beta.asDouble.negate.exp)
+    val se = ColumnDef(SE, SEBeta, SEBeta)
+  }
   
   object ColumnNames {
     val VARID = "VAR_ID".asColumnName
@@ -24,79 +95,42 @@ object Dsl2 {
     val SEBeta = "SEBETA".asColumnName
   }
   
-  object ColumnDefs {
-    import ColumnNames._
+  import ColumnNames.MARKER_ID
+  import ColumnDefs._
+  
+  val source = CsvSource.FastCsv.fromCommandLine("...").filter(MARKER_ID.matches(Regexes.rightFormat))
+  
+  val (header, rows) = {
+    val flipDetector = new FlipDetector(
+      referenceDir = Paths.get("/home/clint/workspace/marcins-scripts/reference"),
+      isVarDataType = true,
+      pathTo26kMap = Paths.get("/home/clint/workspace/marcins-scripts/26k_id.map"))
     
-/*
-VAR_ID	=MARKER_ID=~/^(\d+):(\d+)_([ATCG]+)\/([ATCG]+)_/ ? $1 ."_". $2 ."_". $3 ."_". $4 : next	=MARKER_ID=~/^(\d+):(\d+)_([ATCG]+)\/([ATCG]+)_/ ? $1 ."_". $2 ."_". $4 ."_". $3 : next	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
-CHROM	CHROM	CHROM	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
-POS	BEG	BEG	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
-Reference_Allele	=MARKER_ID=~/^\d+:\d+_([ATCG]+)\/[ATCG]+_/ ? $1 : next	=MARKER_ID=~/^\d+:\d+_[ATCG]+\/([ATCG]+)_/ ? $1 : next	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
-*/
-    object Regexes {
-      val rightFormat = """^\d+:\d+_[ATCG]+\/([ATCG]+_"""
-      val all4 = """^(\d+):(\d+)_([ATCG]+)\/([ATCG]+)_"""
-      val part2 = """^\d+:\d+_([ATCG]+)\/[ATCG]+_"""
-      val part3 = """^\d+:\d+_[ATCG]+\/([ATCG]+)_"""
-    }
+    val rowDef = RowDef(
+      varId.from(source), 
+      source.producing(Seq(
+        chrom,
+        pos,
+        referenceAllele,
+        effectAllele,
+        effectAllelePH,
+        nPH,
+        maf,
+        mafPh,
+        pValue,
+        oddsRatio,
+        se)))
     
-    val getSingleMatch: Seq[String] => String = { case Seq(a) => a }
-    
-    val varId = {
-      val notFlipped: Seq[String] => String = { case Seq(a, b, c, d) => s"${a}_${b}_${c}_${d}" }
-      val ifFlipped: Seq[String] => String = { case Seq(a, b, c, d) => s"${a}_${b}_${d}_${c}" }
-      
-      val fromMarkerId: ColumnExpr[String] = MARKER_ID.mapRegex(Regexes.all4) {
-        case Seq(a, b, c, d) => s"${a}_${b}_${c}_${d}"
-      }
-      
-      val fromMarkerIdFlip: ColumnExpr[String] = MARKER_ID.mapRegex(Regexes.all4) {
-        case Seq(a, b, c, d) => s"${a}_${b}_${d}_${c}"
-      }
-      
-      ColumnDef(VARID, fromMarkerId, fromMarkerIdFlip)
-    }
-    val chrom = ColumnDef(CHROM)
-    val pos = ColumnDef(POS, BEG, BEG)
-    val referenceAllele = {
-      val fromMarkerId = MARKER_ID.mapRegex(Regexes.part2)(getSingleMatch)
-      
-      val fromMarkerIdFlip = MARKER_ID.mapRegex(Regexes.part3)(getSingleMatch)
-      
-      ColumnDef(ReferenceAllele, fromMarkerId, fromMarkerIdFlip)
-    }
-    val effectAllele = {
-      val fromMarkerId = MARKER_ID.mapRegex(Regexes.part3)(getSingleMatch)
-      
-      val fromMarkerIdFlip = MARKER_ID.mapRegex(Regexes.part2)(getSingleMatch)
-      
-      ColumnDef(EffectAllele, fromMarkerId, fromMarkerIdFlip)
-    }
-    val effectAllelePH = effectAllele.copy(name = EffectAllelePH)
-    val nPH = ColumnDef(NPH, NS, NS)
-    val maf = ColumnDef(MAF)
-    val mafPh = ColumnDef(MAFPH, MAF, MAF)
-    val pValue = ColumnDef(PValue, PValueNoUnderscore, PValueNoUnderscore)
-    val oddsRatio = ColumnDef(OddsRatio, Beta.asDouble.exp, Beta.asDouble.negate.exp)
-    val se = ColumnDef(SE, SEBeta, SEBeta)
-    
-    val source = CsvSource.FastCsv.fromCommandLine("").filter(MARKER_ID.matches(Regexes.rightFormat))
+    process(flipDetector)(rowDef)
   }
   
+  val renderer = CommonsCsvRenderer(CsvSource.Defaults.CommonsCsv.Formats.tabDelimitedWithHeaderCsvFormat)
   
-    
-/*
-VAR_ID	=MARKER_ID=~/^(\d+):(\d+)_([ATCG]+)\/([ATCG]+)_/ ? $1 ."_". $2 ."_". $3 ."_". $4 : next	=MARKER_ID=~/^(\d+):(\d+)_([ATCG]+)\/([ATCG]+)_/ ? $1 ."_". $2 ."_". $4 ."_". $3 : next	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
-CHROM	CHROM	CHROM	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
-POS	BEG	BEG	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
-Reference_Allele	=MARKER_ID=~/^\d+:\d+_([ATCG]+)\/[ATCG]+_/ ? $1 : next	=MARKER_ID=~/^\d+:\d+_[ATCG]+\/([ATCG]+)_/ ? $1 : next	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
-Effect_Allele	=MARKER_ID=~/^\d+:\d+_[ATCG]+\/([ATCG]+)_/ ? $1 : next	=MARKER_ID=~/^\d+:\d+_([ATCG]+)\/[ATCG]+_/ ? $1 : next	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
-Effect_Allele_PH	=MARKER_ID=~/^\d+:\d+_[ATCG]+\/([ATCG]+)_/ ? $1 : next	=MARKER_ID=~/^\d+:\d+_([ATCG]+)\/[ATCG]+_/ ? $1 : next	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
-N_PH	NS	NS	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
-MAF	MAF	MAF	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
-MAF_PH	MAF	MAF	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
-P_VALUE	PVALUE	PVALUE	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
-ODDS_RATIO	=exp(BETA)	=exp(-BETA)	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
-SE	SEBETA	SEBETA	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
-   */
+  println(renderer.render(header))
+
+  val s = TimeUtils.time("processing", info(_)) {
+    rows.size
+  }
+  
+  println(s)
 }

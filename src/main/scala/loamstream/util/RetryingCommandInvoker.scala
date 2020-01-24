@@ -48,7 +48,7 @@ final class RetryingCommandInvoker[A](
       maxRetries: Int,
       delayStart: Duration,
       delayCap: Duration,
-      delegateFn: InvocationFn[A]): SuccessfulInvocationFn[A] = Functions.memoize { param =>
+    delegateFn: InvocationFn[A]): SuccessfulInvocationFn[A] = /*Functions.memoize*/ { param =>
         
     val maxRuns = maxRetries + 1
     

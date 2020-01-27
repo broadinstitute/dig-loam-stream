@@ -59,6 +59,65 @@ final case class RxExecuter(
       makeJobOracle: Executable => JobOracle = JobOracle.fromExecutable(executionConfig, _))
      (implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
     
+    val executionState = ExecutionState.initialFor(executable, maxRunsPerJob)
+    
+    val jobOracle = makeJobOracle(executable)
+    
+    def finish(results: Map[LJob, Execution]): Unit = {
+      results.foreach {case (job, execution) => executionState.finish(job, execution) }
+    }
+    
+    def runEligibleJobs(): Observable[Map[LJob, Execution]] = {
+      
+      val jobs = executionState.startEligibleJobs()
+      
+      val (finishedJobs, notFinishedJobs) = jobs.partition(_.status.isTerminal)
+      
+      if(notFinishedJobs.nonEmpty) {
+        val (jobsToMaybeRun, skippedJobs) = notFinishedJobs.map(_.job).partition(jobFilter.shouldRun)
+        
+        val (jobsToCancel, jobsToRun) = jobsToMaybeRun.partition(jobCanceler.shouldCancel)
+        
+        handleSkippedJobs(skippedJobs)
+        
+        val cancelledJobsMap = cancelJobs(jobsToCancel)
+        
+        record(jobOracle, cancelledJobsMap)
+        
+        val skippedResultMap = toSkippedResultMap(skippedJobs)
+        
+        for {
+          executionTupleOpt <- runJobs(jobsToRun, jobOracle)
+        } yield {
+          record(jobOracle, executionTupleOpt)
+          
+          val executionMap = cancelledJobsMap ++ executionTupleOpt
+          
+          logFinishedJobs(executionMap)
+          
+          val results = executionMap ++ skippedResultMap
+          
+          finish(results)
+          
+          results
+        }
+      } else {
+        Observable.just(Map.empty)
+      }
+    }
+    
+    val chunkResults = Observable.interval(windowLength).flatMap(_ => runEligibleJobs()).takeUntil(_ => executionState.isFinished)
+    
+    val futureMergedResults = chunkResults.foldLeft(emptyExecutionMap)(_ ++ _).firstAsFuture
+
+    Await.result(futureMergedResults, timeout)
+  }
+
+  /*override*/ def execute2(
+      executable: Executable, 
+      makeJobOracle: Executable => JobOracle = JobOracle.fromExecutable(executionConfig, _))
+     (implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
+    
     val jobOracle = makeJobOracle(executable)
     
     val ioScheduler: Scheduler = IOScheduler()

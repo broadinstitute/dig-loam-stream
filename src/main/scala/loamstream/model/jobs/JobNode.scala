@@ -10,6 +10,7 @@ import rx.lang.scala.observables.ConnectableObservable
 import rx.lang.scala.subjects.BehaviorSubject
 import rx.lang.scala.subjects.SerializedSubject
 import loamstream.model.jobs.log.JobLog
+import rx.lang.scala.subjects.PublishSubject
 
 /**
  * @author oliverr
@@ -166,7 +167,7 @@ trait JobNode extends Loggable {
     //would be run twice.  Additionally, due to diamond-shaped topologies, a combinatorial explosion in the number of
     //JobRuns can occur.  It saves significant amounts of heap to mitigate that by de-duping here, at each node,
     //instead of at the roots only.
-    (dependencyRunnables ++ selfRunnables).distinct.shareReplay
+    (dependencyRunnables ++ selfRunnables).distinct(_.key).shareReplay
   }
   
   /**

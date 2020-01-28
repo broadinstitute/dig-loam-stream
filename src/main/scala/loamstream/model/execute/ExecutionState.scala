@@ -49,7 +49,7 @@ final class ExecutionState private (
       
       if(canRun) { acc.withRunnable(job) }
       else if(anyDepsStopExecution) { acc.withCannotRun(job) }
-      else { acc.withUndetermined(job) }
+      else { acc.withAnyRemaining(true) }
     }
   }
   
@@ -131,15 +131,17 @@ object ExecutionState {
     new ExecutionState(maxRunsPerJob, ValueBox(cellsByJob))
   }
   
-  final case class JobStatuses(readyToRun: Iterable[LJob], cannotRun: Iterable[LJob], undetermined: Iterable[LJob]) {
+  final case class JobStatuses(readyToRun: Iterable[LJob], cannotRun: Iterable[LJob], anyRemaining: Boolean) {
     def withRunnable(job: LJob): JobStatuses = copy(readyToRun = Set(job) ++ readyToRun)
     
     def withCannotRun(job: LJob): JobStatuses = copy(cannotRun = Set(job) ++ cannotRun)
     
-    def withUndetermined(job: LJob): JobStatuses = copy(undetermined = Set(job) ++ undetermined)
+    def withAnyRemaining(newAnyRemaining: Boolean): JobStatuses = {
+      if(anyRemaining != newAnyRemaining) copy(anyRemaining = newAnyRemaining) else this
+    }
   }
   
   object JobStatuses {
-    val empty: JobStatuses = JobStatuses(Nil, Nil, Nil)
+    val empty: JobStatuses = JobStatuses(Nil, Nil, false)
   }
 }

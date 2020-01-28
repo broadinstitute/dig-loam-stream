@@ -192,7 +192,7 @@ object AppWiring extends Loggable {
 
       import scala.concurrent.duration._
       
-      val windowLength = 30.seconds
+      val windowLength = 1.seconds//30.seconds
       
       import config.executionConfig.{ maxRunsPerJob, maxWaitTimeForOutputs, outputPollingFrequencyInHz }
       

@@ -69,7 +69,7 @@ final case class RxExecuter(
     
     def runEligibleJobs(): Observable[Map[LJob, Execution]] = {
       
-      val jobs = executionState.startEligibleJobs()
+      val jobs = executionState.updateJobs()
       
       val (finishedJobs, notFinishedJobs) = jobs.partition(_.status.isTerminal)
       

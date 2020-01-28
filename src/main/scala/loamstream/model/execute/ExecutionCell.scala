@@ -26,14 +26,19 @@ final case class ExecutionCell(
   }
   
   def markAs(status: JobStatus): ExecutionCell = {
-    require(status.notFinished, s"Expected a non-finished job status, but got $status")
+    require(status.notFinished || status.isCouldNotStart, s"Expected a non-finished job status, but got $status")
     
     copy(status = status)
   }
   
+  def isFailure: Boolean = status.isFailure
+  
+  def canStopExecution: Boolean = status.canStopExecution
+  
   def isFinished: Boolean = status.isFinished
   
   def isTerminal: Boolean = status.isTerminal
+  def nonTerminal: Boolean = !isTerminal
   
   def notStarted: Boolean = status == JobStatus.NotStarted
 }

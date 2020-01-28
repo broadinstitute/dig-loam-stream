@@ -15,30 +15,62 @@ final class ExecutionState private (
     val maxRunsPerJob: Int,
     private[this] val byJob: ValueBox[Map[LJob, ExecutionCell]] = ValueBox(Map.empty)) {
   
-  def isFinished: Boolean = byJob.get(_.values.forall(_.isFinished))
+  def isFinished: Boolean = byJob.get { jobsToCells => 
+    jobsToCells.values.forall(cell => cell.isFinished || cell.status.isCouldNotStart)
+  }
   
-  def startEligibleJobs(): Iterable[LJob] = byJob.get { _ =>
-    val eligible = eligibleToRun
+  def updateJobs(): Iterable[LJob] = byJob.get { _ =>
+    val currentJobStatuses = jobStatuses
+    
+    val eligible = currentJobStatuses.readyToRun
     
     startRunning(eligible)
+    
+    val toCancel = currentJobStatuses.cannotRun
+    
+    markAs(toCancel, JobStatus.CouldNotStart)
     
     eligible
   }
   
-  def eligibleToRun: Iterable[LJob] = byJob.get { jobsToCells =>
-    val canRun: ((LJob, ExecutionCell)) => Boolean = {
-      case (job, cell) => cell.notStarted && {
-        val deps = job.dependencies
-        
-        deps.isEmpty || {
-          val depCells = jobsToCells.filterKeys(deps).values
-          
-          depCells.forall(_.isTerminal)
-        }
-      }
-    }
+  def jobStatuses: ExecutionState.JobStatuses = byJob.get { jobsToCells =>
+    val z = ExecutionState.JobStatuses.empty
     
-    jobsToCells.filter(canRun).keys
+    jobsToCells.foldLeft(z) { (acc, tuple) =>
+      val (job, cell) = tuple
+      
+      def anyDepsStopExecution: Boolean = {
+        val depCells = jobsToCells.filterKeys(job.dependencies).values
+        
+        depCells.exists(_.canStopExecution)
+      }
+      
+      def canRun: Boolean = this.canRun(jobsToCells)(tuple)
+      
+      if(canRun) { acc.withRunnable(job) }
+      else if(anyDepsStopExecution) { acc.withCannotRun(job) }
+      else { acc.withUndetermined(job) }
+    }
+  }
+  
+  private[execute] def canRun(jobsToCells: Map[LJob, ExecutionCell])(tuple: (LJob, ExecutionCell)): Boolean = tuple match {
+    case (job, cell) => cell.notStarted && {
+      val deps = job.dependencies
+      
+      def isRunnable(cell: ExecutionCell): Boolean = cell.status == JobStatus.NotStarted
+
+      isRunnable(cell) && (deps.isEmpty || {
+        val depCells = jobsToCells.filterKeys(deps).values
+        
+        depCells.forall(_.isTerminal) && !depCells.exists(_.canStopExecution)
+      })
+    }
+  }
+  
+  def eligibleToRun: Iterable[LJob] = byJob.get { jobsToCells =>
+    def canRun(t: (LJob, ExecutionCell)) = this.canRun(jobsToCells)(t)
+    
+    jobsToCells.collect { case t @ (job, _) if canRun(t) => job }
   }
   
   def startRunning(jobs: Iterable[LJob]): Unit = transition(jobs, _.startRunning)
@@ -97,5 +129,17 @@ object ExecutionState {
     }
     
     new ExecutionState(maxRunsPerJob, ValueBox(cellsByJob))
+  }
+  
+  final case class JobStatuses(readyToRun: Iterable[LJob], cannotRun: Iterable[LJob], undetermined: Iterable[LJob]) {
+    def withRunnable(job: LJob): JobStatuses = copy(readyToRun = Set(job) ++ readyToRun)
+    
+    def withCannotRun(job: LJob): JobStatuses = copy(cannotRun = Set(job) ++ cannotRun)
+    
+    def withUndetermined(job: LJob): JobStatuses = copy(undetermined = Set(job) ++ undetermined)
+  }
+  
+  object JobStatuses {
+    val empty: JobStatuses = JobStatuses(Nil, Nil, Nil)
   }
 }

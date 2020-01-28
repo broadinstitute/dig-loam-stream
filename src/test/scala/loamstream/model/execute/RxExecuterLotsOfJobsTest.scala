@@ -25,7 +25,7 @@ final class RxExecuterLotsOfJobsTest extends FunSuite {
 
   import loamstream.util.Paths.Implicits._
   
-  test("lots of jobs don't blow the stack") {
+  ignore("lots of jobs don't blow the stack") {
     val outputDir: Path =  TestHelpers.getWorkDir(getClass.getSimpleName)
     
     if (cancelOnWindows && PlatformUtil.isWindows) {

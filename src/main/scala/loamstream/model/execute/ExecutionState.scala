@@ -49,7 +49,7 @@ final class ExecutionState private (
       
       if(canRun) { acc.withRunnable(tuple) }
       else if(anyDepsStopExecution) { acc.withCannotRun(tuple) }
-      else { acc.withAnyRemaining(true) }
+      else { acc }
     }
   }
   
@@ -133,19 +133,14 @@ object ExecutionState {
   
   final case class JobStatuses(
       readyToRun: Map[LJob, ExecutionCell], 
-      cannotRun: Map[LJob, ExecutionCell], 
-      anyRemaining: Boolean) {
+      cannotRun: Map[LJob, ExecutionCell]) {
     
     def withRunnable(jobAndCell: (LJob, ExecutionCell)): JobStatuses = copy(readyToRun = readyToRun + jobAndCell)
     
     def withCannotRun(jobAndCell: (LJob, ExecutionCell)): JobStatuses = copy(cannotRun = cannotRun + jobAndCell)
-    
-    def withAnyRemaining(newAnyRemaining: Boolean): JobStatuses = {
-      if(anyRemaining != newAnyRemaining) copy(anyRemaining = newAnyRemaining) else this
-    }
   }
   
   object JobStatuses {
-    val empty: JobStatuses = JobStatuses(Map.empty, Map.empty, false)
+    val empty: JobStatuses = JobStatuses(Map.empty, Map.empty)
   }
 }

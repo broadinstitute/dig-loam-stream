@@ -14,8 +14,8 @@ import loamstream.model.jobs.commandline.CloseableProcessLogger
  * Dec 6, 2017
  */
 final case class ToFilesProcessLogger(
-    stdoutPath: Path,
-  stderrPath: Path) extends CloseableProcessLogger with Loggable /*with ProcessLoggers.Composable*/ {
+    stdoutPath: Path, 
+    stderrPath: Path) extends CloseableProcessLogger with Loggable {
  
   import ToFilesProcessLogger.LazyWriterRef
   

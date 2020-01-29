@@ -15,6 +15,7 @@ import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Memory
 import loamstream.util.RetryingCommandInvoker
 import loamstream.util.RunResults
+import loamstream.drm.DrmTaskId
 
 /**
  * @author clint
@@ -38,9 +39,11 @@ final class BacctAccountingClientTest extends FunSuite {
   
   test("Parse actual bacct outpout - bad input") {
     def doTest(bacctOutput: Seq[String]): Unit = {
-      val mockInvoker = new RetryingCommandInvoker[String](0, "MOCK", _ => runResultsAttempt(stdout = bacctOutput))
-    
-      waitFor(new BacctAccountingClient(mockInvoker).getResourceUsage("foo").failed)
+      val mockInvoker = new RetryingCommandInvoker[DrmTaskId](0, "MOCK", _ => runResultsAttempt(stdout = bacctOutput))
+
+      val taskId = DrmTaskId("foo", 42)
+      
+      waitFor(new BacctAccountingClient(mockInvoker).getResourceUsage(taskId).failed)
     }
     
     doTest(Nil)
@@ -50,9 +53,11 @@ final class BacctAccountingClientTest extends FunSuite {
   test("Parse actual bacct outpout - happy path") {
     val splitOutput = actualOutput.split("\\n")
     
-    val mockInvoker = new RetryingCommandInvoker[String](0, "MOCK", _ => runResultsAttempt(stdout = splitOutput))
+    val mockInvoker = new RetryingCommandInvoker[DrmTaskId](0, "MOCK", _ => runResultsAttempt(stdout = splitOutput))
     
-    val actual = waitFor((new BacctAccountingClient(mockInvoker)).getResourceUsage("someJobId"))
+    val taskId = DrmTaskId("someJobId", 42)
+    
+    val actual = waitFor((new BacctAccountingClient(mockInvoker)).getResourceUsage(taskId))
     
     val expected = LsfResources(
             Memory.inMb(123), 
@@ -79,9 +84,11 @@ final class BacctAccountingClientTest extends FunSuite {
       
       val splitOutput = rawOutput.split("\\n")
       
-      val mockInvoker = new RetryingCommandInvoker[String](0, "MOCK", _ => runResultsAttempt(stdout = splitOutput))
+      val mockInvoker = new RetryingCommandInvoker[DrmTaskId](0, "MOCK", _ => runResultsAttempt(stdout = splitOutput))
       
-      val actual = waitFor((new BacctAccountingClient(mockInvoker)).getTerminationReason("someJobId"))
+      val taskId = DrmTaskId("someJobId", 42)
+      
+      val actual = waitFor((new BacctAccountingClient(mockInvoker)).getTerminationReason(taskId))
       
       assert(actual === expected)
     }
@@ -106,9 +113,11 @@ final class BacctAccountingClientTest extends FunSuite {
   test("Parse actual bacct outpout - problematic output") {
     val splitOutput = problematicOutput.split("\\n")
     
-    val mockInvoker = new RetryingCommandInvoker[String](0, "MOCK", _ => runResultsAttempt(stdout = splitOutput))
+    val mockInvoker = new RetryingCommandInvoker[DrmTaskId](0, "MOCK", _ => runResultsAttempt(stdout = splitOutput))
     
-    val actual = waitFor((new BacctAccountingClient(mockInvoker)).getResourceUsage("someJobId"))
+    val taskId = DrmTaskId("someJobId", 42)
+    
+    val actual = waitFor((new BacctAccountingClient(mockInvoker)).getResourceUsage(taskId))
     
     val expected = LsfResources(
             Memory.inMb(28), 

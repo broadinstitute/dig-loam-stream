@@ -11,10 +11,6 @@ import scala.sys.process.ProcessLogger
  * Nov 13, 2017
  */
 object ProcessLoggers {
-  /*trait Composable { self: ProcessLogger =>
-    def &&(rhs: ProcessLogger): Composite = new Composite(self, rhs) 
-  }*/
-  
   trait WithDefaultBuffer extends ProcessLogger {
     /**
      * If a process is begun with one of these `ProcessBuilder` methods:
@@ -36,38 +32,12 @@ object ProcessLoggers {
   
   def buffering: ProcessLoggers.Buffering = new ProcessLoggers.Buffering()
 
-  /*final class Composite(lhs: ProcessLogger, rhs: ProcessLogger) extends ProcessLogger with Composable {
-    //Methods from ProcessLogger 
-    override def out(s: => String): Unit = {
-      lhs.out(s)
-      rhs.out(s)
-    }
-
-    override def err(s: => String): Unit = {
-      lhs.err(s)
-      rhs.err(s)
-    }
-
-    *//**
-     * If a process is begun with one of these `ProcessBuilder` methods:
-     *  {{{
-     *    def !(log: ProcessLogger): Int
-     *    def !<(log: ProcessLogger): Int
-     *  }}}
-     *  The run will be wrapped in a call to buffer.  This gives the logger
-     *  an opportunity to set up and tear down buffering.  At present the
-     *  library implementations of `ProcessLogger` simply execute the body
-     *  unbuffered.
-     *//*
-    override def buffer[T](f: => T): T = f
-  }*/
-  
   final class Buffering(
       stdOutBuffer: Buffer[String] = new ArrayBuffer,
-      stdErrBuffer: Buffer[String] = new ArrayBuffer) extends ProcessLogger /*with Composable */ with WithDefaultBuffer {
+      stdErrBuffer: Buffer[String] = new ArrayBuffer) extends ProcessLogger with WithDefaultBuffer {
     
-    def stdOut: IndexedSeq[String] = stdOutBuffer.to[Array]
-    def stdErr: IndexedSeq[String] = stdErrBuffer.to[Array]
+    def stdOut: Seq[String] = stdOutBuffer.to[Array]
+    def stdErr: Seq[String] = stdErrBuffer.to[Array]
     
     //Methods from ProcessLogger 
     override def out(s: => String): Unit = stdOutBuffer += s
@@ -77,7 +47,8 @@ object ProcessLoggers {
   
   final class PassThrough(
       name: String,
-      level: Loggable.Level = Loggable.Level.Info)(implicit logCtx: LogContext) extends ProcessLogger /*with Composable */ with WithDefaultBuffer {
+      level: Loggable.Level = Loggable.Level.Info)(implicit logCtx: LogContext) extends 
+          ProcessLogger with WithDefaultBuffer {
 
     //Methods from ProcessLogger 
     override def out(s: => String): Unit = logCtx.log(level, s"'${name}' (via stdout): ${s}")

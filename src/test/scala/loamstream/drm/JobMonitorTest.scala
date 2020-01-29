@@ -24,19 +24,23 @@ final class JobMonitorTest extends FunSuite {
   test("getDrmStatusFor") {
     import JobMonitor.getDrmStatusFor
     
-    assert(getDrmStatusFor("foo")(Map.empty).isFailure)
+    val taskIdFoo = DrmTaskId("foo", 42)
+    val taskIdBar = DrmTaskId("bar", 42)
+    val taskIdBaz = DrmTaskId("baz", 42)
+    
+    assert(getDrmStatusFor(taskIdFoo)(Map.empty).isFailure)
     
     import DrmStatus.Done
     import DrmStatus.Running
     
     val failure: Try[DrmStatus] = Tries.failure("blerg")
     
-    val attempts = Map("foo" -> Success(Done), "bar" -> Success(Running), "baz" -> failure)
+    val attempts = Map(taskIdFoo -> Success(Done), taskIdBar -> Success(Running), taskIdBaz -> failure)
     
-    assert(getDrmStatusFor("foo")(attempts) === Success(Done))
-    assert(getDrmStatusFor("bar")(attempts) === Success(Running))
-    assert(getDrmStatusFor("baz")(attempts) === failure)
-    assert(getDrmStatusFor("asdgasdf")(attempts).isFailure)
+    assert(getDrmStatusFor(taskIdFoo)(attempts) === Success(Done))
+    assert(getDrmStatusFor(taskIdBar)(attempts) === Success(Running))
+    assert(getDrmStatusFor(taskIdBaz)(attempts) === failure)
+    assert(getDrmStatusFor(DrmTaskId("asdgasdf", 42))(attempts).isFailure)
   }
   
   test("stop()") {
@@ -60,17 +64,17 @@ final class JobMonitorTest extends FunSuite {
   test("monitor() - happy path") {
     import DrmStatus._
     
-    val jobId1 = "foo"
-    val jobId2 = "bar"
-    val jobId3 = "baz"
+    val taskId1 = DrmTaskId("foo", 42)
+    val taskId2 = DrmTaskId("bar", 42)
+    val taskId3 = DrmTaskId("baz", 42)
     
-    val jobIds = Seq(jobId1, jobId2, jobId3)
+    val jobIds = Seq(taskId1, taskId2, taskId3)
     
     val client = MockDrmaaClient(
       Map(
-        jobId1 -> Seq(Success(Queued), Success(Running), Success(Running), Success(Done)),
-        jobId2 -> Seq(Success(Running), Success(Done)),
-        jobId3 -> Seq(Success(Running), Success(Running), Success(Done))))
+        taskId1 -> Seq(Success(Queued), Success(Running), Success(Running), Success(Done)),
+        taskId2 -> Seq(Success(Running), Success(Done)),
+        taskId3 -> Seq(Success(Running), Success(Running), Success(Done))))
     
     import scala.concurrent.ExecutionContext.Implicits.global
     import Observables.Implicits._
@@ -80,11 +84,11 @@ final class JobMonitorTest extends FunSuite {
     withThreadPoolScheduler(3) { scheduler =>
       val statuses = (new JobMonitor(scheduler, poller, 9.99)).monitor(jobIds)
     
-      def futureStatuses(jobId: String): Future[Seq[DrmStatus]] = statuses(jobId).to[Seq].firstAsFuture
+      def futureStatuses(taskId: DrmTaskId): Future[Seq[DrmStatus]] = statuses(taskId).to[Seq].firstAsFuture
     
-      val fut1 = futureStatuses(jobId1)
-      val fut2 = futureStatuses(jobId2)
-      val fut3 = futureStatuses(jobId3)
+      val fut1 = futureStatuses(taskId1)
+      val fut2 = futureStatuses(taskId2)
+      val fut3 = futureStatuses(taskId3)
 
       assert(waitFor(fut1) == Seq(Queued, Running, Done))
       assert(waitFor(fut2) == Seq(Running, Done))

@@ -40,11 +40,7 @@ final class QacctAccountingClient(
 
   import QacctAccountingClient._
 
-  private def getQacctOutputFor(taskId: DrmTaskId): Future[Seq[String]] = qacctInvoker(taskId).map { runResults =>
-    warn(s"Qacct output has ${runResults.stdout.size} lines")
-    
-    runResults.stdout
-  }
+  private def getQacctOutputFor(taskId: DrmTaskId): Future[Seq[String]] = qacctInvoker(taskId).map(_.stdout)
 
   import Regexes.{ cpu, endTime, hostname, mem, qname, startTime }
   
@@ -69,9 +65,8 @@ final class QacctAccountingClient(
           raw = Some(output.mkString(System.lineSeparator)))
       }
       
-      //TODO
       result.recover {
-        case e => error(s"Error parsing qacct output: ${e.getMessage}", e)
+        case e => debug(s"Error parsing qacct output: ${e.getMessage}", e)
       }
       
       Future.fromTry(result)

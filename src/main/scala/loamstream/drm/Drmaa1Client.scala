@@ -263,19 +263,23 @@ final class Drmaa1Client(nativeSpecBuilder: NativeSpecBuilder) extends DrmaaClie
 
       debug(s"Jobs have been submitted with ids ${jobIds.mkString(",")}")
 
-      val idsForJobs = jobIds.zip(taskArray.drmJobs).toMap
+      val jobIdsForJobs = jobIds.zip(taskArray.drmJobs).toMap
 
       def drmIdsToJobsString = {
         (for {
-          (drmId, job) <- idsForJobs.mapValues(_.commandLineJob)
+          (drmJobId, job) <- jobIdsForJobs.mapValues(_.commandLineJob)
         } yield {
-          s"DRM Id: $drmId => $job"
+          s"DRM Id: $drmJobId => $job"
         }).mkString("\n")
       }
 
       info(s"DRM ids assigned to jobs:\n$drmIdsToJobsString")
 
-      DrmSubmissionResult.SubmissionSuccess(idsForJobs)
+      val drmTaskIdsToJobs = jobIdsForJobs.map { 
+        case (jobId, drmJobWrapper) => (DrmTaskId(jobId, drmJobWrapper.drmIndex), drmJobWrapper)
+      }
+      
+      DrmSubmissionResult.SubmissionSuccess(drmTaskIdsToJobs)
     }
   }
 

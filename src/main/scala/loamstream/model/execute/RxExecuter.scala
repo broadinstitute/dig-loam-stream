@@ -69,9 +69,14 @@ final case class RxExecuter(
     
     def runEligibleJobs(): Observable[Map[LJob, Execution]] = {
       
-      val jobs = executionState.updateJobs()
+      val jobsAndCells = executionState.updateJobs()
       
-      val (finishedJobs, notFinishedJobs) = jobs.partition(_.status.isTerminal)
+      val (finishedJobAndCells, notFinishedJobsAndCells) = {
+        jobsAndCells.readyToRun.partition { case (_, cell) => cell.isTerminal }
+      }
+      
+      val finishedJobs = finishedJobAndCells.keys
+      val notFinishedJobs = notFinishedJobsAndCells.keys
       
       if(notFinishedJobs.nonEmpty) {
         val (jobsToMaybeRun, skippedJobs) = notFinishedJobs.map(_.job).partition(jobFilter.shouldRun)
@@ -113,7 +118,7 @@ final case class RxExecuter(
     Await.result(futureMergedResults, timeout)
   }
 
-  /*override*/ def execute2(
+  /*override*/ /*def execute2(
       executable: Executable, 
       makeJobOracle: Executable => JobOracle = JobOracle.fromExecutable(executionConfig, _))
      (implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
@@ -163,7 +168,7 @@ final case class RxExecuter(
     val futureMergedResults = chunkResults.foldLeft(emptyExecutionMap)(_ ++ _).firstAsFuture
 
     Await.result(futureMergedResults, timeout)
-  }
+  }*/
   
   private val emptyExecutionMap: Map[LJob, Execution] = Map.empty
   
@@ -176,7 +181,7 @@ final case class RxExecuter(
   }
   
   //NB: shouldRestart() mostly factored out to the companion object for simpler testing
-  private def shouldRestart(job: LJob): Boolean = RxExecuter.shouldRestart(job, maxRunsPerJob)
+  private def shouldRestart(job: LJob): Boolean = false//RxExecuter.shouldRestart(job, maxRunsPerJob)
   
   //Produce Optional LJob -> Execution tuples.  We need to be able to produce just one (empty) item,
   //instead of just returning Observable.empty, so that code chained onto this method's result with
@@ -313,7 +318,7 @@ object RxExecuter extends Loggable {
   
   private[execute] def deDupe(jobRuns: Observable[JobRun]): Observable[JobRun] = jobRuns.distinct(_.key)
   
-  private[execute] def shouldRestart(job: LJob, maxRunsPerJob: Int): Boolean = {
+  /*private[execute] def shouldRestart(job: LJob, maxRunsPerJob: Int): Boolean = {
     val runCount = job.runCount
     
     val result = runCount < maxRunsPerJob
@@ -321,7 +326,7 @@ object RxExecuter extends Loggable {
     debug(s"Restarting $job ? $result (job has run $runCount times, max is $maxRunsPerJob)")
     
     result
-  }
+  }*/
 
   /**
    * Turns the passed `runDataMap` into an observable that will fire once, producing a Map derived from `runDataMap`

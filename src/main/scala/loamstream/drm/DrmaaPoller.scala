@@ -15,13 +15,13 @@ final class DrmaaPoller(client: DrmaaClient) extends Poller with Loggable {
   
   override def stop(): Unit = client.stop()
   
-  override def poll(jobIds: Iterable[String]): Map[String, Try[DrmStatus]] = {
+  override def poll(jobIds: Iterable[DrmTaskId]): Map[DrmTaskId, Try[DrmStatus]] = {
     
-    def statusAttempt(jobId: String): Try[DrmStatus] = {
-      val result = client.statusOf(jobId).recoverWith { case e: InvalidJobException =>
-        debug(s"Job '$jobId': Got an ${simpleNameOf(e)} when calling statusOf(); trying waitFor()", e)
+    def statusAttempt(taskId: DrmTaskId): Try[DrmStatus] = {
+      val result = client.statusOf(taskId.jobId).recoverWith { case e: InvalidJobException =>
+        debug(s"Job '$taskId': Got an ${simpleNameOf(e)} when calling statusOf(); trying waitFor()", e)
       
-        client.waitFor(jobId, Duration.Zero)
+        client.waitFor(taskId.jobId, Duration.Zero)
       }
       
       //Ignore the result of recover, we just want the logging side-effect

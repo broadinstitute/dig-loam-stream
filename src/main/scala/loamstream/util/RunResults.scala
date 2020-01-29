@@ -27,12 +27,12 @@ sealed trait RunResults {
 }
 
 object RunResults {
-  def apply(executable: String, exitCode: Int, stdout: Seq[String], stderr: Seq[String]): RunResults = {
+  def apply(executable: String, exitCode: Int, stdout: IndexedSeq[String], stderr: IndexedSeq[String]): RunResults = {
     if(ExitCodes.isSuccess(exitCode)) { Successful(executable, stdout, stderr) }
     else { Unsuccessful(executable, exitCode, stdout, stderr) }
   }
   
-  final case class Successful(commandLine: String, stdout: Seq[String], stderr: Seq[String]) extends RunResults {
+  final case class Successful(commandLine: String, stdout: IndexedSeq[String], stderr: IndexedSeq[String]) extends RunResults {
     override def exitCode: Int = 0
   }
   

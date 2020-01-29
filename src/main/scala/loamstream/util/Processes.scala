@@ -31,6 +31,10 @@ object Processes extends Loggable {
     Try {
       val exitCode = processBuilder.!(processLogger)
     
+      if(exitCode != 0) {
+        System.err.println(s"Command failed! Got exit code ${exitCode} from '$commandLine'")
+      }
+      
       RunResults(commandLine, exitCode, processLogger.stdOut, processLogger.stdErr)
     }
   }

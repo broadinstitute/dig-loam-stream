@@ -19,25 +19,25 @@ final class ExecutionState private (
     jobsToCells.values.forall(cell => cell.isFinished || cell.status.isCouldNotStart)
   }
   
-  def updateJobs(): Iterable[LJob] = byJob.get { _ =>
+  def updateJobs(): ExecutionState.JobStatuses = byJob.get { _ =>
     val currentJobStatuses = jobStatuses
     
     val eligible = currentJobStatuses.readyToRun
     
-    startRunning(eligible)
+    startRunning(eligible.keys)
     
-    val toCancel = currentJobStatuses.cannotRun
+    val toCancel = currentJobStatuses.cannotRun.keys
     
     markAs(toCancel, JobStatus.CouldNotStart)
     
-    eligible
+    currentJobStatuses
   }
   
   def jobStatuses: ExecutionState.JobStatuses = byJob.get { jobsToCells =>
     val z = ExecutionState.JobStatuses.empty
     
     jobsToCells.foldLeft(z) { (acc, tuple) =>
-      val (job, cell) = tuple
+      val (job, _) = tuple
       
       def anyDepsStopExecution: Boolean = {
         val depCells = jobsToCells.filterKeys(job.dependencies).values
@@ -47,8 +47,8 @@ final class ExecutionState private (
       
       def canRun: Boolean = this.canRun(jobsToCells)(tuple)
       
-      if(canRun) { acc.withRunnable(job) }
-      else if(anyDepsStopExecution) { acc.withCannotRun(job) }
+      if(canRun) { acc.withRunnable(tuple) }
+      else if(anyDepsStopExecution) { acc.withCannotRun(tuple) }
       else { acc.withAnyRemaining(true) }
     }
   }
@@ -131,10 +131,14 @@ object ExecutionState {
     new ExecutionState(maxRunsPerJob, ValueBox(cellsByJob))
   }
   
-  final case class JobStatuses(readyToRun: Iterable[LJob], cannotRun: Iterable[LJob], anyRemaining: Boolean) {
-    def withRunnable(job: LJob): JobStatuses = copy(readyToRun = Set(job) ++ readyToRun)
+  final case class JobStatuses(
+      readyToRun: Map[LJob, ExecutionCell], 
+      cannotRun: Map[LJob, ExecutionCell], 
+      anyRemaining: Boolean) {
     
-    def withCannotRun(job: LJob): JobStatuses = copy(cannotRun = Set(job) ++ cannotRun)
+    def withRunnable(jobAndCell: (LJob, ExecutionCell)): JobStatuses = copy(readyToRun = readyToRun + jobAndCell)
+    
+    def withCannotRun(jobAndCell: (LJob, ExecutionCell)): JobStatuses = copy(cannotRun = cannotRun + jobAndCell)
     
     def withAnyRemaining(newAnyRemaining: Boolean): JobStatuses = {
       if(anyRemaining != newAnyRemaining) copy(anyRemaining = newAnyRemaining) else this
@@ -142,6 +146,6 @@ object ExecutionState {
   }
   
   object JobStatuses {
-    val empty: JobStatuses = JobStatuses(Nil, Nil, false)
+    val empty: JobStatuses = JobStatuses(Map.empty, Map.empty, false)
   }
 }

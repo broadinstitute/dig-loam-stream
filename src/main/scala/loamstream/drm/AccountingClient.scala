@@ -13,14 +13,14 @@ import loamstream.model.jobs.TerminationReason
  * An abstraction for getting some environment-specific metadata that can't currently be accessed via DRMAA
  */
 trait AccountingClient {
-  def getResourceUsage(jobId: String): Future[DrmResources]
+  def getResourceUsage(taskId: DrmTaskId): Future[DrmResources]
   
-  def getTerminationReason(jobId: String): Future[Option[TerminationReason]]
+  def getTerminationReason(taskId: DrmTaskId): Future[Option[TerminationReason]]
   
-  def getAccountingInfo(jobId: String)(implicit ex: ExecutionContext): Future[AccountingInfo] = {
+  def getAccountingInfo(taskId: DrmTaskId)(implicit ex: ExecutionContext): Future[AccountingInfo] = {
     for {
-      rs <- getResourceUsage(jobId)
-      tr <- getTerminationReason(jobId)
+      rs <- getResourceUsage(taskId)
+      tr <- getTerminationReason(taskId)
     } yield AccountingInfo(rs, tr)
   }
 }

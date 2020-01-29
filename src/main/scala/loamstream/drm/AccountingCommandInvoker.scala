@@ -17,19 +17,19 @@ object AccountingCommandInvoker {
      */
     def useActualBinary(
         maxRetries: Int, 
-        binaryName: String)(implicit ec: ExecutionContext): RetryingCommandInvoker[String] = {
+        binaryName: String)(implicit ec: ExecutionContext): RetryingCommandInvoker[DrmTaskId] = {
       
-      def invokeBinaryFor(jobId: String) = {
-        val tokens = makeTokens(binaryName, jobId)
+      def invokeBinaryFor(taskId: DrmTaskId) = {
+        val tokens = makeTokens(binaryName, taskId)
         
         debug(s"Invoking '$binaryName': '${tokens.mkString(" ")}'")
         
         Processes.runSync(binaryName, tokens)
       }
       
-      new RetryingCommandInvoker[String](maxRetries, binaryName, invokeBinaryFor)
+      new RetryingCommandInvoker[DrmTaskId](maxRetries, binaryName, invokeBinaryFor)
     }
   
-    def makeTokens(actualBinary: String, jobId: String): Seq[String]
+    def makeTokens(actualBinary: String, taskId: DrmTaskId): Seq[String]
   }
 }

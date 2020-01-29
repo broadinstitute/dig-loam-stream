@@ -14,5 +14,5 @@ trait Poller extends Terminable {
    * @param jobIds the ids of the jobs to inquire about
    * @return a map of job ids to attempts at that job's status
    */
-  def poll(jobIds: Iterable[String]): Map[String, Try[DrmStatus]]
+  def poll(jobIds: Iterable[DrmTaskId]): Map[DrmTaskId, Try[DrmStatus]]
 }

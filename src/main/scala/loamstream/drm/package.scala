@@ -9,13 +9,13 @@ package object drm {
    * @author clint
    * date: Jun 29, 2016 
    */
-  type DrmSubmissionResult = scala.util.Try[Map[String, DrmJobWrapper]]
+  type DrmSubmissionResult = scala.util.Try[Map[DrmTaskId, DrmJobWrapper]]
   
   object DrmSubmissionResult {
-    type SubmissionFailure = scala.util.Failure[Map[String, DrmJobWrapper]]
+    type SubmissionFailure = scala.util.Failure[Map[DrmTaskId, DrmJobWrapper]]
     val SubmissionFailure = scala.util.Failure
     
-    type SubmissionSuccess = scala.util.Success[Map[String, DrmJobWrapper]]
+    type SubmissionSuccess = scala.util.Success[Map[DrmTaskId, DrmJobWrapper]]
     val SubmissionSuccess = scala.util.Success
   }
 }

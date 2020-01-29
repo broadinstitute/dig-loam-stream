@@ -62,7 +62,7 @@ final class JobMonitor(
    * @return a map of job ids to Observable streams of statuses for each job. The statuses are the result of polling 
    * the DRM system *synchronously* via the supplied poller at the supplied rate.
    */
-  def monitor(jobIds: Iterable[String]): Map[String, Observable[DrmStatus]] = {
+  def monitor(jobIds: Iterable[DrmTaskId]): Map[DrmTaskId, Observable[DrmStatus]] = {
     
     import scala.concurrent.duration._
     
@@ -77,7 +77,7 @@ final class JobMonitor(
     
     val ticks = Observable.interval(period, scheduler).takeUntil(stopSignal).share
     
-    def poll(): Map[String, Try[DrmStatus]] = poller.poll(jobIds)
+    def poll(): Map[DrmTaskId, Try[DrmStatus]] = poller.poll(jobIds)
     
     def shouldContinue = keepPolling()
     
@@ -98,7 +98,7 @@ final class JobMonitor(
       .until(allFinished(keepPolling))
       .replay
     
-    val byJobId: Map[String, Observable[Try[DrmStatus]]] = demultiplex(jobIds, pollResults)
+    val byJobId: Map[DrmTaskId, Observable[Try[DrmStatus]]] = demultiplex(jobIds, pollResults)
 
     val result = byJobId.map(unpackThenFilterThenLimit)
     
@@ -122,7 +122,7 @@ object JobMonitor extends Loggable {
    * JobStatus.isFinished)
    */
   private[drm] def unpackThenFilterThenLimit(
-      jobStatusTuple: (String, Observable[Try[DrmStatus]])): (String, Observable[DrmStatus]) = {
+      jobStatusTuple: (DrmTaskId, Observable[Try[DrmStatus]])): (DrmTaskId, Observable[DrmStatus]) = {
     
     val (jobId, statusAttempts) = jobStatusTuple
     
@@ -167,28 +167,28 @@ object JobMonitor extends Loggable {
    * Note that multiplexed must be a ConnectableObservable for this to work. 
    */
   private[drm] def demultiplex(
-      jobIds: Iterable[String],
-      multiplexed: ConnectableObservable[Map[String, Try[DrmStatus]]]): Map[String, Observable[Try[DrmStatus]]] = {
+      taskIds: Iterable[DrmTaskId],
+      multiplexed: ConnectableObservable[Map[DrmTaskId, Try[DrmStatus]]]): Map[DrmTaskId, Observable[Try[DrmStatus]]] = {
     
     val tuples = for {
-      jobId <- jobIds
+      taskId <- taskIds
     } yield {
-      val forJob = multiplexed.map(getDrmStatusFor(jobId))
+      val forJob = multiplexed.map(getDrmStatusFor(taskId))
         
-      jobId -> forJob
+      taskId -> forJob
     }
     
     tuples.toMap
   }
   
-  private[drm] def getDrmStatusFor(jobId: String)(pollResultAttempts: Map[String, Try[DrmStatus]]): Try[DrmStatus] = {
-    pollResultAttempts.get(jobId) match {
+  private[drm] def getDrmStatusFor(taskId: DrmTaskId)(pollResultAttempts: Map[DrmTaskId, Try[DrmStatus]]): Try[DrmStatus] = {
+    pollResultAttempts.get(taskId) match {
       case Some(pollResultAttempt) => pollResultAttempt
-      case None => Tries.failure(s"No data found for job id '$jobId' when polling, forging onward")
+      case None => Tries.failure(s"No data found for job id '$taskId' when polling, forging onward")
     }
   }
   
-  private def allFinished(keepPollingFlag: ValueBox[Boolean])(pollResults: Map[String, Try[DrmStatus]]): Boolean = {
+  private def allFinished(keepPollingFlag: ValueBox[Boolean])(pollResults: Map[DrmTaskId, Try[DrmStatus]]): Boolean = {
     def unpack(attempt: Try[DrmStatus]): DrmStatus = attempt.getOrElse(DrmStatus.Undetermined)
     
     val result = pollResults.values.iterator.map(unpack).forall(_.isFinished)

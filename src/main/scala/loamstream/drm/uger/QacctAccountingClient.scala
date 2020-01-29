@@ -23,6 +23,7 @@ import loamstream.util.Loggable
 import loamstream.util.Options
 import loamstream.util.RetryingCommandInvoker
 import loamstream.util.Tries
+import loamstream.drm.DrmTaskId
 
 
 /**
@@ -34,16 +35,20 @@ import loamstream.util.Tries
  * job id, to facilitate unit testing.
  */
 final class QacctAccountingClient(
-    qacctInvoker: RetryingCommandInvoker[String])
+    qacctInvoker: RetryingCommandInvoker[DrmTaskId])
     (implicit ec: ExecutionContext) extends AccountingClient with Loggable {
 
   import QacctAccountingClient._
 
-  private def getQacctOutputFor(jobId: String): Future[Seq[String]] = qacctInvoker(jobId).map(_.stdout)
+  private def getQacctOutputFor(taskId: DrmTaskId): Future[Seq[String]] = qacctInvoker(taskId).map { runResults =>
+    warn(s"Qacct output has ${runResults.stdout.size} lines")
+    
+    runResults.stdout
+  }
 
   import Regexes.{ cpu, endTime, hostname, mem, qname, startTime }
   
-  override def getResourceUsage(jobId: String): Future[UgerResources] = {
+  override def getResourceUsage(taskId: DrmTaskId): Future[UgerResources] = {
     def toResources(output: Seq[String]): Future[UgerResources] = {
       val nodeOpt = findField(output, hostname).toOption
       val queueOpt = findField(output, qname).map(Queue(_)).toOption
@@ -64,13 +69,18 @@ final class QacctAccountingClient(
           raw = Some(output.mkString(System.lineSeparator)))
       }
       
+      //TODO
+      result.recover {
+        case e => error(s"Error parsing qacct output: ${e.getMessage}", e)
+      }
+      
       Future.fromTry(result)
     }
     
-    getQacctOutputFor(jobId).flatMap(toResources)
+    getQacctOutputFor(taskId).flatMap(toResources)
   }
   
-  override def getTerminationReason(jobId: String): Future[Option[TerminationReason]] = {
+  override def getTerminationReason(taskId: DrmTaskId): Future[Option[TerminationReason]] = {
     //NB: Uger/qacct does not provide this information directly. 
     Future.successful(None)
   }

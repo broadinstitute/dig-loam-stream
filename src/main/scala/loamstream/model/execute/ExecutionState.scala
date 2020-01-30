@@ -19,6 +19,12 @@ final class ExecutionState private (
     jobsToCells.values.forall(cell => cell.isFinished || cell.status.isCouldNotStart)
   }
   
+  def statusOf(job: LJob): JobStatus = {
+    requireKnown(job)
+    
+    byJob.get(_.apply(job).status)
+  }
+  
   def updateJobs(): ExecutionState.JobStatuses = byJob.get { _ =>
     val currentJobStatuses = jobStatuses
     
@@ -95,7 +101,7 @@ final class ExecutionState private (
   
   def finish(job: LJob, status: JobStatus, jobResult: Option[JobResult] = None): Unit = {
     byJob.mutate { jobsToCells =>
-      requireAllKnown(Set(job))
+      requireKnown(job)
       
       def tooManyRuns: Boolean = jobsToCells(job).runCount >= maxRunsPerJob 
       
@@ -110,6 +116,8 @@ final class ExecutionState private (
   }
   
   private def isKnown(job: LJob): Boolean = byJob.get(_.contains(job))
+  
+  private def requireKnown(job: LJob): Unit = require(isKnown(job), s"Expected job to be known: ${job}")
   
   private def requireAllKnown(jobs: Set[LJob]): Unit = {
     byJob.foreach { jobsToCells =>

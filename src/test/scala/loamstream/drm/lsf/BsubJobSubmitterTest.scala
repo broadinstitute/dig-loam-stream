@@ -20,6 +20,7 @@ import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
 import loamstream.util.RunResults
+import loamstream.drm.DrmTaskId
 
 /**
  * @author clint
@@ -42,8 +43,8 @@ final class BsubJobSubmitterTest extends FunSuite {
     val DrmSubmissionResult.SubmissionSuccess(jobsToIds) = result
     
     val expected = Map(
-        "1234[1]" -> taskArray.drmJobs(0),
-        "1234[2]" -> taskArray.drmJobs(1))
+        DrmTaskId("1234", 1) -> taskArray.drmJobs(0),
+        DrmTaskId("1234", 2) -> taskArray.drmJobs(1))
         
     assert(jobsToIds === expected)
   }

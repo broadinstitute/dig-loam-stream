@@ -49,32 +49,32 @@ final class AsyncLocalChunkRunnerTest extends FunSuite with TestJobs {
     import JobStatus._
     import scala.concurrent.ExecutionContext.Implicits.global
     
-    def doTest(status: JobStatus, expectedNoRestart: JobStatus): Unit = {
-      val job = MockJob(status)
+    def doTest(expectedStatus: JobStatus): Unit = {
+      val job = MockJob(expectedStatus)
 
       val jobOracle = TestHelpers.DummyJobOracle
       
       assert(job.executionCount === 0)
       
-      val actualStatus = waitFor(executeSingle(ExecutionConfig.default, jobOracle, job, alwaysRestart))
+      val actualStatus0 = waitFor(executeSingle(ExecutionConfig.default, jobOracle, job, alwaysRestart)).jobStatus
       
       assert(job.executionCount === 1)
           
-      assert(actualStatus === status)
+      assert(actualStatus0 === expectedStatus)
       
-      val actualStatusNoRestart = waitFor(executeSingle(ExecutionConfig.default, jobOracle, job, neverRestart)).jobStatus
+      val actualStatus1 = waitFor(executeSingle(ExecutionConfig.default, jobOracle, job, neverRestart)).jobStatus
       
       assert(job.executionCount === 2)
-          
-      assert(actualStatusNoRestart === expectedNoRestart)
+      
+      assert(actualStatus1 === expectedStatus)
     }
     
-    doTest(Failed, FailedPermanently)
-    doTest(FailedWithException, FailedPermanently)
-    doTest(Terminated, FailedPermanently)
-    doTest(NotStarted, NotStarted)
-    doTest(Skipped, Skipped)
-    doTest(Submitted, Submitted)
-    doTest(Succeeded, Succeeded)
+    doTest(Failed)
+    doTest(FailedWithException)
+    doTest(Terminated)
+    doTest(NotStarted)
+    doTest(Skipped)
+    doTest(Submitted)
+    doTest(Succeeded)
   }
 }

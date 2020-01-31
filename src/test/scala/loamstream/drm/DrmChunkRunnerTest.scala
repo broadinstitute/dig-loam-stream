@@ -166,8 +166,6 @@ final class DrmChunkRunnerTest extends FunSuite {
       
       val failed = DrmJobWrapper(ExecutionConfig.default, defaultUgerSettings, ugerPathBuilder, job, path("."), 1)
       
-      assert(job.runCount === 0)
-      
       val accountingClient = MockAccountingClient.NeverWorks
       
       val result = waitFor(toRunDatas(accountingClient, shouldRestart, Map(id -> toTuple(failed))).firstAsFuture)
@@ -181,13 +179,11 @@ final class DrmChunkRunnerTest extends FunSuite {
       val expectedStatuses = Seq(JobStatus.Submitted, JobStatus.Running, expectedLastStatus)
       
       assert(runData.jobStatus === expectedStatuses.last)
-      
-      assert(job.runCount === 1)
     }
     
-    doTest(neverRestart, Failed, JobStatus.FailedPermanently)
-    doTest(neverRestart, DoneUndetermined, JobStatus.FailedPermanently)
-    doTest(neverRestart, CommandResult(1), JobStatus.FailedPermanently)
+    doTest(neverRestart, Failed, JobStatus.Failed)
+    doTest(neverRestart, DoneUndetermined, JobStatus.Failed)
+    doTest(neverRestart, CommandResult(1), JobStatus.Failed)
     
     doTest(alwaysRestart, Failed, JobStatus.Failed)
     doTest(alwaysRestart, DoneUndetermined, JobStatus.Failed)
@@ -210,16 +206,12 @@ final class DrmChunkRunnerTest extends FunSuite {
       
       val worked = DrmJobWrapper(ExecutionConfig.default, defaultUgerSettings, ugerPathBuilder, job, path("."), 1)
       
-      assert(job.runCount === 0)
-      
       val result = waitFor(toRunDatas(accountingClient, shouldRestart, Map(id -> toTuple(worked))).firstAsFuture)
       
       val Seq((actualJob, runData)) = result.toSeq
       
       assert(actualJob === job)
       assert(runData.jobStatus === JobStatus.WaitingForOutputs)
-      
-      assert(job.runCount === 1)
     }
     
     doTest(neverRestart, Done, JobStatus.WaitingForOutputs)
@@ -256,16 +248,10 @@ final class DrmChunkRunnerTest extends FunSuite {
       
       val accountingClient = MockAccountingClient.NeverWorks
       
-      assert(workedJob.runCount === 0)
-      assert(failedJob.runCount === 0)
-      
       val result = waitFor(toRunDatas(accountingClient, shouldRestart, input).firstAsFuture)
       
       val goodExecution = result(workedJob)
       val badExecution = result(failedJob)
-      
-      assert(workedJob.runCount === 1)
-      assert(failedJob.runCount === 1)
       
       assert(result.size === 2)
       
@@ -282,14 +268,14 @@ final class DrmChunkRunnerTest extends FunSuite {
     
     val failedPermanently = JobStatus.FailedPermanently
     
-    doTest(neverRestart, Done, Failed, JobStatus.WaitingForOutputs, failedPermanently)
+    doTest(neverRestart, Done, Failed, JobStatus.WaitingForOutputs, JobStatus.Failed)
     
     doTest(
         neverRestart, 
         CommandResult(0), 
         CommandResult(1), 
         JobStatus.WaitingForOutputs, 
-        failedPermanently)
+        JobStatus.Failed)
     
     doTest(alwaysRestart, Done, Failed, JobStatus.WaitingForOutputs, JobStatus.Failed)
     
@@ -535,10 +521,6 @@ object DrmChunkRunnerTest {
     
     require(statusesToReturn.nonEmpty)
 
-    private val runCountBox: ValueBox[Int] = ValueBox(0)
-    
-    def runCount: Int = runCountBox.value
-    
     override def name: String = s"${taskId.jobId}[${taskId.taskIndex}]"
     
     override def commandLineString: String = name //NB: The content of the command line is unimportant
@@ -560,8 +542,6 @@ object DrmChunkRunnerTest {
           resourcesOpt = None, 
           jobDirOpt = None,
           terminationReasonOpt = None)
-      
-      runCountBox.mutate(_ + 1)
           
       Future.successful(runData)
     }

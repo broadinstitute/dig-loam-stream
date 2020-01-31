@@ -14,7 +14,7 @@ sealed trait JobStatus {
   
   def isTerminal: Boolean
 
-  final def isFinished: Boolean = isSuccess || isFailure || isTerminal
+  final def isFinished: Boolean = isSuccess || isFailure || isTerminal || isCouldNotStart
 
   final def notFinished: Boolean = !isFinished
   

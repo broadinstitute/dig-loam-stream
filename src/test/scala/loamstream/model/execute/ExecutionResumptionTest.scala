@@ -171,7 +171,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
 
       val (startToF1, f1ToF2, f2ToF3) = mockJobs
       
-      val jobStatuses = Seq(startToF1.status, f1ToF2.status, f2ToF3.status)
+      val jobStatuses = Seq(jobResults(startToF1).status, jobResults(f1ToF2).status, jobResults(f2ToF3).status)
 
       val expectedStatuses = if (runningEverything) Seq(Succeeded, Succeeded, Succeeded) else expectations
 
@@ -202,10 +202,6 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
       
       val (startToF1, f1ToF2, f2ToF3) = mockJobsTuple 
 
-      assert(startToF1.status === JobStatus.NotStarted)
-      assert(f1ToF2.status === JobStatus.NotStarted)
-      assert(f2ToF3.status === JobStatus.NotStarted)
-  
       val executable = Executable(Set(f2ToF3))
   
       val runningEverything: Boolean = executer.jobFilter == JobFilter.RunEverything

@@ -27,20 +27,20 @@ final case class MockDrmaaClient(private val toReturn: Map[DrmTaskId, Seq[Try[Dr
       drmConfig: DrmConfig,
       taskArray: DrmTaskArray): DrmSubmissionResult = ???
 
-  override def statusOf(jobId: DrmTaskId): Try[DrmStatus] = waitFor(jobId, Duration.Zero)
+  override def statusOf(taskId: DrmTaskId): Try[DrmStatus] = waitFor(taskId, Duration.Zero)
 
-  override def waitFor(jobId: DrmTaskId, timeout: Duration): Try[DrmStatus] = {
-    params.mutate(_ :+ (jobId -> timeout))
+  override def waitFor(taskId: DrmTaskId, timeout: Duration): Try[DrmStatus] = {
+    params.mutate(_ :+ (taskId -> timeout))
     
     remaining.getAndUpdate { leftToReturn => 
-      val statuses = leftToReturn.get(jobId).filter(_.nonEmpty)
+      val statuses = leftToReturn.get(taskId).filter(_.nonEmpty)
       
       val (nextStatus, remainingStatuses) = statuses match {
         case Some(sts) => (sts.head, sts.tail)
-        case None => (terminalStates(jobId), Nil)
+        case None => (terminalStates(taskId), Nil)
       }
       
-      val nextMap = leftToReturn.updated(jobId, remainingStatuses)
+      val nextMap = leftToReturn.updated(taskId, remainingStatuses)
       
       nextMap -> nextStatus
     }
@@ -48,7 +48,7 @@ final case class MockDrmaaClient(private val toReturn: Map[DrmTaskId, Seq[Try[Dr
 
   override def stop(): Unit = ()
   
-  override def killJob(jobId: String): Unit = ???
+  override def killJob(taskId: DrmTaskId): Unit = ???
   
   override def killAllJobs(): Unit = ???
 }

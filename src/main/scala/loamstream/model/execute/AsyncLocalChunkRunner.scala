@@ -77,14 +77,6 @@ object AsyncLocalChunkRunner extends Loggable {
       Throwables.quietly("Closing process logger failed")(processLogger.close())
     }
     
-    result.withSideEffect(closeProcessLogger).withSideEffect(handleResultOfExecution(shouldRestart))
-  }
-  
-  private[execute] def handleResultOfExecution(shouldRestart: LJob => Boolean)(runData: RunData): Unit = {
-    debug(s"Handling result of execution: ${runData.job} => $runData")
-    
-    val newStatus = ExecuterHelpers.determineFinalStatus(shouldRestart, runData.jobStatus, runData.job)
-    
-    runData.job.transitionTo(newStatus)
+    result.withSideEffect(closeProcessLogger)
   }
 }

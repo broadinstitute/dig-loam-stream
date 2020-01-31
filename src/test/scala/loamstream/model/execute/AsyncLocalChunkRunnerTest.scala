@@ -22,45 +22,6 @@ final class AsyncLocalChunkRunnerTest extends FunSuite with TestJobs {
   import loamstream.TestHelpers.neverRestart
   import loamstream.TestHelpers.waitFor
   
-  test("handleResultOfExecution") {
-    import JobStatus._
-    
-    def doTest(status: JobStatus, expectedNoRestart: JobStatus): Unit = {
-      import AsyncLocalChunkRunner.handleResultOfExecution
-      
-      {
-        val job = MockJob(NotStarted)
-      
-        val runData = RunData(job, LocalSettings, status, None, None, None, None)
-        
-        assert(job.status === NotStarted)
-        
-        handleResultOfExecution(alwaysRestart)(runData) 
-        
-        assert(job.status === status)
-      }
-      
-      {
-        val job = MockJob(NotStarted)
-        
-        val runData = RunData(job, LocalSettings, status, None, None, None, None)
-        
-        assert(job.status === NotStarted)
-      
-        handleResultOfExecution(neverRestart)(runData)
-      
-        assert(job.status === expectedNoRestart)
-      }
-    }
-    
-    doTest(Failed, FailedPermanently)
-    doTest(FailedWithException, FailedPermanently)
-    doTest(Terminated, FailedPermanently)
-    doTest(Skipped, Skipped)
-    doTest(Submitted, Submitted)
-    doTest(Succeeded, Succeeded)
-  }
-  
   test("executeSingle()") {
     import AsyncLocalChunkRunner.executeSingle
     import TestHelpers.runDataFromStatus
@@ -81,12 +42,6 @@ final class AsyncLocalChunkRunnerTest extends FunSuite with TestJobs {
     val failure = waitFor(executeSingle(ExecutionConfig.default, jobOracle, failedJob, neverRestart))
     
     assert(failure === runDataFromStatus(failedJob, LocalSettings, Failed))
-    
-    import Observables.Implicits._
-    
-    val two0StatusesFuture = job.statuses.take(3).to[Seq].firstAsFuture
-    
-    assert(waitFor(two0StatusesFuture) === Seq(Running, Succeeded))
   }
   
   test("executeSingle() - job transitioned to right state") {
@@ -99,23 +54,19 @@ final class AsyncLocalChunkRunnerTest extends FunSuite with TestJobs {
 
       val jobOracle = TestHelpers.DummyJobOracle
       
-      //job.transitionTo(NotStarted)
-      
       assert(job.executionCount === 0)
       
-      assert(job.status === NotStarted)
-      
-      waitFor(executeSingle(ExecutionConfig.default, jobOracle, job, alwaysRestart))
+      val actualStatus = waitFor(executeSingle(ExecutionConfig.default, jobOracle, job, alwaysRestart))
       
       assert(job.executionCount === 1)
           
-      assert(job.status === status)
+      assert(actualStatus === status)
       
-      waitFor(executeSingle(ExecutionConfig.default, jobOracle, job, neverRestart))
+      val actualStatusNoRestart = waitFor(executeSingle(ExecutionConfig.default, jobOracle, job, neverRestart)).jobStatus
       
       assert(job.executionCount === 2)
           
-      assert(job.status === expectedNoRestart)
+      assert(actualStatusNoRestart === expectedNoRestart)
     }
     
     doTest(Failed, FailedPermanently)

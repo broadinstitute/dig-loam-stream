@@ -6,6 +6,7 @@ import loamstream.util.Iterators
 import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.Execution
+import loamstream.util.Loggable
 
 /**
  * @author clint
@@ -13,7 +14,7 @@ import loamstream.model.jobs.Execution
  */
 final class ExecutionState private (
     val maxRunsPerJob: Int,
-    private[this] val byJob: ValueBox[Map[LJob, ExecutionCell]] = ValueBox(Map.empty)) {
+    private[this] val byJob: ValueBox[Map[LJob, ExecutionCell]] = ValueBox(Map.empty)) extends Loggable {
   
   def isFinished: Boolean = byJob.get { jobsToCells => 
     jobsToCells.values.forall(cell => cell.isFinished || cell.status.isCouldNotStart)
@@ -103,11 +104,20 @@ final class ExecutionState private (
     byJob.mutate { jobsToCells =>
       requireKnown(job)
       
-      def tooManyRuns: Boolean = jobsToCells(job).runCount >= maxRunsPerJob 
+      lazy val runCount: Int = jobsToCells(job).runCount
+      
+      lazy val tooManyRuns: Boolean = runCount >= maxRunsPerJob 
       
       val transition: ExecutionCell => ExecutionCell = {
-        if(status.isFailure && tooManyRuns) { _.finishWith(JobStatus.FailedPermanently, jobResult) }
-        else if (status.isFailure) { _.markAsRunnable }
+        if(status.isFailure && tooManyRuns) { 
+          debug(s"Restarting $job ? NO (job has run $runCount times, max is $maxRunsPerJob)")
+          
+          _.finishWith(JobStatus.FailedPermanently, jobResult) }
+        else if (status.isFailure) {
+          debug(s"Restarting $job ? YES (job has run $runCount times, max is $maxRunsPerJob)")
+          
+          _.markAsRunnable 
+        }
         else {_.finishWith(status, jobResult) }
       }
       

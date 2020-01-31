@@ -67,35 +67,6 @@ final class RxExecuterTest extends FunSuite {
     doExec(executer, runner, jobs)
   }
   
-  test("deDupe") {
-    import RxExecuter.deDupe
-    import JobStatus._
-    import TestHelpers.waitFor
-    import Observables.Implicits._
-    
-    val job1 = RxMockJob("Job_1")
-    val job2 = RxMockJob("Job_2")
-    val job3 = RxMockJob("Job_3")
-    
-    val noDupes = Seq(JobRun(job1, NotStarted, 1), JobRun(job2, NotStarted, 1), JobRun(job3, Running, 42))
-    
-    assert(waitFor(deDupe(Observable.from(noDupes)).to[Seq].firstAsFuture) === noDupes)
-    
-    val someDupes = Seq(
-        JobRun(job1, NotStarted, 1), 
-        JobRun(job1, NotStarted, 1),
-        JobRun(job2, Running, 99),
-        JobRun(job3, Running, 42),
-        JobRun(job2, Running, 99))
-    
-    val deDuped = Seq(
-        JobRun(job1, NotStarted, 1),
-        JobRun(job2, Running, 99),
-        JobRun(job3, Running, 42))
-    
-    assert(waitFor(deDupe(Observable.from(someDupes)).to[Seq].firstAsFuture) === deDuped)
-  }
-  
   test("3-job pipeline where one job is canceled before running") {
     /* A 3-step pipeline:
      *
@@ -146,7 +117,7 @@ final class RxExecuterTest extends FunSuite {
     doTest(2)
   }
   
-  test("shouldRestart") {
+/*  test("shouldRestart") {
     val job = MockJob(JobStatus.NotStarted)
     
     import RxExecuter.shouldRestart
@@ -165,7 +136,7 @@ final class RxExecuterTest extends FunSuite {
     assert(shouldRestart(job, 1) === false)
     assert(shouldRestart(job, 2) === true)
     assert(shouldRestart(job, 42) === true)
-  }
+  }*/
   
   test("Guards") {
     import scala.concurrent.duration._
@@ -678,77 +649,6 @@ final class RxExecuterTest extends FunSuite {
   
       job31 assertRanBefore job4
       job32 assertRanBefore job4
-    }
-    
-    doTest(0)
-    doTest(2)
-  }
-
-  //TODO: Assess the usefulness of this test.  It's caused a lot of problems, both because of the initial 
-  //implementation, and because of various fixes and workarounds in RxMockJob and this class.  It's also not clear
-  //what the original intent of this test was. 
-  test("New leaves are executed as soon as possible when some sub-trees run before others") {
-    /* A four-step pipeline:
-     *
-     *           Job21
-     *          /      \
-     * Job11 --          -- Job31
-     *          \      /         \
-     *           Job22            \
-     *                              -- Job4
-     *           Job23            /
-     *          /      \         /
-     * Job12 --          -- Job32
-     *          \      /
-     *           Job24
-     */
-    def doTest(maxRestartsAllowed: Int): Unit = {
-      implicit val executionsBox: ValueBox[Vector[RxMockJob]] = ValueBox(Vector.empty)
-      
-      // Ensure Job23 and Job24 run after job31
-      lazy val job11 = RxMockJob("Job_1_1")
-      lazy val job12 = RxMockJob("Job_1_2")
-      lazy val job21 = RxMockJob("Job_2_1", Set(job11))
-      lazy val job22 = RxMockJob("Job_2_2", Set(job11))
-      lazy val job23 = RxMockJob("Job_2_3", Set(job12), runsAfter = Some(job31))
-      lazy val job24 = RxMockJob("Job_2_4", Set(job12), runsAfter = Some(job31))
-      lazy val job31 = RxMockJob("Job_3_1", Set(job21, job22))
-      lazy val job32 = RxMockJob("Job_3_2", Set(job23, job24))
-      lazy val job4 = RxMockJob("Job_4", Set(job31, job32))
-      
-      def assertExecutionCounts(expected: Int): Unit = {
-        Seq(job11, job12, job21, job22, job23, job24, job31, job32, job4).foreach { job =>
-          assert(job.executionCount === expected, s"Expected $expected runs from $job, but got ${job.executionCount}")
-        }
-      }
-      
-      assertExecutionCounts(0)
-      
-      //NB: Make sure the full stack trace of any exceptions is logged/printed, since SBT truncates them.
-      val ExecutionResults(result, _) = RxExecuterTest.logFullStackTrace {
-        exec(Set(job4), maxRestartsAllowed)
-      }
-  
-      assertExecutionCounts(1)
-  
-      assert(result.size === 9)
-  
-      // NB: Don't check for specific chunks, since this is non-deterministic now that RxExecuter samples
-      // The stream of runnables with Observable.tumbling.
-  
-      // Check that relationships are maintained,
-      job11 assertRanBefore job21 ; job11 assertRanBefore job22
-      
-      job12 assertRanBefore job23 ; job12 assertRanBefore job24
-      
-      job21 assertRanBefore job31 ; job22 assertRanBefore job31
-      
-      job23 assertRanBefore job31 ; job24 assertRanBefore job31
-      job23 assertRanBefore job32 ; job24 assertRanBefore job32
-  
-      job31 assertRanBefore job32 
-      
-      job31 assertRanBefore job4 ; job32 assertRanBefore job4
     }
     
     doTest(0)

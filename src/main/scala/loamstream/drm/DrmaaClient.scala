@@ -34,7 +34,7 @@ trait DrmaaClient extends Terminable {
    * @param jobId the job ID, assigned by UGER, to inquire about
    * @return a Try, since inquiring might fail
    */
-  def statusOf(jobId: String): Try[DrmStatus]
+  def statusOf(taskId: DrmTaskId): Try[DrmStatus]
 
   /**
    * Wait (synchronously) for a job to complete.
@@ -43,7 +43,7 @@ trait DrmaaClient extends Terminable {
    * @param timeout how long to wait.  If timeout elapses and the job doesn't finish, try to determine the job's
    * status using statusOf()
    */
-  def waitFor(jobId: String, timeout: Duration): Try[DrmStatus]
+  def waitFor(taskId: DrmTaskId, timeout: Duration): Try[DrmStatus]
   
   /**
    * Shut down this client and dispose of any DRMAA resources it has acquired (Sessions, etc)
@@ -53,7 +53,7 @@ trait DrmaaClient extends Terminable {
   /**
    * Kill the job with the specified id, if the job is running.
    */
-  def killJob(jobId: String): Unit
+  def killJob(taskId: DrmTaskId): Unit
   
   /**
    * Kill all jobs.

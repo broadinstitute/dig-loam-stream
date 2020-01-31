@@ -315,18 +315,6 @@ object RxExecuter extends Loggable {
     
     addExecutionRecorder(addJobFilter(default))
   }
-  
-  private[execute] def deDupe(jobRuns: Observable[JobRun]): Observable[JobRun] = jobRuns.distinct(_.key)
-  
-  /*private[execute] def shouldRestart(job: LJob, maxRunsPerJob: Int): Boolean = {
-    val runCount = job.runCount
-    
-    val result = runCount < maxRunsPerJob
-    
-    debug(s"Restarting $job ? $result (job has run $runCount times, max is $maxRunsPerJob)")
-    
-    result
-  }*/
 
   /**
    * Turns the passed `runDataMap` into an observable that will fire once, producing a Map derived from `runDataMap`
@@ -352,13 +340,7 @@ object RxExecuter extends Loggable {
         //  WaitingForOutputs => Succeeded | Failed
         //  foo => foo
         case (job, execution) => {
-          val finalStatus = {
-            if(execution.status.isFailure) {
-              ExecuterHelpers.determineFailureStatus(shouldRestart, execution.status, job) 
-            } else {
-              execution.status
-            }
-          }
+          val finalStatus = execution.status
           
           trace(
             s"Done waiting for outputs, transitioning job $job with execution $execution " +

@@ -33,16 +33,16 @@ final class DrmaaPoller(client: DrmaaClient) extends Poller with Loggable {
     }
     
     //NB: Sort job ids for better log output
-    val sortedJobIds = jobIds.toSeq.sorted
+    lazy val sortedJobIds = jobIds.toSeq.sorted
     
-    debug(s"Polling status of jobs ${sortedJobIds.mkString(",")}")
+    trace(s"Polling status of jobs ${sortedJobIds.mkString(",")}")
     
-    val pollResults = sortedJobIds.map { jobId =>
+    val pollResults = Map.empty ++ sortedJobIds.iterator.map { jobId =>
       jobId -> statusAttempt(jobId)
     }
     
-    debug(s"Polled ${sortedJobIds.mkString(",")}")
+    trace(s"Polled ${sortedJobIds.mkString(",")}")
     
-    pollResults.toMap
+    pollResults
   }
 }

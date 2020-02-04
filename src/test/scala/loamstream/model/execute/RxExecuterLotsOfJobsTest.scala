@@ -11,6 +11,7 @@ import loamstream.loam.LoamCmdTool
 import loamstream.loam.LoamGraph
 import loamstream.util.Paths
 import loamstream.util.PlatformUtil
+import loamstream.util.TimeUtils
 
 
 /**
@@ -24,6 +25,44 @@ final class RxExecuterLotsOfJobsTest extends FunSuite {
   private val cancelOnWindows = true
 
   import loamstream.util.Paths.Implicits._
+  
+  test("profile") {
+    val outputDir: Path =  TestHelpers.getWorkDir(getClass.getSimpleName)
+    
+    if (cancelOnWindows && PlatformUtil.isWindows) {
+      cancel("Cancelled on Windows because there it takes too long to run and hogs CPU.")
+    }
+
+    val executer = RxExecuter.defaultWith(JobFilter.RunEverything)
+
+    val executable = LoamEngine.toExecutable(graph(outputDir))
+    
+    val N = 50
+    
+    /*TimeUtils.time("ExecutionState (Map)", println(_)) {
+      val state = ExecutionState.initialFor(executable, 1)
+      
+      (1 to N).foreach(_ => state.updateJobs()) 
+    }*/
+    
+    TimeUtils.time("ExecutionState2 (Array + Index)", println(_)) {
+      val state = ExecutionState.initialFor(executable, 1)
+      
+      (1 to N).foreach(_ => state.updateJobs()) 
+    }
+    
+    TimeUtils.time("ExecutionState2 (Array + Index)", println(_)) {
+      val state = ExecutionState.initialFor(executable, 1)
+      
+      (1 to N).foreach(_ => state.updateJobs()) 
+    }
+    
+    /*TimeUtils.time("ExecutionState3 (Array + Index + tweaks)", println(_)) {
+      val state = ExecutionState3.initialFor(executable, 1)
+      
+      (1 to N).foreach(_ => state.updateJobs()) 
+    }*/
+  }
   
   ignore("lots of jobs don't blow the stack") {
     val outputDir: Path =  TestHelpers.getWorkDir(getClass.getSimpleName)
@@ -77,17 +116,17 @@ final class RxExecuterLotsOfJobsTest extends FunSuite {
   
   //Adapted from camp_chr_12_22.loam
   private val chrProps: Seq[Props] = Seq(
-      Props(12, 135, 60180),
-      Props(13, 97, 19020046),
-      Props(14, 89, 19000016),
-      Props(15, 83, 20000040),
-      Props(16, 91, 60085),
-      Props(17, 82, 51),
-      Props(18, 79, 10082),
-      Props(19, 60, 60841),
-      Props(20, 64, 60342),
-      Props(21, 39, 9411238),
-      Props(22, 36, 16050074))
+      Props(12, 1350, 60180),
+      Props(13, 970, 19020046),
+      Props(14, 890, 19000016),
+      Props(15, 830, 20000040),
+      Props(16, 910, 60085),
+      Props(17, 820, 51),
+      Props(18, 790, 10082),
+      Props(19, 600, 60841),
+      Props(20, 640, 60342),
+      Props(21, 390, 9411238),
+      Props(22, 360, 16050074))
   
   //Adapted from camp_chr_12_22.loam
   private def graph(outputDir: Path): LoamGraph = TestHelpers.makeGraph { implicit context =>

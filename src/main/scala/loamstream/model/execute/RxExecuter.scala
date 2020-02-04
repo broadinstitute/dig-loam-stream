@@ -59,17 +59,31 @@ final case class RxExecuter(
       makeJobOracle: Executable => JobOracle = JobOracle.fromExecutable(executionConfig, _))
      (implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
     
-    val executionState = ExecutionState.initialFor(executable, maxRunsPerJob)
-    
     val jobOracle = makeJobOracle(executable)
     
+    val executionState = ExecutionState.initialFor(executable, maxRunsPerJob)
+    
+    val numJobs = executionState.size
+    
+    debug(s"Initialized execution state with ${numJobs} jobs")
+    
     def finish(results: Map[LJob, Execution]): Unit = {
+      debug(s"Finishing ${results.size} jobs")
+      
       results.foreach {case (job, execution) => executionState.finish(job, execution) }
     }
     
     def runEligibleJobs(): Observable[Map[LJob, Execution]] = {
       
       val jobsAndCells = executionState.updateJobs()
+      
+      val numReadyToRun = jobsAndCells.readyToRun.size
+      val numCannotRun = jobsAndCells.cannotRun.size
+      import jobsAndCells.{ numRunning, numFinished }
+      
+      val numRemaining = numJobs - numReadyToRun - numCannotRun - numRunning - numFinished
+      
+      debug(s"RxExecuter.runEligibleJobs(): $numReadyToRun jobs ready to run; $numCannotRun jobs cannot run; $numRunning running; $numFinished finishedl; $numRemaining other.")
       
       val (finishedJobAndCells, notFinishedJobsAndCells) = {
         jobsAndCells.readyToRun.partition { case (_, cell) => cell.isTerminal }
@@ -111,7 +125,9 @@ final case class RxExecuter(
       }
     }
     
-    val chunkResults = Observable.interval(windowLength).flatMap(_ => runEligibleJobs()).takeUntil(_ => executionState.isFinished)
+    val ioScheduler: Scheduler = IOScheduler()
+    
+    val chunkResults = Observable.interval(windowLength, ioScheduler).flatMap(_ => runEligibleJobs()).takeUntil(_ => executionState.isFinished)
     
     val futureMergedResults = chunkResults.foldLeft(emptyExecutionMap)(_ ++ _).firstAsFuture
 

@@ -63,7 +63,7 @@ final case class DrmChunkRunner(
       jobOracle: JobOracle, 
       shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
 
-    debug(s"Running: ")
+    debug(s"${getClass.getSimpleName}: Running ${jobs.size} jobs: ")
     jobs.foreach(job => debug(s"  $job"))
 
     require(
@@ -78,9 +78,12 @@ final case class DrmChunkRunner(
     val resultsForSubChunks: Iterable[Observable[Map[LJob, RunData]]] = {
       import DrmTaskArray.fromCommandLineJobs
       
+      val maxJobsPerTaskArray = 2000
+      
       for {
         (settings, rawJobs) <- subChunksBySettings(commandLineJobs)
-        drmTaskArray = fromCommandLineJobs(executionConfig, jobOracle, settings, drmConfig, pathBuilder, rawJobs)
+        rawJobChunk <- rawJobs.sliding(maxJobsPerTaskArray, maxJobsPerTaskArray)
+        drmTaskArray = fromCommandLineJobs(executionConfig, jobOracle, settings, drmConfig, pathBuilder, rawJobChunk)
       } yield {
         runJobs(settings, drmTaskArray, shouldRestart)
       }

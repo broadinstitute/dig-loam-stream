@@ -16,6 +16,8 @@ final class ExecutionState private (
     val maxRunsPerJob: Int,
     private[this] val fields: ValueBox[ExecutionState.Fields]) extends Loggable {
   
+  def size: Int = fields.get(_.byJob.length)
+  
   private[execute] def allJobs: Iterable[LJob] = fields.get(_.index.keys)
   
   private def justCells: Iterator[ExecutionCell] = fields.get { 
@@ -55,7 +57,10 @@ final class ExecutionState private (
   def jobStatuses: ExecutionState.JobStatuses = fields.get { f =>  
     import f.{byJob => jobsToCells}
     
-    val z = ExecutionState.JobStatuses.empty
+    val numRunning = jobsToCells.count { case (_, cell) => cell.isRunning }
+    val numFinished = jobsToCells.count { case (_, cell) => cell.isFinished }
+    
+    val z = ExecutionState.JobStatuses.empty.copy(numRunning = numRunning, numFinished = numFinished)
     
     jobsToCells.foldLeft(z) { (acc, tuple) =>
       val (job, cell) = tuple
@@ -210,7 +215,9 @@ object ExecutionState {
   
   final case class JobStatuses(
       readyToRun: Map[LJob, ExecutionCell], 
-      cannotRun: Map[LJob, ExecutionCell]) {
+      cannotRun: Map[LJob, ExecutionCell],
+      numRunning: Int,
+      numFinished: Int) {
     
     def withRunnable(jobAndCell: (LJob, ExecutionCell)): JobStatuses = copy(readyToRun = readyToRun + jobAndCell)
     
@@ -218,6 +225,6 @@ object ExecutionState {
   }
   
   object JobStatuses {
-    val empty: JobStatuses = JobStatuses(Map.empty, Map.empty)
+    val empty: JobStatuses = JobStatuses(Map.empty, Map.empty, 0, 0)
   }
 }

@@ -123,7 +123,7 @@ final class Drmaa1Client(nativeSpecBuilder: NativeSpecBuilder) extends DrmaaClie
         val status = session.getJobProgramStatus(taskId.jobId)
         val jobStatus = DrmStatus.fromDrmStatusCode(status)
 
-        debug(s"Job '$taskId' has status $status, mapped to $jobStatus")
+        trace(s"Job '$taskId' has status $status, mapped to $jobStatus")
 
         if (jobStatus.isFinished) {
           //TODO Is .jobId right here?  Do we need to care about the index as well?

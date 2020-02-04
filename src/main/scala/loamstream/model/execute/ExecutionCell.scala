@@ -41,6 +41,10 @@ final case class ExecutionCell(
   def nonTerminal: Boolean = !isTerminal
   
   def notStarted: Boolean = status == JobStatus.NotStarted
+  
+  def isRunning: Boolean = status.isRunning
+  
+  def isSkipped: Boolean = status.isSkipped
 }
 
 object ExecutionCell {

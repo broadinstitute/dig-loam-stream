@@ -145,9 +145,6 @@ final case class RxExecuter(
     }
   }
   
-  //NB: shouldRestart() mostly factored out to the companion object for simpler testing
-  private def shouldRestart(job: LJob): Boolean = false//RxExecuter.shouldRestart(job, maxRunsPerJob)
-  
   //Produce Optional LJob -> Execution tuples.  We need to be able to produce just one (empty) item,
   //instead of just returning Observable.empty, so that code chained onto this method's result with
   //flatMap will run.
@@ -160,9 +157,9 @@ final case class RxExecuter(
     
     if(jobsToRun.isEmpty) { Observable.just(None) }
     else {
-      val jobRunObs = runner.run(jobsToRun.toSet, jobOracle, shouldRestart)
+      val jobRunObs = runner.run(jobsToRun.toSet, jobOracle)
       
-      jobRunObs.flatMap(toExecutionMap(fileMonitor, shouldRestart)).map(Option(_))
+      jobRunObs.flatMap(toExecutionMap(fileMonitor)).map(Option(_))
     }
   }
   
@@ -286,8 +283,7 @@ object RxExecuter extends Loggable {
    * by turning `runDataMap`'s values into Executions after waiting for any missing outputs. 
    */
   private[execute] def toExecutionMap(
-      fileMonitor: FileMonitor,
-      shouldRestart: LJob => Boolean)
+      fileMonitor: FileMonitor)
       (runDataMap: Map[LJob, RunData])
       (implicit context: ExecutionContext): Observable[(LJob, Execution)] = {
   

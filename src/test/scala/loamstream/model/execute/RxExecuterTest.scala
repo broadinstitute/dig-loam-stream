@@ -805,12 +805,11 @@ object RxExecuterTest {
 
     override def run(
         jobs: Set[LJob], 
-        jobOracle: JobOracle, 
-        shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
+        jobOracle: JobOracle): Observable[Map[LJob, RunData]] = {
       
       chunks.mutate(_ :+ jobs)
 
-      delegate.run(jobs, jobOracle, shouldRestart)
+      delegate.run(jobs, jobOracle)
     }
   }
 }

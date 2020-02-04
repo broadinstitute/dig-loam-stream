@@ -26,9 +26,6 @@ import loamstream.util.Paths
  */
 final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
   
-  import loamstream.TestHelpers.alwaysRestart
-  import loamstream.TestHelpers.neverRestart
-  
   test("statusAndResultFrom") {
     import ExecuterHelpers.statusAndResultFrom
     

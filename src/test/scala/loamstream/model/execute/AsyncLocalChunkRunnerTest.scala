@@ -18,8 +18,6 @@ import loamstream.model.jobs.RunData
  * Nov 7, 2017
  */
 final class AsyncLocalChunkRunnerTest extends FunSuite with TestJobs {
-  import loamstream.TestHelpers.alwaysRestart
-  import loamstream.TestHelpers.neverRestart
   import loamstream.TestHelpers.waitFor
   
   test("executeSingle()") {
@@ -35,11 +33,11 @@ final class AsyncLocalChunkRunnerTest extends FunSuite with TestJobs {
     
     val jobOracle = TestHelpers.DummyJobOracle
     
-    val success = waitFor(executeSingle(ExecutionConfig.default, jobOracle, job, neverRestart))
+    val success = waitFor(executeSingle(ExecutionConfig.default, jobOracle, job))
     
     assert(success === runDataFromStatus(job, LocalSettings, Succeeded))
     
-    val failure = waitFor(executeSingle(ExecutionConfig.default, jobOracle, failedJob, neverRestart))
+    val failure = waitFor(executeSingle(ExecutionConfig.default, jobOracle, failedJob))
     
     assert(failure === runDataFromStatus(failedJob, LocalSettings, Failed))
   }
@@ -56,13 +54,13 @@ final class AsyncLocalChunkRunnerTest extends FunSuite with TestJobs {
       
       assert(job.executionCount === 0)
       
-      val actualStatus0 = waitFor(executeSingle(ExecutionConfig.default, jobOracle, job, alwaysRestart)).jobStatus
+      val actualStatus0 = waitFor(executeSingle(ExecutionConfig.default, jobOracle, job)).jobStatus
       
       assert(job.executionCount === 1)
           
       assert(actualStatus0 === expectedStatus)
       
-      val actualStatus1 = waitFor(executeSingle(ExecutionConfig.default, jobOracle, job, neverRestart)).jobStatus
+      val actualStatus1 = waitFor(executeSingle(ExecutionConfig.default, jobOracle, job)).jobStatus
       
       assert(job.executionCount === 2)
       

@@ -61,8 +61,7 @@ final case class DrmChunkRunner(
    */
   override def run(
       jobs: Set[LJob], 
-      jobOracle: JobOracle, 
-      shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
+      jobOracle: JobOracle): Observable[Map[LJob, RunData]] = {
 
     debug(s"${getClass.getSimpleName}: Running ${jobs.size} jobs: ")
     jobs.foreach(job => debug(s"  $job"))
@@ -89,7 +88,7 @@ final case class DrmChunkRunner(
           fromCommandLineJobs(executionConfig, jobOracle, settings, drmConfig, pathBuilder, rawJobChunk)
         }
         
-        runJobs(settings, drmTaskArray, shouldRestart)
+        runJobs(settings, drmTaskArray)
       }
     }
 
@@ -103,8 +102,7 @@ final case class DrmChunkRunner(
    */
   private def runJobs(
     drmSettings: DrmSettings,
-    drmTaskArray: DrmTaskArray,
-    shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
+    drmTaskArray: DrmTaskArray): Observable[Map[LJob, RunData]] = {
 
     drmTaskArray.drmJobs match {
       case Nil => Observable.just(Map.empty)
@@ -113,35 +111,33 @@ final case class DrmChunkRunner(
           jobSubmitter.submitJobs(drmSettings, drmTaskArray)
         }
 
-        toRunDataStream(drmJobs, submissionResult, shouldRestart)
+        toRunDataStream(drmJobs, submissionResult)
       }
     }
   }
 
   private def toRunDataStream(
     drmJobs: Seq[DrmJobWrapper],
-    submissionResult: DrmSubmissionResult,
-    shouldRestart: LJob => Boolean)(implicit ec: ExecutionContext): Observable[Map[LJob, RunData]] = {
+    submissionResult: DrmSubmissionResult)(implicit ec: ExecutionContext): Observable[Map[LJob, RunData]] = {
     
     val commandLineJobs = drmJobs.map(_.commandLineJob)
     
     import loamstream.drm.DrmSubmissionResult._
     
     submissionResult match {
-      case SubmissionSuccess(drmJobsByDrmId) => jobsToRunDatas(shouldRestart, drmJobsByDrmId)
+      case SubmissionSuccess(drmJobsByDrmId) => jobsToRunDatas(drmJobsByDrmId)
       case SubmissionFailure(e) => makeAllFailureMap(drmJobs, Some(e))
     }
   }
   
   private[drm] def jobsToRunDatas(
-    shouldRestart: LJob => Boolean,
     jobsById: Map[DrmTaskId, DrmJobWrapper])(implicit ec: ExecutionContext): Observable[Map[LJob, RunData]] = {
 
     def statuses(taskIds: Iterable[DrmTaskId]): Map[DrmTaskId, Observable[DrmStatus]] = jobMonitor.monitor(taskIds)
 
     val jobsAndDrmStatusesById = combine(jobsById, statuses(jobsById.keys))
 
-    toRunDatas(accountingClient, shouldRestart, jobsAndDrmStatusesById)
+    toRunDatas(accountingClient, jobsAndDrmStatusesById)
   }
   
   /**
@@ -229,7 +225,6 @@ object DrmChunkRunner extends Loggable {
   
   private[drm] def toRunDatas(
     accountingClient: AccountingClient, 
-    shouldRestart: LJob => Boolean,
     jobsAndDrmStatusesById: Map[DrmTaskId, JobAndStatuses])
     (implicit ec: ExecutionContext): Observable[Map[LJob, RunData]] = {
 
@@ -250,18 +245,6 @@ object DrmChunkRunner extends Loggable {
     
     Observables.toMap(jobsToExecutionObservables)
   }
-
-  /*private[drm] def handleDrmStatus(shouldRestart: LJob => Boolean, job: LJob)(ds: DrmStatus): Unit = {
-    val jobStatus = toJobStatus(ds)
-
-    if (jobStatus.isFailure) {
-      debug(s"Handling failure status $jobStatus (was DRM status $ds) for job $job")
-
-      handleFailureStatus(shouldRestart, jobStatus)(job)
-    } else {
-      job.transitionTo(jobStatus)
-    }
-  }*/
 
   private[drm] def makeAllFailureMap(
       jobs: Seq[DrmJobWrapper], 

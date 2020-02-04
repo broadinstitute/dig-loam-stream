@@ -54,7 +54,6 @@ final class DrmChunkRunnerTest extends FunSuite {
   private val scheduler = IOScheduler()
   
   import loamstream.TestHelpers.path
-  import loamstream.TestHelpers.neverRestart
   import loamstream.model.jobs.JobStatus.FailedPermanently
   import loamstream.model.jobs.JobStatus.Succeeded
   import scala.concurrent.ExecutionContext.Implicits.global
@@ -105,7 +104,7 @@ final class DrmChunkRunnerTest extends FunSuite {
         jobMonitor = new JobMonitor(scheduler, JustFailsMockPoller),
         accountingClient = MockAccountingClient.NeverWorks)
     
-    val result = waitFor(runner.run(Set.empty, TestHelpers.DummyJobOracle, neverRestart).firstAsFuture)
+    val result = waitFor(runner.run(Set.empty, TestHelpers.DummyJobOracle).firstAsFuture)
     
     assert(result === Map.empty)
   }
@@ -122,7 +121,7 @@ final class DrmChunkRunnerTest extends FunSuite {
         jobMonitor = new JobMonitor(scheduler, JustFailsMockPoller),
         accountingClient = MockAccountingClient.NeverWorks)
     
-    val result = waitFor(runner.run(Set.empty, TestHelpers.DummyJobOracle, neverRestart).firstAsFuture)
+    val result = waitFor(runner.run(Set.empty, TestHelpers.DummyJobOracle).firstAsFuture)
     
     assert(result === Map.empty)
   }
@@ -155,20 +154,20 @@ final class DrmChunkRunnerTest extends FunSuite {
   test("toRunDatas - one failed job") {
     import DrmChunkRunner.toRunDatas
     import DrmStatus._
-    import TestHelpers.{alwaysRestart, neverRestart, defaultUgerSettings}
+    import TestHelpers.defaultUgerSettings
     import DrmChunkRunnerTest.MockDrmJob
     import Observables.Implicits._
     
     val id = DrmTaskId("failed", 1)
     
-    def doTest(shouldRestart: LJob => Boolean, lastUgerStatus: DrmStatus, expectedLastStatus: JobStatus): Unit = {
+    def doTest(lastUgerStatus: DrmStatus, expectedLastStatus: JobStatus): Unit = {
       val job = MockDrmJob(id, Queued, Queued, Running, Running, lastUgerStatus)
       
       val failed = DrmJobWrapper(ExecutionConfig.default, defaultUgerSettings, ugerPathBuilder, job, path("."), 1)
       
       val accountingClient = MockAccountingClient.NeverWorks
       
-      val result = waitFor(toRunDatas(accountingClient, shouldRestart, Map(id -> toTuple(failed))).firstAsFuture)
+      val result = waitFor(toRunDatas(accountingClient, Map(id -> toTuple(failed))).firstAsFuture)
       
       val Seq((actualJob, runData)) = result.toSeq
       
@@ -181,32 +180,32 @@ final class DrmChunkRunnerTest extends FunSuite {
       assert(runData.jobStatus === expectedStatuses.last)
     }
     
-    doTest(neverRestart, Failed, JobStatus.Failed)
-    doTest(neverRestart, DoneUndetermined, JobStatus.Failed)
-    doTest(neverRestart, CommandResult(1), JobStatus.Failed)
+    doTest(Failed, JobStatus.Failed)
+    doTest(DoneUndetermined, JobStatus.Failed)
+    doTest(CommandResult(1), JobStatus.Failed)
     
-    doTest(alwaysRestart, Failed, JobStatus.Failed)
-    doTest(alwaysRestart, DoneUndetermined, JobStatus.Failed)
-    doTest(alwaysRestart, CommandResult(1), JobStatus.Failed)
+    doTest(Failed, JobStatus.Failed)
+    doTest(DoneUndetermined, JobStatus.Failed)
+    doTest(CommandResult(1), JobStatus.Failed)
   }
   
   test("toRunDatas - one successful job") {
     import DrmChunkRunner.toRunDatas
     import DrmStatus._
-    import TestHelpers.{alwaysRestart, neverRestart, defaultUgerSettings}
+    import TestHelpers.defaultUgerSettings
     import DrmChunkRunnerTest.MockDrmJob
     import Observables.Implicits._
     
     val id = DrmTaskId("worked", 1)
     
-    def doTest(shouldRestart: LJob => Boolean, lastDrmStatus: DrmStatus, expectedLastStatus: JobStatus): Unit = {
+    def doTest(lastDrmStatus: DrmStatus, expectedLastStatus: JobStatus): Unit = {
       val job = MockDrmJob(id, Queued, Queued, Running, Running, lastDrmStatus)
       
       val accountingClient = MockAccountingClient.NeverWorks
       
       val worked = DrmJobWrapper(ExecutionConfig.default, defaultUgerSettings, ugerPathBuilder, job, path("."), 1)
       
-      val result = waitFor(toRunDatas(accountingClient, shouldRestart, Map(id -> toTuple(worked))).firstAsFuture)
+      val result = waitFor(toRunDatas(accountingClient, Map(id -> toTuple(worked))).firstAsFuture)
       
       val Seq((actualJob, runData)) = result.toSeq
       
@@ -214,17 +213,17 @@ final class DrmChunkRunnerTest extends FunSuite {
       assert(runData.jobStatus === JobStatus.WaitingForOutputs)
     }
     
-    doTest(neverRestart, Done, JobStatus.WaitingForOutputs)
-    doTest(neverRestart, CommandResult(0), JobStatus.WaitingForOutputs)
+    doTest(Done, JobStatus.WaitingForOutputs)
+    doTest(CommandResult(0), JobStatus.WaitingForOutputs)
     
-    doTest(alwaysRestart, Done, JobStatus.WaitingForOutputs)
-    doTest(alwaysRestart, CommandResult(0), JobStatus.WaitingForOutputs)
+    doTest(Done, JobStatus.WaitingForOutputs)
+    doTest(CommandResult(0), JobStatus.WaitingForOutputs)
   }
   
   test("toRunDatas - one successful job, one failed job") {
     import DrmChunkRunner.toRunDatas
     import DrmStatus._
-    import TestHelpers.{alwaysRestart, neverRestart, defaultUgerSettings}
+    import TestHelpers.defaultUgerSettings
     import DrmChunkRunnerTest.MockDrmJob
     import Observables.Implicits._
     
@@ -232,7 +231,6 @@ final class DrmChunkRunnerTest extends FunSuite {
     val badId = DrmTaskId("failed", 2)
     
     def doTest(
-        shouldRestart: LJob => Boolean, 
         lastGoodDrmStatus: DrmStatus, 
         lastBadDrmStatus: DrmStatus, 
         expectedLastGoodStatus: JobStatus,
@@ -248,7 +246,7 @@ final class DrmChunkRunnerTest extends FunSuite {
       
       val accountingClient = MockAccountingClient.NeverWorks
       
-      val result = waitFor(toRunDatas(accountingClient, shouldRestart, input).firstAsFuture)
+      val result = waitFor(toRunDatas(accountingClient, input).firstAsFuture)
       
       val goodExecution = result(workedJob)
       val badExecution = result(failedJob)
@@ -268,19 +266,17 @@ final class DrmChunkRunnerTest extends FunSuite {
     
     val failedPermanently = JobStatus.FailedPermanently
     
-    doTest(neverRestart, Done, Failed, JobStatus.WaitingForOutputs, JobStatus.Failed)
+    doTest(Done, Failed, JobStatus.WaitingForOutputs, JobStatus.Failed)
     
     doTest(
-        neverRestart, 
         CommandResult(0), 
         CommandResult(1), 
         JobStatus.WaitingForOutputs, 
         JobStatus.Failed)
     
-    doTest(alwaysRestart, Done, Failed, JobStatus.WaitingForOutputs, JobStatus.Failed)
+    doTest(Done, Failed, JobStatus.WaitingForOutputs, JobStatus.Failed)
     
     doTest(
-        alwaysRestart, 
         CommandResult(0), 
         CommandResult(1), 
         JobStatus.WaitingForOutputs, 
@@ -350,7 +346,7 @@ final class DrmChunkRunnerTest extends FunSuite {
           
       
       val results = {
-        waitFor(chunkRunner.run(jobs.map(_.job).toSet, TestHelpers.DummyJobOracle, neverRestart).firstAsFuture)
+        waitFor(chunkRunner.run(jobs.map(_.job).toSet, TestHelpers.DummyJobOracle).firstAsFuture)
       }
       
       val actualSubmissionParams = mockJobSubmitter.params
@@ -446,7 +442,7 @@ final class DrmChunkRunnerTest extends FunSuite {
       val chunkRunner = makeChunkRunner(drmSystem, mockJobSubmitter)
           
       val results = {
-        waitFor(chunkRunner.run(jobs.map(_.job).toSet, TestHelpers.DummyJobOracle, neverRestart).firstAsFuture)
+        waitFor(chunkRunner.run(jobs.map(_.job).toSet, TestHelpers.DummyJobOracle).firstAsFuture)
       }
       
       val actualSubmissionParams = mockJobSubmitter.params

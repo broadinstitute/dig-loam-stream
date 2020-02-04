@@ -25,6 +25,7 @@ import loamstream.util.Loggable
 import loamstream.util.Observables
 import loamstream.util.Terminable
 import rx.lang.scala.Observable
+import loamstream.util.TimeUtils
 
 
 /**
@@ -83,8 +84,11 @@ final case class DrmChunkRunner(
       for {
         (settings, rawJobs) <- subChunksBySettings(commandLineJobs)
         rawJobChunk <- rawJobs.sliding(maxJobsPerTaskArray, maxJobsPerTaskArray)
-        drmTaskArray = fromCommandLineJobs(executionConfig, jobOracle, settings, drmConfig, pathBuilder, rawJobChunk)
       } yield {
+        val drmTaskArray = TimeUtils.time(s"Making DrmTaskArray with ${rawJobChunk.size} jobs", debug(_)) {
+          fromCommandLineJobs(executionConfig, jobOracle, settings, drmConfig, pathBuilder, rawJobChunk)
+        }
+        
         runJobs(settings, drmTaskArray, shouldRestart)
       }
     }
@@ -105,7 +109,9 @@ final case class DrmChunkRunner(
     drmTaskArray.drmJobs match {
       case Nil => Observable.just(Map.empty)
       case drmJobs => {
-        val submissionResult = jobSubmitter.submitJobs(drmSettings, drmTaskArray)
+        val submissionResult = TimeUtils.time(s"Submitting DrmTaskArray with ${drmTaskArray.size} jobs") {
+          jobSubmitter.submitJobs(drmSettings, drmTaskArray)
+        }
 
         toRunDataStream(drmJobs, submissionResult, shouldRestart)
       }

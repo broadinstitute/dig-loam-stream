@@ -267,8 +267,6 @@ final class Drmaa1Client(nativeSpecBuilder: NativeSpecBuilder) extends DrmaaClie
 
       val jobIds = session.runBulkJobs(jt, taskStartIndex, taskEndIndex, taskIndexIncr).asScala.map(_.toString)
 
-      debug(s"Jobs have been submitted with ids ${jobIds.mkString(",")}")
-
       val jobIdsForJobs = jobIds.zip(taskArray.drmJobs).toMap
 
       def drmIdsToJobsString = {

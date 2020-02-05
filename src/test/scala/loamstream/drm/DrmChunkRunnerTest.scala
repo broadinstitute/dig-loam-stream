@@ -73,7 +73,7 @@ final class DrmChunkRunnerTest extends FunSuite {
     import scala.concurrent.duration.DurationInt
     
     LsfConfig(
-      maxNumJobs = 42,
+      maxNumJobsPerTaskArray = 42,
       defaultCores = Cpus(2),
       defaultMemoryPerCore = Memory.inGb(2),
       defaultMaxRunTime = CpuTime.inHours(7))

@@ -11,8 +11,6 @@ import rx.lang.scala.Observable
  * date: Jun 16, 2016
  */
 trait ChunkRunner extends Terminable {
-  def maxNumJobs: Int
-  
   def canRun(job: LJob): Boolean
   
   def run(jobs: Set[LJob], jobOracle: JobOracle): Observable[Map[LJob, RunData]]

@@ -33,7 +33,7 @@ final class DrmSettingsTest extends FunSuite {
     val someEnv = "someEnv"
     
     val config = UgerConfig(
-        maxNumJobs = elevenJobs, 
+        maxNumJobsPerTaskArray = elevenJobs, 
         defaultCores = lotsOfCpus, 
         defaultMemoryPerCore = seventeenGigs,
         defaultMaxRunTime = fiveHours, 
@@ -56,7 +56,7 @@ final class DrmSettingsTest extends FunSuite {
     val fiveHours = CpuTime.inHours(5)
     
     val config = LsfConfig(
-        maxNumJobs = elevenJobs, 
+        maxNumJobsPerTaskArray = elevenJobs, 
         defaultCores = lotsOfCpus, 
         defaultMemoryPerCore = seventeenGigs,
         defaultMaxRunTime = fiveHours) 

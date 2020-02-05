@@ -14,8 +14,6 @@ import rx.lang.scala.Observable
  */
 final case class CompositeChunkRunner(components: Seq[ChunkRunner]) extends ChunkRunner with Loggable {
   
-  override def maxNumJobs: Int = components.map(_.maxNumJobs).sum
-  
   override def canRun(job: LJob): Boolean = components.exists(_.canRun(job))
   
   override def run(

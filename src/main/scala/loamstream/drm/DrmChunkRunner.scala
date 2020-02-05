@@ -50,8 +50,6 @@ final case class DrmChunkRunner(
 
   override protected val terminableComponents: Iterable[Terminable] = Seq(jobMonitor, jobSubmitter)
 
-  override def maxNumJobs: Int = drmConfig.maxNumJobs
-
   /**
    * Run the provided jobs, using the provided predicate (`shouldRestart`) to decide whether to re-run them if they
    * fail.  Returns an Observable producing a map of jobs to Executions.
@@ -78,7 +76,7 @@ final case class DrmChunkRunner(
     val resultsForSubChunks: Iterable[Observable[Map[LJob, RunData]]] = {
       import DrmTaskArray.fromCommandLineJobs
       
-      val maxJobsPerTaskArray = 2000
+      val maxJobsPerTaskArray = drmConfig.maxNumJobsPerTaskArray
       
       for {
         (settings, rawJobs) <- subChunksBySettings(commandLineJobs)

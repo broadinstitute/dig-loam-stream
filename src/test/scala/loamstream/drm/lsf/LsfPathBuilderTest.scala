@@ -14,7 +14,7 @@ final class LsfPathBuilderTest extends FunSuite {
   import loamstream.util.BashScript.Implicits._
   import TestHelpers.path
   
-  private val lsfConfig = LsfConfig(maxNumJobs = 42)
+  private val lsfConfig = LsfConfig(maxNumJobsPerTaskArray = 42)
   
   private val workDir = lsfConfig.workDir
   

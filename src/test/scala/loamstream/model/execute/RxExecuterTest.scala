@@ -663,12 +663,8 @@ final class RxExecuterTest extends FunSuite {
     import scala.concurrent.duration._
       
     val realRunner = AsyncLocalChunkRunner(ExecutionConfig.default, maxSimultaneousJobs)
-  
-    assert(realRunner.maxNumJobs === maxSimultaneousJobs)
     
     val runner = MockChunkRunner(realRunner)
-      
-    assert(runner.maxNumJobs === maxSimultaneousJobs)
     
     import RxExecuter.Defaults.fileMonitor
     
@@ -726,8 +722,6 @@ object RxExecuterTest {
   }
   
   private final case class MockChunkRunner(delegate: ChunkRunner) extends ChunkRunner {
-    override def maxNumJobs: Int = delegate.maxNumJobs
-    
     override def canRun(job: LJob): Boolean = delegate.canRun(job)
     
     val chunks: ValueBox[Seq[Set[LJob]]] = ValueBox(Vector.empty)

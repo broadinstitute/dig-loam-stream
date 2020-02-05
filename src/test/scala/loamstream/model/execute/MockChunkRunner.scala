@@ -11,8 +11,6 @@ import loamstream.model.jobs.JobOracle
  * Oct 12, 2016
  */
 final case class MockChunkRunner(delegate: ChunkRunner) extends ChunkRunner {
-  override def maxNumJobs: Int = delegate.maxNumJobs
-  
   override def canRun(job: LJob): Boolean = delegate.canRun(job)
   
   val chunks: ValueBox[Seq[Set[LJob]]] = ValueBox(Vector.empty)

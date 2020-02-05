@@ -23,16 +23,6 @@ final class CompositeChunkRunnerTest extends FunSuite {
   import CompositeChunkRunnerTest.{ MockRunner, local }
   import loamstream.TestHelpers.waitFor
   
-  test("maxNumJobs") {
-    val n1 = 3
-    val n2 = 5
-    val n3 = 1
-    
-    val runner = CompositeChunkRunner(Seq(local(n1), local(n2), local(n3)))
-    
-    assert(runner.maxNumJobs === (n1 + n2 + n3))
-  }
-
   test("canRun") {
 
     val job1 = MockJob(JobStatus.Succeeded)
@@ -83,8 +73,6 @@ object CompositeChunkRunnerTest {
   private def local(n: Int) = AsyncLocalChunkRunner(ExecutionConfig.default, n)(ExecutionContext.global)
   
   private final case class MockRunner(allowed: MockJob) extends ChunkRunner {
-    override def maxNumJobs: Int = ???
-    
     override def canRun(job: LJob): Boolean = job eq allowed
     
     private val delegate = local(1)

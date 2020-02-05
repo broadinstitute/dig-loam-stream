@@ -39,8 +39,8 @@ object DrmTaskArrayTest {
 
   private val jobOutputDir = path("/path/to/logs").toAbsolutePath
 
-  private val ugerConfig = UgerConfig(maxNumJobs = 42)
-  private val lsfConfig = LsfConfig(maxNumJobs = 42)
+  private val ugerConfig = UgerConfig(maxNumJobsPerTaskArray = 42)
+  private val lsfConfig = LsfConfig(maxNumJobsPerTaskArray = 42)
 
   private val executionConfig = ExecutionConfig(maxRunsPerJob = 42)
 
@@ -225,15 +225,15 @@ final class DrmTaskArrayTest extends FunSuite {
     }
     
     TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
-      doTest(UgerConfig(workDir = workDir, maxNumJobs = 99))
+      doTest(UgerConfig(workDir = workDir, maxNumJobsPerTaskArray = 99))
       //Run the test again, to make sure script files are overwritten without errors 
-      doTest(UgerConfig(workDir = workDir, maxNumJobs = 99))
+      doTest(UgerConfig(workDir = workDir, maxNumJobsPerTaskArray = 99))
     }
     
     TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
-      doTest(LsfConfig(workDir = workDir, maxNumJobs = 99))
+      doTest(LsfConfig(workDir = workDir, maxNumJobsPerTaskArray = 99))
       //Run the test again, to make sure script files are overwritten without errors
-      doTest(LsfConfig(workDir = workDir, maxNumJobs = 99))
+      doTest(LsfConfig(workDir = workDir, maxNumJobsPerTaskArray = 99))
     }
   }
 }

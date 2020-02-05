@@ -50,8 +50,6 @@ final case class GoogleCloudChunkRunner(
   
   private lazy val singleThreadedScheduler: Scheduler = ExecutionContextScheduler(singleThreadedExecutionContext)
   
-  override def maxNumJobs: Int = 1
-
   private val currentClusterConfig: ValueBox[Option[ClusterConfig]] = ValueBox(None)
   
   override def run(

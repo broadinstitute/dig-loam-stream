@@ -7,6 +7,7 @@ import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.LJob
 import loamstream.util.Loggable
 import loamstream.util.ValueBox
+import loamstream.model.execute.ExecutionState.Fields
 
 /**
  * @author clint
@@ -120,13 +121,13 @@ final class ExecutionState private (
     jobsToCells.collect { case t @ (job, _) if canRun(t) => job }
   }
   
-  def startRunning(jobs: Iterable[LJob]): Unit = transition(jobs, _.startRunning)
+  def startRunning(jobs: TraversableOnce[LJob]): Unit = transition(jobs, _.startRunning)
   
-  def reRun(jobs: Iterable[LJob]): Unit = transition(jobs, _.markAsRunnable)
+  def reRun(jobs: TraversableOnce[LJob]): Unit = transition(jobs, _.markAsRunnable)
   
-  def markAs(jobs: Iterable[LJob], jobStatus: JobStatus): Unit = transition(jobs, _.markAs(jobStatus))
+  def markAs(jobs: TraversableOnce[LJob], jobStatus: JobStatus): Unit = transition(jobs, _.markAs(jobStatus))
   
-  private def transition(jobs: Iterable[LJob], doTransition: ExecutionCell => ExecutionCell): Unit = {
+  private def transition(jobs: TraversableOnce[LJob], doTransition: ExecutionCell => ExecutionCell): Unit = {
     if(jobs.nonEmpty) {
       val jobSet = jobs.toSet
       
@@ -168,12 +169,14 @@ final class ExecutionState private (
       
       lazy val tooManyRuns: Boolean = runCount >= maxRunsPerJob 
       
+      lazy val isTerminalFailure: Boolean = status.isFailure && tooManyRuns
+      
       val transition: ExecutionCell => ExecutionCell = {
-        if(status.isFailure && tooManyRuns) { 
+        if(isTerminalFailure) { 
           debug(s"Restarting $job ? NO (job has run $runCount times, max is $maxRunsPerJob)")
           
-          _.finishWith(JobStatus.FailedPermanently, jobResult) }
-        else if (status.isFailure) {
+          _.finishWith(JobStatus.FailedPermanently, jobResult) 
+        } else if (status.isFailure) {
           debug(s"Restarting $job ? YES (job has run $runCount times, max is $maxRunsPerJob)")
           
           _.markAsRunnable 
@@ -182,8 +185,19 @@ final class ExecutionState private (
       }
       
       jobsToCells.update(index, (job -> transition(cell)))
+      
+      if(isTerminalFailure) {
+        cancelSuccessors(f)(job)
+      }
     }
   }
+  
+  private[execute] def cancelSuccessors(fields: Fields)(failedJob: LJob): Unit = {
+    val successors = ExecuterHelpers.flattenTree(Set(failedJob), _.successors).toSet - failedJob
+    
+    markAs(successors.iterator.map(_.job), JobStatus.CouldNotStart)
+  }
+  
   
   private def isKnown(job: LJob): Boolean = fields.get(_.index.contains(job))
   

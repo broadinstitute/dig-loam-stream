@@ -61,8 +61,6 @@ object AsyncLocalChunkRunner extends Loggable {
       jobOracle: JobOracle,
       job: LJob)(implicit executor: ExecutionContext): Future[RunData] = {
     
-    job.transitionTo(JobStatus.Running)
-    
     val jobDir = jobOracle.dirFor(job)
     
     val processLogger = ProcessLoggers.toFilesInDir(jobDir)

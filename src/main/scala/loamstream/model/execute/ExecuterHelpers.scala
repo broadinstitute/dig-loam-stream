@@ -27,11 +27,11 @@ import scala.util.control.NonFatal
  */
 object ExecuterHelpers extends Loggable {
 
-  def flattenTree(roots: Set[JobNode]): Set[JobNode] = {
+  def flattenTree(roots: Iterable[JobNode], field: JobNode => Set[JobNode] = _.dependencies): Iterable[JobNode] = {
     roots.foldLeft(roots) { (acc, job) =>
-      val inputJobNodes = job.dependencies
+      val jobNodes = field(job)
       
-      inputJobNodes ++ flattenTree(inputJobNodes) ++ acc
+      jobNodes ++ flattenTree(jobNodes, field) ++ acc
     }
   }
   

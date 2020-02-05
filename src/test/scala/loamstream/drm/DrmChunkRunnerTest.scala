@@ -524,6 +524,8 @@ object DrmChunkRunnerTest {
     override val initialSettings: Settings = LocalSettings
     
     override def dependencies: Set[JobNode] = Set.empty
+    
+    override def successors: Set[JobNode] = Set.empty
 
     override def inputs: Set[DataHandle] = Set.empty
     

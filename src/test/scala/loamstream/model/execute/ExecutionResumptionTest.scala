@@ -123,6 +123,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
         toReturnFn = job => TestHelpers.runDataFromResult(job, LocalSettings, JobResult.CommandResult(0)), 
         name = name, 
         dependencies = dependencies,
+        successorsFn = () => Set.empty,
         inputs = inputs,
         outputs = outputs, 
         delay = 0) {

@@ -373,50 +373,45 @@ final class ExecutionStateTest extends FunSuite {
     assert(jobStatuses3.readyToRun.keySet === Set.empty)
     assert(jobStatuses3.cannotRun.keySet === Set.empty)
   }
-  
-  /*
-  
-  private[execute] def canRun(jobsToCells: Map[LJob, ExecutionCell])(tuple: (LJob, ExecutionCell)): Boolean = tuple match {
-    case (job, cell) => cell.notStarted && {
-      val deps = job.dependencies
-      
-      def isRunnable(cell: ExecutionCell): Boolean = cell.status == JobStatus.NotStarted
 
-      isRunnable(cell) && (deps.isEmpty || {
-        val depCells = jobsToCells.filterKeys(deps).values
-        
-        depCells.forall(_.isTerminal) && !depCells.exists(_.canStopExecution)
-      })
-    }
-  }
-  
-  def markAs(jobs: Iterable[LJob], jobStatus: JobStatus): Unit = transition(jobs, _.markAs(jobStatus))
-  
-  private def transition(jobs: Iterable[LJob], doTransition: ExecutionCell => ExecutionCell): Unit = {
-    if(jobs.nonEmpty) {
-      val jobSet = jobs.toSet
-      
-      byJob.mutate { jobsToCells =>
-        requireAllKnown(jobSet)
-        
-        jobsToCells ++ jobsToCells.filterKeys(jobSet).mapValues(doTransition)
-      }
-    }
-  }
-  
-  
-     
-  final case class JobStatuses(
-      readyToRun: Map[LJob, ExecutionCell], 
-      cannotRun: Map[LJob, ExecutionCell]) {
+  test("cancelSuccessors") {
+    /*
+     *    j0 (s)
+     *       \  
+     *        j2 (cns)
+     *       /   \
+     *    j1 (f)  j4
+     *           /
+     *         j3 (s)
+     */
+    lazy val j0: MockJob = MockJob(JobStatus.Succeeded, name = "j0", successorsFn = () => Set(j2))
+    lazy val j1: MockJob = MockJob(JobStatus.Failed, name = "j1", successorsFn = () => Set(j2))
+    lazy val j2: MockJob = MockJob(JobStatus.CouldNotStart, name = "j2", dependencies = Set(j0, j1), successorsFn = () => Set(j4))
+    lazy val j3: MockJob = MockJob(JobStatus.Succeeded, name = "j3", successorsFn = () => Set(j4))
+    lazy val j4: MockJob = MockJob(JobStatus.CouldNotStart, name = "j4", dependencies = Set(j2, j3))
     
-    def withRunnable(jobAndCell: (LJob, ExecutionCell)): JobStatuses = copy(readyToRun = readyToRun + jobAndCell)
+    val executable = Executable(Set(j4))
     
-    def withCannotRun(jobAndCell: (LJob, ExecutionCell)): JobStatuses = copy(cannotRun = cannotRun + jobAndCell)
+    val maxRunsPerJob = 1
+    
+    val state = ExecutionState.initialFor(executable, maxRunsPerJob)
+    
+    state.allJobs.foreach { job => assert(state.statusOf(job) === JobStatus.NotStarted) }
+    
+    state.startRunning(Seq(j0, j1))
+    
+    assert(state.statusOf(j0) === JobStatus.Running)
+    assert(state.statusOf(j1) === JobStatus.Running)
+    assert(state.statusOf(j2) === JobStatus.NotStarted)
+    assert(state.statusOf(j3) === JobStatus.NotStarted)
+    assert(state.statusOf(j4) === JobStatus.NotStarted)
+    
+    state.finish(j1, JobStatus.Failed)
+    
+    assert(state.statusOf(j0) === JobStatus.Running)
+    assert(state.statusOf(j1) === JobStatus.FailedPermanently)
+    assert(state.statusOf(j2) === JobStatus.CouldNotStart)
+    assert(state.statusOf(j3) === JobStatus.NotStarted)
+    assert(state.statusOf(j4) === JobStatus.CouldNotStart)
   }
-  
-  object JobStatuses {
-    val empty: JobStatuses = JobStatuses(Map.empty, Map.empty)
-  }
-   */
 }

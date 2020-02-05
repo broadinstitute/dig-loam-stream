@@ -21,9 +21,11 @@ import loamstream.model.execute.Settings
 final case class RxMockJob( 
   override val name: String,
   override val dependencies: Set[JobNode],
+  override protected val successorsFn: () => Set[JobNode],
   inputs: Set[DataHandle],
   outputs: Set[DataHandle],
-  toReturnFn: RxMockJob => RunData)(implicit executions: ValueBox[Vector[RxMockJob]]) extends LocalJob {
+  toReturnFn: RxMockJob => RunData)(implicit executions: ValueBox[Vector[RxMockJob]]) extends 
+      LocalJob with JobNode.LazySucessors {
 
   def toReturn: RunData = toReturnFn(this)
   
@@ -66,6 +68,7 @@ final case class RxMockJob(
 object RxMockJob {
   def apply(name: String,
             dependencies: Set[JobNode] = Set.empty,
+            successors: () => Set[JobNode] = () => Set.empty,
             inputs: Set[DataHandle] = Set.empty,
             outputs: Set[DataHandle] = Set.empty,
             toReturn: () => JobResult = () => JobResult.CommandResult(0))
@@ -75,6 +78,7 @@ object RxMockJob {
 
     RxMockJob(name,
               dependencies,
+              successors,
               inputs,
               outputs,
               job => runDataFrom(job, outputs, jobResult = toReturn()))

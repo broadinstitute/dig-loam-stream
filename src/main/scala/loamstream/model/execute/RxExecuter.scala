@@ -166,8 +166,6 @@ final case class RxExecuter(
   private def cancelJobs(jobsToCancel: Iterable[LJob]): Map[LJob, Execution] = {
     import JobStatus.Canceled
     
-    jobsToCancel.foreach(_.transitionTo(Canceled))
-    
     import loamstream.util.Traversables.Implicits._
     
     jobsToCancel.mapTo(job => Execution.from(job, Canceled, terminationReason = None))
@@ -175,8 +173,6 @@ final case class RxExecuter(
   
   private def handleSkippedJobs(skippedJobs: Iterable[LJob]): Unit = {
     logSkippedJobs(skippedJobs)
-    
-    markJobsSkipped(skippedJobs)
   }
   
   private def logJobsToBeRun(jobsToRun: Iterable[LJob]): Unit = {
@@ -192,10 +188,6 @@ final case class RxExecuter(
     
       skippedJobs.foreach(job => info(s"Skipped: $job"))
     }
-  }
-  
-  private def markJobsSkipped(skippedJobs: Iterable[LJob]): Unit = {
-    skippedJobs.foreach(_.transitionTo(JobStatus.Skipped))
   }
   
   private def toSkippedResultMap(skippedJobs: Iterable[LJob]): Map[LJob, Execution] = {
@@ -296,20 +288,7 @@ object RxExecuter extends Loggable {
     } yield {
       import Futures.Implicits._
       
-      waitForOutputs(runData).map(execution => job -> execution).withSideEffect {
-        //Transition Job to whatever its ultimate status was: 
-        //  WaitingForOutputs => Succeeded | Failed
-        //  foo => foo
-        case (job, execution) => {
-          val finalStatus = execution.status
-          
-          trace(
-            s"Done waiting for outputs, transitioning job $job with execution $execution " +
-            s"to final status '$finalStatus'")
-          
-          job.transitionTo(finalStatus)
-        }
-      }
+      waitForOutputs(runData).map(execution => job -> execution)
     }
     
     Observable.from(jobToExecutionFutures).flatMap(Observable.from(_))

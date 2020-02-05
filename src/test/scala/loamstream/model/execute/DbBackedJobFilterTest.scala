@@ -330,6 +330,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
         toReturnFn = mockRunData(_),
         name = "mock job",
         dependencies = Set.empty,
+        successorsFn = () => Set.empty,
         inputs = Set.empty, //TODO
         outputs = outputs,
         delay = 0)

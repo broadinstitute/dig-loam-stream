@@ -166,9 +166,11 @@ object JobMonitor extends Loggable {
    * 
    * Note that multiplexed must be a ConnectableObservable for this to work. 
    */
+  type PollingResults = Map[DrmTaskId, Try[DrmStatus]]
+  
   private[drm] def demultiplex(
       taskIds: Iterable[DrmTaskId],
-      multiplexed: ConnectableObservable[Map[DrmTaskId, Try[DrmStatus]]]): Map[DrmTaskId, Observable[Try[DrmStatus]]] = {
+      multiplexed: ConnectableObservable[PollingResults]): Map[DrmTaskId, Observable[Try[DrmStatus]]] = {
     
     val tuples = for {
       taskId <- taskIds
@@ -181,7 +183,7 @@ object JobMonitor extends Loggable {
     tuples.toMap
   }
   
-  private[drm] def getDrmStatusFor(taskId: DrmTaskId)(pollResultAttempts: Map[DrmTaskId, Try[DrmStatus]]): Try[DrmStatus] = {
+  private[drm] def getDrmStatusFor(taskId: DrmTaskId)(pollResultAttempts: PollingResults): Try[DrmStatus] = {
     pollResultAttempts.get(taskId) match {
       case Some(pollResultAttempt) => pollResultAttempt
       case None => Tries.failure(s"No data found for job id '$taskId' when polling, forging onward")

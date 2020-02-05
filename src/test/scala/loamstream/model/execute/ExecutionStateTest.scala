@@ -386,7 +386,9 @@ final class ExecutionStateTest extends FunSuite {
      */
     lazy val j0: MockJob = MockJob(JobStatus.Succeeded, name = "j0", successorsFn = () => Set(j2))
     lazy val j1: MockJob = MockJob(JobStatus.Failed, name = "j1", successorsFn = () => Set(j2))
-    lazy val j2: MockJob = MockJob(JobStatus.CouldNotStart, name = "j2", dependencies = Set(j0, j1), successorsFn = () => Set(j4))
+    lazy val j2: MockJob = {
+      MockJob(JobStatus.CouldNotStart, name = "j2", dependencies = Set(j0, j1), successorsFn = () => Set(j4))
+    }
     lazy val j3: MockJob = MockJob(JobStatus.Succeeded, name = "j3", successorsFn = () => Set(j4))
     lazy val j4: MockJob = MockJob(JobStatus.CouldNotStart, name = "j4", dependencies = Set(j2, j3))
     

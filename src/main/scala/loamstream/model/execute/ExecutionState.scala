@@ -17,6 +17,8 @@ final class ExecutionState private (
     val maxRunsPerJob: Int,
     private[this] val fields: ValueBox[ExecutionState.Fields]) extends Loggable {
   
+  import ExecutionState.JobState
+  
   def size: Int = fields.get(_.byJob.length)
   
   private[execute] def allJobs: Iterable[LJob] = fields.get(_.index.keys)
@@ -80,7 +82,7 @@ final class ExecutionState private (
     }
   }
   
-  private def cellsFor(jobsToCells: Array[(LJob, ExecutionCell)])(jobs: Set[JobNode]): Array[ExecutionCell] = {
+  private def cellsFor(jobsToCells: Array[JobState])(jobs: Set[JobNode]): Array[ExecutionCell] = {
     val cells: Array[ExecutionCell] = Array.ofDim[ExecutionCell](jobs.size)
         
     var i = 0
@@ -101,7 +103,7 @@ final class ExecutionState private (
     cells
   }
   
-  private[execute] def canRun(jobsToCells: Array[(LJob, ExecutionCell)])(tuple: (LJob, ExecutionCell)): Boolean = tuple match {
+  private[execute] def canRun(jobsToCells: Array[JobState])(tuple: JobState): Boolean = tuple match {
     case (job, cell) => cell.notStarted && {
       val deps = job.dependencies
       
@@ -116,7 +118,7 @@ final class ExecutionState private (
   def eligibleToRun: Iterable[LJob] = fields.get { f =>
     import f.{byJob => jobsToCells}
     
-    def canRun(t: (LJob, ExecutionCell)) = this.canRun(jobsToCells)(t)
+    def canRun(t: JobState) = this.canRun(jobsToCells)(t)
     
     jobsToCells.collect { case t @ (job, _) if canRun(t) => job }
   }
@@ -131,7 +133,7 @@ final class ExecutionState private (
     if(jobs.nonEmpty) {
       val jobSet = jobs.toSet
       
-      def doDoTransition(tuple: (LJob, ExecutionCell)): (LJob, ExecutionCell) = (tuple._1, doTransition(tuple._2))
+      def doDoTransition(tuple: JobState): JobState = (tuple._1, doTransition(tuple._2))
       
       fields.foreach { f => 
         import f.{byJob => jobsToCells}
@@ -217,12 +219,16 @@ final class ExecutionState private (
 }
 
 object ExecutionState {
-  private final case class Fields(byJob: Array[(LJob, ExecutionCell)], index: Map[LJob, Int])
+  type JobState = (LJob, ExecutionCell)
+  
+  private final case class Fields(byJob: Array[JobState], index: Map[LJob, Int])
   
   def initialFor(executable: Executable, maxRunsPerJob: Int): ExecutionState = {
-    val cellsByJob: Array[(LJob, ExecutionCell)] = executable.allJobs.iterator.map(j => j -> ExecutionCell.initial).toArray
+    val cellsByJob: Array[JobState] = executable.allJobs.iterator.map(j => j -> ExecutionCell.initial).toArray
     
-    val indicesByJob: Map[LJob, Int] = Map.empty ++ cellsByJob.iterator.zipWithIndex.map { case ((job, _), i) => (job -> i) } 
+    val indicesByJob: Map[LJob, Int] = {
+      Map.empty ++ cellsByJob.iterator.zipWithIndex.map { case ((job, _), i) => (job -> i) } 
+    }
     
     new ExecutionState(maxRunsPerJob, ValueBox(Fields(cellsByJob, indicesByJob)))
   }
@@ -233,9 +239,9 @@ object ExecutionState {
       numRunning: Int,
       numFinished: Int) {
     
-    def withRunnable(jobAndCell: (LJob, ExecutionCell)): JobStatuses = copy(readyToRun = readyToRun + jobAndCell)
+    def withRunnable(jobAndCell: JobState): JobStatuses = copy(readyToRun = readyToRun + jobAndCell)
     
-    def withCannotRun(jobAndCell: (LJob, ExecutionCell)): JobStatuses = copy(cannotRun = cannotRun + jobAndCell)
+    def withCannotRun(jobAndCell: JobState): JobStatuses = copy(cannotRun = cannotRun + jobAndCell)
   }
   
   object JobStatuses {

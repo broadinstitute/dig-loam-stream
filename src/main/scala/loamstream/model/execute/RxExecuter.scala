@@ -62,36 +62,53 @@ final case class RxExecuter(
     
     val jobOracle = makeJobOracle(executable)
     
-    val numJobs = executable.allJobs.size
+    def numJobs = executable.allJobs.size
     
-    val executionState: ExecutionState = TimeUtils.time(s"Initializing execution state with ${numJobs} jobs", debug(_)) {
+    val executionState = TimeUtils.time(s"Initializing execution state with ${numJobs} jobs", debug(_)) {
       ExecutionState.initialFor(executable, maxRunsPerJob)
     }
     
-    def finish(results: Map[LJob, Execution]): Unit = {
-      TimeUtils.time(s"Finishing ${results.size} jobs", debug(_)) {
-        results.foreach {case (job, execution) => executionState.finish(job, execution) }
-      }
+    
+    
+    val ioScheduler: Scheduler = IOScheduler()
+    
+    val chunkResults = {
+      val ticks = Observable.interval(windowLength, ioScheduler)
+      
+      ticks.flatMap(_ => runEligibleJobs(executionState, jobOracle)).takeUntil(_ => executionState.isFinished)
     }
     
-    def runEligibleJobs(): Observable[Map[LJob, Execution]] = {
+    val futureMergedResults = chunkResults.foldLeft(emptyExecutionMap)(_ ++ _).firstAsFuture
+
+    Await.result(futureMergedResults, timeout)
+  }
+  
+  private def finish(executionState: ExecutionState)(results: Map[LJob, Execution]): Map[LJob, Execution] = {
+    TimeUtils.time(s"Finishing ${results.size} jobs", debug(_)) {
+      results.foreach {case (job, execution) => executionState.finish(job, execution) }
+    }
+    
+    results
+  }
+  
+  private def runEligibleJobs(
+      executionState: ExecutionState, 
+      jobOracle: JobOracle): Observable[Map[LJob, Execution]] = {
       
       val jobsAndCells = executionState.updateJobs()
       
-      val numReadyToRun = jobsAndCells.readyToRun.size
-      val numCannotRun = jobsAndCells.cannotRun.size
+      val (numReadyToRun, numCannotRun) = (jobsAndCells.readyToRun.size, jobsAndCells.cannotRun.size)
       import jobsAndCells.{ numRunning, numFinished }
+      val numRemaining = executionState.size - numReadyToRun - numCannotRun - numRunning - numFinished
       
-      val numRemaining = numJobs - numReadyToRun - numCannotRun - numRunning - numFinished
-      
-      debug(s"RxExecuter.runEligibleJobs(): $numReadyToRun jobs ready to run; $numCannotRun jobs cannot run; $numRunning running; $numFinished finishedl; $numRemaining other.")
+      debug(s"RxExecuter.runEligibleJobs(): $numReadyToRun jobs ready to run; $numCannotRun jobs cannot run; " +
+            s"$numRunning running; $numFinished finishedl; $numRemaining other.")
       
       val (finishedJobAndCells, notFinishedJobsAndCells) = {
         jobsAndCells.readyToRun.partition { case (_, cell) => cell.isTerminal }
       }
       
-      val finishedJobs = finishedJobAndCells.keys
-      val notFinishedJobs = notFinishedJobsAndCells.keys
+      val (finishedJobs, notFinishedJobs) = (finishedJobAndCells.keys, notFinishedJobsAndCells.keys)
       
       if(notFinishedJobs.nonEmpty) {
         val (jobsToMaybeRun, skippedJobs) = notFinishedJobs.map(_.job).partition(jobFilter.shouldRun)
@@ -117,23 +134,12 @@ final case class RxExecuter(
           
           val results = executionMap ++ skippedResultMap
           
-          finish(results)
-          
-          results
+          finish(executionState)(results)
         }
       } else {
         Observable.just(Map.empty)
       }
     }
-    
-    val ioScheduler: Scheduler = IOScheduler()
-    
-    val chunkResults = Observable.interval(windowLength, ioScheduler).flatMap(_ => runEligibleJobs()).takeUntil(_ => executionState.isFinished)
-    
-    val futureMergedResults = chunkResults.foldLeft(emptyExecutionMap)(_ ++ _).firstAsFuture
-
-    Await.result(futureMergedResults, timeout)
-  }
 
   private val emptyExecutionMap: Map[LJob, Execution] = Map.empty
   

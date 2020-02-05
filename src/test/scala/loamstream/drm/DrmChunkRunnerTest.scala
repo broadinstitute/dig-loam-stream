@@ -463,41 +463,6 @@ final class DrmChunkRunnerTest extends FunSuite {
     doTest(DrmSystem.Uger)
     doTest(DrmSystem.Lsf)
   }
-  
-  /*test("updateJobStatusesOnSubmission - SubmissionSuccess") {
-    val foo = MockDrmJob("Foo", DrmStatus.Done)
-    val bar = MockDrmJob("Bar", DrmStatus.CommandResult(42))
-    val baz = MockDrmJob("Baz", DrmStatus.Done)
-    
-    val jobs: Seq[HasCommandLine] = Seq(foo, bar, baz)
-    
-    def wrap(job: HasCommandLine, index: Int): DrmJobWrapper = DrmJobWrapper(
-        ExecutionConfig.default,
-        //Use LSF params since they're easier to instantiate here, and LSF vs Uger doesn't matter in this case.
-        DrmSettings.fromLsfConfig(LsfConfig()),
-        LsfPathBuilder,
-        job,
-        path("."), 
-        index)
-    
-    val submissionSuccess = DrmSubmissionResult.SubmissionSuccess(Map(
-        "foo-id" -> wrap(foo, 1),
-        "bar-id" -> wrap(bar, 2),
-        "baz-id" -> wrap(baz, 3)))
-        
-    import JobStatus.NotStarted
-    import JobStatus.Running
-
-    assert(foo.status === NotStarted)
-    assert(bar.status === NotStarted)
-    assert(baz.status === NotStarted)
-        
-    DrmChunkRunner.updateJobStatusesOnSubmission(jobs, submissionSuccess, _ => ???)
-    
-    assert(foo.status === Running)
-    assert(bar.status === Running)
-    assert(baz.status === Running)
-  }*/
 }
 
 object DrmChunkRunnerTest {

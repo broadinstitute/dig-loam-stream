@@ -117,27 +117,6 @@ final class RxExecuterTest extends FunSuite {
     doTest(2)
   }
   
-/*  test("shouldRestart") {
-    val job = MockJob(JobStatus.NotStarted)
-    
-    import RxExecuter.shouldRestart
-    
-    assert(job.runCount === 0)
-    
-    assert(shouldRestart(job, 0) === false)
-    assert(shouldRestart(job, 1) === true)
-    assert(shouldRestart(job, 42) === true)
-    
-    job.transitionTo(JobStatus.Running)
-    
-    assert(job.runCount === 1)
-    
-    assert(shouldRestart(job, 0) === false)
-    assert(shouldRestart(job, 1) === false)
-    assert(shouldRestart(job, 2) === true)
-    assert(shouldRestart(job, 42) === true)
-  }*/
-  
   test("Guards") {
     import scala.concurrent.duration._
     

@@ -156,23 +156,6 @@ object DrmChunkRunner extends Loggable {
 
   type JobAndStatuses = (DrmJobWrapper, Observable[DrmStatus])
 
-  /*private[drm] def updateJobStatusesOnSubmission(
-      commandLineJobs: Seq[HasCommandLine],
-      submissionResult: DrmSubmissionResult,
-      shouldRestart: LJob => Boolean): Unit = {
-    
-    import loamstream.drm.DrmSubmissionResult._
-    
-    submissionResult match {
-      case SubmissionSuccess(drmJobsByDrmId) => {
-        val actuallySubmittedJobs = drmJobsByDrmId.values.map(_.commandLineJob).toSet.intersect(commandLineJobs.toSet)
-        
-        actuallySubmittedJobs.foreach(_.transitionTo(Running))
-      }
-      case SubmissionFailure(e) => ()//commandLineJobs.foreach(handleFailureStatus(shouldRestart, Failed))
-    }
-  }*/
-  
   private[drm] def getAccountingInfoFor(accountingClient: AccountingClient)(taskId: DrmTaskId)
                                        (implicit ec: ExecutionContext): Future[Option[AccountingInfo]] = {
     
@@ -229,9 +212,6 @@ object DrmChunkRunner extends Loggable {
     val drmJobsToExecutionObservables: Iterable[(DrmJobWrapper, Observable[RunData])] = for {
       (taskId, (wrapper, drmJobStatuses)) <- jobsAndDrmStatusesById
     } yield {
-      //NB: Important: Jobs must be transitioned to new states by ChunkRunners like us.
-      //drmJobStatuses.distinct.foreach(handleDrmStatus(shouldRestart, wrapper.commandLineJob))
-
       val runDataObs = drmJobStatuses.last.flatMap(toRunData(accountingClient, wrapper, taskId))
 
       wrapper -> runDataObs

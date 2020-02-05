@@ -9,6 +9,7 @@ import scala.util.Success
 import scala.util.Try
 
 import rx.lang.scala.Observable
+import rx.lang.scala.schedulers.IOScheduler
 
 /**
  * @author clint
@@ -66,7 +67,7 @@ object Loops {
     
     val delays = Backoff.delaySequence(delayStart, delayCap)
     
-    def delayAndThen[X](f: => X): Observable[X] = Observable.timer(delays.next()).map(_ => f)
+    def delayAndThen[X](f: => X): Observable[X] = Observable.timer(delays.next(), IOScheduler()).map(_ => f)
     
     def next(tuple: (Int, Try[A])): Observable[(Int, Try[A])] = {
       val (i, attempt) = tuple
@@ -77,6 +78,7 @@ object Loops {
         case _ => delayAndThen((i + 1) -> op).flatMap(next)
       }
     }
+    
     if(maxRuns == 0) { 
       Future.successful(None)
     } else {

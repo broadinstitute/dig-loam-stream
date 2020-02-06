@@ -6,7 +6,7 @@ package loamstream.util
  * @author oliver
  * date: Aug 8, 2016 
  */
-final class ValueBox[A](init: A) {
+final class ValueBox[A](init: A) extends Loggable {
 
   @volatile private[this] var _value: A = init
   
@@ -60,11 +60,7 @@ final class ValueBox[A](init: A) {
     val start = System.currentTimeMillis
     
     lock.synchronized {
-      val end = System.currentTimeMillis
-    
-      val elapsed = end - start
-      
-      println(s"$tag: Acquiring lock took $elapsed ms (lock $lock)")
+      debug(s"$tag: Acquiring lock took ${System.currentTimeMillis - start} ms (lock $lock)")
       
       g(value)
     }
@@ -87,11 +83,7 @@ final class ValueBox[A](init: A) {
     val start = System.currentTimeMillis
     
     lock.synchronized {
-      val end = System.currentTimeMillis
-    
-      val elapsed = end - start
-      
-      println(s"$tag: Acquiring lock took $elapsed ms (lock $lock)")
+      debug(s"$tag: Acquiring lock took ${System.currentTimeMillis - start} ms (lock $lock)")
     
       f(value)
     }

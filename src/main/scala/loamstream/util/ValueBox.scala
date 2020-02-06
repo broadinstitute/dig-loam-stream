@@ -55,6 +55,20 @@ final class ValueBox[A](init: A) {
   def get[B](g: A => B): B = lock.synchronized {
     g(value)
   }
+  
+  def getWithTime[B](tag: String)(g: A => B): B = {
+    val start = System.currentTimeMillis
+    
+    lock.synchronized {
+      val end = System.currentTimeMillis
+    
+      val elapsed = end - start
+      
+      println(s"$tag: Acquiring lock took $elapsed ms (lock $lock)")
+      
+      g(value)
+    }
+  }
 
   /** Returns an item by applying a function that also changes the contained value */
   def getAndUpdate[B](c: A => (A, B)): B = lock.synchronized {
@@ -67,6 +81,20 @@ final class ValueBox[A](init: A) {
   
   def foreach(f: A => Any): Unit = lock.synchronized {
     f(value)
+  }
+  
+  def foreachWithTime(tag: String)(f: A => Any): Unit = {
+    val start = System.currentTimeMillis
+    
+    lock.synchronized {
+      val end = System.currentTimeMillis
+    
+      val elapsed = end - start
+      
+      println(s"$tag: Acquiring lock took $elapsed ms (lock $lock)")
+    
+      f(value)
+    }
   }
   
   override def toString: String = s"ValueBox($value)"

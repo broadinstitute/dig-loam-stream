@@ -8,6 +8,7 @@ import loamstream.model.jobs.LJob
 import loamstream.util.Loggable
 import loamstream.util.ValueBox
 import loamstream.model.execute.ExecutionState.Fields
+import loamstream.util.TimeUtils
 
 /**
  * @author clint
@@ -27,17 +28,17 @@ final class ExecutionState private (
     _.byJob.iterator.collect { case (_, cell) => cell }
   }
   
-  private def cellAt(i: Int): ExecutionCell = fields.get(_.byJob.apply(i)._2)
+  private def indexOf(job: LJob): Int = fields.get(_.index(job))
   
-  private def indexOf(job: LJob): Int = fields.get(_.index.apply(job))
+  private def cellAt(i: Int): ExecutionCell = fields.get(_.byJob.apply(i)._2)
   
   private def cellFor(job: LJob): ExecutionCell = fields.get(_ => cellAt(indexOf(job)))
   
-  def isFinished: Boolean = fields.get { _ =>  
-    justCells.forall(cell => cell.isFinished || cell.status.isCouldNotStart)
+  def isFinished: Boolean = fields.getWithTime("isFinished") { _ =>  
+    justCells.forall(cell => cell.isFinished || cell.couldNotStart)
   }
   
-  def statusOf(job: LJob): JobStatus = fields.get { _ =>
+  private[execute] def statusOf(job: LJob): JobStatus = fields.get { _ =>
     requireKnown(job)
     
     cellFor(job).status
@@ -57,7 +58,34 @@ final class ExecutionState private (
     currentJobStatuses
   }
   
-  def jobStatuses: ExecutionState.JobStatuses = fields.get { f =>  
+  /*def jobStatuses: ExecutionState.JobStatuses = fields.get { f =>  
+    import f.{byJob => jobsToCells}
+    
+    val numRunning = jobsToCells.count { case (_, cell) => cell.isRunning }
+    val numFinished = jobsToCells.count { case (_, cell) => cell.isFinished }
+    
+    val z = ExecutionState.JobStatuses.empty.copy(numRunning = numRunning, numFinished = numFinished)
+    
+    jobsToCells.foldLeft(z) { (acc, tuple) =>
+      val (job, cell) = tuple
+      
+      def anyDepsStopExecution: Boolean = {
+        val depCells = job.dependencies.iterator.map(_.job).map(cellFor) 
+        
+        cell.notStarted && depCells.exists(_.canStopExecution)
+      }
+      
+      def canRun: Boolean = this.canRun(jobsToCells)(tuple)
+      
+      if(canRun) { acc.withRunnable(tuple) }
+      else if(anyDepsStopExecution) { acc.withCannotRun(tuple) }
+      else { acc }
+    }
+  }*/
+  
+  def jobStatuses: ExecutionState.JobStatuses = { 
+    val f = fields.value.snapshot      
+  
     import f.{byJob => jobsToCells}
     
     val numRunning = jobsToCells.count { case (_, cell) => cell.isRunning }
@@ -115,14 +143,6 @@ final class ExecutionState private (
     }
   }
   
-  def eligibleToRun: Iterable[LJob] = fields.get { f =>
-    import f.{byJob => jobsToCells}
-    
-    def canRun(t: JobState) = this.canRun(jobsToCells)(t)
-    
-    jobsToCells.collect { case t @ (job, _) if canRun(t) => job }
-  }
-  
   def startRunning(jobs: TraversableOnce[LJob]): Unit = transition(jobs, _.startRunning)
   
   def reRun(jobs: TraversableOnce[LJob]): Unit = transition(jobs, _.markAsRunnable)
@@ -138,7 +158,7 @@ final class ExecutionState private (
       fields.foreach { f => 
         import f.{byJob => jobsToCells}
         
-        requireAllKnown(jobSet)
+        //requireAllKnown(jobSet)
         
         var i = 0
         
@@ -155,51 +175,62 @@ final class ExecutionState private (
     }
   }
   
-  def finish(job: LJob, execution: Execution): Unit = finish(job, execution.status, execution.result)
+  def finish(job: LJob, execution: Execution): Unit = finish(Seq(job -> execution))
   
-  def finish(job: LJob, status: JobStatus, jobResult: Option[JobResult] = None): Unit = {
-    fields.foreach { f =>
+  def finish(job: LJob, status: JobStatus, jobResult: Option[JobResult]): Unit = {
+    finish(Seq((job, status, jobResult)))
+  }
+  
+  def finish(results: Iterable[(LJob, Execution)]): Unit = {
+    finish(results.iterator.map { case (job, execution) => (job, execution.status, execution.result) }) 
+  }
+  
+  def finish(results: TraversableOnce[(LJob, JobStatus, Option[JobResult])])(implicit discriminator: Int = 42): Unit = {
+    fields.foreachWithTime("finish()") { f =>
       import f.{byJob => jobsToCells}
       
-      requireKnown(job)
-      
-      val index = indexOf(job)
-      
-      val cell = cellFor(job)
-      
-      lazy val runCount: Int = cell.runCount
-      
-      lazy val tooManyRuns: Boolean = runCount >= maxRunsPerJob 
-      
-      lazy val isTerminalFailure: Boolean = status.isFailure && tooManyRuns
-      
-      val transition: ExecutionCell => ExecutionCell = {
-        if(isTerminalFailure) { 
-          debug(s"Restarting $job ? NO (job has run $runCount times, max is $maxRunsPerJob)")
-          
-          _.finishWith(JobStatus.FailedPermanently, jobResult) 
-        } else if (status.isFailure) {
-          debug(s"Restarting $job ? YES (job has run $runCount times, max is $maxRunsPerJob)")
-          
-          _.markAsRunnable 
+      results.foreach { case (job, status, jobResult) =>
+        //requireKnown(job)
+        
+        val index = indexOf(job)
+        
+        val cell = jobsToCells(index)._2
+        
+        lazy val runCount: Int = cell.runCount
+        
+        lazy val tooManyRuns: Boolean = runCount >= maxRunsPerJob 
+        
+        lazy val isTerminalFailure: Boolean = status.isFailure && tooManyRuns
+        
+        val transition: ExecutionCell => ExecutionCell = {
+          if(isTerminalFailure) { 
+            debug(s"Restarting $job ? NO (job has run $runCount times, max is $maxRunsPerJob)")
+            
+            _.finishWith(JobStatus.FailedPermanently, jobResult) 
+          } else if (status.isFailure) {
+            debug(s"Restarting $job ? YES (job has run $runCount times, max is $maxRunsPerJob)")
+            
+            _.markAsRunnable 
+          }
+          else {_.finishWith(status, jobResult) }
         }
-        else {_.finishWith(status, jobResult) }
-      }
-      
-      jobsToCells.update(index, (job -> transition(cell)))
-      
-      if(isTerminalFailure) {
-        cancelSuccessors(f)(job)
+        
+        jobsToCells.update(index, (job -> transition(cell)))
+        
+        if(isTerminalFailure) {
+          cancelSuccessors(f)(job)
+        }
       }
     }
   }
   
   private[execute] def cancelSuccessors(fields: Fields)(failedJob: LJob): Unit = {
-    val successors = ExecuterHelpers.flattenTree(Set(failedJob), _.successors).toSet - failedJob
-    
-    markAs(successors.iterator.map(_.job), JobStatus.CouldNotStart)
+    TimeUtils.time(s"Cancelling successors for failed job with id ${failedJob.id}", debug(_)) {
+      val successors = ExecuterHelpers.flattenTree(Set(failedJob), _.successors).toSet - failedJob
+      
+      markAs(successors.iterator.map(_.job), JobStatus.CouldNotStart)
+    }
   }
-  
   
   private def isKnown(job: LJob): Boolean = fields.get(_.index.contains(job))
   
@@ -221,7 +252,17 @@ final class ExecutionState private (
 object ExecutionState {
   type JobState = (LJob, ExecutionCell)
   
-  private final case class Fields(byJob: Array[JobState], index: Map[LJob, Int])
+  private final case class Fields(byJob: Array[JobState], index: Map[LJob, Int]) {
+    def snapshot: Fields = Fields(copyOf(byJob), index)
+  }
+  
+  private def copyOf(a: Array[JobState]): Array[JobState] = {
+    val result: Array[JobState] = Array.ofDim(a.length)
+    
+    a.copyToArray(result)
+    
+    result
+  }
   
   def initialFor(executable: Executable, maxRunsPerJob: Int): ExecutionState = {
     val cellsByJob: Array[JobState] = executable.allJobs.iterator.map(j => j -> ExecutionCell.initial).toArray

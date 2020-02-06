@@ -45,6 +45,8 @@ final case class ExecutionCell(
   def isRunning: Boolean = status.isRunning
   
   def isSkipped: Boolean = status.isSkipped
+  
+  def couldNotStart: Boolean = status.isCouldNotStart
 }
 
 object ExecutionCell {

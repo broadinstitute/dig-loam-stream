@@ -44,15 +44,15 @@ final class ExecutionStateTest extends FunSuite {
     
     assert(state.isFinished === false)
     
-    state.finish(j0, JobStatus.Skipped)
+    state.finish(j0, JobStatus.Skipped, None)
     
     assert(state.isFinished === false)
     
-    state.finish(j2, JobStatus.Succeeded)
+    state.finish(j2, JobStatus.Succeeded, None)
     
     assert(state.isFinished === false)
     
-    state.finish(j1, JobStatus.Failed)
+    state.finish(j1, JobStatus.Failed, None)
     
     assert(state.isFinished === true)
     
@@ -80,15 +80,15 @@ final class ExecutionStateTest extends FunSuite {
     
     assert(state.isFinished === false)
     
-    state.finish(j0, JobStatus.Skipped)
+    state.finish(j0, JobStatus.Skipped, None)
     
     assert(state.isFinished === false)
     
-    state.finish(j2, JobStatus.Succeeded)
+    state.finish(j2, JobStatus.Succeeded, None)
     
     assert(state.isFinished === false)
     
-    state.finish(j1, JobStatus.Failed)
+    state.finish(j1, JobStatus.Failed, None)
     
     assert(state.isFinished === false)
     
@@ -98,7 +98,7 @@ final class ExecutionStateTest extends FunSuite {
     
     state.startRunning(Seq(j1))
     
-    state.finish(j1, JobStatus.Failed)
+    state.finish(j1, JobStatus.Failed, None)
     
     assert(state.isFinished === true)
     
@@ -141,68 +141,6 @@ final class ExecutionStateTest extends FunSuite {
     assert(state.statusOf(j2) === JobStatus.NotStarted) 
   }
   
-  test("eligibleToRun - all jobs eligible") {
-    val j0 = MockJob(JobStatus.Succeeded)
-    val j1 = MockJob(JobStatus.Succeeded)
-    val j2 = MockJob(JobStatus.Succeeded)
-    
-    val executable = Executable(Set(j0, j1, j2))
-    
-    val maxRunsPerJob = 42
-    
-    val state = ExecutionState.initialFor(executable, maxRunsPerJob)
-    
-    assert(state.eligibleToRun.toSet === Set(j0, j1, j2))
-  }
-  
-  test("eligibleToRun - some jobs eligible") {
-    /*
-     *   j0 -- j1
-     *           \
-     *            + -- j3
-     *           /
-     *         j2
-     */
-    val j0 = MockJob(JobStatus.Succeeded)
-    val j1 = MockJob(JobStatus.Succeeded, dependencies = Set(j0))
-    val j2 = MockJob(JobStatus.Succeeded)
-    val j3 = MockJob(JobStatus.Succeeded, dependencies = Set(j2, j1))
-    
-    val executable = Executable(Set(j3))
-    
-    val maxRunsPerJob = 42
-    
-    val state = ExecutionState.initialFor(executable, maxRunsPerJob)
-    
-    assert(state.eligibleToRun.toSet === Set(j2, j0))
-  }
-  
-  test("eligibleToRun - no jobs eligible") {
-    /*
-     *   j0 -- j1
-     *           \
-     *            + -- j3
-     *           /
-     *         j2
-     */
-    val j0 = MockJob(JobStatus.Succeeded)
-    val j1 = MockJob(JobStatus.Succeeded, dependencies = Set(j0))
-    val j2 = MockJob(JobStatus.Succeeded)
-    val j3 = MockJob(JobStatus.Succeeded, dependencies = Set(j2, j1))
-    
-    val executable = Executable(Set(j3))
-    
-    val maxRunsPerJob = 42
-    
-    val state = ExecutionState.initialFor(executable, maxRunsPerJob)
-    
-    Seq(j0, j1, j2, j3).foreach(job => state.finish(job, JobStatus.Succeeded))
-        
-    assert(state.isFinished === true)
-        
-    assert(state.eligibleToRun.toSet === Set.empty)
-  }
-  
   test("jobStatuses") {
     /*
      *    j0 (s)
@@ -233,7 +171,7 @@ final class ExecutionStateTest extends FunSuite {
     assert(jobStatuses0.cannotRun.keySet === Set.empty)
     
     state.startRunning(Seq(j0))
-    state.finish(j0, JobStatus.Succeeded)
+    state.finish(j0, JobStatus.Succeeded, None)
     
     assert(state.statusOf(j0) === JobStatus.Succeeded)
     assert(state.statusOf(j1) === JobStatus.NotStarted)
@@ -247,7 +185,7 @@ final class ExecutionStateTest extends FunSuite {
     assert(jobStatuses1.cannotRun.keySet === Set.empty)
     
     state.startRunning(Seq(j1))
-    state.finish(j1, JobStatus.FailedPermanently)
+    state.finish(j1, JobStatus.FailedPermanently, None)
     
     assert(state.statusOf(j0) === JobStatus.Succeeded)
     assert(state.statusOf(j1) === JobStatus.FailedPermanently)
@@ -261,7 +199,7 @@ final class ExecutionStateTest extends FunSuite {
     assert(jobStatuses2.cannotRun.keySet === Set(j2))
     
     state.startRunning(Seq(j3))
-    state.finish(j3, JobStatus.Succeeded)
+    state.finish(j3, JobStatus.Succeeded, None)
     
     assert(state.statusOf(j0) === JobStatus.Succeeded)
     assert(state.statusOf(j1) === JobStatus.FailedPermanently)
@@ -275,7 +213,7 @@ final class ExecutionStateTest extends FunSuite {
     assert(jobStatuses3.cannotRun.keySet.map(_.name) === Set(j2.name))
     
     state.startRunning(Seq(j2))
-    state.finish(j2, JobStatus.CouldNotStart)
+    state.finish(j2, JobStatus.CouldNotStart, None)
     
     assert(state.statusOf(j0) === JobStatus.Succeeded)
     assert(state.statusOf(j1) === JobStatus.FailedPermanently)
@@ -289,7 +227,7 @@ final class ExecutionStateTest extends FunSuite {
     assert(jobStatuses4.cannotRun.keySet.map(_.name) === Set(j4.name))
     
     state.startRunning(Seq(j4))
-    state.finish(j4, JobStatus.CouldNotStart)
+    state.finish(j4, JobStatus.CouldNotStart, None)
     
     val jobStatuses5 = state.jobStatuses
     
@@ -331,9 +269,9 @@ final class ExecutionStateTest extends FunSuite {
     assert(state.statusOf(j3) === JobStatus.Running)
     assert(state.statusOf(j4) === JobStatus.NotStarted)
     
-    state.finish(j0, JobStatus.Succeeded)
-    state.finish(j1, JobStatus.FailedPermanently)
-    state.finish(j3, JobStatus.Succeeded)
+    state.finish(j0, JobStatus.Succeeded, None)
+    state.finish(j1, JobStatus.FailedPermanently, None)
+    state.finish(j3, JobStatus.Succeeded, None)
     
     assert(jobStatuses0.readyToRun.keySet === Set(j0, j1, j3))
     assert(jobStatuses0.cannotRun.keySet === Set.empty)
@@ -408,7 +346,7 @@ final class ExecutionStateTest extends FunSuite {
     assert(state.statusOf(j3) === JobStatus.NotStarted)
     assert(state.statusOf(j4) === JobStatus.NotStarted)
     
-    state.finish(j1, JobStatus.Failed)
+    state.finish(j1, JobStatus.Failed, None)
     
     assert(state.statusOf(j0) === JobStatus.Running)
     assert(state.statusOf(j1) === JobStatus.FailedPermanently)

@@ -67,9 +67,7 @@ final case class RxExecuter(
     val executionState = TimeUtils.time(s"Initializing execution state with ${numJobs} jobs", debug(_)) {
       ExecutionState.initialFor(executable, maxRunsPerJob)
     }
-    
-    
-    
+
     val ioScheduler: Scheduler = IOScheduler()
     
     val chunkResults = {
@@ -85,7 +83,9 @@ final case class RxExecuter(
   
   private def finish(executionState: ExecutionState)(results: Map[LJob, Execution]): Map[LJob, Execution] = {
     TimeUtils.time(s"Finishing ${results.size} jobs", debug(_)) {
-      results.foreach {case (job, execution) => executionState.finish(job, execution) }
+      //results.foreach {case (job, execution) => executionState.finish(job, execution) }
+      
+      executionState.finish(results)
     }
     
     results

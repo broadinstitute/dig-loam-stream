@@ -83,7 +83,7 @@ final case class RxExecuter(
   
   private def finish(executionState: ExecutionState)(results: Map[LJob, Execution]): Map[LJob, Execution] = {
     def msg = {
-      val howMany: Int = scala.math.min(50, results.size)
+      val howMany: Int = scala.math.min(50, results.size) //scalastyle:ignore magic.number
       
       s"Finishing ${results.size} jobs; first $howMany ids: ${results.keys.take(howMany).map(_.id).mkString(",")}"
     }

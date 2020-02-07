@@ -142,7 +142,7 @@ final class ExecutionState private (
     finish(Seq((job, status, jobResult)))
   }
   
-  def finish(results: TraversableOnce[(LJob, JobStatus, Option[JobResult])])(implicit discriminator: Int = 42): Unit = {
+  def finish(results: TraversableOnce[(LJob, JobStatus, Option[JobResult])])(implicit discriminator: Int = 1): Unit = {
     fields.foreachWithTime("finish()") { f =>
       results.foreach { case (job, status, jobResult) =>
         val jobIndex = f.index(job)

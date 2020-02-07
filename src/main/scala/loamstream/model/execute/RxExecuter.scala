@@ -71,7 +71,7 @@ final case class RxExecuter(
     val ioScheduler: Scheduler = IOScheduler()
     
     val chunkResults = {
-      val ticks = Observable.interval(windowLength, ioScheduler)
+      val ticks = Observable.interval(windowLength, ioScheduler).onBackpressureDrop
       
       ticks.flatMap(_ => runEligibleJobs(executionState, jobOracle)).takeUntil(_ => executionState.isFinished)
     }
@@ -82,9 +82,13 @@ final case class RxExecuter(
   }
   
   private def finish(executionState: ExecutionState)(results: Map[LJob, Execution]): Map[LJob, Execution] = {
-    TimeUtils.time(s"Finishing ${results.size} jobs", debug(_)) {
-      //results.foreach {case (job, execution) => executionState.finish(job, execution) }
+    def msg = {
+      val howMany: Int = scala.math.min(50, results.size)
       
+      s"Finishing ${results.size} jobs; first $howMany ids: ${results.keys.take(howMany).map(_.id).mkString(",")}"
+    }
+    
+    TimeUtils.time(msg, debug(_)) {
       executionState.finish(results)
     }
     
@@ -101,8 +105,8 @@ final case class RxExecuter(
       import jobsAndCells.{ numRunning, numFinished }
       val numRemaining = executionState.size - numReadyToRun - numCannotRun - numRunning - numFinished
       
-      debug(s"RxExecuter.runEligibleJobs(): $numReadyToRun jobs ready to run; $numCannotRun jobs cannot run; " +
-            s"$numRunning running; $numFinished finishedl; $numRemaining other.")
+      debug(s"RxExecuter.runEligibleJobs(): Ready to run: $numReadyToRun Cannot run: $numCannotRun " +
+            s"Running: $numRunning Finished: $numFinished Other: $numRemaining.")
       
       val (finishedJobAndCells, notFinishedJobsAndCells) = {
         jobsAndCells.readyToRun.partition { case (_, cell) => cell.isTerminal }

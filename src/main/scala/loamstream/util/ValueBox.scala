@@ -14,6 +14,15 @@ final class ValueBox[A](init: A) extends Loggable {
 
   /** Returns the contained value */
   def value: A = lock.synchronized(_value)
+  def valueWithTime(tag: String): A = {
+    val start = System.currentTimeMillis
+    
+    lock.synchronized {
+      debug(s"$tag: Acquiring lock took ${System.currentTimeMillis - start} ms (lock $lock)")
+      
+      _value
+    }
+  }
 
   /** Returns the contained value */
   def apply(): A = value

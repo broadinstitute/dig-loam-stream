@@ -75,7 +75,7 @@ final class JobMonitor(
     //TODO: find a better way to stop or shut down `ticks` :\
     val keepPolling: ValueBox[Boolean] = ValueBox(true)
     
-    val ticks = Observable.interval(period, scheduler).takeUntil(stopSignal).share
+    val ticks = Observable.interval(period, scheduler).onBackpressureDrop.takeUntil(stopSignal).share
     
     def poll(): Map[DrmTaskId, Try[DrmStatus]] = poller.poll(jobIds)
     

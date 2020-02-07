@@ -55,6 +55,16 @@ final case class RxExecuter(
   import executionRecorder.record
   import loamstream.util.Observables.Implicits._
   
+  /**
+   * Execute all the jobs in an Executable, blocking until every one of them that can be run has been run.
+   * 
+   * At a high level: 
+   *  - Track the state of every job
+   *  - Poll the status of every job
+   *  - When a job becomes runnable, run it
+   *  - When a job fails, mark all its successors as CouldNotStart
+   *  - Repeat until all jobs are done or could not start 
+   */
   override def execute(
       executable: Executable, 
       makeJobOracle: Executable => JobOracle = JobOracle.fromExecutable(executionConfig, _))
@@ -70,10 +80,15 @@ final case class RxExecuter(
 
     val ioScheduler: Scheduler = IOScheduler()
     
-    val chunkResults = {
+    val chunkResults: Observable[Map[LJob, Execution]] = {
+      //Note onBackpressureDrop(), in case runEligibleJobs takes too long (or the polling window is too short)
       val ticks = Observable.interval(windowLength, ioScheduler).onBackpressureDrop
       
-      ticks.flatMap(_ => runEligibleJobs(executionState, jobOracle)).takeUntil(_ => executionState.isFinished)
+      def runJobs() = runEligibleJobs(executionState, jobOracle)
+      
+      def isFinished = executionState.isFinished
+      
+      ticks.flatMap(_ => runJobs).takeUntil(_ => isFinished)
     }
     
     val futureMergedResults = chunkResults.foldLeft(emptyExecutionMap)(_ ++ _).firstAsFuture
@@ -105,8 +120,8 @@ final case class RxExecuter(
       import jobsAndCells.{ numRunning, numFinished }
       val numRemaining = executionState.size - numReadyToRun - numCannotRun - numRunning - numFinished
       
-      debug(s"RxExecuter.runEligibleJobs(): Ready to run: $numReadyToRun Cannot run: $numCannotRun " +
-            s"Running: $numRunning Finished: $numFinished Other: $numRemaining.")
+      info(s"RxExecuter.runEligibleJobs(): Ready to run: $numReadyToRun; Cannot run: $numCannotRun; " +
+           s"Running: $numRunning; Finished: $numFinished; Other: $numRemaining.")
       
       val (finishedJobAndCells, notFinishedJobsAndCells) = {
         jobsAndCells.readyToRun.partition { case (_, cell) => cell.isTerminal }

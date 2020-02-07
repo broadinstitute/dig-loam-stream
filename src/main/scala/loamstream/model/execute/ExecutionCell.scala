@@ -7,28 +7,26 @@ import loamstream.model.jobs.JobResult
 /**
  * @author clint
  * Jan 24, 2020
+ * 
+ * A snapshot of an LJob's state at a particular moment during execution, from the perspective of RxExecuter and
+ * ExecutionState.  Tracks the jobs status and the number of times it has ran. 
  */
-final case class ExecutionCell(
-    status: JobStatus = JobStatus.NotStarted, 
-    result: Option[JobResult] = None, 
-    runCount: Int = 0) {
+final case class ExecutionCell(status: JobStatus = JobStatus.NotStarted, runCount: Int = 0) {
   
   def startRunning: ExecutionCell = copy(status = JobStatus.Running, runCount = runCount + 1)
   
   def markAsRunnable: ExecutionCell = copy(status = JobStatus.NotStarted)
   
-  def finishWith(status: JobStatus, jobResult: Option[JobResult] = None): ExecutionCell = {
-    require(status.isFinished, s"Expected finished job status, but got $status")
+  def finishWith(newStatus: JobStatus): ExecutionCell = {
+    require(newStatus.isFinished, s"Expected finished job status, but got $status")
     
-    val newResult = jobResult.orElse(Some(if(status.isSuccess) JobResult.Success else JobResult.Failure))
-    
-    copy(status = status, result = newResult)
+    copy(status = newStatus)
   }
   
-  def markAs(status: JobStatus): ExecutionCell = {
-    require(status.notFinished || status.isCouldNotStart, s"Expected a non-finished job status, but got $status")
+  def markAs(newStatus: JobStatus): ExecutionCell = {
+    require(newStatus.notFinished || newStatus.isCouldNotStart, s"Expected a non-finished job status, but got $status")
     
-    copy(status = status)
+    copy(status = newStatus)
   }
   
   def isFailure: Boolean = status.isFailure

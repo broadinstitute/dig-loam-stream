@@ -6,7 +6,7 @@ package loamstream.util
  * @author oliver
  * date: Aug 8, 2016 
  */
-final class ValueBox[A](init: A) extends Loggable {
+final class ValueBox[A](init: A) {
 
   @volatile private[this] var _value: A = init
   
@@ -14,15 +14,6 @@ final class ValueBox[A](init: A) extends Loggable {
 
   /** Returns the contained value */
   def value: A = lock.synchronized(_value)
-  def valueWithTime(tag: String): A = {
-    val start = System.currentTimeMillis
-    
-    lock.synchronized {
-      debug(s"$tag: Acquiring lock took ${System.currentTimeMillis - start} ms (lock $lock)")
-      
-      _value
-    }
-  }
 
   /** Returns the contained value */
   def apply(): A = value
@@ -65,16 +56,6 @@ final class ValueBox[A](init: A) extends Loggable {
     g(value)
   }
   
-  def getWithTime[B](tag: String)(g: A => B): B = {
-    val start = System.currentTimeMillis
-    
-    lock.synchronized {
-      debug(s"$tag: Acquiring lock took ${System.currentTimeMillis - start} ms (lock $lock)")
-      
-      g(value)
-    }
-  }
-
   /** Returns an item by applying a function that also changes the contained value */
   def getAndUpdate[B](c: A => (A, B)): B = lock.synchronized {
     val (valueNew, item) = c(_value)
@@ -86,16 +67,6 @@ final class ValueBox[A](init: A) extends Loggable {
   
   def foreach(f: A => Any): Unit = lock.synchronized {
     f(value)
-  }
-  
-  def foreachWithTime(tag: String)(f: A => Any): Unit = {
-    val start = System.currentTimeMillis
-    
-    lock.synchronized {
-      debug(s"$tag: Acquiring lock took ${System.currentTimeMillis - start} ms (lock $lock)")
-    
-      f(value)
-    }
   }
   
   override def toString: String = s"ValueBox($value)"

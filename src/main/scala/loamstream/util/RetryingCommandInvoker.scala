@@ -9,6 +9,7 @@ import scala.util.Try
 
 import RetryingCommandInvoker.InvocationFn
 import RetryingCommandInvoker.SuccessfulInvocationFn
+import rx.lang.scala.Scheduler
 
 /**
  * @author clint
@@ -25,8 +26,8 @@ final class RetryingCommandInvoker[A](
     binaryName: String,
     delegateFn: InvocationFn[A],
     delayStart: Duration = RetryingCommandInvoker.defaultDelayStart,
-    delayCap: Duration = RetryingCommandInvoker.defaultDelayCap)
-    (implicit ec: ExecutionContext) extends (SuccessfulInvocationFn[A]) with Loggable {
+    delayCap: Duration = RetryingCommandInvoker.defaultDelayCap,
+    scheduler: Scheduler)(implicit ec: ExecutionContext) extends (SuccessfulInvocationFn[A]) with Loggable {
   
   //Memoize the function that retrieves the metadata, to avoid running something expensive, like invoking
   //bacct/qacct, more than necessary.
@@ -40,7 +41,8 @@ final class RetryingCommandInvoker[A](
         maxRetries = maxRetries, 
         delayStart = delayStart, 
         delayCap = delayCap, 
-        delegateFn = delegateFn)
+        delegateFn = delegateFn,
+        scheduler = scheduler)
   }
   
   private def doRetries(
@@ -48,7 +50,8 @@ final class RetryingCommandInvoker[A](
       maxRetries: Int,
       delayStart: Duration,
       delayCap: Duration,
-    delegateFn: InvocationFn[A]): SuccessfulInvocationFn[A] = /*Functions.memoize*/ { param =>
+      delegateFn: InvocationFn[A],
+      scheduler: Scheduler): SuccessfulInvocationFn[A] = { param =>
         
     val maxRuns = maxRetries + 1
     
@@ -66,11 +69,13 @@ final class RetryingCommandInvoker[A](
       case Failure(e) => Failure(e)
     }
     
-    val resultOptFuture = Loops.retryUntilSuccessWithBackoffAsync(maxRuns, delayStart, delayCap) {
+    val resultOptObs = Loops.retryUntilSuccessWithBackoffAsync(maxRuns, delayStart, delayCap, scheduler) {
       invokeBinary()
     }
     
-    val result: Future[RunResults.Successful] = resultOptFuture.flatMap {
+    import Observables.Implicits._
+    
+    val result: Future[RunResults.Successful] = resultOptObs.firstAsFuture.flatMap {
       case Some(a) => Future.successful(a)
       case _ => {
         val msg = s"Invoking '$binaryName' for with param '$param' failed after $maxRuns runs"

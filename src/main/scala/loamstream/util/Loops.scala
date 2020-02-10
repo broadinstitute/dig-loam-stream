@@ -10,6 +10,7 @@ import scala.util.Try
 
 import rx.lang.scala.Observable
 import rx.lang.scala.schedulers.IOScheduler
+import rx.lang.scala.Scheduler
 
 /**
  * @author clint
@@ -63,11 +64,12 @@ object Loops {
   def retryUntilSuccessWithBackoffAsync[A](
       maxRuns: Int, 
       delayStart: Duration, 
-      delayCap: Duration)(op: => Try[A])(implicit ec: ExecutionContext): Future[Option[A]] = {
+      delayCap: Duration,
+      scheduler: Scheduler = IOScheduler())(op: => Try[A]): Observable[Option[A]] = {
     
     val delays = Backoff.delaySequence(delayStart, delayCap)
     
-    def delayAndThen[X](f: => X): Observable[X] = Observable.timer(delays.next(), IOScheduler()).map(_ => f)
+    def delayAndThen[X](f: => X): Observable[X] = Observable.timer(delays.next(), scheduler).map(_ => f)
     
     def next(tuple: (Int, Try[A])): Observable[(Int, Try[A])] = {
       val (i, attempt) = tuple
@@ -80,11 +82,9 @@ object Loops {
     }
     
     if(maxRuns == 0) { 
-      Future.successful(None)
+      Observable.just(None)
     } else {
-      import Observables.Implicits._
-      
-      next(1 -> op).collect { case (_, attempt) => attempt.toOption }.headOption.map(_.flatten).firstAsFuture
+      next(1 -> op).collect { case (_, attempt) => attempt.toOption }.headOption.map(_.flatten)
     }
   }
 }

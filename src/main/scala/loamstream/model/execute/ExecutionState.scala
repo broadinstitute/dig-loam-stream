@@ -72,7 +72,7 @@ final class ExecutionState private (
    * say) are returned.
    */
   def jobStatuses: ExecutionState.JobStatuses = { 
-    val jobStates = jobStateListBox.value.snapshot      
+    val jobStates = jobStateListBox.get(_.snapshot)      
   
     TimeUtils.time("Computing JobStatuses", debug(_)) {
       val numRunning = jobStates.count(_.cell.isRunning)

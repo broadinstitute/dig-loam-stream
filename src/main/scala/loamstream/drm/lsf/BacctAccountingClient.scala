@@ -25,6 +25,7 @@ import loamstream.util.RetryingCommandInvoker
 import loamstream.util.Tries
 import java.time.LocalDateTime
 import loamstream.drm.DrmTaskId
+import rx.lang.scala.Scheduler
 
 /**
  * @author clint
@@ -107,8 +108,9 @@ object BacctAccountingClient {
    */
   def useActualBinary(
       lsfConfig: LsfConfig, 
+      scheduler: Scheduler,
       binaryName: String = "bacct")(implicit ec: ExecutionContext): BacctAccountingClient = {
-    new BacctAccountingClient(BacctInvoker.useActualBinary(lsfConfig.maxBacctRetries, binaryName))
+    new BacctAccountingClient(BacctInvoker.useActualBinary(lsfConfig.maxBacctRetries, binaryName, scheduler))
   }
   
   //"Data lines" look like this:

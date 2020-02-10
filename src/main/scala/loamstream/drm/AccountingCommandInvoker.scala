@@ -5,6 +5,7 @@ import scala.concurrent.ExecutionContext
 import loamstream.util.Loggable
 import loamstream.util.Processes
 import loamstream.util.RetryingCommandInvoker
+import rx.lang.scala.Scheduler
 
 /**
  * @author clint
@@ -17,7 +18,8 @@ object AccountingCommandInvoker {
      */
     def useActualBinary(
         maxRetries: Int, 
-        binaryName: String)(implicit ec: ExecutionContext): RetryingCommandInvoker[DrmTaskId] = {
+        binaryName: String,
+        scheduler: Scheduler)(implicit ec: ExecutionContext): RetryingCommandInvoker[DrmTaskId] = {
       
       def invokeBinaryFor(taskId: DrmTaskId) = {
         val tokens = makeTokens(binaryName, taskId)
@@ -27,7 +29,7 @@ object AccountingCommandInvoker {
         Processes.runSync(binaryName, tokens)
       }
       
-      new RetryingCommandInvoker[DrmTaskId](maxRetries, binaryName, invokeBinaryFor)
+      new RetryingCommandInvoker[DrmTaskId](maxRetries, binaryName, invokeBinaryFor, scheduler = scheduler)
     }
   
     def makeTokens(actualBinary: String, taskId: DrmTaskId): Seq[String]

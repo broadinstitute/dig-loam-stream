@@ -24,6 +24,7 @@ import loamstream.util.Options
 import loamstream.util.RetryingCommandInvoker
 import loamstream.util.Tries
 import loamstream.drm.DrmTaskId
+import rx.lang.scala.Scheduler
 
 
 /**
@@ -88,8 +89,9 @@ object QacctAccountingClient extends Loggable {
    */
   def useActualBinary(
       ugerConfig: UgerConfig, 
+      scheduler: Scheduler,
       binaryName: String = "qacct")(implicit ec: ExecutionContext): QacctAccountingClient = {
-    new QacctAccountingClient(QacctInvoker.useActualBinary(ugerConfig.maxQacctRetries, binaryName))
+    new QacctAccountingClient(QacctInvoker.useActualBinary(ugerConfig.maxQacctRetries, binaryName, scheduler))
   }
   
   private def orElseErrorMessage[A](msg: String)(a: => A): Try[A] = {

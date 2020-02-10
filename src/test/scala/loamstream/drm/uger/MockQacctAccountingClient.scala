@@ -13,6 +13,7 @@ import loamstream.util.RetryingCommandInvoker
 import loamstream.model.jobs.TerminationReason
 import scala.concurrent.Future
 import loamstream.drm.DrmTaskId
+import rx.lang.scala.schedulers.ComputationScheduler
 
 /**
  * @author clint
@@ -48,7 +49,13 @@ final class MockQacctAccountingClient(
     import scala.concurrent.ExecutionContext.Implicits.global
     
     val invoker = {
-      new RetryingCommandInvoker[DrmTaskId](ugerConfig.maxQacctRetries, "MOCK", wrappedDelegateFn, delayStart, delayCap)
+      new RetryingCommandInvoker[DrmTaskId](
+          ugerConfig.maxQacctRetries, 
+          "MOCK", 
+          wrappedDelegateFn, 
+          delayStart, 
+          delayCap,
+          scheduler = ComputationScheduler())
     }
     
     new QacctAccountingClient(invoker)

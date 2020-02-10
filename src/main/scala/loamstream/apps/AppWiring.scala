@@ -398,7 +398,7 @@ object AppWiring extends Loggable {
 
         val jobSubmitter = JobSubmitter.Drmaa(drmaaClient, ugerConfig)
         
-        val accountingClient = QacctAccountingClient.useActualBinary(ugerConfig)
+        val accountingClient = QacctAccountingClient.useActualBinary(ugerConfig, scheduler)
         
         DrmChunkRunner(
             environmentType = EnvironmentType.Uger,
@@ -439,7 +439,7 @@ object AppWiring extends Loggable {
 
         val jobSubmitter = BsubJobSubmitter.fromExecutable(lsfConfig)
 
-        val accountingClient = BacctAccountingClient.useActualBinary(lsfConfig)
+        val accountingClient = BacctAccountingClient.useActualBinary(lsfConfig, scheduler)
         
         DrmChunkRunner(
             environmentType = EnvironmentType.Lsf,

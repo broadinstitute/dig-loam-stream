@@ -22,8 +22,6 @@ sealed abstract class ColumnExpr[A : TypeTag] extends RowParser[A] {
   
   final def flatMap[B: TypeTag](f: A => ColumnExpr[B]): ColumnExpr[B] = FlatMappedColumnExpr(f, this)
   
-  final def flatten(row: CsvRow)(implicit ev: A =:= String): ColumnName = ColumnName(eval(row))
-  
   final override def apply(row: CsvRow): A = eval(row)
   
   import ColumnExpr._
@@ -43,6 +41,12 @@ sealed abstract class ColumnExpr[A : TypeTag] extends RowParser[A] {
   final def +(expr: ColumnExpr[A])(implicit ev: Numeric[A]): ColumnExpr[A] = arithmeticOp(expr)(_.plus)
     
   final def *(expr: ColumnExpr[A])(implicit ev: Numeric[A]): ColumnExpr[A] = arithmeticOp(expr)(_.times)
+  
+  final def /(expr: ColumnExpr[A])(implicit ev: Fractional[A]): ColumnExpr[A] = {
+    val fractional = implicitly[Fractional[A]]
+    
+    ColumnExpr.lift2(fractional.div).apply(this, expr)
+  }
   
   final def unary_-(implicit ev: Numeric[A]): ColumnExpr[A] = {
     this.map(a => implicitly[Numeric[A]].mkNumericOps(a).unary_-())
@@ -98,9 +102,10 @@ object ColumnExpr {
   def fromPartialRowParser[A: TypeTag](rowParser: PartialRowParser[A]): ColumnExpr[A] = new PartialColumnExpr(rowParser)
   
   implicit final class ExprOps[A](val a: A) extends AnyVal {
-    def +(rhs: ColumnExpr[A])(implicit ev: Numeric[A], tt: TypeTag[A]): ColumnExpr[A] = Literal(a) + rhs
-    def -(rhs: ColumnExpr[A])(implicit ev: Numeric[A], tt: TypeTag[A]): ColumnExpr[A] = Literal(a) - rhs
-    def *(rhs: ColumnExpr[A])(implicit ev: Numeric[A], tt: TypeTag[A]): ColumnExpr[A] = Literal(a) * rhs
+    def +(rhs: ColumnExpr[A])(implicit ev: Numeric[A], tt: TypeTag[A]): ColumnExpr[A] = LiteralColumnExpr(a) + rhs
+    def -(rhs: ColumnExpr[A])(implicit ev: Numeric[A], tt: TypeTag[A]): ColumnExpr[A] = LiteralColumnExpr(a) - rhs
+    def *(rhs: ColumnExpr[A])(implicit ev: Numeric[A], tt: TypeTag[A]): ColumnExpr[A] = LiteralColumnExpr(a) * rhs
+    def /(rhs: ColumnExpr[A])(implicit ev: Fractional[A], tt: TypeTag[A]): ColumnExpr[A] = LiteralColumnExpr(a) / rhs
   }
   
   trait ConvertableToNumber[A] {
@@ -145,27 +150,27 @@ final class PartialColumnExpr[A: TypeTag](pf: PartialRowParser[A]) extends Colum
   override def isDefinedAt(row: CsvRow): Boolean = pf.isDefinedAt(row)
 }
 
-final case class Literal[A: TypeTag](value: A) extends ColumnExpr[A] {
+final case class LiteralColumnExpr[A: TypeTag](value: A) extends ColumnExpr[A] {
   override def toString: String = value.toString 
   
   override def eval(ignored: CsvRow): A = value
   
   override def asString: ColumnExpr[String] = value match {
-    case s: String => this.asInstanceOf[Literal[String]]
-    case _ => Literal(value.toString)
+    case s: String => this.asInstanceOf[LiteralColumnExpr[String]]
+    case _ => LiteralColumnExpr(value.toString)
   }
 }
 
 final case class ColumnName(name: String) extends ColumnExpr[String] {
   override def eval(row: CsvRow): String = {
-    val value = row.getField(name)
+    val value = row.getFieldByName(name)
     
     require(value != null, s"Field named '$name' not found in row $row") 
     
     value
   }
   
-  override def asString: ColumnExpr[String] = Literal(name)
+  override def asString: ColumnExpr[String] = this
 }
 
 final case class MappedColumnExpr[A: TypeTag, B: TypeTag](f: A => B, dependsOn: ColumnExpr[A]) extends ColumnExpr[B] {

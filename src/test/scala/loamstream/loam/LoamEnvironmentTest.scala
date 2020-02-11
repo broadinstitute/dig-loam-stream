@@ -21,6 +21,7 @@ import loamstream.model.execute.LsfDrmSettings
 import loamstream.model.execute.LocalSettings
 import loamstream.model.execute.Settings
 import loamstream.googlecloud.ClusterConfig
+import loamstream.model.execute.AwsSettings
 
 /**
  * @author clint

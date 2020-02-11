@@ -56,7 +56,7 @@ object CsvSource extends Loggable {
     val thisDir: Path = Paths.get(".")
   }
   
-  private final class FromIterator(iterator: => Iterator[CsvRow]) extends CsvSource {
+  private[intake] final class FromIterator(iterator: => Iterator[CsvRow]) extends CsvSource {
     override def records: Iterator[CsvRow] = iterator
   }
 
@@ -69,7 +69,7 @@ object CsvSource extends Loggable {
       new FromIterator(toCsvRowIterator(new FileReader(file.toFile), delimiter, containsHeader))
     }
     
-    private def toCsvRowIterator(reader: Reader, delimiter: Char, containsHeader: Boolean): Iterator[de.siegmar.fastcsv.reader.CsvRow] = {
+    private def toCsvRowIterator(reader: Reader, delimiter: Char, containsHeader: Boolean): Iterator[CsvRow] = {
         
       val csvReader = new CsvReader
       
@@ -78,19 +78,21 @@ object CsvSource extends Loggable {
       
       val csvParser: CsvParser = csvReader.parse(reader)
       
-      import de.siegmar.fastcsv.reader.CsvRow
-      
       val iterator: Iterator[CsvRow] = new Iterator[CsvRow] {
-        private[this] var currentRow: CsvRow = csvParser.nextRow()
+        import de.siegmar.fastcsv.reader.{CsvRow => FCsvRow}
+        
+        import csvParser.nextRow
+        
+        private[this] var currentRow: FCsvRow = nextRow()
         
         private[this] def read(): Unit = {
-          currentRow = csvParser.nextRow()
+          currentRow = nextRow()
         }
         
         override def hasNext: Boolean = currentRow != null
         
         override def next(): CsvRow = {
-          try { if(currentRow != null) currentRow else throw new Exception("No more CSV rows") } 
+          try { if(currentRow != null) CsvRow.FastCsvRow(currentRow) else throw new Exception("No more CSV rows") } 
           finally { read() }
         }
       }

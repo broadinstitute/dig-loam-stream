@@ -5,8 +5,6 @@ package loamstream.loam
  * Dec 17, 2019
  */
 package object intake {
-  type CsvRow = de.siegmar.fastcsv.reader.CsvRow
-  
   type PartialRowParser[A] = PartialFunction[CsvRow, A]
   
   type RowParser[A] = CsvRow => A

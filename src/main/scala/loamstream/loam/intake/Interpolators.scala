@@ -12,13 +12,13 @@ trait Interpolators {
     def strexpr(args: Any*): ColumnExpr[String] = {
       
       val anyColumnExprsThatNeedEvaluating = args.exists {
-        case _: Literal[_] => false
+        case _: LiteralColumnExpr[_] => false
         case _: ColumnExpr[_] => true
         case _ => false
       }
       
       if(!anyColumnExprsThatNeedEvaluating) {
-        Literal(interpolate(args.map(_.toString)))
+        LiteralColumnExpr(interpolate(args.map(_.toString)))
       } else {
         ColumnExpr.fromRowParser { row =>
           val stringArgs = args.map {

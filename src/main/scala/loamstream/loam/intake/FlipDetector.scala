@@ -139,7 +139,7 @@ final class FlipDetector(
   private val variantsFrom26k: Set[String] = TimeUtils.time("Reading 26k map", info(_)) {
     val iterator = CsvSource.FastCsv.fromFile(pathTo26kMap, containsHeader = false).records
     
-    iterator.map(_.getField(0)).toSet
+    iterator.map(_.getFieldByIndex(0)).toSet
   }
 
   private lazy val referenceFiles = FlipDetector.ReferenceFiles(referenceDir, knownChroms)

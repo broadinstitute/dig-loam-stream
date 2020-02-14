@@ -7,6 +7,8 @@ import loamstream.loam.intake.CsvSource.FastCsv.FromCommand
 import loamstream.model.execute.RxExecuter
 import loamstream.compiler.LoamEngine
 import loamstream.util.Files
+import loamstream.loam.LanguageSupport
+import loamstream.model.jobs.JobResult
 
 /**
  * @author clint
@@ -25,16 +27,12 @@ final class CsvTransformationTest extends FunSuite {
         import LoamSyntax._
         import IntakeSyntax._
         
-        val storeA = store(path("src/test/resources/intake-data.txt")).asInput
+        val inputDataFile = store(path("src/test/resources/intake-data.txt")).asInput
         
-        val storeB = store(workDir / "data.txt")
-        
-        cmd"cp $storeA $storeB".in(storeA).out(storeB)
-        
-        val storeC = store(mungedOutputPath)
-        val storeSchema = store(schemaFilePath)
-        val storeDataList = store(dataListFilePath)
-        val storeSchemaList = store(schemaListFilePath)
+        val mungedDataFile = store(mungedOutputPath)
+        val schemaFile = store(schemaFilePath)
+        val dataListFile = store(dataListFilePath)
+        val schemaListFile = store(schemaListFilePath)
         
         object ColumnNames {
           val VARID = "VAR_ID".asColumnName
@@ -80,7 +78,7 @@ final class CsvTransformationTest extends FunSuite {
             ColumnDef(PValue, PDashValue.asDouble, PDashValue.asDouble))
         }
         
-        val source: CsvSource = FromCommand(s"cat ${storeB.path}")
+        val source: CsvSource = FromCommand(s"cat ${inputDataFile.path}")
         
         val flipDetector = new FlipDetector(
           referenceDir = path("/home/clint/workspace/marcins-scripts/reference"),
@@ -89,13 +87,22 @@ final class CsvTransformationTest extends FunSuite {
         
         val varIdColumn +: otherColumns = source.producing(columns)
         
-        produceCsv(storeC).from(varIdColumn, otherColumns: _*).using(flipDetector).tag("makeCSV").in(storeB)
+        produceCsv(mungedDataFile).
+            from(varIdColumn, otherColumns: _*).
+            using(flipDetector).
+            tag("makeCSV").
+            in(inputDataFile)
         
-        produceSchemaFile(storeSchema).from(columns: _*).tag("makeSchemaFile")
+        produceSchemaFile(schemaFile).
+            from(columns: _*).
+            tag("makeSchemaFile")
         
-        produceListFiles(storeDataList, storeSchemaList).from(storeC, storeSchema).tag("makeListFiles").in(storeC, storeSchema)
+        produceListFiles(dataListFile, schemaListFile).
+            from(mungedDataFile, schemaFile).
+            tag("makeListFiles").
+            in(mungedDataFile, schemaFile)
         
-        val storeD = store(aggregatorConfigFilePath)
+        val aggregatorConfigFile = store(aggregatorConfigFilePath)
         
         val metadata: aggregator.Metadata = aggregator.Metadata(
             dataset = "some-dataset",
@@ -117,15 +124,38 @@ final class CsvTransformationTest extends FunSuite {
             eaf = ColumnNames.EAF,
             maf = ColumnNames.MAF)
             
-        val configFile = aggregator.ConfigFile(metadata, sourceColumns, storeC.path)      
+        val configData = aggregator.ConfigData(metadata, sourceColumns, mungedDataFile.path)      
             
-        produceAggregatorIntakeConfigFile(storeD).from(configFile).tag("make-aggregator-conf").in(storeC).out(storeD)
+        produceAggregatorIntakeConfigFile(aggregatorConfigFile).
+            from(configData).
+            tag("make-aggregator-conf").
+            in(mungedDataFile)
+            
+        val upload = {
+          //TODO
+          val aggregatorIntakeCondaEnv = "intake"
+          //TODO
+          val aggregatorIntakeScriptsRoot = "~/workspace/dig-aggregator-intake"
+          
+          val mainPyPart = s"${aggregatorIntakeScriptsRoot}/main.py"
+          val envNamePart = s"-n ${aggregatorIntakeCondaEnv}"
+          
+          cmd"""conda run ${envNamePart} python ${mainPyPart} variants ${aggregatorConfigFile}""".
+              in(aggregatorConfigFile, mungedDataFile).
+              tag("upload-to-s3")
+        }
       }
       
       val executer = RxExecuter.default
       val executable = LoamEngine.toExecutable(graph)
       
       val results = executer.execute(executable)
+      
+      val (uploadJob, uploadExecution) = results.find { case (j, _) => j.name == "upload-to-s3" }.get
+      
+      println(s"%%%%%% ${uploadExecution.jobDir.get}")
+      
+      assert(uploadExecution.result === Some(JobResult.Success))
       
       assert(results.size === 5)
       assert(results.values.forall(_.isSuccess))

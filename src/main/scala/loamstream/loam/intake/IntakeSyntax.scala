@@ -88,7 +88,7 @@ trait IntakeSyntax extends Interpolators {
         val hash = Hashes.md5(fileToBeHashed.path).valueAsBase64String 
         
         Files.writeTo(dest.path)(hash)
-      }
+      }.out(dest)
       
       addToGraph(tool)
       
@@ -97,11 +97,11 @@ trait IntakeSyntax extends Interpolators {
   }
   
   final class AggregatorIntakeConfigFileTarget(dest: Store) {
-    def from(configFile: aggregator.ConfigFile)(implicit scriptContext: LoamScriptContext): NativeTool = {
+    def from(configData: aggregator.ConfigData)(implicit scriptContext: LoamScriptContext): NativeTool = {
       //TODO: How to wire up inputs (if any)?
       val tool = NativeTool {
-        Files.writeTo(dest.path)(configFile.asConfigFileContents)
-      }
+        Files.writeTo(dest.path)(configData.asConfigFileContents)
+      }.out(dest)
       
       addToGraph(tool)
       

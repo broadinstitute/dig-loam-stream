@@ -19,6 +19,7 @@ final class CsvTransformationTest extends FunSuite {
       val schemaFilePath = workDir.resolve("schema.txt")
       val dataListFilePath = workDir.resolve("data.list")
       val schemaListFilePath = workDir.resolve("schema.list")
+      val aggregatorConfigFilePath = workDir.resolve("aggregator-intake.conf")
       
       val graph = TestHelpers.makeGraph { implicit scriptContext =>
         import LoamSyntax._
@@ -86,14 +87,39 @@ final class CsvTransformationTest extends FunSuite {
           isVarDataType = true,
           pathTo26kMap = path("/home/clint/workspace/marcins-scripts/26k_id.map"))
         
-        val varIdColumn = columns.head.from(source)
-        val otherColumns = source.producing(columns.tail)
+        val varIdColumn +: otherColumns = source.producing(columns)
         
         produceCsv(storeC).from(varIdColumn, otherColumns: _*).using(flipDetector).tag("makeCSV").in(storeB)
         
         produceSchemaFile(storeSchema).from(columns: _*).tag("makeSchemaFile")
         
         produceListFiles(storeDataList, storeSchemaList).from(storeC, storeSchema).tag("makeListFiles").in(storeC, storeSchema)
+        
+        val storeD = store(aggregatorConfigFilePath)
+        
+        val metadata: aggregator.Metadata = aggregator.Metadata(
+            dataset = "some-dataset",
+            phenotype = "some-phenotype",
+            ancestry = "some-ancestry",
+            author = Some("some-author"),
+            tech = "some-tech",
+            cases = 42,
+            controls = 21,
+            varIdFormat = Some("{chrom}_{pos}_{ref}_{alt}"))
+        
+        val sourceColumns = aggregator.SourceColumns(
+            marker = ColumnNames.VARID,
+            pValue = ColumnNames.PValue,
+            zScore = ColumnNames.OddsRatio,
+            stderr = ColumnNames.SE,
+            beta = ColumnNames.OddsRatio,
+            oddsRatio = ColumnNames.OddsRatio,
+            eaf = ColumnNames.EAF,
+            maf = ColumnNames.MAF)
+            
+        val configFile = aggregator.ConfigFile(metadata, sourceColumns, storeC.path)      
+            
+        produceAggregatorIntakeConfigFile(storeD).from(configFile).tag("make-aggregator-conf").in(storeC).out(storeD)
       }
       
       val executer = RxExecuter.default
@@ -101,7 +127,7 @@ final class CsvTransformationTest extends FunSuite {
       
       val results = executer.execute(executable)
       
-      assert(results.size === 4)
+      assert(results.size === 5)
       assert(results.values.forall(_.isSuccess))
           
       val tab = '\t'
@@ -136,12 +162,40 @@ SE${tab}FLOAT
 P_VALUE${tab}FLOAT"""        
       }
       
+      val expectedConfigFileContents = {
+s"""dataset some-dataset some-phenotype
+ancestry some-ancestry
+tech some-tech
+cases 42
+controls 21
+subjects 63
+var_id {chrom}_{pos}_{ref}_{alt}
+author some-author
+
+marker VAR_ID
+pvalue P_VALUE
+zscore ODDS_RATIO
+stderr SE
+beta ODDS_RATIO
+odds_ratio ODDS_RATIO
+eaf EAF
+maf MAF
+
+load ${mungedOutputPath}
+
+process
+
+quit"""
+      }
+      
       assert(Files.readFrom(mungedOutputPath) === expectedMungedContents)
       
       assert(Files.readFrom(schemaFilePath) === expectedSchemaFileContents)
       
       assert(Files.readFrom(dataListFilePath) === s"${mungedOutputPath.toString}${System.lineSeparator}")
       assert(Files.readFrom(schemaListFilePath) === s"${schemaFilePath.toString}${System.lineSeparator}")
+      
+      assert(Files.readFrom(aggregatorConfigFilePath) === expectedConfigFileContents)
     }
   }
 }

@@ -96,6 +96,19 @@ trait IntakeSyntax extends Interpolators {
     }
   }
   
+  final class AggregatorIntakeConfigFileTarget(dest: Store) {
+    def from(configFile: aggregator.ConfigFile)(implicit scriptContext: LoamScriptContext): NativeTool = {
+      //TODO: How to wire up inputs (if any)?
+      val tool = NativeTool {
+        Files.writeTo(dest.path)(configFile.asConfigFileContents)
+      }
+      
+      addToGraph(tool)
+      
+      tool
+    }
+  }
+  
   /** BEWARE: This method has the side-effect of modifying the graph within scriptContext */
   private def addToGraph(tool: Tool)(implicit scriptContext: LoamScriptContext): Unit = {
     scriptContext.projectContext.updateGraph { graph =>
@@ -130,6 +143,12 @@ trait IntakeSyntax extends Interpolators {
     requireFsPath(dest)
     
     new HashFileTarget(dest)
+  }
+  
+  def produceAggregatorIntakeConfigFile(dest: Store) = {
+    requireFsPath(dest)
+    
+    new AggregatorIntakeConfigFileTarget(dest)
   }
   
   private[intake] def fuse(flipDetector: FlipDetector)(columnDefs: Seq[ColumnDef]): ParseFn = { (varIdValue, row) =>

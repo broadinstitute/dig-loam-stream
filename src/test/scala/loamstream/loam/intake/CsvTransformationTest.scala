@@ -9,19 +9,27 @@ import loamstream.compiler.LoamEngine
 import loamstream.util.Files
 import loamstream.loam.LanguageSupport
 import loamstream.model.jobs.JobResult
+import com.dimafeng.testcontainers.ForAllTestContainer
+import com.dimafeng.testcontainers.MySQLContainer
+import com.dimafeng.testcontainers.Container
+import java.nio.file.Path
+import java.net.URI
 
 /**
  * @author clint
  * Dec 20, 2019
  */
-final class CsvTransformationTest extends FunSuite {
-  test("End-to-end CSV munging") {
+final class CsvTransformationTest extends AggregatorIntakeTest {
+  test("End-to-end CSV munging") { makeTablesAndThen {
     TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
       val mungedOutputPath = workDir.resolve("munged.txt")
       val schemaFilePath = workDir.resolve("schema.txt")
       val dataListFilePath = workDir.resolve("data.list")
       val schemaListFilePath = workDir.resolve("schema.list")
       val aggregatorConfigFilePath = workDir.resolve("aggregator-intake.conf")
+      val aggregatorEnvFilePath = workDir.resolve("aggregator-intake.env")
+      
+      val s3Bucket = "some-bucket"
       
       val graph = TestHelpers.makeGraph { implicit scriptContext =>
         import LoamSyntax._
@@ -130,6 +138,10 @@ final class CsvTransformationTest extends FunSuite {
             from(configData).
             tag("make-aggregator-conf").
             in(mungedDataFile)
+         
+        val aggregatorEnvFile = store(aggregatorEnvFilePath)
+            
+        produceAggregatorEnvFile(aggregatorEnvFile, s3Bucket).tag("make-env-file")
             
         val upload = {
           //TODO
@@ -140,8 +152,8 @@ final class CsvTransformationTest extends FunSuite {
           val mainPyPart = s"${aggregatorIntakeScriptsRoot}/main.py"
           val envNamePart = s"-n ${aggregatorIntakeCondaEnv}"
           
-          cmd"""conda run ${envNamePart} python ${mainPyPart} variants ${aggregatorConfigFile}""".
-              in(aggregatorConfigFile, mungedDataFile).
+          cmd"""/opt/miniconda3/condabin/conda run ${envNamePart} python ${mainPyPart} variants ${aggregatorConfigFile}""".
+              in(aggregatorEnvFile, aggregatorConfigFile, mungedDataFile).
               tag("upload-to-s3")
         }
       }
@@ -155,9 +167,9 @@ final class CsvTransformationTest extends FunSuite {
       
       println(s"%%%%%% ${uploadExecution.jobDir.get}")
       
-      assert(uploadExecution.result === Some(JobResult.Success))
+      assert(uploadExecution.result.get.isSuccess)
       
-      assert(results.size === 5)
+      assert(results.size === 6)
       assert(results.values.forall(_.isSuccess))
           
       val tab = '\t'
@@ -226,6 +238,20 @@ quit"""
       assert(Files.readFrom(schemaListFilePath) === s"${schemaFilePath.toString}${System.lineSeparator}")
       
       assert(Files.readFrom(aggregatorConfigFilePath) === expectedConfigFileContents)
+      
+      validateAggregatorEnvFile(aggregatorEnvFilePath, s3Bucket)
     }
+  }}
+  
+  private def validateAggregatorEnvFile(envFile: Path, expectedS3Bucket: String): Unit = {
+    val jdbcUrl = new URI(container.jdbcUrl)
+    
+    val expectedContents = s"""|INTAKE_S3_BUCKET=${expectedS3Bucket}
+                               |INTAKE_DB_HOST=${jdbcUrl.getHost}:${jdbcUrl.getPort}
+                               |INTAKE_DB_USER=${container.username}
+                               |INTAKE_DB_PASSWORD=${container.password}
+                               |INTAKE_DB_NAME=${container.databaseName}""".stripMargin
+                               
+    assert(Files.readFrom(envFile) === expectedContents)
   }
 }

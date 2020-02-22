@@ -65,18 +65,20 @@ object FlipDetector extends Loggable {
   }
   
   private object ReferenceFiles {
-    def apply(referenceDir: Path, knownChroms: Set[String]): ReferenceFiles = TimeUtils.time("Making ReferenceFiles", info(_)) {
-      new ReferenceFiles(Map.empty ++ {
-        for {
-          chrom <- knownChroms.iterator
-        } yield {
-          val path = referenceDir.resolve(s"${chrom}.txt")
-          
-          require(exists(path), s"ERROR: no sequence file for chromosome: ${chrom}")
-          
-          chrom -> new FileHandle(path.toFile)
-        }
-      })
+    def apply(referenceDir: Path, knownChroms: Set[String]): ReferenceFiles = {
+      TimeUtils.time("Making ReferenceFiles", info(_)) {
+        new ReferenceFiles(Map.empty ++ {
+          for {
+            chrom <- knownChroms.iterator
+          } yield {
+            val path = referenceDir.resolve(s"${chrom}.txt")
+            
+            require(exists(path), s"ERROR: no sequence file for chromosome: ${chrom}")
+            
+            chrom -> new FileHandle(path.toFile)
+          }
+        })
+      }
     }
   }
   
@@ -144,6 +146,8 @@ final class FlipDetector(
 
   private lazy val referenceFiles = FlipDetector.ReferenceFiles(referenceDir, knownChroms)
   
+  
+  
   def isFlipped(variantId: String): Boolean = TimeUtils.time("Testing for flipped-ness", info(_)) {
     def isKnown(chrom: String): Boolean = knownChroms.contains(chrom)
     
@@ -173,7 +177,12 @@ final class FlipDetector(
         }// case regex1
         case extractor2(variant) => {
           def munge(s: String): String = {
-            s.replaceAll("A", "X").replaceAll("T", "A").replaceAll("X", "T").replaceAll("C", "X").replaceAll("G", "C").replaceAll("X", "G")
+            s.replaceAll("A", "X")
+             .replaceAll("T", "A")
+             .replaceAll("X", "T")
+             .replaceAll("C", "X")
+             .replaceAll("G", "C")
+             .replaceAll("X", "G")
           }
           
           import variant.{ alt, reference }

@@ -15,7 +15,7 @@ import scala.util.control.Exception.Finally
  * Feb 19, 2020
  */
 abstract class MysqlTest extends FunSuite with ForAllTestContainer {
-  override val container: MySQLContainer = MySQLContainer()
+  override lazy val container: MySQLContainer = MySQLContainer()
   
   protected def makeTablesAndThen[A](f: => A): A = {
     makeTables()

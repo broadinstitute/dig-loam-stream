@@ -66,7 +66,15 @@ object CsvSource extends Loggable {
         delimiter: Char = Defaults.FastCsv.delimiter, 
         containsHeader: Boolean = Defaults.FastCsv.containsHeader): CsvSource = {
       
-      new FromIterator(toCsvRowIterator(new FileReader(file.toFile), delimiter, containsHeader))
+      fromReader(new FileReader(file.toFile), delimiter, containsHeader)
+    }
+    
+    def fromReader(
+        reader: Reader, 
+        delimiter: Char = Defaults.FastCsv.delimiter, 
+        containsHeader: Boolean = Defaults.FastCsv.containsHeader): CsvSource = {
+      
+      new FromIterator(toCsvRowIterator(reader, delimiter, containsHeader))
     }
     
     private def toCsvRowIterator(reader: Reader, delimiter: Char, containsHeader: Boolean): Iterator[CsvRow] = {

@@ -18,7 +18,16 @@ abstract class AggregatorIntakeTest extends MysqlTest {
     val result = NativeTool {
       require(dest.isPathStore)
       
-      val jdbcUrl = new URI(container.jdbcUrl)
+      def mungeJdbcUrl(u: String): String = {
+        val jdbcColon = "jdbc:"
+        
+        if(u.startsWith(jdbcColon)) u.drop(jdbcColon.size) else u
+      }
+      
+      val jdbcUrl = new URI(mungeJdbcUrl(container.jdbcUrl))
+      
+      require(jdbcUrl.getHost != null)
+      require(jdbcUrl.getPort > 0)
       
       val hostAndPort = s"${jdbcUrl.getHost}:${jdbcUrl.getPort}"
       

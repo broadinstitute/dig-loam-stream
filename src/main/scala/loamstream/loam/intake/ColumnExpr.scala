@@ -18,7 +18,7 @@ sealed abstract class ColumnExpr[A : TypeTag] extends RowParser[A] {
   final def render(row: CsvRow): String = eval(row).toString
   
   final def map[B: TypeTag](f: A => B): ColumnExpr[B] = MappedColumnExpr(f, this)
-  final def |>[B: TypeTag](f: A => B): ColumnExpr[B] = this.map(f)
+  final def |>[B: TypeTag](f: A => B): ColumnExpr[B] = this.map(f) //scalastyle:ignore regex
   
   final def flatMap[B: TypeTag](f: A => ColumnExpr[B]): ColumnExpr[B] = FlatMappedColumnExpr(f, this)
   
@@ -83,7 +83,7 @@ sealed abstract class ColumnExpr[A : TypeTag] extends RowParser[A] {
   final def matches(regex: Regex): RowPredicate = this.asString.map(regex.pattern.matcher(_).matches)
   
   final def ===(rhs: A): RowPredicate = this.map(_ == rhs)
-  final def !==(rhs: A): RowPredicate = this.map(_ != rhs)
+  final def !==(rhs: A): RowPredicate = this.map(_ != rhs) //scalastyle:ignore regex
   
   private def arithmeticOp(
       expr: ColumnExpr[A])(op: Numeric[A] => (A, A) => A)(implicit ev: Numeric[A]): ColumnExpr[A] = {
@@ -122,7 +122,7 @@ object ColumnExpr {
     override def toDouble(a: String): Double = a.toDouble
   }
   
-  implicit def NumericTypesAreConvertableToNumbers[A](implicit ev: Numeric[A]): ConvertableToNumber[A] = {
+  implicit def numericTypesAreConvertableToNumbers[A](implicit ev: Numeric[A]): ConvertableToNumber[A] = {
     new ConvertableToNumber[A] {
       override def toInt(a: A): Int = ev.toInt(a)
       override def toLong(a: A): Long = ev.toLong(a)
@@ -177,6 +177,9 @@ final case class MappedColumnExpr[A: TypeTag, B: TypeTag](f: A => B, dependsOn: 
   override def eval(row: CsvRow): B = f(dependsOn.eval(row))
 }
 
-final case class FlatMappedColumnExpr[A: TypeTag, B: TypeTag](f: A => ColumnExpr[B], dependsOn: ColumnExpr[A]) extends ColumnExpr[B] {
+final case class FlatMappedColumnExpr[A: TypeTag, B: TypeTag](
+    f: A => ColumnExpr[B], 
+    dependsOn: ColumnExpr[A]) extends ColumnExpr[B] {
+  
   override def eval(row: CsvRow): B = f(dependsOn.eval(row)).eval(row)
 }

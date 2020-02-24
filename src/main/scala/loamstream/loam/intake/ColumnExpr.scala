@@ -18,7 +18,7 @@ sealed abstract class ColumnExpr[A : TypeTag] extends RowParser[A] {
   final def render(row: CsvRow): String = eval(row).toString
   
   final def map[B: TypeTag](f: A => B): ColumnExpr[B] = MappedColumnExpr(f, this)
-  final def |>[B: TypeTag](f: A => B): ColumnExpr[B] = this.map(f) //scalastyle:ignore regex
+  final def |>[B: TypeTag](f: A => B): ColumnExpr[B] = this.map(f) //scalastyle:ignore
   
   final def flatMap[B: TypeTag](f: A => ColumnExpr[B]): ColumnExpr[B] = FlatMappedColumnExpr(f, this)
   
@@ -83,7 +83,7 @@ sealed abstract class ColumnExpr[A : TypeTag] extends RowParser[A] {
   final def matches(regex: Regex): RowPredicate = this.asString.map(regex.pattern.matcher(_).matches)
   
   final def ===(rhs: A): RowPredicate = this.map(_ == rhs)
-  final def !==(rhs: A): RowPredicate = this.map(_ != rhs) //scalastyle:ignore regex
+  final def !==(rhs: A): RowPredicate = this.map(_ != rhs) //scalastyle:ignore 
   
   private def arithmeticOp(
       expr: ColumnExpr[A])(op: Numeric[A] => (A, A) => A)(implicit ev: Numeric[A]): ColumnExpr[A] = {

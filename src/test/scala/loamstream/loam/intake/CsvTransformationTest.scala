@@ -136,7 +136,7 @@ final class CsvTransformationTest extends AggregatorIntakeTest {
             val mainPyPart = s"${aggregatorIntakeScriptsRoot}/main.py"
             val envNamePart = s"-n ${aggregatorIntakeCondaEnv}"
             
-            cmd"""/opt/miniconda3/condabin/conda run ${envNamePart} python ${mainPyPart} variants --yes --force --skip-neo4j ${aggregatorConfigFile}""".
+            cmd"""/opt/miniconda3/condabin/conda run ${envNamePart} python ${mainPyPart} variants --yes --force --skip-neo4j ${aggregatorConfigFile}""". // scalastyle:ignore line.size.limit
                 in(aggregatorEnvFile, aggregatorConfigFile, mungedDataFile).
                 tag("upload-to-s3")
           }
@@ -150,8 +150,6 @@ final class CsvTransformationTest extends AggregatorIntakeTest {
         val results = executer.execute(executable)
         
         val (uploadJob, uploadExecution) = results.find { case (j, _) => j.name == "upload-to-s3" }.get
-        
-        println(s"%%%%%% ${uploadExecution.jobDir.get}")
         
         assert(uploadExecution.result.get.isSuccess)
         
@@ -223,11 +221,7 @@ final class CsvTransformationTest extends AggregatorIntakeTest {
   }
   
   private def expectedDataAsRows: Seq[CsvRow] = {
-    val result = CsvSource.FastCsv.fromReader(new StringReader(expectedMungedContents)).records.toIndexedSeq
-    
-    println(s"%%%%%%%%%%%%%%%%%%%%% parsed ${result.size} expected lines: ${result.toList}")
-    
-    result
+    CsvSource.FastCsv.fromReader(new StringReader(expectedMungedContents)).records.toIndexedSeq
   }
   
   private def uploadedDataAsRows(data: String): Seq[CsvRow] = {
@@ -254,8 +248,6 @@ final class CsvTransformationTest extends AggregatorIntakeTest {
     }
     
     val lines = data.split(System.lineSeparator)
-    
-    println(s"%%%%%%%%%%%%%%%%%%%%% parsed ${lines.size} uploaded lines: ${lines.toList}")
     
     lines.map(toJObject).map(toCsvRow)
   }
@@ -388,6 +380,7 @@ object CsvTransformationTest {
   
   private val tab = '\t'
       
+  // scalastyle:off line.size.limit
   private val expectedMungedContents = { 
 s"""VAR_ID${tab}CHROM${tab}POS${tab}Reference_Allele${tab}Effect_Allele${tab}Effect_Allele_PH${tab}EAF${tab}EAF_PH${tab}MAF${tab}MAF_PH${tab}ODDS_RATIO${tab}SE${tab}P_VALUE
 11_100009976_G_A${tab}11${tab}100009976${tab}G${tab}A${tab}A${tab}0.869${tab}0.869${tab}0.131${tab}0.131${tab}1.0149100623037037${tab}0.0121${tab}0.2228
@@ -400,6 +393,7 @@ s"""VAR_ID${tab}CHROM${tab}POS${tab}Reference_Allele${tab}Effect_Allele${tab}Eff
 3_143120904_C_T${tab}3${tab}143120904${tab}C${tab}T${tab}T${tab}0.9652${tab}0.9652${tab}0.03480000000000005${tab}0.03480000000000005${tab}1.0010005001667084${tab}0.0227${tab}0.9663
 2_164332357_C_T${tab}2${tab}164332357${tab}C${tab}T${tab}T${tab}0.3383${tab}0.3383${tab}0.3383${tab}0.3383${tab}0.987874118279475${tab}0.0086${tab}0.1577
 """
+  // scalastyle:on line.size.limit
   }
 
   private val expectedSchemaFileContents = {

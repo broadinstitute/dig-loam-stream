@@ -7,7 +7,7 @@ import org.scalatest.FunSuite
  * Feb 10, 2020
  */
 final class ColumnExprTest extends FunSuite {
-  private val nullRow: CsvRow = null
+  private val nullRow: CsvRow = null //scalastyle:ignore
   
   private val foo = ColumnName("foo")
   private val bar = ColumnName("bar")
@@ -138,8 +138,6 @@ final class ColumnExprTest extends FunSuite {
     val shouldMatch = Helpers.csvRow("foo" -> "42", "bar" -> "hello99", "baz" -> "hello")
     val shouldNotMatch = Helpers.csvRow("foo" -> "asdf", "bar" -> "hello", "baz" -> "hello")
     
-     
-    
     val fooIsJustNumbers = foo.matches(justNumbers)
     val barIsHelloNumbers = bar.matches(helloNumbers)
     
@@ -256,9 +254,9 @@ final class ColumnExprTest extends FunSuite {
   }
   
   test("NumericTypesAreConvertableToNumbers") {
-    import ColumnExpr.NumericTypesAreConvertableToNumbers
+    import ColumnExpr.numericTypesAreConvertableToNumbers
     
-    val intsAreConvertible = NumericTypesAreConvertableToNumbers[Int] 
+    val intsAreConvertible = numericTypesAreConvertableToNumbers[Int] 
       
     import intsAreConvertible.{toInt, toLong, toFloat, toDouble}
     

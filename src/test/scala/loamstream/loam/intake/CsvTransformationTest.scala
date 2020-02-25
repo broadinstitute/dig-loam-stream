@@ -186,7 +186,8 @@ final class CsvTransformationTest extends AggregatorIntakeTest {
     val jdbcUrl = new URI(if(u.startsWith("jdbc:")) u.drop("jdbc:".size) else u)
     
     val expectedContents = s"""|INTAKE_S3_BUCKET=${expectedS3Bucket}
-                               |INTAKE_DB_HOST=localhost:${jdbcUrl.getPort}
+                               |INTAKE_DB_HOST=${jdbcUrl.getHost}
+                               |INTAKE_DB_PORT=${jdbcUrl.getPort}
                                |INTAKE_DB_USER=${container.username}
                                |INTAKE_DB_PASSWORD=${container.password}
                                |INTAKE_DB_NAME=${container.databaseName}""".stripMargin

@@ -30,17 +30,14 @@ abstract class AggregatorIntakeTest extends MysqlTest with Loggable {
       require(jdbcUrl.getHost != null)
       require(jdbcUrl.getPort > 0)
       
-      val hostAndPort = s"${jdbcUrl.getHost}:${jdbcUrl.getPort}"
-      
       val envFileData = s"""|INTAKE_S3_BUCKET=${s3Bucket}
-                            |INTAKE_DB_HOST=${hostAndPort}
+                            |INTAKE_DB_HOST=${jdbcUrl.getHost}
+                            |INTAKE_DB_PORT=${jdbcUrl.getPort}
                             |INTAKE_DB_USER=${container.username}
                             |INTAKE_DB_PASSWORD=${container.password}
                             |INTAKE_DB_NAME=${container.databaseName}""".stripMargin
                             
       info(s"Writing MySql params:\n${envFileData}")
-                            
-      info(s"Port bindings: ${container.portBindings}")
                             
       Files.writeTo(dest.path)(envFileData)                      
     }

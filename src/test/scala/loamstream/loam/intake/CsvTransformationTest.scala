@@ -22,6 +22,7 @@ import org.broadinstitute.dig.aws.config.emr.SubnetId
 import org.broadinstitute.dig.aws.config.emr.SubnetId
 import java.io.StringReader
 import loamstream.util.Traversables
+import loamstream.loam.LoamGraph
 
 /**
  * @author clint
@@ -46,115 +47,18 @@ final class CsvTransformationTest extends AggregatorIntakeTest {
           controls = 21,
           varIdFormat = Some("{chrom}_{pos}_{ref}_{alt}"))  
         
-        import paths._
-        
-        val graph = TestHelpers.makeGraph { implicit scriptContext =>
-          import LoamSyntax._
-          import IntakeSyntax._
-          
-          val inputDataFile = store(path("src/test/resources/intake-data.txt")).asInput
-          val mungedDataFile = store(mungedOutputPath)
-          val schemaFile = store(schemaFilePath)
-          val dataListFile = store(dataListFilePath)
-          val schemaListFile = store(schemaListFilePath)
-          
-          val columns: Seq[UnsourcedColumnDef] = {
-            import Loam.ColumnNames._
-            
-            Seq(
-              ColumnDef(
-                VARID,
-                strexpr"${CHROM}_${POS}_${Allele2.asUpperCase}_${Allele1.asUpperCase}",
-                strexpr"${CHROM}_${POS}_${Allele1.asUpperCase}_${Allele2.asUpperCase}"),
-              ColumnDef(CHROM),
-              ColumnDef(POS),
-              ColumnDef(ReferenceAllele, Allele2.asUpperCase, Allele1.asUpperCase),
-              ColumnDef(EffectAllele, Allele1.asUpperCase, Allele2.asUpperCase),
-              ColumnDef(EffectAllelePH, Allele1.asUpperCase, Allele2.asUpperCase),
-              ColumnDef(EAF, Freq1.asDouble, Freq1.asDouble.complement),
-              ColumnDef(EAFPH, Freq1.asDouble, Freq1.asDouble.complement),
-              ColumnDef(MAF, Freq1.asDouble.complementIf(_ > 0.5)),
-              ColumnDef(MAFPH, Freq1.asDouble.complementIf(_ > 0.5)),
-              ColumnDef(OddsRatio, Effect.asDouble.exp, Effect.asDouble.negate.exp),
-              ColumnDef(SE, StdErr.asDouble, StdErr.asDouble),
-              ColumnDef(PValue, PDashValue.asDouble, PDashValue.asDouble))
-          }
-          
-          val source: CsvSource = FromCommand(s"cat ${inputDataFile.path}")
-          
-          val flipDetector = new FlipDetector(
-            referenceDir = path("/home/clint/workspace/marcins-scripts/reference"),
-            isVarDataType = true,
-            pathTo26kMap = path("/home/clint/workspace/marcins-scripts/26k_id.map"))
-          
-          val varIdColumn +: otherColumns = source.producing(columns)
-          
-          produceCsv(mungedDataFile).
-              from(varIdColumn, otherColumns: _*).
-              using(flipDetector).
-              tag("makeCSV").
-              in(inputDataFile)
-          
-          produceSchemaFile(schemaFile).
-              from(columns: _*).
-              tag("makeSchemaFile")
-          
-          produceListFiles(dataListFile, schemaListFile).
-              from(mungedDataFile, schemaFile).
-              tag("makeListFiles").
-              in(mungedDataFile, schemaFile)
-          
-          val aggregatorConfigFile = store(aggregatorConfigFilePath)
-          
-          val sourceColumns = aggregator.SourceColumns(
-              marker = Loam.ColumnNames.VARID,
-              pValue = Loam.ColumnNames.PValue,
-              zScore = Loam.ColumnNames.OddsRatio,
-              stderr = Loam.ColumnNames.SE,
-              beta = Loam.ColumnNames.OddsRatio,
-              oddsRatio = Loam.ColumnNames.OddsRatio,
-              eaf = Loam.ColumnNames.EAF,
-              maf = Loam.ColumnNames.MAF)
-              
-          val configData = aggregator.ConfigData(metadata, sourceColumns, mungedDataFile.path)      
-              
-          produceAggregatorIntakeConfigFile(aggregatorConfigFile).
-              from(configData).
-              tag("make-aggregator-conf").
-              in(mungedDataFile)
-           
-          val aggregatorEnvFile = store(aggregatorEnvFilePath)
-              
-          produceAggregatorEnvFile(aggregatorEnvFile, s3Bucket).tag("make-env-file")
-              
-          val upload = {
-            //TODO
-            val aggregatorIntakeCondaEnv = "intake"
-            //TODO
-            val aggregatorIntakeScriptsRoot = "~/workspace/dig-aggregator-intake"
-            
-            val mainPyPart = s"${aggregatorIntakeScriptsRoot}/main.py"
-            val envNamePart = s"-n ${aggregatorIntakeCondaEnv}"
-            
-            cmd"""/opt/miniconda3/condabin/conda run ${envNamePart} python ${mainPyPart} variants --yes --force --skip-validation ${aggregatorConfigFile}""". // scalastyle:ignore line.size.limit
-                in(aggregatorEnvFile, aggregatorConfigFile, mungedDataFile).
-                tag("upload-to-s3")
-          }
-        }
+        val graph = Loam.code(this, paths, s3Bucket, metadata)
         
         deleteUploadedData(metadata)
         
-        val executer = RxExecuter.default
         val executable = LoamEngine.toExecutable(graph)
         
-        val results = executer.execute(executable)
-        
-        val (uploadJob, uploadExecution) = results.find { case (j, _) => j.name == "upload-to-s3" }.get
-        
-        assert(uploadExecution.result.get.isSuccess)
+        val results = RxExecuter.default.execute(executable)
         
         assert(results.size === 6)
         assert(results.values.forall(_.isSuccess))
+        
+        import paths._
             
         assert(Files.readFrom(mungedOutputPath) === expectedMungedContents)
         
@@ -367,6 +271,107 @@ object CsvTransformationTest {
       val Effect = "Effect".asColumnName
       val StdErr = "StdErr".asColumnName
       val PDashValue = "P-value".asColumnName
+    }
+    
+    def code(
+        test: CsvTransformationTest,
+        paths: Paths, 
+        s3Bucket: String,
+        metadata: aggregator.Metadata): LoamGraph = TestHelpers.makeGraph { implicit scriptContext =>
+          
+      import paths._
+      
+      import LoamSyntax._
+      import IntakeSyntax._
+      
+      val inputDataFile = store(path("src/test/resources/intake-data.txt")).asInput
+      val mungedDataFile = store(mungedOutputPath)
+      val schemaFile = store(schemaFilePath)
+      val dataListFile = store(dataListFilePath)
+      val schemaListFile = store(schemaListFilePath)
+      
+      val columns: Seq[UnsourcedColumnDef] = {
+        import Loam.ColumnNames._
+        
+        Seq(
+          ColumnDef(
+            VARID,
+            strexpr"${CHROM}_${POS}_${Allele2.asUpperCase}_${Allele1.asUpperCase}",
+            strexpr"${CHROM}_${POS}_${Allele1.asUpperCase}_${Allele2.asUpperCase}"),
+          ColumnDef(CHROM),
+          ColumnDef(POS),
+          ColumnDef(ReferenceAllele, Allele2.asUpperCase, Allele1.asUpperCase),
+          ColumnDef(EffectAllele, Allele1.asUpperCase, Allele2.asUpperCase),
+          ColumnDef(EffectAllelePH, Allele1.asUpperCase, Allele2.asUpperCase),
+          ColumnDef(EAF, Freq1.asDouble, Freq1.asDouble.complement),
+          ColumnDef(EAFPH, Freq1.asDouble, Freq1.asDouble.complement),
+          ColumnDef(MAF, Freq1.asDouble.complementIf(_ > 0.5)),
+          ColumnDef(MAFPH, Freq1.asDouble.complementIf(_ > 0.5)),
+          ColumnDef(OddsRatio, Effect.asDouble.exp, Effect.asDouble.negate.exp),
+          ColumnDef(SE, StdErr.asDouble, StdErr.asDouble),
+          ColumnDef(PValue, PDashValue.asDouble, PDashValue.asDouble))
+      }
+      
+      val source: CsvSource = FromCommand(s"cat ${inputDataFile.path}")
+      
+      val flipDetector = new FlipDetector(
+        referenceDir = path("/home/clint/workspace/marcins-scripts/reference"),
+        isVarDataType = true,
+        pathTo26kMap = path("/home/clint/workspace/marcins-scripts/26k_id.map"))
+      
+      val varIdColumn +: otherColumns = source.producing(columns)
+      
+      produceCsv(mungedDataFile).
+          from(varIdColumn, otherColumns: _*).
+          using(flipDetector).
+          tag("makeCSV").
+          in(inputDataFile)
+      
+      produceSchemaFile(schemaFile).
+          from(columns: _*).
+          tag("makeSchemaFile")
+      
+      produceListFiles(dataListFile, schemaListFile).
+          from(mungedDataFile, schemaFile).
+          tag("makeListFiles").
+          in(mungedDataFile, schemaFile)
+      
+      val aggregatorConfigFile = store(aggregatorConfigFilePath)
+      
+      val sourceColumns = aggregator.SourceColumns(
+          marker = Loam.ColumnNames.VARID,
+          pValue = Loam.ColumnNames.PValue,
+          zScore = Loam.ColumnNames.OddsRatio,
+          stderr = Loam.ColumnNames.SE,
+          beta = Loam.ColumnNames.OddsRatio,
+          oddsRatio = Loam.ColumnNames.OddsRatio,
+          eaf = Loam.ColumnNames.EAF,
+          maf = Loam.ColumnNames.MAF)
+          
+      val configData = aggregator.ConfigData(metadata, sourceColumns, mungedDataFile.path)      
+          
+      produceAggregatorIntakeConfigFile(aggregatorConfigFile).
+          from(configData).
+          tag("make-aggregator-conf").
+          in(mungedDataFile)
+       
+      val aggregatorEnvFile = store(aggregatorEnvFilePath)
+          
+      test.produceAggregatorEnvFile(aggregatorEnvFile, s3Bucket).tag("make-env-file")
+          
+      val upload = {
+        //TODO
+        val aggregatorIntakeCondaEnv = "intake"
+        //TODO
+        val aggregatorIntakeScriptsRoot = "~/workspace/dig-aggregator-intake"
+        
+        val mainPyPart = s"${aggregatorIntakeScriptsRoot}/main.py"
+        val envNamePart = s"-n ${aggregatorIntakeCondaEnv}"
+        
+        cmd"""/opt/miniconda3/condabin/conda run ${envNamePart} python ${mainPyPart} variants --yes --force --skip-validation ${aggregatorConfigFile}""". // scalastyle:ignore line.size.limit
+            in(aggregatorEnvFile, aggregatorConfigFile, mungedDataFile).
+            tag("upload-to-s3")
+      }
     }
   }
   

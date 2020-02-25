@@ -136,7 +136,7 @@ final class CsvTransformationTest extends AggregatorIntakeTest {
             val mainPyPart = s"${aggregatorIntakeScriptsRoot}/main.py"
             val envNamePart = s"-n ${aggregatorIntakeCondaEnv}"
             
-            cmd"""/opt/miniconda3/condabin/conda run ${envNamePart} python ${mainPyPart} variants --yes --force --skip-neo4j ${aggregatorConfigFile}""". // scalastyle:ignore line.size.limit
+            cmd"""/opt/miniconda3/condabin/conda run ${envNamePart} python ${mainPyPart} variants --yes --force --skip-validation ${aggregatorConfigFile}""". // scalastyle:ignore line.size.limit
                 in(aggregatorEnvFile, aggregatorConfigFile, mungedDataFile).
                 tag("upload-to-s3")
           }

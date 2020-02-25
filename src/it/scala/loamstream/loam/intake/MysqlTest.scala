@@ -2,13 +2,10 @@ package loamstream.loam.intake
 
 import com.dimafeng.testcontainers.ForAllTestContainer
 import com.dimafeng.testcontainers.MySQLContainer
-import com.dimafeng.testcontainers.Container
 import org.scalatest.FunSuite
 import java.sql.DriverManager
-import java.sql.PreparedStatement
 import java.sql.Statement
 import java.sql.Connection
-import scala.util.control.Exception.Finally
 
 /**
  * @author clint

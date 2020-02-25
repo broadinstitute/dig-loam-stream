@@ -23,6 +23,7 @@ import org.broadinstitute.dig.aws.config.emr.SubnetId
 import java.io.StringReader
 import loamstream.util.Traversables
 import loamstream.loam.LoamGraph
+import loamstream.loam.intake.AggregatorIntakeTest
 
 /**
  * @author clint
@@ -360,7 +361,7 @@ object CsvTransformationTest {
       test.produceAggregatorEnvFile(aggregatorEnvFile, s3Bucket).tag("make-env-file")
           
       val upload = {
-        val config = loadConfig("src/test/resources/loam/intake/CsvTransformationTest.conf")
+        val config = loadConfig("src/it/resources/intake/CsvTransformationTest.conf")
         
         val aggregatorIntakeCondaEnv = config.getStr("condaEnv")
         val aggregatorIntakeScriptsRoot = config.getStr("aggregatorIntakeScriptsRoot")

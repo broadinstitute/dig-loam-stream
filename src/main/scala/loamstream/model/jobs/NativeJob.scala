@@ -29,6 +29,11 @@ final case class NativeJob(
   
   override def hashCode: Int = id.hashCode
   
+  override def toString: String = {
+    s"${getClass.getSimpleName}('${name}' dependencies: ${dependencies.size} " +
+    s"inputs: ${inputs.size} outputs: ${outputs.size}, $initialSettings)"
+  }
+  
   override def execute(implicit context: ExecutionContext): Future[RunData] = {
     def onSuccess = RunData(
         job = this,

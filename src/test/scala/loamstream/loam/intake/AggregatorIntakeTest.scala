@@ -7,13 +7,14 @@ import loamstream.loam.NativeTool
 import loamstream.model.Store
 import loamstream.model.Tool
 import loamstream.util.Files
+import loamstream.util.Loggable
 
 
 /**
  * @author clint
  * Feb 19, 2020
  */
-abstract class AggregatorIntakeTest extends MysqlTest {
+abstract class AggregatorIntakeTest extends MysqlTest with Loggable {
   def produceAggregatorEnvFile(dest: Store, s3Bucket: String)(implicit scriptContext: LoamScriptContext): Tool = {
     val result = NativeTool {
       require(dest.isPathStore)
@@ -36,6 +37,10 @@ abstract class AggregatorIntakeTest extends MysqlTest {
                             |INTAKE_DB_USER=${container.username}
                             |INTAKE_DB_PASSWORD=${container.password}
                             |INTAKE_DB_NAME=${container.databaseName}""".stripMargin
+                            
+      info(s"Writing MySql params:\n${envFileData}")
+                            
+      info(s"Port bindings: ${container.portBindings}")
                             
       Files.writeTo(dest.path)(envFileData)                      
     }

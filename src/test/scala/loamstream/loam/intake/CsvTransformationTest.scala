@@ -360,15 +360,16 @@ object CsvTransformationTest {
       test.produceAggregatorEnvFile(aggregatorEnvFile, s3Bucket).tag("make-env-file")
           
       val upload = {
-        //TODO
-        val aggregatorIntakeCondaEnv = "intake"
-        //TODO
-        val aggregatorIntakeScriptsRoot = "~/workspace/dig-aggregator-intake"
+        val config = loadConfig("src/test/resources/loam/intake/CsvTransformationTest.conf")
+        
+        val aggregatorIntakeCondaEnv = config.getStr("condaEnv")
+        val aggregatorIntakeScriptsRoot = config.getStr("aggregatorIntakeScriptsRoot")
+        val condaExecutable = config.getStr("condaExecutable")
         
         val mainPyPart = s"${aggregatorIntakeScriptsRoot}/main.py"
         val envNamePart = s"-n ${aggregatorIntakeCondaEnv}"
         
-        cmd"""/opt/miniconda3/condabin/conda run ${envNamePart} python ${mainPyPart} variants --yes --force --skip-validation ${aggregatorConfigFile}""". // scalastyle:ignore line.size.limit
+        cmd"""${condaExecutable} run ${envNamePart} python ${mainPyPart} variants --yes --force --skip-validation ${aggregatorConfigFile}""". // scalastyle:ignore line.size.limit
             in(aggregatorEnvFile, aggregatorConfigFile, mungedDataFile).
             tag("upload-to-s3")
       }

@@ -4,37 +4,15 @@ import loamstream.util.TimeUtils
 import java.nio.file.Paths
 import loamstream.util.Loggable
 
-object Dsl2 extends App with Loggable {
+/**
+ * @author clint
+ * Feb 25, 2020
+ */
+object DslExample2 extends App with Loggable {
   import IntakeSyntax._
   
   object ColumnDefs {
     import ColumnNames._
-    
-  /*
-    VAR_ID	=MARKER_ID=~/^(\d+):(\d+)_([ATCG]+)\/([ATCG]+)_/ ? $1 ."_". $2 ."_". $3 ."_". $4 : next	=MARKER_ID=~/^(\d+):(\d+)_([ATCG]+)\/([ATCG]+)_/ ? $1 ."_". $2 ."_". $4 ."_". $3 : next	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
-  
-    CHROM	CHROM	CHROM	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
-  
-    POS	BEG	BEG	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
-  
-    Reference_Allele	=MARKER_ID=~/^\d+:\d+_([ATCG]+)\/[ATCG]+_/ ? $1 : next	=MARKER_ID=~/^\d+:\d+_[ATCG]+\/([ATCG]+)_/ ? $1 : next	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
-  
-    Effect_Allele	=MARKER_ID=~/^\d+:\d+_[ATCG]+\/([ATCG]+)_/ ? $1 : next	=MARKER_ID=~/^\d+:\d+_([ATCG]+)\/[ATCG]+_/ ? $1 : next	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
-  
-    Effect_Allele_PH	=MARKER_ID=~/^\d+:\d+_[ATCG]+\/([ATCG]+)_/ ? $1 : next	=MARKER_ID=~/^\d+:\d+_([ATCG]+)\/[ATCG]+_/ ? $1 : next	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
-  
-    N_PH	NS	NS	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
-  
-    MAF	MAF	MAF	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
-  
-    MAF_PH	MAF	MAF	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
-  
-    P_VALUE	PVALUE	PVALUE	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
-  
-    ODDS_RATIO	=exp(BETA)	=exp(-BETA)	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
-  
-    SE	SEBETA	SEBETA	="zcat $rawDataPrefix/humgen/diabetes/users/ryank/data/camp/analysis/stats/T2D.epacts.emmax/T2D.epacts.emmax.gz | awk '\$11 != \"NA\"' |"
-  */
     
     object Regexes {
       val rightFormat = """^\d+:\d+_[ATCG]+\/([ATCG]+_"""
@@ -126,11 +104,7 @@ object Dsl2 extends App with Loggable {
   
   val renderer = CommonsCsvRenderer(CsvSource.Defaults.CommonsCsv.Formats.tabDelimitedWithHeaderCsvFormat)
   
-  println(renderer.render(header))
-
   val s = TimeUtils.time("processing", info(_)) {
     rows.size
   }
-  
-  println(s)
 }

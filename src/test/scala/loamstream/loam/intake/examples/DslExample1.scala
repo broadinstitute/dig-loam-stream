@@ -5,39 +5,15 @@ import java.nio.file.Paths
 import loamstream.util.Loggable
 import loamstream.util.TimeUtils
 
-object Dsl extends App with Loggable {
+/**
+ * @author clint
+ * Feb 25, 2020
+ */
+object DslExample1 extends App with Loggable {
   
   import IntakeSyntax._
   
   object ColumnDefs {
-    /*
-    VAR_ID	=CHROM ."_". POS ."_". uc(Allele2) ."_". uc(Allele1)	=CHROM ."_". POS ."_". uc(Allele1) ."_". uc(Allele2)	="cat /home/clint/workspace/dig\-loam\-stream/data\.txt |"
-    
-    CHROM	CHROM	CHROM	="cat /home/clint/workspace/dig\-loam\-stream/data\.txt |"
-    
-    POS	POS	POS	="cat /home/clint/workspace/dig\-loam\-stream/data\.txt |"
-    
-    Reference_Allele	=uc(Allele2)	=uc(Allele1)	="cat /home/clint/workspace/dig\-loam\-stream/data\.txt |"
-    
-    Effect_Allele	=uc(Allele1)	=uc(Allele2)	="cat /home/clint/workspace/dig\-loam\-stream/data\.txt |"
-    
-    Effect_Allele_PH	=uc(Allele1)	=uc(Allele2)	="cat /home/clint/workspace/dig\-loam\-stream/data\.txt |"
-    
-    EAF	Freq1	=1-Freq1	="cat /home/clint/workspace/dig\-loam\-stream/data\.txt |"
-    
-    EAF_PH	Freq1	=1-Freq1	="cat /home/clint/workspace/dig\-loam\-stream/data\.txt |"
-    
-    MAF	=Freq1 > 0.5 ? 1-Freq1 : Freq1	DONOTHING	="cat /home/clint/workspace/dig\-loam\-stream/data\.txt |"
-    
-    MAF_PH	=Freq1 > 0.5 ? 1-Freq1 : Freq1	DONOTHING	="cat /home/clint/workspace/dig\-loam\-stream/data\.txt |"
-    
-    ODDS_RATIO	=exp(Effect)	=exp(-Effect)	="cat /home/clint/workspace/dig\-loam\-stream/data\.txt |"
-    
-    SE	StdErr	StdErr	="cat /home/clint/workspace/dig\-loam\-stream/data\.txt |"
-    
-    P_VALUE	P-value	P-value	="cat /home/clint/workspace/dig\-loam\-stream/data\.txt |"
-		*/
-    
     import ColumnNames._
     
     val varId = ColumnDef(
@@ -59,7 +35,6 @@ object Dsl extends App with Loggable {
     val eafPh = ColumnDef(EAFPH, Freq1, Freq1.asDouble.complement)
       
     val maf = ColumnDef(MAF, Freq1.asDouble.complementIf(_ > 0.5))
-    
       
     val mafPh = ColumnDef(MAFPH, Freq1.asDouble.complementIf(_ > 0.5))
       
@@ -120,30 +95,8 @@ object Dsl extends App with Loggable {
   }
   
   val renderer = CommonsCsvRenderer(CsvSource.Defaults.CommonsCsv.Formats.tabDelimitedWithHeaderCsvFormat)
-  
-  println(renderer.render(header))
 
   val s = TimeUtils.time("processing", info(_)) {
     rows.size
   }
-  
-  println(s)
-
-/*  
-  VAR_ID  =CHROM ."_". POS ."_". uc(Allele2) ."_". uc(Allele1)    =CHROM ."_". POS ."_". uc(Allele1) ."_". uc(Allele2)    ="zcat $rawDataPrefix/humgen/diabetes2/users/mvg/portal/IFMRS/GEFOS/dv1/ALLFX_GWAS_build37.txt.gz | $path/add_CHROM_POS.pl |"
-  CHROM   CHROM   CHROM   ="zcat $rawDataPrefix/humgen/diabetes2/users/mvg/portal/IFMRS/GEFOS/dv1/ALLFX_GWAS_build37.txt.gz | $path/add_CHROM_POS.pl |"
-  POS     POS     POS     ="zcat $rawDataPrefix/humgen/diabetes2/users/mvg/portal/IFMRS/GEFOS/dv1/ALLFX_GWAS_build37.txt.gz | $path/add_CHROM_POS.pl |"
-  Reference_Allele        =uc(Allele2)    =uc(Allele1)    ="zcat $rawDataPrefix/humgen/diabetes2/users/mvg/portal/IFMRS/GEFOS/dv1/ALLFX_GWAS_build37.txt.gz | $path/add_CHROM_POS.pl |"
-  Effect_Allele   =uc(Allele1)    =uc(Allele2)    ="zcat $rawDataPrefix/humgen/diabetes2/users/mvg/portal/IFMRS/GEFOS/dv1/ALLFX_GWAS_build37.txt.gz | $path/add_CHROM_POS.pl |"
-  Effect_Allele_PH        =uc(Allele1)    =uc(Allele2)    ="zcat $rawDataPrefix/humgen/diabetes2/users/mvg/portal/IFMRS/GEFOS/dv1/ALLFX_GWAS_build37.txt.gz | $path/add_CHROM_POS.pl |"
-  EAF     Freq1   =1-Freq1        ="zcat $rawDataPrefix/humgen/diabetes2/users/mvg/portal/IFMRS/GEFOS/dv1/ALLFX_GWAS_build37.txt.gz | $path/add_CHROM_POS.pl |"
-  EAF_PH  Freq1   =1-Freq1        ="zcat $rawDataPrefix/humgen/diabetes2/users/mvg/portal/IFMRS/GEFOS/dv1/ALLFX_GWAS_build37.txt.gz | $path/add_CHROM_POS.pl |"
-  MAF     =Freq1 > 0.5 ? 1-Freq1 : Freq1  DONOTHING       ="zcat $rawDataPrefix/humgen/diabetes2/users/mvg/portal/IFMRS/GEFOS/dv1/ALLFX_GWAS_build37.txt.gz | $path/add_CHROM_POS.pl |"
-  MAF_PH  =Freq1 > 0.5 ? 1-Freq1 : Freq1  DONOTHING       ="zcat $rawDataPrefix/humgen/diabetes2/users/mvg/portal/IFMRS/GEFOS/dv1/ALLFX_GWAS_build37.txt.gz | $path/add_CHROM_POS.pl |"
-  ODDS_RATIO      =exp(Effect)    =exp(-Effect)   ="zcat $rawDataPrefix/humgen/diabetes2/users/mvg/portal/IFMRS/GEFOS/dv1/ALLFX_GWAS_build37.txt.gz | $path/add_CHROM_POS.pl |"
-  SE      StdErr  StdErr  ="zcat $rawDataPrefix/humgen/diabetes2/users/mvg/portal/IFMRS/GEFOS/dv1/ALLFX_GWAS_build37.txt.gz | $path/add_CHROM_POS.pl |"
-  P_VALUE P-value P-value ="zcat $rawDataPrefix/humgen/diabetes2/users/mvg/portal/IFMRS/GEFOS/dv1/ALLFX_GWAS_build37.txt.gz | $path/add_CHROM_POS.pl |"
-  */ 
-  
-
 }

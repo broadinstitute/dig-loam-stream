@@ -11,12 +11,17 @@ import loamstream.util.CanBeClosed
 import loamstream.util.Loggable
 import loamstream.util.TimeUtils
 
+/**
+ * Tests variants for allele-flipping. 
+ * 
+ * A failry direct port of one of Marcin's Perl scripts. 
+ */
 final class FlipDetector(
     referenceDir: Path = FlipDetector.currentDir.resolve("reference"),
     isVarDataType: Boolean = false,
     pathTo26kMap: Path = Paths.get("/humgen/diabetes2/users/mvg/portal/scripts/26k_id.map")) extends Loggable {
   
-  def isFlipped(variantId: String): Boolean = TimeUtils.time("Testing for flipped-ness", info(_)) {
+  def isFlipped(variantId: String): Boolean = TimeUtils.time("Testing for flipped-ness", trace(_)) {
     def isValidKey: Boolean = variantsFrom26k.contains(variantId) && !variantId.contains(",")
     
     import Regexes.{ regex1, regex2 }
@@ -33,7 +38,7 @@ final class FlipDetector(
     }
   }
   
-  private def chromsFromReference: Iterator[String] = TimeUtils.time("Listing chrom files", info(_)) {
+  private def chromsFromReference: Iterator[String] = TimeUtils.time("Listing chrom files", debug(_)) {
     import scala.collection.JavaConverters._
         
     val referenceFiles = java.nio.file.Files.list(referenceDir).iterator.asScala
@@ -51,7 +56,7 @@ final class FlipDetector(
     Set("X") ++ (1 to 22).map(_.toString) ++ chromsIfVarDataType
   }
 
-  private val variantsFrom26k: Set[String] = TimeUtils.time("Reading 26k map", info(_)) {
+  private val variantsFrom26k: Set[String] = TimeUtils.time("Reading 26k map", debug(_)) {
     val iterator = CsvSource.FastCsv.fromFile(pathTo26kMap, containsHeader = false).records
     
     iterator.map(_.getFieldByIndex(0)).toSet
@@ -161,7 +166,7 @@ object FlipDetector extends Loggable {
   
   private object ReferenceFiles {
     def apply(referenceDir: Path, knownChroms: Set[String]): ReferenceFiles = {
-      TimeUtils.time("Making ReferenceFiles", info(_)) {
+      TimeUtils.time("Making ReferenceFiles", debug(_)) {
         new ReferenceFiles(Map.empty ++ {
           for {
             chrom <- knownChroms.iterator

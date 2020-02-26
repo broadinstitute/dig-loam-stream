@@ -22,7 +22,6 @@ lazy val Versions = new {
   val CommonsCsv = "1.7"
   val DigAws = "0.1-SNAPSHOT"
   val HsqlDb = "2.5.0"
-  val FastCsv = "1.0.3"
   val TestContainersScala = "0.35.2"
   val MysqlConnector = "8.0.19"
 }
@@ -63,8 +62,7 @@ lazy val mainDeps = Seq(
   "org.codehaus.janino" % "janino" % Versions.Janino,
   "org.apache.commons" % "commons-csv" % Versions.CommonsCsv,
   Orgs.DIG %% "dig-aws" % Versions.DigAws,
-  "org.hsqldb" % "hsqldb" % Versions.HsqlDb,
-  "de.siegmar" % "fastcsv" % Versions.FastCsv
+  "org.hsqldb" % "hsqldb" % Versions.HsqlDb
 )
 
 lazy val testDeps = Seq(

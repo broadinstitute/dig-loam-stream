@@ -67,9 +67,9 @@ object DslExample1 extends App with Loggable {
     val PDashValue = "P-value".asColumnName
   }
   
-  val src: CsvSource = CsvSource.FastCsv.fromCommandLine("cat data.txt")
+  val src: CsvSource = CsvSource.fromCommandLine("cat data.txt")
   
-  val (header, rows) = TimeUtils.time("Making DataRow iterator") {
+  val (header, rows) = TimeUtils.time("Making DataRow iterator", info(_)) {
     val flipDetector = new FlipDetector(
       referenceDir = Paths.get("/home/clint/workspace/marcins-scripts/reference"),
       isVarDataType = true,
@@ -94,7 +94,7 @@ object DslExample1 extends App with Loggable {
     process(flipDetector)(rowDef)
   }
   
-  val renderer = CommonsCsvRenderer(CsvSource.Defaults.CommonsCsv.Formats.tabDelimitedWithHeaderCsvFormat)
+  val renderer = CommonsCsvRenderer(CsvSource.Defaults.Formats.tabDelimitedWithHeaderCsvFormat)
 
   val s = TimeUtils.time("processing", info(_)) {
     rows.size

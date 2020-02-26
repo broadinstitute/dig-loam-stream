@@ -7,7 +7,6 @@ import loamstream.model.Store
 import loamstream.model.Tool
 import loamstream.util.Files
 import loamstream.util.Loggable
-import loamstream.loam.intake.MysqlTest
 
 
 /**

@@ -57,7 +57,7 @@ final class FlipDetector(
   }
 
   private val variantsFrom26k: Set[String] = TimeUtils.time("Reading 26k map", debug(_)) {
-    val iterator = CsvSource.FastCsv.fromFile(pathTo26kMap, containsHeader = false).records
+    val iterator = CsvSource.fromFile(pathTo26kMap, CsvSource.Defaults.Formats.tabDelimited).records
     
     iterator.map(_.getFieldByIndex(0)).toSet
   }

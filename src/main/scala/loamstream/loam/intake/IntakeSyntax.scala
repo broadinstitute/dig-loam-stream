@@ -38,7 +38,7 @@ trait IntakeSyntax extends Interpolators {
         TimeUtils.time(s"Producing ${dest.path}", info(_)) {
           val (headerRow, dataRows) = process(flipDetector)(RowDef(varIdColumnDef, otherColumnDefs))
           
-          val csvFormat = CsvSource.Defaults.CommonsCsv.Formats.tabDelimitedWithHeaderCsvFormat
+          val csvFormat = CsvSource.Defaults.Formats.tabDelimitedWithHeaderCsvFormat
           
           val renderer = CommonsCsvRenderer(csvFormat)
           
@@ -58,7 +58,7 @@ trait IntakeSyntax extends Interpolators {
     def from(columnDefs: ColumnDef*)(implicit scriptContext: LoamScriptContext): NativeTool = {
       val headerRow = headerRowFrom(columnDefs)
       
-      val csvFormat = CsvSource.Defaults.CommonsCsv.Formats.tabDelimitedWithHeaderCsvFormat
+      val csvFormat = CsvSource.Defaults.Formats.tabDelimitedWithHeaderCsvFormat
       
       //TODO: How to wire up inputs (if any)?
       val tool = NativeTool {

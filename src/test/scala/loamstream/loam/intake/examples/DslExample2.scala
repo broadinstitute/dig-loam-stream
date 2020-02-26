@@ -76,7 +76,7 @@ object DslExample2 extends App with Loggable {
   import ColumnNames.MARKER_ID
   import ColumnDefs._
   
-  val source = CsvSource.FastCsv.fromCommandLine("...").filter(MARKER_ID.matches(Regexes.rightFormat))
+  val source = CsvSource.fromCommandLine("...").filter(MARKER_ID.matches(Regexes.rightFormat))
   
   val (header, rows) = {
     val flipDetector = new FlipDetector(
@@ -102,7 +102,7 @@ object DslExample2 extends App with Loggable {
     process(flipDetector)(rowDef)
   }
   
-  val renderer = CommonsCsvRenderer(CsvSource.Defaults.CommonsCsv.Formats.tabDelimitedWithHeaderCsvFormat)
+  val renderer = CommonsCsvRenderer(CsvSource.Defaults.Formats.tabDelimitedWithHeaderCsvFormat)
   
   val s = TimeUtils.time("processing", info(_)) {
     rows.size

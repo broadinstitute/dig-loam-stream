@@ -1,5 +1,7 @@
 package loamstream.loam.intake
 
+import org.apache.commons.csv.CSVRecord
+
 /**
  * @author clint
  * Feb 10, 2020
@@ -11,9 +13,9 @@ trait CsvRow {
 }
 
 object CsvRow {
-  final case class FastCsvRow(delegate: de.siegmar.fastcsv.reader.CsvRow) extends CsvRow {
-    override def getFieldByName(name: String): String = delegate.getField(name)
+  final case class CommonsCsvRow(delegate: CSVRecord) extends CsvRow {
+    override def getFieldByName(name: String): String = delegate.get(name)
     
-    override def getFieldByIndex(i: Int): String = delegate.getField(i)
+    override def getFieldByIndex(i: Int): String = delegate.get(i)
   }
 }

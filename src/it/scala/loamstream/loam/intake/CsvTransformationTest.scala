@@ -1,29 +1,22 @@
 package loamstream.loam.intake
 
-import org.scalatest.FunSuite
-import loamstream.TestHelpers
-import loamstream.loam.LoamSyntax
-import loamstream.loam.intake.CsvSource.FastCsv.FromCommand
-import loamstream.model.execute.RxExecuter
-import loamstream.compiler.LoamEngine
-import loamstream.util.Files
-import loamstream.loam.LanguageSupport
-import loamstream.model.jobs.JobResult
-import com.dimafeng.testcontainers.ForAllTestContainer
-import com.dimafeng.testcontainers.MySQLContainer
-import com.dimafeng.testcontainers.Container
-import java.nio.file.Path
+import java.io.StringReader
 import java.net.URI
+import java.nio.file.Path
+
 import org.broadinstitute.dig.aws.AWS
 import org.broadinstitute.dig.aws.config.AWSConfig
 import org.broadinstitute.dig.aws.config.S3Config
 import org.broadinstitute.dig.aws.config.emr.EmrConfig
 import org.broadinstitute.dig.aws.config.emr.SubnetId
-import org.broadinstitute.dig.aws.config.emr.SubnetId
-import java.io.StringReader
-import loamstream.util.Traversables
+
+import loamstream.IntegrationTestHelpers
+import loamstream.compiler.LoamEngine
 import loamstream.loam.LoamGraph
-import loamstream.loam.intake.AggregatorIntakeTest
+import loamstream.loam.LoamSyntax
+import loamstream.model.execute.RxExecuter
+import loamstream.util.Files
+
 
 /**
  * @author clint
@@ -35,7 +28,7 @@ final class CsvTransformationTest extends AggregatorIntakeTest {
   
   test("End-to-end CSV munging") {
     makeTablesAndThen {
-      TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
+      IntegrationTestHelpers.withWorkDirUnderTarget() { workDir =>
         val paths = new Paths(workDir)
         
         val metadata: aggregator.Metadata = aggregator.Metadata(
@@ -127,13 +120,13 @@ final class CsvTransformationTest extends AggregatorIntakeTest {
   }
   
   private def expectedDataAsRows: Seq[CsvRow] = {
-    CsvSource.FastCsv.fromReader(new StringReader(expectedMungedContents)).records.toIndexedSeq
+    CsvSource.fromReader(new StringReader(expectedMungedContents)).records.toIndexedSeq
   }
   
   private def uploadedDataAsRows(data: String): Seq[CsvRow] = {
     import org.json4s._
     import org.json4s.jackson._
-    import org.json4s.jackson.Serialization.{read,write}
+    import org.json4s.jackson.Serialization.write
     
     def toJObject(s: String): JObject = parseJson(s).asInstanceOf[JObject]
     
@@ -166,7 +159,7 @@ final class CsvTransformationTest extends AggregatorIntakeTest {
   }
   
   private def mapBy(rows: Seq[CsvRow], fieldName: String): Map[String, CsvRow] = {
-    import Traversables.Implicits._
+    import loamstream.util.Traversables.Implicits._
       
     rows.mapBy(_.getFieldByName(fieldName))
   }
@@ -278,7 +271,7 @@ object CsvTransformationTest {
         test: CsvTransformationTest,
         paths: Paths, 
         s3Bucket: String,
-        metadata: aggregator.Metadata): LoamGraph = TestHelpers.makeGraph { implicit scriptContext =>
+        metadata: aggregator.Metadata): LoamGraph = IntegrationTestHelpers.makeGraph() { implicit scriptContext =>
           
       import paths._
       
@@ -313,7 +306,7 @@ object CsvTransformationTest {
           ColumnDef(PValue, PDashValue.asDouble, PDashValue.asDouble))
       }
       
-      val source: CsvSource = FromCommand(s"cat ${inputDataFile.path}")
+      val source: CsvSource = CsvSource.fromCommandLine(s"cat ${inputDataFile.path}")
       
       val flipDetector = new FlipDetector(
         referenceDir = path("/home/clint/workspace/marcins-scripts/reference"),

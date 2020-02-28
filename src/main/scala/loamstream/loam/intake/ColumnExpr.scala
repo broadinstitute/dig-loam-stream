@@ -85,6 +85,11 @@ sealed abstract class ColumnExpr[A : TypeTag] extends RowParser[A] {
   final def ===(rhs: A): RowPredicate = this.map(_ == rhs)
   final def !==(rhs: A): RowPredicate = this.map(_ != rhs) //scalastyle:ignore method.name
   
+  final def <(rhs: A)(implicit ev: Ordering[A]): RowPredicate = this.map(lhs => ev.lt(lhs, rhs))
+  final def <=(rhs: A)(implicit ev: Ordering[A]): RowPredicate = this.map(lhs => ev.lteq(lhs, rhs))
+  final def >(rhs: A)(implicit ev: Ordering[A]): RowPredicate = this.map(lhs => ev.gt(lhs, rhs))
+  final def >=(rhs: A)(implicit ev: Ordering[A]): RowPredicate = this.map(lhs => ev.gteq(lhs, rhs))
+    
   private def arithmeticOp(
       expr: ColumnExpr[A])(op: Numeric[A] => (A, A) => A)(implicit ev: Numeric[A]): ColumnExpr[A] = {
 

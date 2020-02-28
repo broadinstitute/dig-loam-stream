@@ -12,4 +12,10 @@ object Helpers {
   
     override def getFieldByIndex(i: Int): String = columnNamesToValues.unzip._2.apply(i)
   }
+  
+  def csvRows(columnNames: Seq[String], values: Seq[String]*)(implicit discriminator: Int = 1): Seq[CsvRow] = {
+    val rows = values.map(rowValues => columnNames.zip(rowValues))
+    
+    rows.map(row => csvRow(row: _*))
+  }
 }

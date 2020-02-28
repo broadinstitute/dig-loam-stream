@@ -164,6 +164,29 @@ final class ColumnExprTest extends FunSuite {
     assert(barIsNot42(row) === true)
   }
   
+  test(">, >=, <, <=") {
+    val row = Helpers.csvRow("foo" -> "42", "bar" -> "99", "baz" -> "hello")
+    
+    val fooLt42: RowPredicate = foo.asInt < 42
+    val fooLt99: RowPredicate = foo.asInt < 99
+    val fooLtE42: RowPredicate = foo.asInt <= 42
+    val fooLtE99: RowPredicate = foo.asInt <= 99
+    
+    val barGt42: RowPredicate = bar.asInt > 42
+    val barGtE99: RowPredicate = bar.asInt >= 99
+    val barGtE42: RowPredicate = bar.asInt >= 42
+    
+    
+    assert(fooLt42(row) === false)
+    assert(fooLtE42(row) === true)
+    assert(fooLt99(row) === true)
+    assert(fooLtE99(row) === true)
+    
+    assert(barGt42(row) === true)
+    assert(barGtE99(row) === true)
+    assert(barGtE42(row) === true)
+  }
+  
   test("fromRowParser") {
     val rowParser: RowParser[Long] = _ => 42L
     

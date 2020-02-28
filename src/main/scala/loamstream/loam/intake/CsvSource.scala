@@ -21,6 +21,8 @@ import loamstream.util.Throwables
 sealed trait CsvSource {
   def records: Iterator[CsvRow]
   
+  def take(n: Int): CsvSource = fromCombinator(_.take(n)) 
+  
   def filter(p: RowPredicate): CsvSource = fromCombinator(_.filter(p))
   
   def filterNot(p: RowPredicate): CsvSource = fromCombinator(_.filterNot(p))
@@ -52,7 +54,7 @@ object CsvSource extends Loggable {
     override def records: Iterator[CsvRow] = iterator
   }
   
-  object FromIterator {
+  private[intake] object FromIterator {
     def apply(iterator: => Iterator[CsvRow]): FromIterator = new FromIterator(iterator)
   }
 

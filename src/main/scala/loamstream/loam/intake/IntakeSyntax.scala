@@ -17,11 +17,16 @@ import loamstream.util.Loggable
 object IntakeSyntax extends IntakeSyntax
 
 trait IntakeSyntax extends Interpolators {
+  type ColumnDef = loamstream.loam.intake.ColumnDef
+  val ColumnDef = loamstream.loam.intake.ColumnDef
+  
   implicit final class ColumnNameOps(val s: String) {
     def asColumnName: ColumnName = ColumnName(s)
   }
   
   final class TransformationTarget(dest: Store) {
+    def from(rowDef: RowDef): ProcessTarget = from(rowDef.varIdDef, rowDef.otherColumns: _*)
+    
     def from(varIdColumnDef: SourcedColumnDef, otherColumnDefs: SourcedColumnDef*): ProcessTarget = {
       new ProcessTarget(dest, varIdColumnDef, otherColumnDefs: _*)
     }

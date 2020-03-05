@@ -51,11 +51,11 @@ trait IntakeSyntax extends Interpolators {
           
           Files.writeLinesTo(dest.path)(rowsToWrite.map(renderer.render))
         }
-      }.out(dest)
+      }
       
       addToGraph(tool)
       
-      tool
+      tool.out(dest)
     }
   }
   
@@ -68,11 +68,11 @@ trait IntakeSyntax extends Interpolators {
       //TODO: How to wire up inputs (if any)?
       val tool = NativeTool {
         Files.writeTo(dest.path)(headerRow.toSchemaFile(csvFormat))
-      }.out(dest)
+      }
       
       addToGraph(tool)
       
-      tool
+      tool.out(dest)
     }
   }
   
@@ -82,11 +82,11 @@ trait IntakeSyntax extends Interpolators {
       val tool = NativeTool {
         Files.writeLinesTo(dataListFile.path)(Iterator(dataFile.path.toString))
         Files.writeLinesTo(schemaListFile.path)(Iterator(schemaFile.path.toString))
-      }.out(dataListFile, schemaListFile)
+      }
       
       addToGraph(tool)
       
-      tool
+      tool.out(dataListFile, schemaListFile)
     }
   }
   
@@ -97,11 +97,11 @@ trait IntakeSyntax extends Interpolators {
         val hash = Hashes.md5(fileToBeHashed.path).valueAsBase64String 
         
         Files.writeTo(dest.path)(hash)
-      }.out(dest)
+      }
       
       addToGraph(tool)
       
-      tool
+      tool.out(dest)
     }
   }
   
@@ -110,11 +110,11 @@ trait IntakeSyntax extends Interpolators {
       //TODO: How to wire up inputs (if any)?
       val tool = NativeTool {
         Files.writeTo(dest.path)(configData.asConfigFileContents)
-      }.out(dest)
+      }
       
       addToGraph(tool)
       
-      tool
+      tool.out(dest)
     }
   }
   

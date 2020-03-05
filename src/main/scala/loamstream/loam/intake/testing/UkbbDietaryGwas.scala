@@ -86,20 +86,16 @@ object UkbbDietaryGwas extends App {
       phenotype: String, 
       sourceStore: Store,
       aggregatorIntakeConfig: AggregatorIntakeConfig,
+      flipDetector: FlipDetector,
       destOpt: Option[Store] = None): Store = {
     
     require(sourceStore.isPathStore)
     
     val dest: Store = destOpt.getOrElse(store(s"ready-for-intake-${phenotype}.tsv"))
     
-    val source = CsvSource.fromFile(sourceStore.path)
+    val source = CsvSource.fromCommandLine(s"zcat ${sourceStore.path}")
     
     val columns = rowDef(source)
-    
-    val flipDetector: FlipDetector = new FlipDetector(
-        referenceDir = aggregatorIntakeConfig.genomeReferenceDir,
-        isVarDataType = true,
-        pathTo26kMap = aggregatorIntakeConfig.twentySixKIdMap)
         
     produceCsv(dest).
         from(columns).
@@ -141,12 +137,17 @@ object UkbbDietaryGwas extends App {
     generalMetadata.toMetadata(phenotype, Metadata.Quantitative.Subjects(subjects))
   }
   
+  val flipDetector: FlipDetector = new FlipDetector(
+    referenceDir = aggregatorIntakePipelineConfig.genomeReferenceDir,
+    isVarDataType = true,
+    pathTo26kMap = aggregatorIntakePipelineConfig.twentySixKIdMap)
+  
   for {
     (phenotype, sourceStore) <- sourceStores(phenotypesToConfigs)
   } {
     val phenotypeConfig = phenotypesToConfigs(phenotype)
     
-    val dataInAggregatorFormat = processPhenotype(phenotype, sourceStore, aggregatorIntakePipelineConfig)
+    val dataInAggregatorFormat = processPhenotype(phenotype, sourceStore, aggregatorIntakePipelineConfig, flipDetector)
   
     val metadata = toMetadata(phenotype -> phenotypeConfig)
     

@@ -51,7 +51,6 @@ trait AggregatorCommands {
     val yesForcePart = if(yes) "--yes --force" else ""
     
     cmd"""${condaExecutable} run ${envNamePart} python ${mainPyPart} variants ${yesForcePart} --skip-validation ${aggregatorConfigFile}""". // scalastyle:ignore line.size.limit
-        in(aggregatorConfigFile, csvFile).
-        tag("upload-to-s3")
+        in(aggregatorConfigFile, csvFile)
   }
 }

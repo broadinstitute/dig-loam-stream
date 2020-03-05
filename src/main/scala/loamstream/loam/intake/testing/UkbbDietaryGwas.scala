@@ -17,6 +17,9 @@ import loamstream.util.Traversables
 import com.typesafe.config.Config
 import loamstream.conf.DataConfig
 import loamstream.loam.intake.aggregator.AggregatorCommands
+import loamstream.loam.LoamProjectContext
+import loamstream.conf.LoamConfig
+import com.typesafe.config.ConfigFactory
 
 /**
  * @author clint
@@ -25,7 +28,7 @@ import loamstream.loam.intake.aggregator.AggregatorCommands
 object UkbbDietaryGwas extends App {
   import LoamSyntax._
   import IntakeSyntax._
-  implicit val scriptContext: LoamScriptContext = ???
+  implicit val scriptContext: LoamScriptContext = new LoamScriptContext(LoamProjectContext.empty(LoamConfig.fromConfig(ConfigFactory.load()).get))
   
   object ColumnNames {
     val CHR = "CHR".asColumnName
@@ -69,9 +72,11 @@ object UkbbDietaryGwas extends App {
     }
   }
   
-  def sourceStore(nameFragment: String): Store = store(Paths.dataFile(nameFragment))
+  def sourceStore(phenotypeConfig: PhenotypeConfig): Store = {
+    store(Paths.dataFile(phenotypeConfig.fileFragment))
+  }
   
-  def sourceStores(phenotypesToFileFragments: Map[String, String]): Map[String, Store] = {
+  def sourceStores(phenotypesToFileFragments: Map[String, PhenotypeConfig]): Map[String, Store] = {
     import Maps.Implicits._
     
     phenotypesToFileFragments.strictMapValues(sourceStore(_).asInput)
@@ -109,30 +114,43 @@ object UkbbDietaryGwas extends App {
   
   private val intakeMetadataTypesafeConfig: Config = loadConfig("INTAKE_METADATA_CONF", "").config
   
-  val metadata: Metadata.NoPhenotype = {
-    Metadata.NoPhenotype.fromConfig(intakeMetadataTypesafeConfig).get
+  val generalMetadata: Metadata.NoPhenotypeOrQuantitative = {
+    Metadata.NoPhenotypeOrQuantitative.fromConfig(intakeMetadataTypesafeConfig).get
   }
   
   val aggregatorIntakePipelineConfig: AggregatorIntakeConfig = {
     AggregatorIntakeConfig.fromConfig(intakeTypesafeConfig).get
   }
   
-  val phenotypesToFilenameFragments: Map[String, String] = {
+  final case class PhenotypeConfig(fileFragment: String, subjects: Int)
+  
+  val phenotypesToConfigs: Map[String, PhenotypeConfig] = {
     val key = "loamstream.aggregator.intake.phenotypesToFileFragments"
     
     import net.ceedubs.ficus.Ficus._
     import net.ceedubs.ficus.readers.ArbitraryTypeReader._
     
-    intakeTypesafeConfig.as[Map[String, String]](key)
+    intakeTypesafeConfig.as[Map[String, PhenotypeConfig]](key)
   }
   
   import AggregatorCommands.upload
   
+  def toMetadata(phenotypeConfigTuple: (String, PhenotypeConfig)): Metadata = {
+    val (phenotype, PhenotypeConfig(_, subjects)) = phenotypeConfigTuple
+    
+    generalMetadata.toMetadata(phenotype, Metadata.Quantitative.Subjects(subjects))
+  }
+  
   for {
-    (phenotype, sourceStore) <- sourceStores(phenotypesToFilenameFragments)
+    (phenotype, sourceStore) <- sourceStores(phenotypesToConfigs)
   } {
+    val phenotypeConfig = phenotypesToConfigs(phenotype)
+    
     val dataInAggregatorFormat = processPhenotype(phenotype, sourceStore, aggregatorIntakePipelineConfig)
   
-    upload(aggregatorIntakePipelineConfig, metadata.toMetadata(phenotype), dataInAggregatorFormat, yes = false)
+    val metadata = toMetadata(phenotype -> phenotypeConfig)
+    
+    upload(aggregatorIntakePipelineConfig, metadata, dataInAggregatorFormat, yes = false).
+      tag(s"upload-to-s3-${phenotype}")
   }
 }

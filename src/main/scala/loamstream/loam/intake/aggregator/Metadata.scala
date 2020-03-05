@@ -108,6 +108,15 @@ object Metadata extends ConfigParser[Metadata] {
           quantitative = q)
       }
     }
+    
+    def toNoPhenotypeOrQuantitative: NoPhenotypeOrQuantitative = {
+      NoPhenotypeOrQuantitative(
+        dataset = dataset,
+        varIdFormat = varIdFormat,
+        ancestry = ancestry,
+        author = author,
+        tech = tech)
+    }
   }
   
   override def fromConfig(config: Config): Try[Metadata] = {
@@ -152,6 +161,36 @@ object Metadata extends ConfigParser[Metadata] {
       //NB: Marshal the contents of loamstream.intake.metadata into a Metadata instance.
       //Names of fields in Metadata and keys under loamstream.intake.metadata must match.
       Try(config.as[Parsed](Defaults.configKey)).flatMap(_.toNoPhenotype)
+    }
+  }
+  
+  final case class NoPhenotypeOrQuantitative(
+      dataset: String,
+      varIdFormat: String = Defaults.varIdFormat,
+      ancestry: String,
+      author: Option[String],
+      tech: String) {
+    
+    def toMetadata(phenotype: String, quantitative: Quantitative): Metadata = {
+      Metadata(
+          dataset, 
+          phenotype, 
+          varIdFormat, 
+          ancestry, 
+          author, 
+          tech, 
+          quantitative = quantitative)
+    }
+  }
+  
+  object NoPhenotypeOrQuantitative extends ConfigParser[NoPhenotypeOrQuantitative] {
+    override def fromConfig(config: Config): Try[NoPhenotypeOrQuantitative] = {
+      import net.ceedubs.ficus.Ficus._
+      import net.ceedubs.ficus.readers.ArbitraryTypeReader._
+      
+      //NB: Marshal the contents of loamstream.intake.metadata into a Metadata instance.
+      //Names of fields in Metadata and keys under loamstream.intake.metadata must match.
+      Try(config.as[Parsed](Defaults.configKey)).map(_.toNoPhenotypeOrQuantitative)
     }
   }
 }

@@ -27,6 +27,6 @@ object AggregatorIntakeConfig extends ConfigParser[AggregatorIntakeConfig] {
     
     //NB: Marshal the contents of loamstream.intake into a AggregatorIntakeConfig instance.
     //Names of fields in AggregatorIntakeConfig and keys under loamstream.intake must match.
-    Try(config.as[AggregatorIntakeConfig]("loamstream.intake"))
+    Try(config.as[AggregatorIntakeConfig]("loamstream.aggregator.intake"))
   }
 }

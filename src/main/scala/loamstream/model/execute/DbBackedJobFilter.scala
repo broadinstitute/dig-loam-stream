@@ -70,13 +70,22 @@ final class DbBackedJobFilter(
   }
 
   private[execute] def hasDifferentModTime(onDisk: StoreRecord): Boolean = {
-    compareWithDb(onDisk)(fromDb => onDisk.hasDifferentModTimeThan(fromDb))
+    compareWithDb(onDisk) { fromDb => 
+      
+      trace(s"Last modified time (on disk): ${onDisk.lastModified}; last modified time (from DB): ${fromDb.lastModified}")
+      
+      onDisk.hasDifferentModTimeThan(fromDb)
+    }
   }
   
   private def compareWithDb(onDisk: StoreRecord)(compare: StoreRecord => Boolean): Boolean = {
     findOutputInDb(onDisk.loc) match {
       case Some(fromDb) => compare(fromDb)
-      case None => false
+      case None => {
+        trace(s"Record for ${onDisk.loc} not found in DB")
+        
+        false
+      }
     }
   }
 

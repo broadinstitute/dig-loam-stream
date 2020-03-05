@@ -8,6 +8,7 @@ import Metadata.Defaults
 import loamstream.conf.ConfigParser
 import scala.util.Success
 import loamstream.util.Tries
+import loamstream.util.Options
 
 /**
  * @author clint
@@ -69,7 +70,7 @@ object Metadata extends ConfigParser[Metadata] {
   
   private final case class Parsed(
     dataset: String,
-    phenotype: String,
+    phenotype: Option[String] = None,
     varIdFormat: String = Defaults.varIdFormat,
     ancestry: String,
     author: Option[String] = None,
@@ -85,10 +86,13 @@ object Metadata extends ConfigParser[Metadata] {
     }
     
     def toMetadata: Try[Metadata] = {
-      quantitative.map { q =>
+      for {
+        ph <- Options.toTry(phenotype)("Expected phenotype to be present")
+        q <- quantitative
+      } yield {
         Metadata(
           dataset = dataset,
-          phenotype = phenotype,
+          phenotype = ph,
           varIdFormat = varIdFormat,
           ancestry = ancestry,
           author = author,

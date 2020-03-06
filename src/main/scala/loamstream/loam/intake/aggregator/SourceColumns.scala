@@ -30,12 +30,8 @@ final case class SourceColumns(
   }
       
   def asConfigFileContents: String = {
-    val aggregatorColumnNameToSourceColumnNameLines = for {
-      aggregatorColumnName <- ColumnNames.values
-    } yield {
-      val sourceColumnName = mapping(aggregatorColumnName)
-      
-      s"${aggregatorColumnName.name} ${sourceColumnName.name}"
+    val aggregatorColumnNameToSourceColumnNameLines = mapping.map {
+      case (aggregatorColumnName, sourceColumnName) => s"${aggregatorColumnName.name} ${sourceColumnName.name}"
     }
     
     aggregatorColumnNameToSourceColumnNameLines.mkString(System.lineSeparator)

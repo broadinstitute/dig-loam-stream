@@ -5,6 +5,7 @@ import loamstream.loam.LoamScriptContext
 import loamstream.loam.LoamSyntax
 import loamstream.loam.LoamCmdSyntax
 import loamstream.loam.intake.IntakeSyntax
+import java.nio.file.Paths
 
 /**
  * @author clint
@@ -20,9 +21,12 @@ trait AggregatorCommands {
       aggregatorIntakeConfig: AggregatorIntakeConfig,
       metadata: Metadata, 
       csvFile: Store, 
+      workDir: Path = Paths.get("."),
       yes: Boolean = false)(implicit scriptContext: LoamScriptContext): Tool = {
     
-    val aggregatorConfigFileName: String = s"aggregator-intake-${metadata.dataset}-${metadata.phenotype}.conf"
+    val aggregatorConfigFileName: Path = {
+      workDir.resolve(s"aggregator-intake-${metadata.dataset}-${metadata.phenotype}.conf")
+    }
     
     val sourceColumns = SourceColumns(
         marker = ColumnNames.marker,

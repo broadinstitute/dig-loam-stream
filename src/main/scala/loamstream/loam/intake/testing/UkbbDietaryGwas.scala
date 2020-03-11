@@ -65,6 +65,8 @@ object UkbbDietaryGwas extends App {
   }
   
   object Paths {
+    val workDir: Path = path("./output")
+    
     val baseDir: String = "/humgen/diabetes2/users/jcole/UKBB/diet/FFQ_GWAS_forT2Dportal_tmp"
     
     def dataFile(nameFragment: String): Path = {
@@ -91,7 +93,7 @@ object UkbbDietaryGwas extends App {
     
     require(sourceStore.isPathStore)
     
-    val dest: Store = destOpt.getOrElse(store(s"ready-for-intake-${phenotype}.tsv"))
+    val dest: Store = destOpt.getOrElse(store(Paths.workDir / s"ready-for-intake-${phenotype}.tsv"))
     
     val csvFormat = org.apache.commons.csv.CSVFormat.DEFAULT.withDelimiter(' ').withFirstRecordAsHeader
     
@@ -153,7 +155,7 @@ object UkbbDietaryGwas extends App {
   
     val metadata = toMetadata(phenotype -> phenotypeConfig)
     
-    upload(aggregatorIntakePipelineConfig, metadata, dataInAggregatorFormat, yes = false).
+    upload(aggregatorIntakePipelineConfig, metadata, dataInAggregatorFormat, workDir = Paths.workDir, yes = false).
       tag(s"upload-to-s3-${phenotype}")
   }
 }

@@ -93,7 +93,9 @@ object UkbbDietaryGwas extends App {
     
     val dest: Store = destOpt.getOrElse(store(s"ready-for-intake-${phenotype}.tsv"))
     
-    val source = CsvSource.fromCommandLine(s"zcat ${sourceStore.path}")
+    val csvFormat = org.apache.commons.csv.CSVFormat.DEFAULT.withDelimiter(' ').withFirstRecordAsHeader
+    
+    val source = CsvSource.fromCommandLine(s"zcat ${sourceStore.path}", csvFormat)
     
     val columns = rowDef(source)
         

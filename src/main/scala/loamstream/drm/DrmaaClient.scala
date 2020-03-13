@@ -51,11 +51,6 @@ trait DrmaaClient extends Terminable {
   override def stop(): Unit
   
   /**
-   * Kill the job with the specified id, if the job is running.
-   */
-  def killJob(taskId: DrmTaskId): Unit
-  
-  /**
    * Kill all jobs.
    */
   def killAllJobs(): Unit

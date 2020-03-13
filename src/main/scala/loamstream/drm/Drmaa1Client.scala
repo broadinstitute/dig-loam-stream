@@ -73,25 +73,13 @@ final class Drmaa1Client(nativeSpecBuilder: NativeSpecBuilder) extends DrmaaClie
   }
 
   /**
-   * Kill the job with the specified id, if the job is running.
-   */
-  override def killJob(taskId: DrmTaskId): Unit = {
-    debug(s"Killing Job '$taskId'")
-
-    //TODO Is .jobId right here?  Do we need to care about the index as well?
-    withSession(_.control(taskId.jobId, Session.TERMINATE))
-  }
-
-  /**
    * Kill all jobs.
    */
   override def killAllJobs(): Unit = {
     debug(s"Killing all jobs...")
 
-    doKillJob(Session.JOB_IDS_SESSION_ALL)
+    withSession(_.control(Session.JOB_IDS_SESSION_ALL, Session.TERMINATE))
   }
-  
-  private def doKillJob(id: String): Unit = withSession(_.control(id, Session.TERMINATE))
 
   /**
    * Shut down this client and dispose of any DRMAA resources it has acquired (Sessions, etc).

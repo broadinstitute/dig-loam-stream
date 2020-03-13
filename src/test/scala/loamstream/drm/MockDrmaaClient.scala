@@ -48,7 +48,5 @@ final case class MockDrmaaClient(private val toReturn: Map[DrmTaskId, Seq[Try[Dr
 
   override def stop(): Unit = ()
   
-  override def killJob(taskId: DrmTaskId): Unit = ???
-  
   override def killAllJobs(): Unit = ???
 }

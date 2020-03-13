@@ -132,13 +132,12 @@ final class ExecutionState private (
   /**
    * Mark a job as running - change its status to Running and increment its run count.
    */
-  def startRunning(jobs: TraversableOnce[LJob]): Unit = transition(jobs, _.startRunning)
-  
+  private[execute] def startRunning(jobs: TraversableOnce[LJob]): Unit = transition(jobs, _.startRunning)
 
   /**
    * Mark jobs as having the given status, which must be either CouldNotStart, or otherwise a non-finished status.    
    */
-  def markAs(jobs: TraversableOnce[LJob], jobStatus: JobStatus): Unit = transition(jobs, _.markAs(jobStatus))
+  private def markAs(jobs: TraversableOnce[LJob], jobStatus: JobStatus): Unit = transition(jobs, _.markAs(jobStatus))
   
   private def transition(jobs: TraversableOnce[LJob], doTransition: ExecutionCell => ExecutionCell): Unit = {
     if(jobs.nonEmpty) {
@@ -161,7 +160,7 @@ final class ExecutionState private (
   /**
    * Mark jobs finished, using an Execution obtained from a ChunkRunner.  
    */
-  def finish(results: Iterable[(LJob, Execution)]): Unit = {
+  private[execute] def finish(results: Iterable[(LJob, Execution)]): Unit = {
     finish(results.iterator.map { case (job, execution) => (job -> execution.status) }) 
   }
   

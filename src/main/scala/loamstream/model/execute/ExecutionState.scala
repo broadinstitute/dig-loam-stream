@@ -132,7 +132,7 @@ final class ExecutionState private (
   /**
    * Mark a job as running - change its status to Running and increment its run count.
    */
-  private[execute] def startRunning(jobs: TraversableOnce[LJob]): Unit = transition(jobs, _.startRunning)
+  private[execute] def startRunning(jobs: TraversableOnce[LJob]): Unit = transition(jobs, _.markAsRunning)
 
   /**
    * Mark jobs as having the given status, which must be either CouldNotStart, or otherwise a non-finished status.    

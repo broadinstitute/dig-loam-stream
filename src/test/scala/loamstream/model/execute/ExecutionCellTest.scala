@@ -17,25 +17,25 @@ final class ExecutionCellTest extends FunSuite {
     assert(ExecutionCell.initial === expected) 
   }
   
-  test("startRunning") {
+  test("markAsRunning") {
     val cell0 = ExecutionCell.initial
     
     assert(cell0.status === NotStarted)
     assert(cell0.runCount === 0) 
     
-    val cell1 = cell0.startRunning
+    val cell1 = cell0.markAsRunning
     
     assert(cell1.status === Running)
     assert(cell1.runCount === 1)
     
-    val cell2 = cell1.markAsRunnable.startRunning
+    val cell2 = cell1.markAsRunnable.markAsRunning
     
     assert(cell2.status === Running)
     assert(cell2.runCount === 2)
   }
   
   test("markAsRunnable") {
-    val cell0 = ExecutionCell.initial.startRunning
+    val cell0 = ExecutionCell.initial.markAsRunning
     
     assert(cell0.status === Running)
     
@@ -55,7 +55,7 @@ final class ExecutionCellTest extends FunSuite {
         expectedStatus: JobStatus, 
         expectedResult: JobResult): Unit = {
       
-      val cell0 = ExecutionCell.initial.startRunning
+      val cell0 = ExecutionCell.initial.markAsRunning
       
       assert(cell0.runCount === 1)
       

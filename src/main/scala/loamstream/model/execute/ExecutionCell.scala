@@ -13,7 +13,7 @@ import loamstream.model.jobs.JobResult
  */
 final case class ExecutionCell(status: JobStatus = JobStatus.NotStarted, runCount: Int = 0) {
   
-  def startRunning: ExecutionCell = {
+  def markAsRunning: ExecutionCell = {
     require(status == JobStatus.NotStarted, s"Expected status to be ${JobStatus.NotStarted} but got $status")
     
     copy(status = JobStatus.Running, runCount = runCount + 1)

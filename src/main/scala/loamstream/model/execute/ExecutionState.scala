@@ -7,7 +7,6 @@ import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.LJob
 import loamstream.util.Loggable
 import loamstream.util.ValueBox
-import ExecutionState.JobStateList
 import ExecutionState.JobState
 import loamstream.util.TimeUtils
 import loamstream.util.Sequence
@@ -17,27 +16,47 @@ import loamstream.util.Sequence
  * Jan 24, 2020
  * 
  * The state of the execution of a LoamStream pipeline.  This is intended to be the single point of truth when
- * executing.  See ExecutionState.{JobStateList, JobState} for an explanation of the data structures used.
+ * executing.  
+ * The data structure that tracks the state of all the jobs being executed by LoamStream on a given run is an 
+ * array of JobStates ((Job, ExecutionCell) tuples).  An array is used for a few reasons, mostly related to 
+ * performance.  Initally, I tried a Map[LJob, ExecutionCell], but while this allowed fast lookups of the state 
+ * of a job, iterating through the Map to find runnable jobs (something LS does very frequently) was too slow. 
+ * Updates to lots of jobs in the immutable Map (the norm when running large pipelines) also produced a large 
+ * amount of GC pressure.
+ * 
+ * A mutable array addresses both of these: iterating over an array is as fast as it gets on the JVM, and only
+ * making new ExecutionCells on job state changes instead of new Maps substantially reduced the amount of
+ * allocations and GC activity.  Together, these factors increased performance a lot.
+ * 
+ * Looking up JobStates by jobs, and finding the subset of JobStates for a given bunch of jobs is made fast
+ * (enough) by pairing the Array[JobState] with an index, a Map[LJob, Int], mapping jobs to their positions in the
+ * array.
  */
 final class ExecutionState private (
     val maxRunsPerJob: Int,
-    private[this] val jobStateListBox: ValueBox[JobStateList],
+    private[this] val jobStatesBox: ValueBox[Array[JobState]],
     index: Map[LJob, Int]) extends Loggable {
   
-  def size: Int = jobStateListBox.get(_.size)
+  def size: Int = jobStatesBox.get(_.size)
   
   private[execute] def allJobs: Iterable[LJob] = index.keys
   
   /**
    * Are all jobs "done"?  (Ie, finished or deliberately never started) 
    */
-  def isFinished: Boolean = jobStateListBox.get { _ =>  
-    val justCells: Iterator[ExecutionCell] = jobStateListBox.get(_.iterator.map(_.cell))
+  def isFinished: Boolean = jobStatesBox.get { jobStates =>  
+    val justCells: Iterator[ExecutionCell] = jobStates.iterator.map(_.cell)
     
     justCells.forall(cell => cell.isFinished || cell.couldNotStart)
   }
   
-  private[execute] def statusOf(job: LJob): JobStatus = jobStateListBox.get(_.cellFor(index)(job)).status
+  private[execute] def statusOf(job: LJob): JobStatus = {
+    def cellFor(job: LJob)(jobStates: Array[JobState]): ExecutionCell = jobStates.apply(index(job)).cell
+    
+    jobStatesBox.get(cellFor(job)).status
+  }
+  
+  private def snapshot(): Array[JobState] = jobStatesBox.get(ExecutionState.copyOf)
   
   /**
    * Returns a view of the current state of all jobs, useful to Executers. (The result of jobStatuses())
@@ -46,7 +65,7 @@ final class ExecutionState private (
    * as running.  Jobs that will never be runnable are marked CouldNotStart.  RxExecuter invokes this method 
    * repeatedly to get new lists of jobs to run.
    */
-  def updateJobs(): ExecutionState.JobStatuses = jobStateListBox.get { _ =>
+  def updateJobs(): ExecutionState.JobStatuses = jobStatesBox.get { _ =>
     TimeUtils.time(s"updateJobs()", debug(_)) {
       val currentJobStatuses = jobStatuses
       
@@ -72,7 +91,7 @@ final class ExecutionState private (
    * say) are returned.
    */
   def jobStatuses: ExecutionState.JobStatuses = { 
-    val jobStates = jobStateListBox.get(_.snapshot)      
+    val jobStates = snapshot()
   
     TimeUtils.time("Computing JobStatuses", debug(_)) {
       val numRunning = jobStates.count(_.cell.isRunning)
@@ -102,7 +121,7 @@ final class ExecutionState private (
    * Obtains the ExecutionCells for a given bunch of jobs, given the states of all jobs.
    * (Returns an array for fast iteration (profiling turned this up). 
    */
-  private def cellsFor(jobStates: JobStateList)(jobs: Set[JobNode]): Array[ExecutionCell] = {
+  private def cellsFor(jobStates: Array[JobState])(jobs: Set[JobNode]): Array[ExecutionCell] = {
     val indexes = jobs.iterator.map(_.job).map(index(_))
     
     val cells: Array[ExecutionCell] = Array.ofDim[ExecutionCell](jobs.size)
@@ -115,7 +134,7 @@ final class ExecutionState private (
   /**
    * Can a job run, given its current state, and the states of all other jobs.
    */
-  private[execute] def canRun(jobStates: JobStateList)(jobState: JobState): Boolean = {
+  private[execute] def canRun(jobStates: Array[JobState])(jobState: JobState): Boolean = {
     import jobState.{job, cell}
     
     cell.notStarted && {
@@ -145,7 +164,7 @@ final class ExecutionState private (
       
       def doDoTransition(jobState: JobState): JobState = jobState.transformCell(doTransition)
       
-      jobStateListBox.foreach { jobStates =>
+      jobStatesBox.foreach { jobStates =>
         val jobIndices: Iterator[Int] = jobSet.iterator.map(index(_))
         
         jobIndices.foreach { jobIndex => 
@@ -175,7 +194,7 @@ final class ExecutionState private (
    */
   def finish(results: TraversableOnce[(LJob, JobStatus)])(implicit discriminator: Int = 1): Unit = {
     for {
-      jobStates <- jobStateListBox
+      jobStates <- jobStatesBox
       (job, status) <- results
     } {
       val jobIndex = index(job)
@@ -213,7 +232,7 @@ final class ExecutionState private (
    * Cancel all the jobs that depend on this job, and the ones that depend on them, etc, by
    * marking them as CouldNotStart.
    */
-  private[execute] def cancelSuccessors(fields: JobStateList)(failedJob: LJob): Unit = {
+  private[execute] def cancelSuccessors(fields: Array[JobState])(failedJob: LJob): Unit = {
     TimeUtils.time(s"Cancelling successors for failed job with id ${failedJob.id}", debug(_)) {
       val successors = ExecuterHelpers.flattenTree(Set(failedJob), _.successors).toSet - failedJob
       
@@ -223,36 +242,6 @@ final class ExecutionState private (
 }
 
 object ExecutionState {
-  /**
-   * The data structure that tracks the state of all the jobs being executed by LoamStream on a given run.
-   * The data is represented as a sequence of JobStates (Job, ExecutionCell) tuples.  An array is used for a
-   * few reasons, mostly related to performance.  Initally, I tried a Map[LJob, ExecutionCell], but while this
-   * allowed fast lookups of the state of a job, iterating through the Map to find runnable jobs (something LS
-   * does very frequently) was too slow. Updates to lots of jobs in the immutable Map (the norm when running 
-   * large pipelines) also produced a large amount of GC pressure.  
-   *  
-   * A mutable array addresses both of these: iterating over an array is as fast as it gets on the JVM, and only
-   * making new ExecutionCells on job state changes instead of new Maps substantially reduced the amount of 
-   * allocations and GC activity.  Together, these factors increased performance a lot.
-   * 
-   * Looking up JobStates by jobs, and finding the subset of JobStates for a given bunch of jobs is made fast 
-   * (enough) by pairing a JobStateList with an index, a Map[LJob, Int], mapping jobs to their positions in a
-   * JobStateList.   
-   */
-  private final class JobStateList(byJob: Array[JobState]) extends Iterable[JobState] {
-    def snapshot: JobStateList = new JobStateList(copyOf(byJob))
-    
-    override def size: Int = byJob.length
-    
-    override def iterator: Iterator[JobState] = byJob.iterator
-    
-    def apply(i: Int): JobState = byJob(i)
-    
-    def update(i: Int, jobState: JobState): Unit = byJob.update(i, jobState)
-    
-    def cellFor(index: Map[LJob, Int])(job: LJob): ExecutionCell = byJob(index(job)).cell
-  }
-  
   private def copyOf(a: Array[JobState]): Array[JobState] = {
     val result: Array[JobState] = Array.ofDim(a.length)
     
@@ -281,7 +270,8 @@ object ExecutionState {
       Map.empty ++ cellsByJob.iterator.zipWithIndex.map { case (jobState, i) => (jobState.job -> i) } 
     }
     
-    new ExecutionState(maxRunsPerJob, ValueBox(new JobStateList(cellsByJob)), indicesByJob)
+    //new ExecutionState(maxRunsPerJob, ValueBox(new JobStateList(cellsByJob)), indicesByJob)
+    new ExecutionState(maxRunsPerJob, ValueBox(cellsByJob), indicesByJob)
   }
   
   final case class JobStatuses(

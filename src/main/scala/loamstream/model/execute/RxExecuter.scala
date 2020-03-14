@@ -98,7 +98,7 @@ final case class RxExecuter(
   
   private def finish(executionState: ExecutionState)(results: Map[LJob, Execution]): Map[LJob, Execution] = {
     def msg = {
-      val howMany: Int = scala.math.min(50, results.size) //scalastyle:ignore magic.number
+      val howMany: Int = 50 //scalastyle:ignore magic.number
       
       s"Finishing ${results.size} jobs; first $howMany ids: ${results.keys.take(howMany).map(_.id).mkString(",")}"
     }
@@ -130,33 +130,41 @@ final case class RxExecuter(
     val (finishedJobs, notFinishedJobs) = (finishedJobAndCells.keys, notFinishedJobsAndCells.keys)
     
     if(notFinishedJobs.nonEmpty) {
-      val (jobsToMaybeRun, skippedJobs) = notFinishedJobs.map(_.job).partition(jobFilter.shouldRun)
-      
-      val (jobsToCancel, jobsToRun) = jobsToMaybeRun.partition(jobCanceler.shouldCancel)
-      
-      handleSkippedJobs(skippedJobs)
-      
-      val cancelledJobsMap = cancelJobs(jobsToCancel)
-      
-      record(jobOracle, cancelledJobsMap)
-      
-      val skippedResultMap = toSkippedResultMap(skippedJobs)
-      
-      for {
-        executionTupleOpt <- runJobs(jobsToRun, jobOracle)
-      } yield {
-        record(jobOracle, executionTupleOpt)
-        
-        val executionMap = cancelledJobsMap ++ executionTupleOpt
-        
-        logFinishedJobs(executionMap)
-        
-        val results = executionMap ++ skippedResultMap
-        
-        finish(executionState)(results)
-      }
+      runNotFinishedJobs(notFinishedJobs, executionState, jobOracle)
     } else {
       Observable.just(Map.empty)
+    }
+  }
+  
+  private def runNotFinishedJobs(
+      notFinishedJobs: Iterable[LJob],
+      executionState: ExecutionState, 
+      jobOracle: JobOracle): Observable[Map[LJob, Execution]] = {
+    
+    val (jobsToMaybeRun, skippedJobs) = notFinishedJobs.map(_.job).partition(jobFilter.shouldRun)
+      
+    val (jobsToCancel, jobsToRun) = jobsToMaybeRun.partition(jobCanceler.shouldCancel)
+    
+    handleSkippedJobs(skippedJobs)
+    
+    val cancelledJobsMap = cancelJobs(jobsToCancel)
+    
+    record(jobOracle, cancelledJobsMap)
+    
+    val skippedResultMap = toSkippedResultMap(skippedJobs)
+    
+    for {
+      executionTupleOpt <- runJobs(jobsToRun, jobOracle)
+    } yield {
+      record(jobOracle, executionTupleOpt)
+      
+      val executionMap = cancelledJobsMap ++ executionTupleOpt
+      
+      logFinishedJobs(executionMap)
+      
+      val results = executionMap ++ skippedResultMap
+      
+      finish(executionState)(results)
     }
   }
 

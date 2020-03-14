@@ -28,6 +28,10 @@ final class ExecutionCellTest extends FunSuite {
     assert(cell1.status === Running)
     assert(cell1.runCount === 1)
     
+    intercept[Exception] {
+      cell1.markAsRunning
+    }
+    
     val cell2 = cell1.markAsRunnable.markAsRunning
     
     assert(cell2.status === Running)

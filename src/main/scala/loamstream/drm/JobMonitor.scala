@@ -95,9 +95,7 @@ final class JobMonitor(
     val pollResults = ticks
       .takeWhile(_ => shouldContinue)
       .flatMap(_ => poll())
-      //.map(t =>  { println(s"%%%%%%%%% Pre-scan(): $t") ; t })
       .scan(Map.empty[DrmTaskId, Try[DrmStatus]])(_ + _).dropWhile(_.isEmpty)
-      //.map(m =>  { println(s"%%%%%%%%% Post-scan(): $m") ; m })
       .takeUntil(allFinished(keepPolling, jobIds)(_))
       .replay
     
@@ -186,15 +184,11 @@ object JobMonitor extends Loggable {
     tuples.toMap
   }
   
-  private[drm] def getDrmStatusFor(taskId: DrmTaskId)(pollResultAttempts: PollingResults): Observable[Try[DrmStatus]] = {
-    pollResultAttempts.get(taskId) match {
-      case Some(pollResultAttempt) => Observable.just(pollResultAttempt)
-      case None => {
-        warn(s"No data found for job id '$taskId' when polling, forging onward")
-        
-        Observable.empty
-      }
-    }
+  private[drm] def getDrmStatusFor(
+      taskId: DrmTaskId)
+     (pollResultAttempts: PollingResults): Observable[Try[DrmStatus]] = pollResultAttempts.get(taskId) match {
+    case Some(pollResultAttempt) => Observable.just(pollResultAttempt)
+    case None => Observable.empty
   }
   
   private def unpack(tuple: (DrmTaskId, Try[DrmStatus])): (DrmTaskId, DrmStatus) = tuple match {

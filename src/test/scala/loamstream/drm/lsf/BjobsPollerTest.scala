@@ -15,6 +15,8 @@ import loamstream.drm.Queue
 import loamstream.util.RunResults
 import loamstream.util.Tries
 import loamstream.drm.DrmTaskId
+import loamstream.util.Observables
+import loamstream.TestHelpers
 
 /**
  * @author clint
@@ -22,6 +24,9 @@ import loamstream.drm.DrmTaskId
  */
 final class BjobsPollerTest extends FunSuite {
 
+  import Observables.Implicits._
+  import TestHelpers.waitFor
+  
   // scalastyle:off line.size.limit
   private val validStdOut = Seq(
       "2842408|            LoamStream-826b3929-4810-4116-8502-5c60cd830d81[1]|EXIT |42        ",
@@ -46,7 +51,7 @@ final class BjobsPollerTest extends FunSuite {
       DrmTaskId("2842408", 2) -> Success(DrmStatus.CommandResult(0)),
       DrmTaskId("2842408", 3) -> Success(DrmStatus.CommandResult(0)))
     
-    assert(results === expected)
+    assert(waitFor(results.toSeq.map(_.toMap).firstAsFuture) === expected)
   }
   
   test("poll - bjobs invocation failure") {
@@ -57,7 +62,9 @@ final class BjobsPollerTest extends FunSuite {
         DrmTaskId("2842408", 2), 
         DrmTaskId("2842408", 3))
     
-    val results = new BjobsPoller(pollFn).poll(taskIds)
+    val resultsObs = new BjobsPoller(pollFn).poll(taskIds)
+    
+    val results = TestHelpers.waitFor(resultsObs.toSeq.map(_.toMap).firstAsFuture)
     
     assert(results.keySet === taskIds)
     assert(results.values.forall(_.isFailure))
@@ -75,7 +82,9 @@ final class BjobsPollerTest extends FunSuite {
         DrmTaskId("2842408", 2), 
         DrmTaskId("2842408", 3))
     
-    val results = new BjobsPoller(pollFn).poll(taskIds)
+    val resultsObs = new BjobsPoller(pollFn).poll(taskIds)
+    
+    val results = TestHelpers.waitFor(resultsObs.toSeq.map(_.toMap).firstAsFuture)
     
     assert(results.keySet === taskIds)
     assert(results.values.forall(_.failed.get.getMessage == msg))
@@ -96,7 +105,7 @@ final class BjobsPollerTest extends FunSuite {
       DrmTaskId("2842408", 3) -> Success(DrmStatus.CommandResult(0))
     )
     
-    assert(results === expected)
+    assert(waitFor(results.toSeq.map(_.toMap).firstAsFuture) === expected)
   }
   
   test("runChunk - bjobs invocation failure") {
@@ -106,7 +115,9 @@ final class BjobsPollerTest extends FunSuite {
     
     val taskIds = Set(DrmTaskId("2842408", 1), DrmTaskId("2842408", 2), DrmTaskId("2842408", 3))
     
-    val results = new BjobsPoller(pollFn).runChunk(taskIds)
+    val resultsObs = new BjobsPoller(pollFn).runChunk(taskIds)
+    
+    val results = TestHelpers.waitFor(resultsObs.toSeq.map(_.toMap).firstAsFuture)
     
     assert(results.keySet === taskIds)
     assert(results.values.forall(_.failed.get.getMessage == msg))

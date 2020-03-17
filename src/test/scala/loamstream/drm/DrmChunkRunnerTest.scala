@@ -85,7 +85,7 @@ final class DrmChunkRunnerTest extends FunSuite {
   import loamstream.util.Observables.Implicits._
   
   private object JustFailsMockPoller extends Poller {
-    override def poll(jobIds: Iterable[DrmTaskId]): Map[DrmTaskId, Try[DrmStatus]] = ???
+    override def poll(jobIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, Try[DrmStatus])] = ???
     
     override def stop(): Unit = ()
   }

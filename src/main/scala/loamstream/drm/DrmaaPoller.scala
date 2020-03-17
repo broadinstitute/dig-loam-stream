@@ -6,6 +6,7 @@ import org.ggf.drmaa.DrmaaException
 import org.ggf.drmaa.InvalidJobException
 import loamstream.util.Classes.simpleNameOf
 import loamstream.util.Loggable
+import rx.lang.scala.Observable
 
 /**
  * @author clint
@@ -15,7 +16,7 @@ final class DrmaaPoller(client: DrmaaClient) extends Poller with Loggable {
   
   override def stop(): Unit = client.stop()
   
-  override def poll(jobIds: Iterable[DrmTaskId]): Map[DrmTaskId, Try[DrmStatus]] = {
+  override def poll(jobIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, Try[DrmStatus])] = {
     
     def statusAttempt(taskId: DrmTaskId): Try[DrmStatus] = {
       val result = client.statusOf(taskId).recoverWith { case e: InvalidJobException =>
@@ -37,9 +38,13 @@ final class DrmaaPoller(client: DrmaaClient) extends Poller with Loggable {
     
     trace(s"Polling status of jobs ${sortedJobIds.mkString(",")}")
     
-    val pollResults = Map.empty ++ sortedJobIds.iterator.map { jobId =>
+    val pollResults = Observable.from(jobIds).map { jobId =>
       jobId -> statusAttempt(jobId)
     }
+    
+    /*val pollResults = Map.empty ++ sortedJobIds.iterator.map { jobId =>
+      jobId -> statusAttempt(jobId)
+    }*/
     
     trace(s"Polled ${sortedJobIds.mkString(",")}")
     

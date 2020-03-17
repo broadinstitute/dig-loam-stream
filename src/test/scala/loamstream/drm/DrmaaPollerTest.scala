@@ -9,6 +9,8 @@ import scala.util.Try
 
 import org.scalatest.FunSuite
 import loamstream.TestHelpers
+import loamstream.util.Observables
+import rx.lang.scala.Observable
 
 
 /**
@@ -22,6 +24,8 @@ final class DrmaaPollerTest extends FunSuite {
   private def waitFor[A](f: Future[A]): A = TestHelpers.waitFor(f)
 
   private val zero = Duration.Zero
+
+  import Observables.Implicits._
   
   test("drama().poll() - happy path") {
     val taskId = DrmTaskId("foo", 42)
@@ -35,7 +39,7 @@ final class DrmaaPollerTest extends FunSuite {
       poller.poll(Seq(taskId)),
       poller.poll(Seq(taskId)))
     
-    val Seq(s0, s1, s2) = statuses.map(_.values.head)
+    val Seq(s0, s1, s2) = statuses.map(_.map { case (_, status) => status }.firstAsFuture).map(waitFor)
     
     assert(s0 == Success(Running))
     assert(s1 == Success(Running))
@@ -59,7 +63,7 @@ final class DrmaaPollerTest extends FunSuite {
     
     val poller = new DrmaaPoller(client)
   
-    def poll: Map[DrmTaskId, Try[DrmStatus]] = poller.poll(taskIds)
+    def poll: Map[DrmTaskId, Try[DrmStatus]] = waitFor(poller.poll(taskIds).toSeq.map(_.toMap).firstAsFuture)
     
     {
       val expected = Map(
@@ -120,12 +124,13 @@ final class DrmaaPollerTest extends FunSuite {
     
     val poller = new DrmaaPoller(client)
     
+    def poll() = waitFor(poller.poll(taskIds).toSeq.map(_.toMap).firstAsFuture)
+    
     val results = Seq(
-      poller.poll(taskIds),
-      poller.poll(taskIds),
-      poller.poll(taskIds),
-      poller.poll(taskIds)).map(_.values.head)
-     
+      poll(),
+      poll(),
+      poll(),
+      poll()).map(_.values.head)
     
     val Seq(s0, s1, s2, s3) = results 
     

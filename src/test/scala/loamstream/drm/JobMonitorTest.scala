@@ -20,6 +20,7 @@ import rx.lang.scala.Scheduler
  */
 final class JobMonitorTest extends FunSuite {
   import loamstream.TestHelpers.waitFor 
+  import Observables.Implicits._ 
 
   test("getDrmStatusFor") {
     import JobMonitor.getDrmStatusFor
@@ -28,7 +29,7 @@ final class JobMonitorTest extends FunSuite {
     val taskIdBar = DrmTaskId("bar", 42)
     val taskIdBaz = DrmTaskId("baz", 42)
     
-    assert(getDrmStatusFor(taskIdFoo)(Map.empty).isFailure)
+    assert(waitFor(getDrmStatusFor(taskIdFoo)(Map.empty).isEmpty.firstAsFuture) === true)
     
     import DrmStatus.Done
     import DrmStatus.Running
@@ -37,10 +38,10 @@ final class JobMonitorTest extends FunSuite {
     
     val attempts = Map(taskIdFoo -> Success(Done), taskIdBar -> Success(Running), taskIdBaz -> failure)
     
-    assert(getDrmStatusFor(taskIdFoo)(attempts) === Success(Done))
-    assert(getDrmStatusFor(taskIdBar)(attempts) === Success(Running))
-    assert(getDrmStatusFor(taskIdBaz)(attempts) === failure)
-    assert(getDrmStatusFor(DrmTaskId("asdgasdf", 42))(attempts).isFailure)
+    assert(waitFor(getDrmStatusFor(taskIdFoo)(attempts).firstAsFuture) === Success(Done))
+    assert(waitFor(getDrmStatusFor(taskIdBar)(attempts).firstAsFuture) === Success(Running))
+    assert(waitFor(getDrmStatusFor(taskIdBaz)(attempts).firstAsFuture) === failure)
+    assert(waitFor(getDrmStatusFor(DrmTaskId("asdgasdf", 42))(attempts).isEmpty.firstAsFuture) === true)
   }
   
   test("stop()") {

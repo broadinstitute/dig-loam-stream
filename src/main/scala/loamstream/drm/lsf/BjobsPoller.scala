@@ -14,6 +14,8 @@ import loamstream.util.Maps
 import loamstream.util.Options
 import loamstream.util.Tries
 import loamstream.drm.DrmTaskId
+import rx.lang.scala.Observable
+import loamstream.util.Observables
 
 /**
  * @author clint
@@ -27,7 +29,7 @@ final class BjobsPoller private[lsf] (pollingFn: InvocationFn[Set[DrmTaskId]]) e
    * @param jobIds the ids of the jobs to inquire about
    * @return a map of job ids to attempts at that job's status
    */
-  override def poll(jobIds: Iterable[DrmTaskId]): Map[DrmTaskId, Try[DrmStatus]] = {
+  override def poll(jobIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, Try[DrmStatus])] = {
     debug(s"Polling for ${jobIds.size} jobs: $jobIds")
     
     //TODO: .get
@@ -37,36 +39,33 @@ final class BjobsPoller private[lsf] (pollingFn: InvocationFn[Set[DrmTaskId]]) e
     
     val indicesByBaseId: Map[String, Set[DrmTaskId]] = allLsfJobIds.toSet.groupBy(_.jobId)
     
-    val jobIdsToStatusAttempts = Maps.mergeMaps(indicesByBaseId.values.map(runChunk))
+    val jobIdsToStatusAttempts = Observables.merge(indicesByBaseId.values.map(runChunk))
     
-    val result = jobIdsToStatusAttempts
+    //debug(s"Done polling for $jobIds; results: $jobIdsToStatusAttempts")
+    debug(s"Done polling for $jobIds")
     
-    debug(s"Done polling for $jobIds; results: $result")
-    
-    result
+    jobIdsToStatusAttempts
   }
   
   override def stop(): Unit = ()
   
-  private[lsf] def runChunk(lsfJobIds: Set[DrmTaskId]): Map[DrmTaskId, Try[DrmStatus]] = {
+  private[lsf] def runChunk(lsfJobIds: Set[DrmTaskId]): Observable[(DrmTaskId, Try[DrmStatus])] = {
     val runResultsAttempt = pollingFn(lsfJobIds)
       
     val chunkOfIdsToStatusesAttempt = runResultsAttempt.map { runResults =>
-      BjobsPoller.parseBjobsOutput(runResults.stdout).toMap
+      BjobsPoller.parseBjobsOutput(runResults.stdout)
     }
+    
+    import loamstream.util.Traversables.Implicits._
     
     chunkOfIdsToStatusesAttempt match { 
       case Failure(e) => {
         error(s"Error polling for LSF job ids ${lsfJobIds.map(LsfJobId.asString)} : ${e.getMessage}", e)
-    
-        import loamstream.util.Traversables.Implicits._
         
-        lsfJobIds.mapTo(_ => Failure(e))
+        Observable.from(lsfJobIds.map(_ -> Failure(e)))
       }
       case Success(idsToStatuses) => {
-        import loamstream.util.Maps.Implicits._
-        
-        idsToStatuses.strictMapValues(Success(_))
+        Observable.from(idsToStatuses.mapSecond(Success(_: DrmStatus)).toIterable)
       }
     }
   }

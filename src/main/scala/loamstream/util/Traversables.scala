@@ -22,5 +22,20 @@ object Traversables {
         as.map(a => f(a) -> a).toMap
       }
     }
+    
+    final implicit class TraversableTuple2Ops[A, B](val ts: Traversable[(A, B)]) extends AnyVal {
+      
+      def mapFirst[C](f: A => C): Traversable[(C, B)] = ts.map { t => 
+        val (a, b) = t 
+        
+        (f(a), b)
+      }
+      
+      def mapSecond[C](f: B => C): Traversable[(A, C)] = ts.map { t => 
+        val (a, b) = t 
+        
+        (a, f(b))
+      }
+    }
   }
 }

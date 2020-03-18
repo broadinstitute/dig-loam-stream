@@ -12,7 +12,7 @@ import loamstream.model.quantities.Memory
  */
 object LsfDefaults {
   //TODO: determine what this should be
-  val maxConcurrentJobs: Int = 2000 //scalastyle:ignore magic.number
+  val maxNumJobsPerTaskArray: Int = 2000 //scalastyle:ignore magic.number
   
   val cores: Cpus = Cpus(1)
 

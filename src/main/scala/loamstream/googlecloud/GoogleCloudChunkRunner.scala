@@ -50,19 +50,16 @@ final case class GoogleCloudChunkRunner(
   
   private lazy val singleThreadedScheduler: Scheduler = ExecutionContextScheduler(singleThreadedExecutionContext)
   
-  override def maxNumJobs: Int = 1
-
   private val currentClusterConfig: ValueBox[Option[ClusterConfig]] = ValueBox(None)
   
   override def run(
       jobs: Set[LJob], 
-      jobOracle: JobOracle, 
-      shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
+      jobOracle: JobOracle): Observable[Map[LJob, RunData]] = {
     
     def emptyResults: Observable[Map[LJob, RunData]] = Observable.just(Map.empty)
   
     if(jobs.isEmpty) { emptyResults }
-    else { runJobsSequentially(jobs, jobOracle, shouldRestart) }
+    else { runJobsSequentially(jobs, jobOracle) }
   }
   
   override def stop(): Unit = {
@@ -119,8 +116,7 @@ final case class GoogleCloudChunkRunner(
   
   private[googlecloud] def runJobsSequentially(
       jobs: Set[LJob], 
-      jobOracle: JobOracle, 
-      shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
+      jobOracle: JobOracle): Observable[Map[LJob, RunData]] = {
     
     def doRunSingle(j: LJob): Map[LJob, RunData] = {
       def runDataForNonGoogleJob = RunData(
@@ -132,7 +128,7 @@ final case class GoogleCloudChunkRunner(
       
       j.initialSettings match {
         case GoogleSettings(_, clusterConfig) => withCluster(clusterConfig) {
-          runSingle(delegate, jobOracle, shouldRestart)(j)
+          runSingle(delegate, jobOracle)(j)
         }
         case settings => Map(j -> runDataForNonGoogleJob)
       }
@@ -143,8 +139,7 @@ final case class GoogleCloudChunkRunner(
 
   private[googlecloud] def runSingle(
       delegate: ChunkRunner, 
-      jobOracle: JobOracle, 
-      shouldRestart: LJob => Boolean)(job: LJob): Map[LJob, RunData] = {
+      jobOracle: JobOracle)(job: LJob): Map[LJob, RunData] = {
     
     //NB: Enforce single-threaded execution, since we don't want multiple jobs running 
     import GoogleCloudChunkRunner.addCluster
@@ -157,7 +152,7 @@ final case class GoogleCloudChunkRunner(
     }
     
     val futureResult = {
-      delegate.run(Set(job), jobOracle, shouldRestart).map(addCluster(googleSettings.clusterId)).lastAsFuture
+      delegate.run(Set(job), jobOracle).map(addCluster(googleSettings.clusterId)).lastAsFuture
     }
     
     //TODO: add some timeout

@@ -55,7 +55,7 @@ final class ValueBox[A](init: A) {
   def get[B](g: A => B): B = lock.synchronized {
     g(value)
   }
-
+  
   /** Returns an item by applying a function that also changes the contained value */
   def getAndUpdate[B](c: A => (A, B)): B = lock.synchronized {
     val (valueNew, item) = c(_value)

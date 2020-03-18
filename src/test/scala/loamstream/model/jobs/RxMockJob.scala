@@ -21,10 +21,11 @@ import loamstream.model.execute.Settings
 final case class RxMockJob( 
   override val name: String,
   override val dependencies: Set[JobNode],
+  override protected val successorsFn: () => Set[JobNode],
   inputs: Set[DataHandle],
   outputs: Set[DataHandle],
-  runsAfter: Option[RxMockJob],
-  toReturnFn: RxMockJob => RunData)(implicit executions: ValueBox[Vector[RxMockJob]]) extends LocalJob {
+  toReturnFn: RxMockJob => RunData)(implicit executions: ValueBox[Vector[RxMockJob]]) extends 
+      LocalJob with JobNode.LazySucessors {
 
   def toReturn: RunData = toReturnFn(this)
   
@@ -38,16 +39,6 @@ final case class RxMockJob(
   
   def lastRunTime: Option[Instant] = lastRunTimeRef()
   
-  private def waitIfNecessary(): Unit = {
-    runsAfter.foreach { jobToWaitFor =>
-      import loamstream.util.Observables.Implicits._
-      
-      val finalDepState = jobToWaitFor.lastStatus
-      
-      loamstream.TestHelpers.waitFor(finalDepState.firstAsFuture)
-    }
-  }
-
   override def execute(implicit context: ExecutionContext): Future[RunData] = {
 
     executions.mutate { oldExecutions =>
@@ -60,8 +51,7 @@ final case class RxMockJob(
       newExecutions
     }
     
-    Future(waitIfNecessary()).map { _ => 
-    
+    Future {    
       trace(s"Starting job: $name")
 
       lastRunTimeRef := Some(Instant.now)
@@ -78,9 +68,9 @@ final case class RxMockJob(
 object RxMockJob {
   def apply(name: String,
             dependencies: Set[JobNode] = Set.empty,
+            successors: () => Set[JobNode] = () => Set.empty,
             inputs: Set[DataHandle] = Set.empty,
             outputs: Set[DataHandle] = Set.empty,
-            runsAfter: Option[RxMockJob] = None,
             toReturn: () => JobResult = () => JobResult.CommandResult(0))
             (implicit 
                   executions: ValueBox[Vector[RxMockJob]] = ValueBox(Vector.empty), 
@@ -88,9 +78,9 @@ object RxMockJob {
 
     RxMockJob(name,
               dependencies,
+              successors,
               inputs,
               outputs,
-              runsAfter,
               job => runDataFrom(job, outputs, jobResult = toReturn()))
   }
 

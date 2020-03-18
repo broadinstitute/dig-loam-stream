@@ -13,8 +13,8 @@ import loamstream.model.jobs.DataHandle
  * date: Sep 30, 2016
  */
 final class DbBackedJobFilter(
-    val dao: LoamDao, 
-    val outputHashingStrategy: HashingStrategy = HashingStrategy.HashOutputs) extends JobFilter with Loggable {
+    val dao: LoamDao,
+  val outputHashingStrategy: HashingStrategy = HashingStrategy.HashOutputs) extends JobFilter with Loggable {
   
   override def shouldRun(job: LJob): Boolean = {
     val lastFailure = lastFailureStatus(job)
@@ -25,9 +25,9 @@ final class DbBackedJobFilter(
 
     def msg = s"Job $job will be run because"
     
-    if (failed) { debug(s"$msg it failed last time with status: ${lastFailure.get}") }
-    else if (distinctCommand) { debug(s"$msg its command changed") }
-    else if (anyOutputNeedsToBeRun) { debug(s"$msg of this output: ${outputThatCausesRunning.get.location}") }
+    if (failed) { trace(s"$msg it failed last time with status: ${lastFailure.get}") }
+    else if (distinctCommand) { trace(s"$msg its command changed") }
+    else if (anyOutputNeedsToBeRun) { trace(s"$msg of this output: ${outputThatCausesRunning.get.location}") }
 
     failed || distinctCommand || anyOutputNeedsToBeRun
   }
@@ -45,11 +45,11 @@ final class DbBackedJobFilter(
     lazy val differentHashInDb = hasDifferentHash(output)
     lazy val absentOrDifferentHash = (considerHashes && (noHashInDb || differentHashInDb))
     
-    if (missingFromDisk) { debug(s"$msg $output is missing.") }
-    else if (differentModTime) { debug(s"$msg $output is older.") }
+    if (missingFromDisk) { trace(s"$msg $output is missing.") }
+    else if (differentModTime) { trace(s"$msg $output is older.") }
     else if(considerHashes) {
-      if (noHashInDb) { debug(s"$msg $output does not have a hash value.") }
-      else if (differentHashInDb) { debug(s"$msg $output has a different hash.") }
+      if (noHashInDb) { trace(s"$msg $output does not have a hash value.") }
+      else if (differentHashInDb) { trace(s"$msg $output has a different hash.") }
     }
 
     missingFromDisk || differentModTime || absentOrDifferentHash

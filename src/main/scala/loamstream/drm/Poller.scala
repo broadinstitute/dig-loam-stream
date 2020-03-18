@@ -1,7 +1,9 @@
 package loamstream.drm
 
-import loamstream.util.Terminable
 import scala.util.Try
+
+import loamstream.util.Terminable
+import rx.lang.scala.Observable
 
 /**
  * @author clint
@@ -14,5 +16,5 @@ trait Poller extends Terminable {
    * @param jobIds the ids of the jobs to inquire about
    * @return a map of job ids to attempts at that job's status
    */
-  def poll(jobIds: Iterable[String]): Map[String, Try[DrmStatus]]
+  def poll(jobIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, Try[DrmStatus])]
 }

@@ -13,12 +13,15 @@ import loamstream.util.Loggable
 import loamstream.util.Maps
 import loamstream.util.Options
 import loamstream.util.Tries
+import loamstream.drm.DrmTaskId
+import rx.lang.scala.Observable
+import loamstream.util.Observables
 
 /**
  * @author clint
  * May 15, 2018
  */
-final class BjobsPoller private[lsf] (pollingFn: InvocationFn[Set[LsfJobId]]) extends Poller with Loggable { 
+final class BjobsPoller private[lsf] (pollingFn: InvocationFn[Set[DrmTaskId]]) extends Poller with Loggable { 
   
   /**
    * Synchronously inquire about the status of one or more jobs
@@ -26,48 +29,43 @@ final class BjobsPoller private[lsf] (pollingFn: InvocationFn[Set[LsfJobId]]) ex
    * @param jobIds the ids of the jobs to inquire about
    * @return a map of job ids to attempts at that job's status
    */
-  override def poll(jobIds: Iterable[String]): Map[String, Try[DrmStatus]] = {
+  override def poll(jobIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, Try[DrmStatus])] = {
     debug(s"Polling for ${jobIds.size} jobs: $jobIds")
     
-    val allLsfJobIdsAttempt = Tries.sequence(jobIds.map(LsfJobId.parse)) 
-    
     //TODO: .get
-    val allLsfJobIds = allLsfJobIdsAttempt.get
+    val allLsfJobIds = jobIds
     
     import loamstream.util.Maps.Implicits._
     
-    val indicesByBaseId: Map[String, Set[LsfJobId]] = allLsfJobIds.toSet.groupBy(_.baseJobId)
+    val indicesByBaseId: Map[String, Set[DrmTaskId]] = allLsfJobIds.toSet.groupBy(_.jobId)
     
-    val jobIdsToStatusAttempts = Maps.mergeMaps(indicesByBaseId.values.map(runChunk))
+    val jobIdsToStatusAttempts = Observables.merge(indicesByBaseId.values.map(runChunk))
     
-    val result = jobIdsToStatusAttempts.mapKeys(_.asString)
+    //debug(s"Done polling for $jobIds; results: $jobIdsToStatusAttempts")
+    debug(s"Done polling for $jobIds")
     
-    debug(s"Done polling for $jobIds; results: $result")
-    
-    result
+    jobIdsToStatusAttempts
   }
   
   override def stop(): Unit = ()
   
-  private[lsf] def runChunk(lsfJobIds: Set[LsfJobId]): Map[LsfJobId, Try[DrmStatus]] = {
+  private[lsf] def runChunk(lsfJobIds: Set[DrmTaskId]): Observable[(DrmTaskId, Try[DrmStatus])] = {
     val runResultsAttempt = pollingFn(lsfJobIds)
       
     val chunkOfIdsToStatusesAttempt = runResultsAttempt.map { runResults =>
-      BjobsPoller.parseBjobsOutput(runResults.stdout).toMap
+      BjobsPoller.parseBjobsOutput(runResults.stdout)
     }
+    
+    import loamstream.util.Traversables.Implicits._
     
     chunkOfIdsToStatusesAttempt match { 
       case Failure(e) => {
-        error(s"Error polling for LSF job ids ${lsfJobIds.map(_.asString)} : ${e.getMessage}", e)
-    
-        import loamstream.util.Traversables.Implicits._
+        error(s"Error polling for LSF job ids ${lsfJobIds.map(LsfJobId.asString)} : ${e.getMessage}", e)
         
-        lsfJobIds.mapTo(_ => Failure(e))
+        Observable.from(lsfJobIds.map(_ -> Failure(e)))
       }
       case Success(idsToStatuses) => {
-        import loamstream.util.Maps.Implicits._
-        
-        idsToStatuses.strictMapValues(Success(_))
+        Observable.from(idsToStatuses.mapSecond(Success(_: DrmStatus)).toIterable)
       }
     }
   }
@@ -75,7 +73,7 @@ final class BjobsPoller private[lsf] (pollingFn: InvocationFn[Set[LsfJobId]]) ex
 
 object BjobsPoller extends InvokesBjobs.Companion(new BjobsPoller(_)) {
   
-  private[lsf] def parseBjobsOutput(lines: Seq[String]): Iterable[(LsfJobId, DrmStatus)] = {
+  private[lsf] def parseBjobsOutput(lines: Seq[String]): Iterable[(DrmTaskId, DrmStatus)] = {
     val dataLines = lines.map(_.trim).filter(_.nonEmpty)
     
     // scalastyle:off line.size.limit
@@ -104,7 +102,7 @@ object BjobsPoller extends InvokesBjobs.Companion(new BjobsPoller(_)) {
     }
   }
   
-  private[lsf] def parseBjobsOutputLine(line: String): Try[(LsfJobId, DrmStatus)] = {
+  private[lsf] def parseBjobsOutputLine(line: String): Try[(DrmTaskId, DrmStatus)] = {
     trace(s"parsing bjobs output line '$line'")
     
     // scalastyle:off line.size.limit
@@ -143,7 +141,7 @@ object BjobsPoller extends InvokesBjobs.Companion(new BjobsPoller(_)) {
       
       val drmStatus = status.toDrmStatus(exitCodeOpt)
       
-      LsfJobId(baseJobId, taskArrayIndex) -> drmStatus
+      DrmTaskId(baseJobId, taskArrayIndex) -> drmStatus
     }
     
     if(resultAttempt.isFailure) {
@@ -153,14 +151,14 @@ object BjobsPoller extends InvokesBjobs.Companion(new BjobsPoller(_)) {
     resultAttempt
   }
   
-  private[lsf] override def makeTokens(actualExecutable: String, lsfJobIds: Set[LsfJobId]): Seq[String] = {
+  private[lsf] override def makeTokens(actualExecutable: String, lsfJobIds: Set[DrmTaskId]): Seq[String] = {
     require(lsfJobIds.nonEmpty, s"Can't build '${actualExecutable}' command-line from empty set of job ids")
     
-    val baseJobIds = lsfJobIds.map(_.baseJobId).toSet
+    val baseJobIds = lsfJobIds.map(_.jobId).toSet
     
     require(baseJobIds.size == 1, s"All LSF job ids in this chunk should have the same base, but got $lsfJobIds")
     
-    val indices = lsfJobIds.map(_.taskArrayIndex)
+    val indices = lsfJobIds.map(_.taskIndex)
     
     val Seq(baseJobId) = baseJobIds.toSeq
         

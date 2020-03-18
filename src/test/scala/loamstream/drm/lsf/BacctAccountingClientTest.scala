@@ -15,6 +15,8 @@ import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Memory
 import loamstream.util.RetryingCommandInvoker
 import loamstream.util.RunResults
+import loamstream.drm.DrmTaskId
+import rx.lang.scala.schedulers.ComputationScheduler
 
 /**
  * @author clint
@@ -38,9 +40,15 @@ final class BacctAccountingClientTest extends FunSuite {
   
   test("Parse actual bacct outpout - bad input") {
     def doTest(bacctOutput: Seq[String]): Unit = {
-      val mockInvoker = new RetryingCommandInvoker[String](0, "MOCK", _ => runResultsAttempt(stdout = bacctOutput))
-    
-      waitFor(new BacctAccountingClient(mockInvoker).getResourceUsage("foo").failed)
+      val mockInvoker = new RetryingCommandInvoker[DrmTaskId](
+          0, 
+          "MOCK", 
+          _ => runResultsAttempt(stdout = bacctOutput), 
+          scheduler = ComputationScheduler())
+
+      val taskId = DrmTaskId("foo", 42)
+      
+      waitFor(new BacctAccountingClient(mockInvoker).getResourceUsage(taskId).failed)
     }
     
     doTest(Nil)
@@ -50,9 +58,15 @@ final class BacctAccountingClientTest extends FunSuite {
   test("Parse actual bacct outpout - happy path") {
     val splitOutput = actualOutput.split("\\n")
     
-    val mockInvoker = new RetryingCommandInvoker[String](0, "MOCK", _ => runResultsAttempt(stdout = splitOutput))
+    val mockInvoker = new RetryingCommandInvoker[DrmTaskId](
+        0, 
+        "MOCK", 
+        _ => runResultsAttempt(stdout = splitOutput),
+        scheduler = ComputationScheduler())
     
-    val actual = waitFor((new BacctAccountingClient(mockInvoker)).getResourceUsage("someJobId"))
+    val taskId = DrmTaskId("someJobId", 42)
+    
+    val actual = waitFor((new BacctAccountingClient(mockInvoker)).getResourceUsage(taskId))
     
     val expected = LsfResources(
             Memory.inMb(123), 
@@ -79,9 +93,15 @@ final class BacctAccountingClientTest extends FunSuite {
       
       val splitOutput = rawOutput.split("\\n")
       
-      val mockInvoker = new RetryingCommandInvoker[String](0, "MOCK", _ => runResultsAttempt(stdout = splitOutput))
+      val mockInvoker = new RetryingCommandInvoker[DrmTaskId](
+          0, 
+          "MOCK", 
+          _ => runResultsAttempt(stdout = splitOutput),
+          scheduler = ComputationScheduler())
       
-      val actual = waitFor((new BacctAccountingClient(mockInvoker)).getTerminationReason("someJobId"))
+      val taskId = DrmTaskId("someJobId", 42)
+      
+      val actual = waitFor((new BacctAccountingClient(mockInvoker)).getTerminationReason(taskId))
       
       assert(actual === expected)
     }
@@ -106,9 +126,15 @@ final class BacctAccountingClientTest extends FunSuite {
   test("Parse actual bacct outpout - problematic output") {
     val splitOutput = problematicOutput.split("\\n")
     
-    val mockInvoker = new RetryingCommandInvoker[String](0, "MOCK", _ => runResultsAttempt(stdout = splitOutput))
+    val mockInvoker = new RetryingCommandInvoker[DrmTaskId](
+        0, 
+        "MOCK", 
+        _ => runResultsAttempt(stdout = splitOutput),
+        scheduler = ComputationScheduler())
     
-    val actual = waitFor((new BacctAccountingClient(mockInvoker)).getResourceUsage("someJobId"))
+    val taskId = DrmTaskId("someJobId", 42)
+    
+    val actual = waitFor((new BacctAccountingClient(mockInvoker)).getResourceUsage(taskId))
     
     val expected = LsfResources(
             Memory.inMb(28), 
@@ -149,6 +175,9 @@ final class BacctAccountingClientTest extends FunSuite {
     import BacctAccountingClient.parseStartTime
     import BacctAccountingClient.parseEndTime
     
+    val dayOfWeek18 = dayOfWeek("04-18")
+    val dayOfWeek1 = dayOfWeek("04-01")
+    
     val april18 = LocalDateTime.parse(s"${currentYear}-04-18T22:32:01.00")
     val april1 = LocalDateTime.parse(s"${currentYear}-04-01T22:32:01.00")
     
@@ -158,16 +187,16 @@ final class BacctAccountingClientTest extends FunSuite {
         dateLinePart: String, 
         parse: Seq[String] => Try[LocalDateTime]): Unit = {
       
-      assert(parse(Seq(s"${date}: ${dateLinePart} asdasdasdads")).get === expected)
+      assert(parse(Seq(s"${date}: ${dateLinePart} asdasdasdads")) === Success(expected))
     }
     
-    doTest("Thu Apr 18 22:32:01", april18, "[1] dispatched to", parseStartTime)
-    doTest("Thu Apr 18 22:32:01", april18, "Dispatched to", parseStartTime)
-    doTest("Mon Apr  1 22:32:01", april1, "[1] dispatched to", parseStartTime)
-    doTest("Mon Apr  1 22:32:01", april1, "Dispatched to", parseStartTime)
+    doTest(s"${dayOfWeek18} Apr 18 22:32:01", april18, "[1] dispatched to", parseStartTime)
+    doTest(s"${dayOfWeek18} Apr 18 22:32:01", april18, "Dispatched to", parseStartTime)
+    doTest(s"${dayOfWeek1} Apr  1 22:32:01", april1, "[1] dispatched to", parseStartTime)
+    doTest(s"${dayOfWeek1} Apr  1 22:32:01", april1, "Dispatched to", parseStartTime)
     
-    doTest("Thu Apr 18 22:32:01", april18, "Completed", parseEndTime)
-    doTest("Mon Apr  1 22:32:01", april1, "Completed", parseEndTime)
+    doTest(s"${dayOfWeek18} Apr 18 22:32:01", april18, "Completed", parseEndTime)
+    doTest(s"${dayOfWeek1} Apr  1 22:32:01", april1, "Completed", parseEndTime)
 
     def doTestShouldFail(line: String, parse: Seq[String] => Try[LocalDateTime]): Unit = {
       assert(parse(Seq(line)).isFailure)
@@ -185,8 +214,17 @@ final class BacctAccountingClientTest extends FunSuite {
     doTestShouldFail("asdasdasdads", parseEndTime)
   }
   
+  private def dayOfWeek(monthAndDay: String): String = {
+    import java.time.format.TextStyle
+    import java.util.Locale
+    
+    val ldt = LocalDateTime.parse(s"${currentYear}-${monthAndDay}T00:00:00.00")
+    
+    ldt.getDayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault)
+  }
+  
   // scalastyle:off line.size.limit
-  private val actualOutput = """
+  private val actualOutput = s"""
 Accounting information about jobs that are: 
   - submitted by all users.
   - accounted on all projects.
@@ -199,11 +237,11 @@ Accounting information about jobs that are:
 Job <2811237>, User <cgilbert>, Project <default>, Status <EXIT>, Queue <research-
                      rh7>, Command <cp ./A.txt ./B.txt>, Share group charged </cgi
                      lbert>
-Thu Apr 18 22:32:01: Submitted from host <ebi-cli-001>, CWD <$HOME>;
-Thu Apr 18 22:32:01: Dispatched to <ebi6-054>, Effective RES_REQ <select[type == l
+${dayOfWeek("04-18")} Apr 18 22:32:01: Submitted from host <ebi-cli-001>, CWD <$$HOME>;
+${dayOfWeek("04-18")} Apr 18 22:32:01: Dispatched to <ebi6-054>, Effective RES_REQ <select[type == l
                      ocal] order[r15s:pg] rusage[numcpus=1.00:duration=8h:decay=0]
                       span[hosts=1] >;
-Thu Apr 18 23:34:12: Completed <exit>.
+${dayOfWeek("04-18")} Apr 18 23:34:12: Completed <exit>.
 
 Accounting information about this job:
      Share group charged </cgilbert>
@@ -269,7 +307,7 @@ SUMMARY:      ( time unit: second )
  Total Run time consumed:         0      Average Run time consumed:       0
  Maximum Run time of a job:       0      Minimum Run time of a job:       0""".trim
   
-  private val problematicOutput = """
+  private val problematicOutput = s"""
 Accounting information about jobs that are:
    - submitted by all users.
    - accounted on all projects.
@@ -279,10 +317,10 @@ Accounting information about jobs that are:
    - accounted on all service classes.
    ------------------------------------------------------------------------------
    
-   Job <224706[1]>, Job Name <LoamStream-1b97b895-2f8e-46ea-8a35-6f9908018236[1]>, User <cgilbert>, Project <default>, Status <DONE>, Queue <research-rh7>, Command <#!/bin/bash;  i=$LSB_JOBINDEX;jobId=$LSB_JOBID;       if [ $i -eq 1 ];then;java -Xms1g -Xmx1g Hello 1000000 20 && touch ./X.txt; LOAMSTREAM_JOB_EXIT_CODE=$?; stdoutDestPath="/homes/cgilbert/ls/.loamstream/job-outputs/_anon_tool_name-0.stdout";stderrDestPath="/homes/cgilbert/ls/.loamstream/job-outputs/_anon_tool_name-0.stderr"; mkdir -p /homes/cgilbert/ls/.loamstream/job-outputs;mv /homes/cgilbert/ls/.loamstream/lsf/LoamStream-1b97b895-2f8e-46ea-8a35-6f9908018236.1.stdout $stdoutDestPath || echo "Couldn't move DRM std out log /homes/cgilbert/ls/.loamstream/lsf/LoamStream-1b97b895-2f8e-46ea-8a35-6f9908018236.1.stdout; it's likely the job wasn't submitted successfully" > $stdoutDestPath;mv /homes/cgilbert/ls/.loamstream/lsf/LoamStream-1b97b895-2f8e-46ea-8a35-6f9908018236.1.stderr $stderrDestPath || echo "Couldn't move DRM std err log /homes/cgilbert/ls/.loamstream/lsf/LoamStream-1b97b895-2f8e-46ea-8a35-6f9908018236.1.stderr; it's likely the job wasn't submitted successfully" > $stderrDestPath; exit $LOAMSTREAM_JOB_EXIT_CODE;  fi>, Share group charged </cgilbert> 
-   Wed May  1 22:42:23: Submitted from host <ebi-cli-003>, CWD <$HOME/ls> Output File (overwrite) <.loamstream/lsf/LoamStream-1b97b895-2f8e-46ea-8a35-6f9908018236.%I.stdout>, Error File (overwrite) <.loamstream/lsf/LoamStream-1b97b895-2f8e-46ea-8a35-6f9908018236.%I.stderr>;
-   Wed May  1 22:42:24: [1] dispatched to <ebi5-153>, Effective RES_REQ <select[type == local] order[r15s:pg] rusage[mem=1000.00:duration=8h:decay=0,numcpus=1.00:duration=8h:decay=0] span[hosts=1] >;
-   Wed May  1 22:42:46: Completed <done>.
+   Job <224706[1]>, Job Name <LoamStream-1b97b895-2f8e-46ea-8a35-6f9908018236[1]>, User <cgilbert>, Project <default>, Status <DONE>, Queue <research-rh7>, Command <#!/bin/bash;  i=$$LSB_JOBINDEX;jobId=$$LSB_JOBID;       if [ $$i -eq 1 ];then;java -Xms1g -Xmx1g Hello 1000000 20 && touch ./X.txt; LOAMSTREAM_JOB_EXIT_CODE=$$?; stdoutDestPath="/homes/cgilbert/ls/.loamstream/job-outputs/_anon_tool_name-0.stdout";stderrDestPath="/homes/cgilbert/ls/.loamstream/job-outputs/_anon_tool_name-0.stderr"; mkdir -p /homes/cgilbert/ls/.loamstream/job-outputs;mv /homes/cgilbert/ls/.loamstream/lsf/LoamStream-1b97b895-2f8e-46ea-8a35-6f9908018236.1.stdout $$stdoutDestPath || echo "Couldn't move DRM std out log /homes/cgilbert/ls/.loamstream/lsf/LoamStream-1b97b895-2f8e-46ea-8a35-6f9908018236.1.stdout; it's likely the job wasn't submitted successfully" > $$stdoutDestPath;mv /homes/cgilbert/ls/.loamstream/lsf/LoamStream-1b97b895-2f8e-46ea-8a35-6f9908018236.1.stderr $$stderrDestPath || echo "Couldn't move DRM std err log /homes/cgilbert/ls/.loamstream/lsf/LoamStream-1b97b895-2f8e-46ea-8a35-6f9908018236.1.stderr; it's likely the job wasn't submitted successfully" > $$stderrDestPath; exit $$LOAMSTREAM_JOB_EXIT_CODE;  fi>, Share group charged </cgilbert> 
+   ${dayOfWeek("05-01")} May  1 22:42:23: Submitted from host <ebi-cli-003>, CWD <$$HOME/ls> Output File (overwrite) <.loamstream/lsf/LoamStream-1b97b895-2f8e-46ea-8a35-6f9908018236.%I.stdout>, Error File (overwrite) <.loamstream/lsf/LoamStream-1b97b895-2f8e-46ea-8a35-6f9908018236.%I.stderr>;
+   ${dayOfWeek("05-01")} May  1 22:42:24: [1] dispatched to <ebi5-153>, Effective RES_REQ <select[type == local] order[r15s:pg] rusage[mem=1000.00:duration=8h:decay=0,numcpus=1.00:duration=8h:decay=0] span[hosts=1] >;
+   ${dayOfWeek("05-01")} May  1 22:42:46: Completed <done>.
    
    Accounting information about this job:
    Share group charged </cgilbert>

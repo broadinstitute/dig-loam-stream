@@ -20,7 +20,7 @@ final class UgerPathBuilderTest extends FunSuite {
   
   private val workDir = Locations.Default.ugerDir
 
-  private val ugerConfig = UgerConfig(maxNumJobs = 42)
+  private val ugerConfig = UgerConfig(maxNumJobsPerTaskArray = 42)
   
   private val someDir = path("/some/dir")
   

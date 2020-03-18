@@ -49,7 +49,8 @@ final class LoamToolBox(client: Option[CloudStorageClient] = None) {
 
     val settings: Settings = graph.settingsOpt(tool).getOrElse(LocalSettings)
 
-    val inputJobs = toJobs(graph)(graph.toolsPreceding(tool))
+    val dependencyJobs = toJobs(graph)(graph.toolsPreceding(tool))
+    def successorJobs = toJobs(graph)(graph.toolsSucceeding(tool))
 
     val inputs = inputsFor(graph, tool)
     val outputs = outputsFor(graph, tool)
@@ -62,7 +63,8 @@ final class LoamToolBox(client: Option[CloudStorageClient] = None) {
             commandLineString = cmdTool.commandLine, 
             workDir = workDir, 
             initialSettings = settings, 
-            dependencies = inputJobs,
+            dependencies = dependencyJobs,
+            successorsFn = () => successorJobs, 
             inputs = inputs,
             outputs = outputs, 
             nameOpt = toolNameOpt))

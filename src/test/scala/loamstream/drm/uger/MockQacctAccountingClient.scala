@@ -12,13 +12,15 @@ import loamstream.model.execute.Resources.DrmResources
 import loamstream.util.RetryingCommandInvoker
 import loamstream.model.jobs.TerminationReason
 import scala.concurrent.Future
+import loamstream.drm.DrmTaskId
+import rx.lang.scala.schedulers.ComputationScheduler
 
 /**
  * @author clint
  * Mar 15, 2017
  */
 final class MockQacctAccountingClient(
-    delegateFn: String => Try[RunResults],
+    delegateFn: DrmTaskId => Try[RunResults],
     ugerConfig: UgerConfig = UgerConfig(),
     delayStart: Duration = RetryingCommandInvoker.defaultDelayStart,
     delayCap: Duration = RetryingCommandInvoker.defaultDelayCap) extends AccountingClient {
@@ -38,30 +40,36 @@ final class MockQacctAccountingClient(
   private val actualDelegate = {
     val fakeBinaryName = "MOCK"
     
-    val wrappedDelegateFn: String => Try[RunResults] = { jobId =>
+    val wrappedDelegateFn: DrmTaskId => Try[RunResults] = { taskId =>
       timesGetQacctOutputForInvokedBox.mutate(_ + 1)
 
-      delegateFn(jobId)
+      delegateFn(taskId)
     }
 
     import scala.concurrent.ExecutionContext.Implicits.global
     
     val invoker = {
-      new RetryingCommandInvoker[String](ugerConfig.maxQacctRetries, "MOCK", wrappedDelegateFn, delayStart, delayCap)
+      new RetryingCommandInvoker[DrmTaskId](
+          ugerConfig.maxQacctRetries, 
+          "MOCK", 
+          wrappedDelegateFn, 
+          delayStart, 
+          delayCap,
+          scheduler = ComputationScheduler())
     }
     
     new QacctAccountingClient(invoker)
   }
 
-  override def getResourceUsage(jobId: String): Future[DrmResources] = {
+  override def getResourceUsage(taskId: DrmTaskId): Future[DrmResources] = {
     timesGetResourceUsageInvokedBox.mutate(_ + 1)
     
-    actualDelegate.getResourceUsage(jobId)
+    actualDelegate.getResourceUsage(taskId)
   }
   
-  override def getTerminationReason(jobId: String): Future[Option[TerminationReason]] = {
+  override def getTerminationReason(taskId: DrmTaskId): Future[Option[TerminationReason]] = {
     timesGetTerminationReasonInvokedBox.mutate(_ + 1)
     
-    actualDelegate.getTerminationReason(jobId)
+    actualDelegate.getTerminationReason(taskId)
   }
 }

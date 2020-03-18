@@ -20,6 +20,7 @@ import loamstream.drm.ContainerParams
 import loamstream.conf.LsfConfig
 import loamstream.util.RunResults
 import loamstream.util.Processes
+import loamstream.drm.DrmTaskId
 
 /**
  * @author clint
@@ -65,18 +66,18 @@ final class BsubJobSubmitter private[lsf] (
   private def makeSuccess(jobId: String, taskArray: DrmTaskArray): DrmSubmissionResult.SubmissionSuccess = {
     import Traversables.Implicits._
           
-    def lsfJobId(drmJob: DrmJobWrapper): String = LsfJobId(jobId, drmJob.drmIndex).asString
+    def drmTaskId(drmJob: DrmJobWrapper): DrmTaskId = DrmTaskId(jobId, drmJob.drmIndex)
     
-    val idsToJobs: Map[String, DrmJobWrapper] = taskArray.drmJobs.mapBy(lsfJobId)
+    val drmTaskIdsToJobs: Map[DrmTaskId, DrmJobWrapper] = taskArray.drmJobs.mapBy(drmTaskId)
 
     debug {
       val numJobs = taskArray.size
-      val allJobIds = idsToJobs.keys
+      val allJobIds = drmTaskIdsToJobs.keys
       
       s"Successfully submitted ${numJobs} LSF jobs with base job id '${jobId}'; individual job ids: ${allJobIds}"
     }
     
-    DrmSubmissionResult.SubmissionSuccess(idsToJobs)
+    DrmSubmissionResult.SubmissionSuccess(drmTaskIdsToJobs)
   }
   
   private def logAndMakeFailure[R <: RunResults](

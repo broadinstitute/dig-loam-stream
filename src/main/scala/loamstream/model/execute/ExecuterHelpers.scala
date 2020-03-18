@@ -26,39 +26,12 @@ import scala.util.control.NonFatal
  * date: Jun 7, 2016
  */
 object ExecuterHelpers extends Loggable {
-  def noFailures[J <: LJob](m: Map[J, Execution]): Boolean = m.values.forall(_.status.isSuccess)
-  
-  def anyFailures[J <: LJob](m: Map[J, Execution]): Boolean = !noFailures(m)
 
-  def determineFailureStatus(
-      shouldRestart: LJob => Boolean, 
-      failureStatus: JobStatus, 
-      job: LJob): JobStatus = {
-    
-    val restarting = shouldRestart(job)
-    
-    if(restarting) {
-      info(s"Restarting job $job")
-      
-      failureStatus
-    } else {
-       JobStatus.FailedPermanently
-    }
-  }
-  
-  def determineFinalStatus(
-      shouldRestart: LJob => Boolean,
-      newStatus: JobStatus,
-      job: LJob): JobStatus = {
-
-    if(newStatus.isFailure) determineFailureStatus(shouldRestart, newStatus, job) else newStatus
-  }
-  
-  def flattenTree(roots: Set[JobNode]): Set[JobNode] = {
+  def flattenTree(roots: Iterable[JobNode], field: JobNode => Set[JobNode] = _.dependencies): Iterable[JobNode] = {
     roots.foldLeft(roots) { (acc, job) =>
-      val inputJobNodes = job.dependencies
+      val jobNodes = field(job)
       
-      inputJobNodes ++ flattenTree(inputJobNodes) ++ acc
+      jobNodes ++ flattenTree(jobNodes, field) ++ acc
     }
   }
   

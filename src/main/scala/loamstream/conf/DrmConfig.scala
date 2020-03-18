@@ -25,7 +25,7 @@ import java.nio.file.Paths
 sealed trait DrmConfig {
   def workDir: Path 
   
-  def maxNumJobs: Int
+  def maxNumJobsPerTaskArray: Int
   
   def defaultCores: Cpus
   
@@ -47,7 +47,7 @@ sealed trait DrmConfig {
   */
 final case class UgerConfig(
     workDir: Path = Locations.Default.ugerDir,
-    maxNumJobs: Int = UgerDefaults.maxConcurrentJobs,
+    maxNumJobsPerTaskArray: Int = UgerDefaults.maxNumJobsPerTaskArray,
     defaultCores: Cpus = UgerDefaults.cores,
     defaultMemoryPerCore: Memory = UgerDefaults.memoryPerCore,
     defaultMaxRunTime: CpuTime = UgerDefaults.maxRunTime,
@@ -62,7 +62,7 @@ final case class UgerConfig(
 object UgerConfig extends ConfigParser[UgerConfig] with Loggable {
 
   private final case class Parsed(
-    maxNumJobs: Int = UgerDefaults.maxConcurrentJobs,
+    maxNumJobsPerTaskArray: Int = UgerDefaults.maxNumJobsPerTaskArray,
     defaultCores: Cpus = UgerDefaults.cores,
     defaultMemoryPerCore: Memory = UgerDefaults.memoryPerCore,
     defaultMaxRunTime: CpuTime = UgerDefaults.maxRunTime,
@@ -72,7 +72,7 @@ object UgerConfig extends ConfigParser[UgerConfig] with Loggable {
     maxQacctRetries: Int =  UgerDefaults.maxQacctRetries) {
     
     def toUgerConfig: UgerConfig = UgerConfig(
-      maxNumJobs = maxNumJobs,
+      maxNumJobsPerTaskArray = maxNumJobsPerTaskArray,
       defaultCores = defaultCores,
       defaultMemoryPerCore = defaultMemoryPerCore,
       defaultMaxRunTime = defaultMaxRunTime,
@@ -107,7 +107,7 @@ object UgerConfig extends ConfigParser[UgerConfig] with Loggable {
   */
 final case class LsfConfig(
     workDir: Path = Locations.Default.lsfDir,
-    maxNumJobs: Int = LsfDefaults.maxConcurrentJobs,
+    maxNumJobsPerTaskArray: Int = LsfDefaults.maxNumJobsPerTaskArray,
     defaultCores: Cpus = LsfDefaults.cores,
     defaultMemoryPerCore: Memory = LsfDefaults.memoryPerCore,
     defaultMaxRunTime: CpuTime = LsfDefaults.maxRunTime,
@@ -121,14 +121,14 @@ object LsfConfig extends ConfigParser[LsfConfig] with Loggable {
   //via loamstream.conf.  Other values (workDir, scriptDir) can be set by unit tests, for example, but adding them
   //to loamstream.conf has no effect.
   private final case class Parsed(
-    maxNumJobs: Int = LsfDefaults.maxConcurrentJobs,
+    maxNumJobsPerTaskArray: Int = LsfDefaults.maxNumJobsPerTaskArray,
     defaultCores: Cpus = LsfDefaults.cores,
     defaultMemoryPerCore: Memory = LsfDefaults.memoryPerCore,
     defaultMaxRunTime: CpuTime = LsfDefaults.maxRunTime,
     maxBacctRetries: Int = LsfDefaults.maxBacctRetries) {
     
     def toLsfConfig: LsfConfig = LsfConfig(
-      maxNumJobs = maxNumJobs,
+      maxNumJobsPerTaskArray = maxNumJobsPerTaskArray,
       defaultCores = defaultCores,
       defaultMemoryPerCore = defaultMemoryPerCore,
       defaultMaxRunTime = defaultMaxRunTime,

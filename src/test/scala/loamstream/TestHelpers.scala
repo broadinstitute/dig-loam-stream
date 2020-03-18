@@ -77,9 +77,6 @@ object TestHelpers {
   val graceFactor: Int = 20
   val tolerance: Double = graceFactor * approxDoublePrecision
 
-  val alwaysRestart: LJob => Boolean = _ => true
-  val neverRestart: LJob => Boolean = _ => false
-  
   def areWithinExpectedError(x: Double, y: Double): Boolean = (x - y) / Math.max(x.abs, y.abs) < tolerance
   
   lazy val config: LoamConfig = {

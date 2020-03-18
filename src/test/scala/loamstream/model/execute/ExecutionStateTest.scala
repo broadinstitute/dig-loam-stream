@@ -161,8 +161,8 @@ final class ExecutionStateTest extends FunSuite {
     
     state.allJobs.foreach { job => assert(state.statusOf(job) === JobStatus.NotStarted) }
     
-    assert(jobStatuses0.readyToRun.keySet === Set(j0, j1, j3))
-    assert(jobStatuses0.cannotRun.keySet === Set.empty)
+    assert(jobStatuses0.readyToRun.map(_.job) === Set(j0, j1, j3))
+    assert(jobStatuses0.cannotRun.map(_.job) === Set.empty)
     
     state.startRunning(Seq(j0))
     state.finish(j0, JobStatus.Succeeded)
@@ -175,8 +175,8 @@ final class ExecutionStateTest extends FunSuite {
     
     val jobStatuses1 = state.jobStatuses
     
-    assert(jobStatuses1.readyToRun.keySet === Set(j1, j3))
-    assert(jobStatuses1.cannotRun.keySet === Set.empty)
+    assert(jobStatuses1.readyToRun.map(_.job) === Set(j1, j3))
+    assert(jobStatuses1.cannotRun.map(_.job) === Set.empty)
     
     state.startRunning(Seq(j1))
     state.finish(j1, JobStatus.FailedPermanently)
@@ -189,8 +189,8 @@ final class ExecutionStateTest extends FunSuite {
     
     val jobStatuses2 = state.jobStatuses
     
-    assert(jobStatuses2.readyToRun.keySet === Set(j3))
-    assert(jobStatuses2.cannotRun.keySet === Set(j2))
+    assert(jobStatuses2.readyToRun.map(_.job) === Set(j3))
+    assert(jobStatuses2.cannotRun.map(_.job) === Set(j2))
     
     state.startRunning(Seq(j3))
     state.finish(j3, JobStatus.Succeeded)
@@ -203,8 +203,8 @@ final class ExecutionStateTest extends FunSuite {
     
     val jobStatuses3 = state.jobStatuses
     
-    assert(jobStatuses3.readyToRun.keySet === Set.empty)
-    assert(jobStatuses3.cannotRun.keySet.map(_.name) === Set(j2.name))
+    assert(jobStatuses3.readyToRun.map(_.job) === Set.empty)
+    assert(jobStatuses3.cannotRun.map(_.job).map(_.name) === Set(j2.name))
     
     state.startRunning(Seq(j2))
     state.finish(j2, JobStatus.CouldNotStart)
@@ -217,16 +217,16 @@ final class ExecutionStateTest extends FunSuite {
     
     val jobStatuses4 = state.jobStatuses
     
-    assert(jobStatuses4.readyToRun.keySet === Set.empty)
-    assert(jobStatuses4.cannotRun.keySet.map(_.name) === Set(j4.name))
+    assert(jobStatuses4.readyToRun.map(_.job) === Set.empty)
+    assert(jobStatuses4.cannotRun.map(_.job).map(_.name) === Set(j4.name))
     
     state.startRunning(Seq(j4))
     state.finish(j4, JobStatus.CouldNotStart)
     
     val jobStatuses5 = state.jobStatuses
     
-    assert(jobStatuses5.readyToRun.keySet === Set.empty)
-    assert(jobStatuses5.cannotRun.keySet === Set.empty)
+    assert(jobStatuses5.readyToRun.map(_.job) === Set.empty)
+    assert(jobStatuses5.cannotRun.map(_.job) === Set.empty)
     
     assert(state.isFinished)
   }
@@ -267,8 +267,8 @@ final class ExecutionStateTest extends FunSuite {
     state.finish(j1, JobStatus.FailedPermanently)
     state.finish(j3, JobStatus.Succeeded)
     
-    assert(jobStatuses0.readyToRun.keySet === Set(j0, j1, j3))
-    assert(jobStatuses0.cannotRun.keySet === Set.empty)
+    assert(jobStatuses0.readyToRun.map(_.job) === Set(j0, j1, j3))
+    assert(jobStatuses0.cannotRun.map(_.job) === Set.empty)
     
     val jobStatuses1 = state.updateJobs()
     
@@ -278,8 +278,8 @@ final class ExecutionStateTest extends FunSuite {
     assert(state.statusOf(j3) === JobStatus.Succeeded)
     assert(state.statusOf(j4) === JobStatus.NotStarted)
     
-    assert(jobStatuses1.readyToRun.keySet === Set.empty)
-    assert(jobStatuses1.cannotRun.keySet === Set(j2))
+    assert(jobStatuses1.readyToRun.map(_.job) === Set.empty)
+    assert(jobStatuses1.cannotRun.map(_.job) === Set(j2))
     
     val jobStatuses2 = state.updateJobs()
     
@@ -289,8 +289,8 @@ final class ExecutionStateTest extends FunSuite {
     assert(state.statusOf(j3) === JobStatus.Succeeded)
     assert(state.statusOf(j4) === JobStatus.CouldNotStart)
     
-    assert(jobStatuses2.readyToRun.keySet === Set.empty)
-    assert(jobStatuses2.cannotRun.keySet === Set(j4))
+    assert(jobStatuses2.readyToRun.map(_.job) === Set.empty)
+    assert(jobStatuses2.cannotRun.map(_.job) === Set(j4))
     
     assert(state.isFinished)
     
@@ -302,8 +302,8 @@ final class ExecutionStateTest extends FunSuite {
     assert(state.statusOf(j3) === JobStatus.Succeeded)
     assert(state.statusOf(j4) === JobStatus.CouldNotStart)
     
-    assert(jobStatuses3.readyToRun.keySet === Set.empty)
-    assert(jobStatuses3.cannotRun.keySet === Set.empty)
+    assert(jobStatuses3.readyToRun.map(_.job) === Set.empty)
+    assert(jobStatuses3.cannotRun.map(_.job) === Set.empty)
   }
 
   test("cancelSuccessors") {

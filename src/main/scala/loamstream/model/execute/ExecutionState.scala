@@ -7,7 +7,6 @@ import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.LJob
 import loamstream.util.Loggable
 import loamstream.util.ValueBox
-import ExecutionState.JobState
 import loamstream.util.TimeUtils
 import loamstream.util.Sequence
 
@@ -34,7 +33,7 @@ import loamstream.util.Sequence
  */
 final class ExecutionState private (
     val maxRunsPerJob: Int,
-    private[this] val jobStatesBox: ValueBox[Array[JobState]],
+    private[this] val jobStatesBox: ValueBox[Array[JobExecutionState]],
     index: Map[LJob, Int]) extends Loggable {
   
   def size: Int = jobStatesBox.get(_.size)
@@ -45,18 +44,16 @@ final class ExecutionState private (
    * Are all jobs "done"?  (Ie, finished or deliberately never started) 
    */
   def isFinished: Boolean = jobStatesBox.get { jobStates =>  
-    val justCells: Iterator[ExecutionCell] = jobStates.iterator.map(_.cell)
-    
-    justCells.forall(cell => cell.isFinished || cell.couldNotStart)
+    jobStates.forall(cell => cell.isFinished || cell.couldNotStart)
   }
   
   private[execute] def statusOf(job: LJob): JobStatus = {
-    def cellFor(job: LJob)(jobStates: Array[JobState]): ExecutionCell = jobStates.apply(index(job)).cell
+    def cellFor(job: LJob)(jobStates: Array[JobExecutionState]): JobExecutionState = jobStates.apply(index(job))
     
     jobStatesBox.get(cellFor(job)).status
   }
   
-  private def snapshot(): Array[JobState] = jobStatesBox.get(ExecutionState.copyOf)
+  private def snapshot(): Array[JobExecutionState] = jobStatesBox.get(ExecutionState.copyOf)
   
   /**
    * Returns a view of the current state of all jobs, useful to Executers. (The result of jobStatuses())
@@ -69,13 +66,13 @@ final class ExecutionState private (
     TimeUtils.time(s"updateJobs()", debug(_)) {
       val currentJobStatuses = jobStatuses
       
-      val eligible = currentJobStatuses.readyToRun
+      val eligible = currentJobStatuses.readyToRun.iterator.map(_.job)
       
       TimeUtils.time(s"startRunning()", debug(_)) {
-        startRunning(eligible.keys)
+        startRunning(eligible)
       }
       
-      val toCancel = currentJobStatuses.cannotRun.keys
+      val toCancel = currentJobStatuses.cannotRun.iterator.map(_.job)
       
       TimeUtils.time(s"markAs(CouldNotStart)", debug(_)) { 
         markAs(toCancel, JobStatus.CouldNotStart)
@@ -94,18 +91,18 @@ final class ExecutionState private (
     val jobStates = snapshot()
   
     TimeUtils.time("Computing JobStatuses", debug(_)) {
-      val numRunning = jobStates.count(_.cell.isRunning)
-      val numFinished = jobStates.count(_.cell.isFinished)
+      val numRunning = jobStates.count(_.isRunning)
+      val numFinished = jobStates.count(_.isFinished)
       
       val z = ExecutionState.JobStatuses.empty.copy(numRunning = numRunning, numFinished = numFinished)
       
       jobStates.foldLeft(z) { (acc, jobState) =>
-        import jobState.{job, cell}
+        import jobState.job
         
         def anyDepsStopExecution: Boolean = {
-          def depCells = cellsFor(jobStates)(job.dependencies.map(_.job)) 
+          def depStates = statesFor(jobStates)(job.dependencies.map(_.job)) 
           
-          cell.notStarted && depCells.exists(_.canStopExecution)
+          jobState.notStarted && depStates.exists(_.canStopExecution)
         }
         
         def canRun: Boolean = this.canRun(jobStates)(jobState)
@@ -118,15 +115,15 @@ final class ExecutionState private (
   }
   
   /**
-   * Obtains the ExecutionCells for a given bunch of jobs, given the states of all jobs.
+   * Obtains the JobExecutionState for a given bunch of jobs, given the states of all jobs.
    * (Returns an array for fast iteration (profiling turned this up). 
    */
-  private def cellsFor(jobStates: Array[JobState])(jobs: Set[JobNode]): Array[ExecutionCell] = {
+  private def statesFor(jobStates: Array[JobExecutionState])(jobs: Set[JobNode]): Array[JobExecutionState] = {
     val indexes = jobs.iterator.map(_.job).map(index(_))
     
-    val cells: Array[ExecutionCell] = Array.ofDim[ExecutionCell](jobs.size)
+    val cells: Array[JobExecutionState] = Array.ofDim[JobExecutionState](jobs.size)
     
-    indexes.map(i => jobStates(i).cell).copyToArray(cells)
+    indexes.map(i => jobStates(i)).copyToArray(cells)
     
     cells
   }
@@ -134,14 +131,14 @@ final class ExecutionState private (
   /**
    * Can a job run, given its current state, and the states of all other jobs.
    */
-  private[execute] def canRun(jobStates: Array[JobState])(jobState: JobState): Boolean = {
-    import jobState.{job, cell}
+  private[execute] def canRun(jobStates: Array[JobExecutionState])(jobState: JobExecutionState): Boolean = {
+    import jobState.job
     
-    cell.notStarted && {
+    jobState.notStarted && {
       val deps = job.dependencies
       
       deps.isEmpty || {
-        val depCells = cellsFor(jobStates)(deps)
+        val depCells = statesFor(jobStates)(deps)
         
         depCells.forall(_.isTerminal) && !depCells.exists(_.canStopExecution)
       }
@@ -158,19 +155,17 @@ final class ExecutionState private (
    */
   private def markAs(jobs: TraversableOnce[LJob], jobStatus: JobStatus): Unit = transition(jobs, _.markAs(jobStatus))
   
-  private def transition(jobs: TraversableOnce[LJob], doTransition: ExecutionCell => ExecutionCell): Unit = {
+  private def transition(jobs: TraversableOnce[LJob], doTransition: JobExecutionState => JobExecutionState): Unit = {
     if(jobs.nonEmpty) {
       val jobSet = jobs.toSet
-      
-      def doDoTransition(jobState: JobState): JobState = jobState.transformCell(doTransition)
       
       jobStatesBox.foreach { jobStates =>
         val jobIndices: Iterator[Int] = jobSet.iterator.map(index(_))
         
         jobIndices.foreach { jobIndex => 
-          val tuple = jobStates(jobIndex)
+          val jobState = jobStates(jobIndex)
           
-          jobStates(jobIndex) = doDoTransition(tuple)
+          jobStates(jobIndex) = doTransition(jobState)
         }
       }
     }
@@ -199,15 +194,15 @@ final class ExecutionState private (
     } {
       val jobIndex = index(job)
         
-      val cell = jobStates(jobIndex).cell
+      val jobState = jobStates(jobIndex)
       
-      lazy val runCount: Int = cell.runCount
+      lazy val runCount: Int = jobState.runCount
       
       lazy val tooManyRuns: Boolean = runCount >= maxRunsPerJob 
       
       lazy val isTerminalFailure: Boolean = status.isFailure && tooManyRuns
       
-      val transition: ExecutionCell => ExecutionCell = {
+      val transition: JobExecutionState => JobExecutionState = {
         if(isTerminalFailure) { 
           debug(s"Restarting $job ? NO (job has run $runCount times, max is $maxRunsPerJob)")
           
@@ -220,10 +215,10 @@ final class ExecutionState private (
         else {_.finishWith(status) }
       }
       
-      jobStates(jobIndex) = JobState(job, transition(cell))
+      jobStates(jobIndex) = transition(jobState)
       
       if(isTerminalFailure) {
-        cancelSuccessors(jobStates)(job)
+        cancelSuccessors(job)
       }
     }
   }
@@ -232,7 +227,7 @@ final class ExecutionState private (
    * Cancel all the jobs that depend on this job, and the ones that depend on them, etc, by
    * marking them as CouldNotStart.
    */
-  private[execute] def cancelSuccessors(fields: Array[JobState])(failedJob: LJob): Unit = {
+  private[execute] def cancelSuccessors(failedJob: LJob): Unit = {
     TimeUtils.time(s"Cancelling successors for failed job with id ${failedJob.id}", debug(_)) {
       val successors = ExecuterHelpers.flattenTree(Set(failedJob), _.successors).toSet - failedJob
       
@@ -242,50 +237,36 @@ final class ExecutionState private (
 }
 
 object ExecutionState {
-  private def copyOf(a: Array[JobState]): Array[JobState] = {
-    val result: Array[JobState] = Array.ofDim(a.length)
+  private def copyOf(a: Array[JobExecutionState]): Array[JobExecutionState] = {
+    val result: Array[JobExecutionState] = Array.ofDim(a.length)
     
     a.copyToArray(result)
     
     result
   }
   
-  /**
-   * Basically a tuple of a job and its current status, as represented by an ExecutionCell
-   */
-  final case class JobState(job: LJob, cell: ExecutionCell) {
-    def toTuple: (LJob, ExecutionCell) = (job, cell)
-    
-    def transformCell(f: ExecutionCell => ExecutionCell): JobState = copy(cell = f(cell))
-  }
-  
-  object JobState {
-    def initialFor(job: LJob): JobState = JobState(job, ExecutionCell.initial)
-  }
-  
   def initialFor(executable: Executable, maxRunsPerJob: Int): ExecutionState = {
-    val cellsByJob: Array[JobState] = executable.allJobs.iterator.map(JobState.initialFor).toArray
+    val jobStates: Array[JobExecutionState] = executable.allJobs.iterator.map(JobExecutionState.initialFor).toArray
     
     val indicesByJob: Map[LJob, Int] = {
-      Map.empty ++ cellsByJob.iterator.zipWithIndex.map { case (jobState, i) => (jobState.job -> i) } 
+      Map.empty ++ jobStates.iterator.zipWithIndex.map { case (jobState, i) => (jobState.job -> i) } 
     }
     
-    //new ExecutionState(maxRunsPerJob, ValueBox(new JobStateList(cellsByJob)), indicesByJob)
-    new ExecutionState(maxRunsPerJob, ValueBox(cellsByJob), indicesByJob)
+    new ExecutionState(maxRunsPerJob, ValueBox(jobStates), indicesByJob)
   }
   
   final case class JobStatuses(
-      readyToRun: Map[LJob, ExecutionCell], 
-      cannotRun: Map[LJob, ExecutionCell],
+      readyToRun: Set[JobExecutionState], 
+      cannotRun: Set[JobExecutionState],
       numRunning: Int,
       numFinished: Int) {
     
-    def withRunnable(jobAndCell: JobState): JobStatuses = copy(readyToRun = readyToRun + jobAndCell.toTuple)
+    def withRunnable(state: JobExecutionState): JobStatuses = copy(readyToRun = readyToRun + state)
     
-    def withCannotRun(jobAndCell: JobState): JobStatuses = copy(cannotRun = cannotRun + jobAndCell.toTuple)
+    def withCannotRun(state: JobExecutionState): JobStatuses = copy(cannotRun = cannotRun + state)
   }
   
   object JobStatuses {
-    val empty: JobStatuses = JobStatuses(Map.empty, Map.empty, 0, 0)
+    val empty: JobStatuses = JobStatuses(Set.empty, Set.empty, 0, 0)
   }
 }

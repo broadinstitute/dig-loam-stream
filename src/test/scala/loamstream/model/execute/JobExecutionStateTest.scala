@@ -3,53 +3,63 @@ package loamstream.model.execute
 import org.scalatest.FunSuite
 import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.JobResult
+import loamstream.model.jobs.MockJob
+import loamstream.model.jobs.LJob
 
 /**
  * @author clint
  * Jan 30, 2020
  */
-final class ExecutionCellTest extends FunSuite {
+final class JobExecutionStateTest extends FunSuite {
   import JobStatus._
   
+  private def mockJob: LJob = MockJob(JobStatus.Succeeded)
+  
   test("initial") {
-    val expected = ExecutionCell(NotStarted, 0)
+    val job = mockJob
     
-    assert(ExecutionCell.initial === expected) 
+    val expected = JobExecutionState(job, NotStarted, 0)
+    
+    assert(JobExecutionState.initialFor(job) === expected) 
   }
   
   test("markAsRunning") {
-    val cell0 = ExecutionCell.initial
+    val job = mockJob
     
-    assert(cell0.status === NotStarted)
-    assert(cell0.runCount === 0) 
+    val state0 = JobExecutionState.initialFor(job)
     
-    val cell1 = cell0.markAsRunning
+    assert(state0.status === NotStarted)
+    assert(state0.runCount === 0) 
     
-    assert(cell1.status === Running)
-    assert(cell1.runCount === 1)
+    val state1 = state0.markAsRunning
+    
+    assert(state1.status === Running)
+    assert(state1.runCount === 1)
     
     intercept[Exception] {
-      cell1.markAsRunning
+      state1.markAsRunning
     }
     
-    val cell2 = cell1.markAsRunnable.markAsRunning
+    val state2 = state1.markAsRunnable.markAsRunning
     
-    assert(cell2.status === Running)
-    assert(cell2.runCount === 2)
+    assert(state2.status === Running)
+    assert(state2.runCount === 2)
   }
   
   test("markAsRunnable") {
-    val cell0 = ExecutionCell.initial.markAsRunning
+    val job = mockJob
     
-    assert(cell0.status === Running)
+    val state0 = JobExecutionState.initialFor(job).markAsRunning
     
-    val cell1 = cell0.markAsRunnable
+    assert(state0.status === Running)
     
-    assert(cell1.status === NotStarted)
+    val state1 = state0.markAsRunnable
     
-    val cell2 = cell1.markAsRunnable
+    assert(state1.status === NotStarted)
     
-    assert(cell2.status === NotStarted)
+    val state2 = state1.markAsRunnable
+    
+    assert(state2.status === NotStarted)
   }
   
   test("finishWith") {
@@ -59,14 +69,16 @@ final class ExecutionCellTest extends FunSuite {
         expectedStatus: JobStatus, 
         expectedResult: JobResult): Unit = {
       
-      val cell0 = ExecutionCell.initial.markAsRunning
+      val job = mockJob 
       
-      assert(cell0.runCount === 1)
+      val state0 = JobExecutionState.initialFor(job).markAsRunning
       
-      val cell1 = cell0.finishWith(status)
+      assert(state0.runCount === 1)
       
-      assert(cell1.status === expectedStatus)
-      assert(cell1.runCount === 1)
+      val state1 = state0.finishWith(status)
+      
+      assert(state1.status === expectedStatus)
+      assert(state1.runCount === 1)
     }
     
     doTest(Succeeded, None, Succeeded, JobResult.Success)
@@ -78,22 +90,24 @@ final class ExecutionCellTest extends FunSuite {
   }
   
   test("markAs") {
-    val cell0 = ExecutionCell.initial
+    val job = mockJob
+    
+    val state0 = JobExecutionState.initialFor(job)
     
     val statusesThatShouldBeDisallowed = JobStatus.values.filter(_.isFinished) - CouldNotStart
     
     statusesThatShouldBeDisallowed.foreach { s =>
       intercept[Exception] {
-        cell0.markAs(s)
+        state0.markAs(s)
       }
     }
     
     val statusesThatShouldBeAllowed = JobStatus.values.filter(_.notFinished) + CouldNotStart
     
     statusesThatShouldBeAllowed.foreach { s => 
-      val cell1 = cell0.markAs(s)
+      val state1 = state0.markAs(s)
       
-      assert(cell1.status === s)
+      assert(state1.status === s)
     }
   }
   
@@ -121,19 +135,19 @@ final class ExecutionCellTest extends FunSuite {
     doPredicateTest(_ == NotStarted, _.notStarted)
   }
   
-  private def doPredicateTest(p: JobStatus => Boolean, cellField: ExecutionCell => Boolean): Unit = {
+  private def doPredicateTest(p: JobStatus => Boolean, cellField: JobExecutionState => Boolean): Unit = {
     val (matchingStatuses, nonMatchingStatuses) = JobStatus.values.partition(p)
     
     matchingStatuses.foreach { s =>
-      val cell = ExecutionCell.initial.copy(status = s)
+      val state = JobExecutionState.initialFor(mockJob).copy(status = s)
       
-      assert(cellField(cell) === true)
+      assert(cellField(state) === true)
     }
     
     nonMatchingStatuses.foreach { s =>
-      val cell = ExecutionCell.initial.copy(status = s)
+      val state = JobExecutionState.initialFor(mockJob).copy(status = s)
       
-      assert(cellField(cell) === false)
+      assert(cellField(state) === false)
     }
   }
 }

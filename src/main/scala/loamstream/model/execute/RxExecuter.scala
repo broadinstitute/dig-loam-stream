@@ -123,11 +123,11 @@ final case class RxExecuter(
     info(s"RxExecuter.runEligibleJobs(): Ready to run: $numReadyToRun; Cannot run: $numCannotRun; " +
          s"Running: $numRunning; Finished: $numFinished; Other: $numRemaining.")
     
-    val (finishedJobAndCells, notFinishedJobsAndCells) = {
-      jobsAndCells.readyToRun.partition { case (_, cell) => cell.isTerminal }
+    val (finishedJobStates, notFinishedJobStates) = {
+      jobsAndCells.readyToRun.partition(_.isTerminal)
     }
     
-    val (finishedJobs, notFinishedJobs) = (finishedJobAndCells.keys, notFinishedJobsAndCells.keys)
+    val (finishedJobs, notFinishedJobs) = (finishedJobStates.map(_.job), notFinishedJobStates.map(_.job))
     
     if(notFinishedJobs.nonEmpty) {
       runNotFinishedJobs(notFinishedJobs, executionState, jobOracle)

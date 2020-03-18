@@ -415,7 +415,13 @@ final class JobDirsTest extends FunSuite {
 
 object JobDirsTest {
   private final case class NamedJob(override val name: String) extends 
-      MockJob(name, dependencies = Set.empty, inputs = Set.empty, outputs = Set.empty, delay = 0) {
+      MockJob(
+          name, 
+          dependencies = Set.empty, 
+          successorsFn = () => Set.empty, 
+          inputs = Set.empty, 
+          outputs = Set.empty, 
+          delay = 0) {
 
     override def toReturn: RunData = {
       RunData(

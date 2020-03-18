@@ -19,10 +19,11 @@ import java.nio.file.Path
 abstract class MockJob(
     override val name: String,
     override val dependencies: Set[JobNode],
+    override protected val successorsFn: () => Set[JobNode],
     override val inputs: Set[DataHandle],
     override val outputs: Set[DataHandle],
     val delay: Int,
-    override val initialSettings: Settings = LocalSettings) extends LocalJob {
+    override val initialSettings: Settings = LocalSettings) extends LocalJob with JobNode.LazySucessors {
 
   def toReturn: RunData
   
@@ -52,11 +53,12 @@ abstract class MockJob(
   def copy(
       name: String = this.name,
       dependencies: Set[JobNode] = this.dependencies,
+      successorsFn: () => Set[JobNode] = () => this.successors,
       inputs: Set[DataHandle] = this.inputs,
       outputs: Set[DataHandle] = this.outputs,
       delay: Int = this.delay): MockJob = {
     
-    new MockJob.Constant(this.toReturn, name, dependencies, inputs, outputs, delay)
+    new MockJob.Constant(this.toReturn, name, dependencies, successorsFn, inputs, outputs, delay)
   }
 }
 
@@ -65,21 +67,23 @@ object MockJob {
       override val toReturn: RunData,
       override val name: String,
       override val dependencies: Set[JobNode],
+      override protected val successorsFn: () => Set[JobNode],
       override val inputs: Set[DataHandle],
       override val outputs: Set[DataHandle],
       override val delay: Int,
       override val initialSettings: Settings = LocalSettings) extends 
-          MockJob(name, dependencies, inputs, outputs, delay)
+          MockJob(name, dependencies, successorsFn, inputs, outputs, delay)
   
   class FromJobFn(
       toReturnFn: MockJob => RunData,
       override val name: String,
       override val dependencies: Set[JobNode],
+      override protected val successorsFn: () => Set[JobNode],
       override val inputs: Set[DataHandle],
       override val outputs: Set[DataHandle],
       override val delay: Int,
       override val initialSettings: Settings = LocalSettings) extends 
-          MockJob(name, dependencies, inputs, outputs, delay) {
+          MockJob(name, dependencies, successorsFn, inputs, outputs, delay) {
     
     override lazy val toReturn: RunData = toReturnFn(this)
   }
@@ -91,6 +95,7 @@ object MockJob {
         toReturn = toReturn,
         name = LJob.nextId().toString,
         dependencies = Set.empty,
+        successorsFn = () => Set.empty,
         inputs = Set.empty,
         outputs = Set.empty,
         delay = 0)
@@ -101,6 +106,7 @@ object MockJob {
         toReturnFn = job => runDataFromResult(job, LocalSettings, jobResultToReturn),
         name = LJob.nextId().toString,
         dependencies = Set.empty,
+        successorsFn = () => Set.empty,
         inputs = Set.empty,
         outputs = Set.empty,
         delay = 0)
@@ -120,6 +126,7 @@ object MockJob {
         toReturnFn = makeRunData,
         name = LJob.nextId().toString,
         dependencies = Set.empty,
+        successorsFn = () => Set.empty,
         inputs = Set.empty,
         outputs = Set.empty,
         delay = 0,
@@ -130,6 +137,7 @@ object MockJob {
       toReturn: JobStatus,
       name: String = LJob.nextId().toString,
       dependencies: Set[JobNode] = Set.empty,
+      successorsFn: () => Set[JobNode] = () => Set.empty,
       inputs: Set[DataHandle] = Set.empty,
       outputs: Set[DataHandle] = Set.empty,
       delay: Int = 0): MockJob = {
@@ -138,6 +146,7 @@ object MockJob {
         job => runDataFromStatus(job, LocalSettings, toReturn),
         name,
         dependencies,
+        successorsFn,
         inputs,
         outputs,
         delay)

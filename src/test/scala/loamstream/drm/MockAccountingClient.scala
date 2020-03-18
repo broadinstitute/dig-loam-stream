@@ -12,9 +12,9 @@ import scala.concurrent.Future
  */
 object MockAccountingClient {
   object NeverWorks extends AccountingClient {
-    override def getResourceUsage(jobId: String): Future[DrmResources] = Future.fromTry(Tries.failure("MOCK"))
+    override def getResourceUsage(taskId: DrmTaskId): Future[DrmResources] = Future.fromTry(Tries.failure("MOCK"))
     
-    override def getTerminationReason(jobId: String): Future[Option[TerminationReason]] = {
+    override def getTerminationReason(taskId: DrmTaskId): Future[Option[TerminationReason]] = {
       Future.fromTry(Tries.failure("MOCK"))
     }
   }

@@ -12,6 +12,7 @@ import scala.concurrent.duration.Duration
  * Apr 20, 2017
  */
 final case class ExecutionConfig(
+    executionPollingFrequencyInHz: Double = Defaults.executionPollingFrequencyInHz,
     maxRunsPerJob: Int = Defaults.maxRunsPerJob, 
     maxWaitTimeForOutputs: Duration = Defaults.maxWaitTimeForOutputs,
     outputPollingFrequencyInHz: Double = Defaults.outputPollingFrequencyInHz,
@@ -29,6 +30,8 @@ final case class ExecutionConfig(
 object ExecutionConfig extends ConfigParser[ExecutionConfig] {
 
   object Defaults {
+    val executionPollingFrequencyInHz: Double = 1.0
+    
     val maxRunsPerJob: Int = 4 //scalastyle:ignore magic.number
   
     val dryRunOutputFile: Path = Locations.Default.dryRunOutputFile
@@ -58,6 +61,7 @@ object ExecutionConfig extends ConfigParser[ExecutionConfig] {
   //via loamstream.conf.  Other values (workDir, scriptDir) can be set by unit tests, for example, but adding them
   //to loamstream.conf has no effect.
   private final case class Parsed(
+    executionPollingFrequencyInHz: Double = Defaults.executionPollingFrequencyInHz,
     maxRunsPerJob: Int = Defaults.maxRunsPerJob, 
     maxWaitTimeForOutputs: Duration = Defaults.maxWaitTimeForOutputs,
     outputPollingFrequencyInHz: Double = Defaults.outputPollingFrequencyInHz,
@@ -66,6 +70,7 @@ object ExecutionConfig extends ConfigParser[ExecutionConfig] {
     maxJobLogFilesPerDir: Int = Defaults.maxJobLogFilesPerDir) {
     
     def toExecutionConfig: ExecutionConfig = ExecutionConfig(
+      executionPollingFrequencyInHz = executionPollingFrequencyInHz,
       maxRunsPerJob = maxRunsPerJob, 
       maxWaitTimeForOutputs = maxWaitTimeForOutputs,
       outputPollingFrequencyInHz = outputPollingFrequencyInHz,

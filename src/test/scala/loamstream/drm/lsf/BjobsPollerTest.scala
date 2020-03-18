@@ -14,6 +14,9 @@ import loamstream.model.quantities.Memory
 import loamstream.drm.Queue
 import loamstream.util.RunResults
 import loamstream.util.Tries
+import loamstream.drm.DrmTaskId
+import loamstream.util.Observables
+import loamstream.TestHelpers
 
 /**
  * @author clint
@@ -21,6 +24,9 @@ import loamstream.util.Tries
  */
 final class BjobsPollerTest extends FunSuite {
 
+  import Observables.Implicits._
+  import TestHelpers.waitFor
+  
   // scalastyle:off line.size.limit
   private val validStdOut = Seq(
       "2842408|            LoamStream-826b3929-4810-4116-8502-5c60cd830d81[1]|EXIT |42        ",
@@ -29,85 +35,91 @@ final class BjobsPollerTest extends FunSuite {
   // scalastyle:on line.size.limit
   
   test("poll - happy path") {
-    def pollFn(lsfJobIds: Set[LsfJobId]): Try[RunResults] = {
+    def pollFn(lsfJobIds: Set[DrmTaskId]): Try[RunResults] = {
       Success(RunResults("whatever", 0, validStdOut, Seq.empty))
     }
     
-    val lsfJobIds = Set(
-        LsfJobId("2842408", 1).asString, 
-        LsfJobId("2842408", 2).asString, 
-        LsfJobId("2842408", 3).asString)
+    val taskIds = Set(
+        DrmTaskId("2842408", 1), 
+        DrmTaskId("2842408", 2), 
+        DrmTaskId("2842408", 3))
     
-    val results = new BjobsPoller(pollFn).poll(lsfJobIds)
+    val results = new BjobsPoller(pollFn).poll(taskIds)
     
-    val expected: Map[String, Try[DrmStatus]] = Map(
-      LsfJobId("2842408", 1).asString -> Success(DrmStatus.CommandResult(42)),
-      LsfJobId("2842408", 2).asString -> Success(DrmStatus.CommandResult(0)),
-      LsfJobId("2842408", 3).asString -> Success(DrmStatus.CommandResult(0)))
+    val expected: Map[DrmTaskId, Try[DrmStatus]] = Map(
+      DrmTaskId("2842408", 1) -> Success(DrmStatus.CommandResult(42)),
+      DrmTaskId("2842408", 2) -> Success(DrmStatus.CommandResult(0)),
+      DrmTaskId("2842408", 3) -> Success(DrmStatus.CommandResult(0)))
     
-    assert(results === expected)
+    assert(waitFor(results.toSeq.map(_.toMap).firstAsFuture) === expected)
   }
   
   test("poll - bjobs invocation failure") {
-    def pollFn(lsfJobIds: Set[LsfJobId]): Try[RunResults] = Tries.failure("blarg")
+    def pollFn(lsfJobIds: Set[DrmTaskId]): Try[RunResults] = Tries.failure("blarg")
     
-    val lsfJobIds = Set(
-        LsfJobId("2842408", 1).asString, 
-        LsfJobId("2842408", 2).asString, 
-        LsfJobId("2842408", 3).asString)
+    val taskIds = Set(
+        DrmTaskId("2842408", 1), 
+        DrmTaskId("2842408", 2), 
+        DrmTaskId("2842408", 3))
     
-    val results = new BjobsPoller(pollFn).poll(lsfJobIds)
+    val resultsObs = new BjobsPoller(pollFn).poll(taskIds)
     
-    assert(results.keySet === lsfJobIds)
+    val results = TestHelpers.waitFor(resultsObs.toSeq.map(_.toMap).firstAsFuture)
+    
+    assert(results.keySet === taskIds)
     assert(results.values.forall(_.isFailure))
   }
   
   test("poll - something threw") {
     val msg = "blarg"
     
-    def pollFn(lsfJobIds: Set[LsfJobId]): Try[RunResults] = {
+    def pollFn(lsfJobIds: Set[DrmTaskId]): Try[RunResults] = {
       Failure(new Exception(msg))
     }
     
-    val lsfJobIds = Set(
-        LsfJobId("2842408", 1).asString, 
-        LsfJobId("2842408", 2).asString, 
-        LsfJobId("2842408", 3).asString )
+    val taskIds = Set(
+        DrmTaskId("2842408", 1), 
+        DrmTaskId("2842408", 2), 
+        DrmTaskId("2842408", 3))
     
-    val results = new BjobsPoller(pollFn).poll(lsfJobIds)
+    val resultsObs = new BjobsPoller(pollFn).poll(taskIds)
     
-    assert(results.keySet === lsfJobIds)
+    val results = TestHelpers.waitFor(resultsObs.toSeq.map(_.toMap).firstAsFuture)
+    
+    assert(results.keySet === taskIds)
     assert(results.values.forall(_.failed.get.getMessage == msg))
   }
   
   test("runChunk - happy path") {
-    def pollFn(lsfJobIds: Set[LsfJobId]): Try[RunResults] = {
+    def pollFn(lsfJobIds: Set[DrmTaskId]): Try[RunResults] = {
       Success(RunResults("whatever", 0, validStdOut, Seq.empty))
     }
     
-    val lsfJobIds = Set(LsfJobId("2842408", 1), LsfJobId("2842408", 2), LsfJobId("2842408", 3))
+    val taskIds = Set(DrmTaskId("2842408", 1), DrmTaskId("2842408", 2), DrmTaskId("2842408", 3))
     
-    val results = new BjobsPoller(pollFn).runChunk(lsfJobIds)
+    val results = new BjobsPoller(pollFn).runChunk(taskIds)
     
-    val expected: Map[LsfJobId, Try[DrmStatus]] = Map(
-      LsfJobId("2842408", 1) -> Success(DrmStatus.CommandResult(42)),
-      LsfJobId("2842408", 2) -> Success(DrmStatus.CommandResult(0)),
-      LsfJobId("2842408", 3) -> Success(DrmStatus.CommandResult(0))
+    val expected: Map[DrmTaskId, Try[DrmStatus]] = Map(
+      DrmTaskId("2842408", 1) -> Success(DrmStatus.CommandResult(42)),
+      DrmTaskId("2842408", 2) -> Success(DrmStatus.CommandResult(0)),
+      DrmTaskId("2842408", 3) -> Success(DrmStatus.CommandResult(0))
     )
     
-    assert(results === expected)
+    assert(waitFor(results.toSeq.map(_.toMap).firstAsFuture) === expected)
   }
   
   test("runChunk - bjobs invocation failure") {
     val msg = "blarg"
     
-    def pollFn(lsfJobIds: Set[LsfJobId]): Try[RunResults] = Failure(new Exception(msg))
+    def pollFn(lsfJobIds: Set[DrmTaskId]): Try[RunResults] = Failure(new Exception(msg))
     
-    val lsfJobIds = Set(LsfJobId("2842408", 1), LsfJobId("2842408", 2), LsfJobId("2842408", 3))
+    val taskIds = Set(DrmTaskId("2842408", 1), DrmTaskId("2842408", 2), DrmTaskId("2842408", 3))
     
-    val results = new BjobsPoller(pollFn).runChunk(lsfJobIds)
+    val resultsObs = new BjobsPoller(pollFn).runChunk(taskIds)
     
-    assert(results.keySet === lsfJobIds)
+    val results = TestHelpers.waitFor(resultsObs.toSeq.map(_.toMap).firstAsFuture)
+    
+    assert(results.keySet === taskIds)
     assert(results.values.forall(_.failed.get.getMessage == msg))
   }
   
@@ -122,7 +134,7 @@ final class BjobsPollerTest extends FunSuite {
     
     val result = parseBjobsOutputLine(actualOutputLine)
     
-    val expected = Success(LsfJobId("2842408", 1) -> DrmStatus.CommandResult(42))
+    val expected = Success(DrmTaskId("2842408", 1) -> DrmStatus.CommandResult(42))
     
     assert(result === expected)
   }
@@ -138,7 +150,7 @@ final class BjobsPollerTest extends FunSuite {
     
     val result = parseBjobsOutputLine(actualOutputLine)
     
-    assert(result === Success(LsfJobId("2842408", 2) -> DrmStatus.CommandResult(0)))
+    assert(result === Success(DrmTaskId("2842408", 2) -> DrmStatus.CommandResult(0)))
   }
   
   test("parseBjobsOutputLine - no exit code, still running") {
@@ -152,7 +164,7 @@ final class BjobsPollerTest extends FunSuite {
     
     val result = parseBjobsOutputLine(actualOutputLine)
     
-    assert(result === Success(LsfJobId("2842408", 2) -> DrmStatus.Running))
+    assert(result === Success(DrmTaskId("2842408", 2) -> DrmStatus.Running))
   }
   
   test("parseBjobsOutputLine - bad input") {
@@ -176,9 +188,9 @@ final class BjobsPollerTest extends FunSuite {
     val results = parseBjobsOutput(validStdOut)
     
     val expected = Seq(
-        LsfJobId("2842408", 1) -> DrmStatus.CommandResult(42),
-        LsfJobId("2842408", 2) -> DrmStatus.CommandResult(0),
-        LsfJobId("2842408", 3) -> DrmStatus.CommandResult(0))
+        DrmTaskId("2842408", 1) -> DrmStatus.CommandResult(42),
+        DrmTaskId("2842408", 2) -> DrmStatus.CommandResult(0),
+        DrmTaskId("2842408", 3) -> DrmStatus.CommandResult(0))
         
     assert(results === expected)
   }
@@ -200,9 +212,9 @@ final class BjobsPollerTest extends FunSuite {
     val results = parseBjobsOutput(actualOutput)
     
     val expected = Seq(
-        LsfJobId("2842408", 1) -> DrmStatus.CommandResult(42),
-        LsfJobId("2842408", 3) -> DrmStatus.CommandResult(0),
-        LsfJobId("2842408", 2) -> DrmStatus.CommandResult(0))
+        DrmTaskId("2842408", 1) -> DrmStatus.CommandResult(42),
+        DrmTaskId("2842408", 3) -> DrmStatus.CommandResult(0),
+        DrmTaskId("2842408", 2) -> DrmStatus.CommandResult(0))
         
     assert(results === expected)
   }
@@ -217,14 +229,14 @@ final class BjobsPollerTest extends FunSuite {
 
     val results = parseBjobsOutput(actualOutput)
     
-    val expected = Seq(LsfJobId("3993061", 1) -> DrmStatus.Queued)
+    val expected = Seq(DrmTaskId("3993061", 1) -> DrmStatus.Queued)
         
     assert(results === expected)
   }
   
   test("makeTokens") {
     val executable = "foo"
-    val lsfJobIds = Set(LsfJobId("2842408", 3), LsfJobId("2842408", 1))
+    val lsfJobIds = Set(DrmTaskId("2842408", 3), DrmTaskId("2842408", 1))
     
     import BjobsPoller.makeTokens
     

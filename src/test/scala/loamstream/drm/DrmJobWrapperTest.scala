@@ -37,8 +37,8 @@ final class DrmJobWrapperTest extends FunSuite {
   private val ugerPathBuilder = new UgerPathBuilder(UgerScriptBuilderParams(TestHelpers.configWithUger.ugerConfig.get))
   
   private val baseExecutionConfig = ExecutionConfig(maxRunsPerJob = 42)
-  private val baseUgerConfig = UgerConfig(maxNumJobs = 42)
-  private val baseLsfConfig = LsfConfig(maxNumJobs = 42)
+  private val baseUgerConfig = UgerConfig(maxNumJobsPerTaskArray = 42)
+  private val baseLsfConfig = LsfConfig(maxNumJobsPerTaskArray = 42)
   
   test("commandLineInTaskArray - no image") {
     val ugerSettings = TestHelpers.defaultUgerSettings

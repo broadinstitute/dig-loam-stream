@@ -20,6 +20,7 @@ final class ExecutionConfigTest extends FunSuite {
     import ExecutionConfig.Defaults
 
     val expected = ExecutionConfig(
+        Defaults.executionPollingFrequencyInHz,
         Defaults.maxRunsPerJob,
         Defaults.maxWaitTimeForOutputs,
         Defaults.outputPollingFrequencyInHz,
@@ -67,6 +68,7 @@ final class ExecutionConfigTest extends FunSuite {
     
     val input = s"""|loamstream {
                     |  execution {
+                    |    executionPollingFrequencyInHz = 0.1
                     |    maxRunsPerJob = $expectedMaxRunsPerJob
                     |    maxWaitTimeForOutputs = "99 seconds"
                     |    outputPollingFrequencyInHz = 1.23
@@ -78,6 +80,7 @@ final class ExecutionConfigTest extends FunSuite {
     val executionConfig = parse(input).get
 
     val expected = ExecutionConfig(
+        executionPollingFrequencyInHz = 0.1,
         maxRunsPerJob = expectedMaxRunsPerJob,
         maxWaitTimeForOutputs = expectedMaxWaitTime,
         outputPollingFrequencyInHz = expectedOutputPollingFrequencyInHz,
@@ -103,6 +106,7 @@ final class ExecutionConfigTest extends FunSuite {
     
     val input = s"""|loamstream {
                     |  execution {
+                    |    executionPollingFrequencyInHz = 0.1
                     |    maxRunsPerJob = $expectedMaxRunsPerJob
                     |    maxWaitTimeForOutputs = "99 seconds"
                     |    outputPollingFrequencyInHz = 1.23
@@ -117,6 +121,7 @@ final class ExecutionConfigTest extends FunSuite {
     val executionConfig = parse(input).get
 
     val expected = ExecutionConfig(
+        executionPollingFrequencyInHz = 0.1,
         maxRunsPerJob = expectedMaxRunsPerJob,
         maxWaitTimeForOutputs = expectedMaxWaitTime,
         outputPollingFrequencyInHz = expectedOutputPollingFrequencyInHz,

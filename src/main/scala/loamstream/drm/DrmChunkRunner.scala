@@ -25,6 +25,7 @@ import loamstream.util.Loggable
 import loamstream.util.Observables
 import loamstream.util.Terminable
 import rx.lang.scala.Observable
+import loamstream.util.TimeUtils
 
 
 /**
@@ -49,8 +50,6 @@ final case class DrmChunkRunner(
 
   override protected val terminableComponents: Iterable[Terminable] = Seq(jobMonitor, jobSubmitter)
 
-  override def maxNumJobs: Int = drmConfig.maxNumJobs
-
   /**
    * Run the provided jobs, using the provided predicate (`shouldRestart`) to decide whether to re-run them if they
    * fail.  Returns an Observable producing a map of jobs to Executions.
@@ -60,10 +59,9 @@ final case class DrmChunkRunner(
    */
   override def run(
       jobs: Set[LJob], 
-      jobOracle: JobOracle, 
-      shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
+      jobOracle: JobOracle): Observable[Map[LJob, RunData]] = {
 
-    debug(s"Running: ")
+    debug(s"${getClass.getSimpleName}: Running ${jobs.size} jobs: ")
     jobs.foreach(job => debug(s"  $job"))
 
     require(
@@ -78,11 +76,17 @@ final case class DrmChunkRunner(
     val resultsForSubChunks: Iterable[Observable[Map[LJob, RunData]]] = {
       import DrmTaskArray.fromCommandLineJobs
       
+      val maxJobsPerTaskArray = drmConfig.maxNumJobsPerTaskArray
+      
       for {
         (settings, rawJobs) <- subChunksBySettings(commandLineJobs)
-        drmTaskArray = fromCommandLineJobs(executionConfig, jobOracle, settings, drmConfig, pathBuilder, rawJobs)
+        rawJobChunk <- rawJobs.sliding(maxJobsPerTaskArray, maxJobsPerTaskArray)
       } yield {
-        runJobs(settings, drmTaskArray, shouldRestart)
+        val drmTaskArray = TimeUtils.time(s"Making DrmTaskArray with ${rawJobChunk.size} jobs", debug(_)) {
+          fromCommandLineJobs(executionConfig, jobOracle, settings, drmConfig, pathBuilder, rawJobChunk)
+        }
+        
+        runJobs(settings, drmTaskArray)
       }
     }
 
@@ -96,45 +100,42 @@ final case class DrmChunkRunner(
    */
   private def runJobs(
     drmSettings: DrmSettings,
-    drmTaskArray: DrmTaskArray,
-    shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
+    drmTaskArray: DrmTaskArray): Observable[Map[LJob, RunData]] = {
 
     drmTaskArray.drmJobs match {
       case Nil => Observable.just(Map.empty)
       case drmJobs => {
-        val submissionResult = jobSubmitter.submitJobs(drmSettings, drmTaskArray)
+        val submissionResult = TimeUtils.time(s"Submitting DrmTaskArray with ${drmTaskArray.size} jobs") {
+          jobSubmitter.submitJobs(drmSettings, drmTaskArray)
+        }
 
-        toRunDataStream(drmJobs, submissionResult, shouldRestart)
+        toRunDataStream(drmJobs, submissionResult)
       }
     }
   }
 
   private def toRunDataStream(
     drmJobs: Seq[DrmJobWrapper],
-    submissionResult: DrmSubmissionResult,
-    shouldRestart: LJob => Boolean)(implicit ec: ExecutionContext): Observable[Map[LJob, RunData]] = {
+    submissionResult: DrmSubmissionResult)(implicit ec: ExecutionContext): Observable[Map[LJob, RunData]] = {
     
     val commandLineJobs = drmJobs.map(_.commandLineJob)
-
-    updateJobStatusesOnSubmission(commandLineJobs, submissionResult, shouldRestart)
     
     import loamstream.drm.DrmSubmissionResult._
     
     submissionResult match {
-      case SubmissionSuccess(drmJobsByDrmId) => jobsToRunDatas(shouldRestart, drmJobsByDrmId)
+      case SubmissionSuccess(drmJobsByDrmId) => jobsToRunDatas(drmJobsByDrmId)
       case SubmissionFailure(e) => makeAllFailureMap(drmJobs, Some(e))
     }
   }
   
   private[drm] def jobsToRunDatas(
-    shouldRestart: LJob => Boolean,
-    jobsById: Map[String, DrmJobWrapper])(implicit ec: ExecutionContext): Observable[Map[LJob, RunData]] = {
+    jobsById: Map[DrmTaskId, DrmJobWrapper])(implicit ec: ExecutionContext): Observable[Map[LJob, RunData]] = {
 
-    def statuses(jobIds: Iterable[String]): Map[String, Observable[DrmStatus]] = jobMonitor.monitor(jobIds)
+    def statuses(taskIds: Iterable[DrmTaskId]): Map[DrmTaskId, Observable[DrmStatus]] = jobMonitor.monitor(taskIds)
 
     val jobsAndDrmStatusesById = combine(jobsById, statuses(jobsById.keys))
 
-    toRunDatas(accountingClient, shouldRestart, jobsAndDrmStatusesById)
+    toRunDatas(accountingClient, jobsAndDrmStatusesById)
   }
   
   /**
@@ -155,30 +156,14 @@ object DrmChunkRunner extends Loggable {
 
   type JobAndStatuses = (DrmJobWrapper, Observable[DrmStatus])
 
-  private[drm] def updateJobStatusesOnSubmission(
-      commandLineJobs: Seq[HasCommandLine],
-      submissionResult: DrmSubmissionResult,
-      shouldRestart: LJob => Boolean): Unit = {
-    
-    import loamstream.drm.DrmSubmissionResult._
-    
-    submissionResult match {
-      case SubmissionSuccess(drmJobsByDrmId) => {
-        val actuallySubmittedJobs = drmJobsByDrmId.values.map(_.commandLineJob).toSet.intersect(commandLineJobs.toSet)
-        
-        actuallySubmittedJobs.foreach(_.transitionTo(Running))
-      }
-      case SubmissionFailure(e) => commandLineJobs.foreach(handleFailureStatus(shouldRestart, Failed))
-    }
-  }
-  
-  private[drm] def getAccountingInfoFor(accountingClient: AccountingClient)(jobId: String)
+  private[drm] def getAccountingInfoFor(accountingClient: AccountingClient)(taskId: DrmTaskId)
                                        (implicit ec: ExecutionContext): Future[Option[AccountingInfo]] = {
-    val infoAttempt = accountingClient.getAccountingInfo(jobId)
+    
+    val infoAttempt = accountingClient.getAccountingInfo(taskId)
         
     //For side effect only
     infoAttempt.recover {
-      case e => warn(s"Error invoking accounting client for job with DRM id '$jobId': ${e.getMessage}", e)
+      case e => warn(s"Error invoking accounting client for job with DRM id '$taskId': ${e.getMessage}", e)
     }
     
     infoAttempt.transformWith { 
@@ -189,13 +174,13 @@ object DrmChunkRunner extends Loggable {
   private[drm] def toRunData(
       accountingClient: AccountingClient, 
       wrapper: DrmJobWrapper, 
-      jobId: String)(s: DrmStatus)(implicit ec: ExecutionContext): Observable[RunData] = {
+      taskId: DrmTaskId)(s: DrmStatus)(implicit ec: ExecutionContext): Observable[RunData] = {
     
     val infoOptFuture: Future[Option[AccountingInfo]] = {
       if(s.isFinished) {
         debug(s"${simpleNameOf[DrmStatus]} is finished, determining execution node and queue: $s")
         
-        getAccountingInfoFor(accountingClient)(jobId)
+        getAccountingInfoFor(accountingClient)(taskId)
       } else {
         debug(s"${simpleNameOf[DrmStatus]} is NOT finished, NOT determining execution node and queue: $s")
         
@@ -221,17 +206,13 @@ object DrmChunkRunner extends Loggable {
   
   private[drm] def toRunDatas(
     accountingClient: AccountingClient, 
-    shouldRestart: LJob => Boolean,
-    jobsAndDrmStatusesById: Map[String, JobAndStatuses])
+    jobsAndDrmStatusesById: Map[DrmTaskId, JobAndStatuses])
     (implicit ec: ExecutionContext): Observable[Map[LJob, RunData]] = {
 
     val drmJobsToExecutionObservables: Iterable[(DrmJobWrapper, Observable[RunData])] = for {
-      (jobId, (wrapper, drmJobStatuses)) <- jobsAndDrmStatusesById
+      (taskId, (wrapper, drmJobStatuses)) <- jobsAndDrmStatusesById
     } yield {
-      //NB: Important: Jobs must be transitioned to new states by ChunkRunners like us.
-      drmJobStatuses.distinct.foreach(handleDrmStatus(shouldRestart, wrapper.commandLineJob))
-
-      val runDataObs = drmJobStatuses.last.flatMap(toRunData(accountingClient, wrapper, jobId))
+      val runDataObs = drmJobStatuses.last.flatMap(toRunData(accountingClient, wrapper, taskId))
 
       wrapper -> runDataObs
     }
@@ -241,27 +222,6 @@ object DrmChunkRunner extends Loggable {
     }
     
     Observables.toMap(jobsToExecutionObservables)
-  }
-
-  private[drm] def handleDrmStatus(shouldRestart: LJob => Boolean, job: LJob)(ds: DrmStatus): Unit = {
-    val jobStatus = toJobStatus(ds)
-
-    if (jobStatus.isFailure) {
-      debug(s"Handling failure status $jobStatus (was DRM status $ds) for job $job")
-
-      handleFailureStatus(shouldRestart, jobStatus)(job)
-    } else {
-      job.transitionTo(jobStatus)
-    }
-  }
-
-  private[drm] def handleFailureStatus(shouldRestart: LJob => Boolean, failureStatus: JobStatus)(job: LJob): Unit = {
-
-    val status = ExecuterHelpers.determineFailureStatus(shouldRestart, failureStatus, job)
-
-    trace(s"$job transitioning to: $status (Non-terminal failure status: $failureStatus)")
-
-    job.transitionTo(status)
   }
 
   private[drm] def makeAllFailureMap(

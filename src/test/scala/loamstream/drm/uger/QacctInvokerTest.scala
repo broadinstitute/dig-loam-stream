@@ -1,6 +1,7 @@
 package loamstream.drm.uger
 
 import org.scalatest.FunSuite
+import loamstream.drm.DrmTaskId
 
 /**
  * @author clint
@@ -8,6 +9,6 @@ import org.scalatest.FunSuite
  */
 final class QacctInvokerTest extends FunSuite {
   test("makeTokens") {
-    assert(QacctInvoker.makeTokens("foo", "bar") === Seq("foo", "-j", "bar"))
+    assert(QacctInvoker.makeTokens("foo", DrmTaskId("bar", 42)) === Seq("foo", "-j", "bar", "-t", "42"))
   }
 }

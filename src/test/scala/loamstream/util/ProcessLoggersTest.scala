@@ -105,51 +105,10 @@ final class ProcessLoggersTest extends FunSuite {
     doTest(Loggable.Level.Warn)
   }
 
-  test("&&") {
-    val logger0 = new ProcessLoggersTest.MockProcessLogger
-    val logger1 = new ProcessLoggersTest.MockProcessLogger
-
-    assert(logger0.outStrings === Nil)
-    assert(logger0.errStrings === Nil)
-    assert(logger0.timesBufferInvoked === 0)
-
-    assert(logger1.outStrings === Nil)
-    assert(logger1.errStrings === Nil)
-    assert(logger1.timesBufferInvoked === 0)
-
-    val composite = logger0 && logger1
-
-    composite.out(s"o1")
-
-    composite.err(s"e1")
-
-    assert(logger0.outStrings === Seq("o1"))
-    assert(logger0.errStrings === Seq("e1"))
-    assert(logger0.timesBufferInvoked === 0)
-
-    assert(logger1.outStrings === Seq("o1"))
-    assert(logger1.errStrings === Seq("e1"))
-    assert(logger1.timesBufferInvoked === 0)
-
-    composite.buffer(0)
-    composite.buffer(42)
-
-    composite.out(s"o2")
-
-    composite.err(s"e2")
-
-    assert(logger0.outStrings === Seq("o1", "o2"))
-    assert(logger0.errStrings === Seq("e1", "e2"))
-    assert(logger0.timesBufferInvoked === 2)
-
-    assert(logger1.outStrings === Seq("o1", "o2"))
-    assert(logger1.errStrings === Seq("e1", "e2"))
-    assert(logger1.timesBufferInvoked === 2)
-  }
 }
 
 object ProcessLoggersTest {
-  private final class MockProcessLogger extends ProcessLogger with ProcessLoggers.Composable {
+  private final class MockProcessLogger extends ProcessLogger {
     val outStrings: Buffer[String] = new ArrayBuffer
     val errStrings: Buffer[String] = new ArrayBuffer
     var timesBufferInvoked: Int = 0

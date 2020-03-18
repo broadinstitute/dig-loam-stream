@@ -11,6 +11,7 @@ import loamstream.loam.LoamCmdTool
 import loamstream.loam.LoamGraph
 import loamstream.util.Paths
 import loamstream.util.PlatformUtil
+import loamstream.util.TimeUtils
 
 
 /**

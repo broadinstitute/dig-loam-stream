@@ -40,10 +40,11 @@ final case class CommandLineJob(
     workDir: Path = Paths.get("."),
     initialSettings: Settings,
     override val dependencies: Set[JobNode] = Set.empty,
+    protected override val successorsFn: () => Set[JobNode] = () => Set.empty,
     inputs: Set[DataHandle] = Set.empty,
     outputs: Set[DataHandle] = Set.empty,
     exitValueCheck: Int => Boolean = CommandLineJob.defaultExitValueChecker,
-    private val nameOpt: Option[String] = None) extends HasCommandLine with Loggable {
+    private val nameOpt: Option[String] = None) extends HasCommandLine with JobNode.LazySucessors with Loggable {
 
   override def equals(other: Any): Boolean = other match {
     case that: CommandLineJob => this.id == that.id
@@ -51,7 +52,7 @@ final case class CommandLineJob(
   }
   
   override def hashCode: Int = id.hashCode
-  
+
   override def name: String = nameOpt.getOrElse(id.toString)
 
   def withCommandLineString(newCmd: String): CommandLineJob = copy(commandLineString = newCmd)

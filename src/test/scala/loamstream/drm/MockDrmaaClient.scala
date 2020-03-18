@@ -11,44 +11,42 @@ import loamstream.model.execute.Resources.DrmResources
  * @author clint
  * date: Jul 6, 2016
  */
-final case class MockDrmaaClient(private val toReturn: Map[String, Seq[Try[DrmStatus]]]) extends DrmaaClient {
+final case class MockDrmaaClient(private val toReturn: Map[DrmTaskId, Seq[Try[DrmStatus]]]) extends DrmaaClient {
   import loamstream.util.Maps.Implicits._
   
-  private val remaining: ValueBox[Map[String, Seq[Try[DrmStatus]]]] = {
+  private val remaining: ValueBox[Map[DrmTaskId, Seq[Try[DrmStatus]]]] = {
     ValueBox(toReturn.strictMapValues(_.init))
   }
   
   private val terminalStates = toReturn.map { case (jobId, statuses) => (jobId, statuses.last) }
   
-  val params: ValueBox[Seq[(String, Duration)]] = ValueBox(Vector.empty)
+  val params: ValueBox[Seq[(DrmTaskId, Duration)]] = ValueBox(Vector.empty)
   
   override def submitJob(
       drmSettings: DrmSettings,
       drmConfig: DrmConfig,
       taskArray: DrmTaskArray): DrmSubmissionResult = ???
 
-  override def statusOf(jobId: String): Try[DrmStatus] = waitFor(jobId, Duration.Zero)
+  override def statusOf(taskId: DrmTaskId): Try[DrmStatus] = waitFor(taskId, Duration.Zero)
 
-  override def waitFor(jobId: String, timeout: Duration): Try[DrmStatus] = {
-    params.mutate(_ :+ (jobId -> timeout))
+  override def waitFor(taskId: DrmTaskId, timeout: Duration): Try[DrmStatus] = {
+    params.mutate(_ :+ (taskId -> timeout))
     
     remaining.getAndUpdate { leftToReturn => 
-      val statuses = leftToReturn.get(jobId).filter(_.nonEmpty)
+      val statuses = leftToReturn.get(taskId).filter(_.nonEmpty)
       
       val (nextStatus, remainingStatuses) = statuses match {
         case Some(sts) => (sts.head, sts.tail)
-        case None => (terminalStates(jobId), Nil)
+        case None => (terminalStates(taskId), Nil)
       }
       
-      val nextMap = leftToReturn.updated(jobId, remainingStatuses)
+      val nextMap = leftToReturn.updated(taskId, remainingStatuses)
       
       nextMap -> nextStatus
     }
   }
 
   override def stop(): Unit = ()
-  
-  override def killJob(jobId: String): Unit = ???
   
   override def killAllJobs(): Unit = ???
 }

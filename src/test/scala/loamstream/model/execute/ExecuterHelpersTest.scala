@@ -26,35 +26,6 @@ import loamstream.util.Paths
  */
 final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
   
-  import loamstream.TestHelpers.alwaysRestart
-  import loamstream.TestHelpers.neverRestart
-  
-  test("determineFinalStatus") {
-    import ExecuterHelpers.determineFinalStatus
-    import JobStatus._
-    
-    def doTest(status: JobStatus, expectedNoRestart: JobStatus): Unit = {
-      val job = MockJob(NotStarted)
-      
-      assert(job.status === NotStarted)
-      
-      assert(determineFinalStatus(alwaysRestart, status, job) === status)
-      
-      assert(determineFinalStatus(neverRestart, status, job) === expectedNoRestart)
-      
-      assert(job.status === NotStarted)
-    }
-    
-    doTest(Failed, FailedPermanently)
-    doTest(FailedWithException, FailedPermanently)
-    doTest(Terminated, FailedPermanently)
-    doTest(NotStarted, NotStarted)
-    doTest(Running, Running)
-    doTest(Skipped, Skipped)
-    doTest(Submitted, Submitted)
-    doTest(Succeeded, Succeeded)
-  }
-  
   test("statusAndResultFrom") {
     import ExecuterHelpers.statusAndResultFrom
     
@@ -483,27 +454,6 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
     assert(execution.result === Some(JobResult.CommandInvocationFailure(exception)))
   }
   
-  test("determineFailureStatus") {
-    import ExecuterHelpers.determineFailureStatus
-    import JobStatus._
-    
-    def doTest(failureStatus: JobStatus): Unit = {
-      val job = MockJob(NotStarted)
-      
-      assert(job.status === NotStarted)
-      
-      assert(determineFailureStatus(alwaysRestart, failureStatus, job) === failureStatus)
-      
-      assert(determineFailureStatus(neverRestart, failureStatus, job) === FailedPermanently)
-      
-      assert(job.status === NotStarted)
-    }
-    
-    doTest(Failed)
-    doTest(FailedWithException)
-    doTest(Terminated)
-  }
-  
   test("flattenTree") {
     import ExecuterHelpers.flattenTree
     
@@ -524,39 +474,6 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
     val root1 = RxMockJob("root1", Set(middle1))
     
     assert(flattenTree(Set(root0, root1)) == Set(root0, middle0, noDeps0, root1, middle1, noDeps1))
-  }
-  
-  test("noFailures() and anyFailures()") {
-    import ExecuterHelpers.{noFailures,anyFailures}
-
-    assert(noFailures(Map.empty) === true)
-    assert(anyFailures(Map.empty) === false)
-
-    val allSuccesses = Map( two0 -> two0Success,
-                            two1 -> two1Success,
-                            twoPlusTwo -> twoPlusTwoSuccess,
-                            plusOne -> plusOneSuccess).mapValues(TestHelpers.executionFrom(_))
-      
-    assert(noFailures(allSuccesses) === true)
-    assert(anyFailures(allSuccesses) === false)
-    
-    val allFailures = Map(
-                          two0 -> JobStatus.Failed,
-                          two1 -> JobStatus.Failed,
-                          twoPlusTwo -> JobStatus.Failed,
-                          plusOne -> JobStatus.Failed).mapValues(TestHelpers.executionFrom(_))
-      
-    assert(noFailures(allFailures) === false)
-    assert(anyFailures(allFailures) === true)
-    
-    val someFailures = Map(
-                            two0 -> two0Success,
-                            two1 -> JobStatus.Failed,
-                            twoPlusTwo -> twoPlusTwoSuccess,
-                            plusOne -> JobStatus.Failed).mapValues(TestHelpers.executionFrom(_))
-      
-    assert(noFailures(someFailures) === false)
-    assert(anyFailures(someFailures) === true)
   }
   
   private def withFileMonitor[A](m: FileMonitor)(body: FileMonitor => A): A = try { body(m) } finally { m.stop() }

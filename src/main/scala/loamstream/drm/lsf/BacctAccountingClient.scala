@@ -24,26 +24,30 @@ import loamstream.util.Options
 import loamstream.util.RetryingCommandInvoker
 import loamstream.util.Tries
 import java.time.LocalDateTime
+import loamstream.drm.DrmTaskId
+import rx.lang.scala.Scheduler
 
 /**
  * @author clint
  * Apr 18, 2019
  */
 final class BacctAccountingClient(
-    bacctInvoker: RetryingCommandInvoker[String])
+    bacctInvoker: RetryingCommandInvoker[DrmTaskId])
     (implicit ec: ExecutionContext) extends AccountingClient with Loggable {
 
   import BacctAccountingClient._
 
-  override def getResourceUsage(jobId: String): Future[LsfResources] = {
-    getBacctOutputFor(jobId).flatMap(output => Future.fromTry(toResources(output)))
+  override def getResourceUsage(taskId: DrmTaskId): Future[LsfResources] = {
+    getBacctOutputFor(taskId).flatMap(output => Future.fromTry(toResources(output)))
   }
   
-  override def getTerminationReason(jobId: String): Future[Option[TerminationReason]] = {
-    getBacctOutputFor(jobId).map(toTerminationReason)
+  override def getTerminationReason(taskId: DrmTaskId): Future[Option[TerminationReason]] = {
+    getBacctOutputFor(taskId).map(toTerminationReason)
   }
   
-  private def getBacctOutputFor(jobId: String): Future[Seq[String]] = bacctInvoker(jobId).map(_.stdout.map(_.trim))
+  private def getBacctOutputFor(taskId: DrmTaskId): Future[Seq[String]] = {
+    bacctInvoker(taskId).map(_.stdout.map(_.trim))
+  }
     
   private def toTerminationReason(bacctOutput: Seq[String]): Option[TerminationReason] = {
     bacctOutput.collectFirst { case Regexes.termReason(r) => r }.map(parseTerminationReason)
@@ -104,8 +108,9 @@ object BacctAccountingClient {
    */
   def useActualBinary(
       lsfConfig: LsfConfig, 
+      scheduler: Scheduler,
       binaryName: String = "bacct")(implicit ec: ExecutionContext): BacctAccountingClient = {
-    new BacctAccountingClient(BacctInvoker.useActualBinary(lsfConfig.maxBacctRetries, binaryName))
+    new BacctAccountingClient(BacctInvoker.useActualBinary(lsfConfig.maxBacctRetries, binaryName, scheduler))
   }
   
   //"Data lines" look like this:

@@ -63,7 +63,7 @@ final case class DrmTaskArray(
   private[drm] def createScriptFile(contents: String, file: Path): Path = LFiles.writeTo(file)(contents)
 }
 
-object DrmTaskArray {
+object DrmTaskArray extends Loggable {
   /**
    * Make a name that will be used as a base for the names of all the jobs in this task array.
    *  
@@ -86,6 +86,8 @@ object DrmTaskArray {
       jobs: Seq[CommandLineJob],
       jobName: String = makeJobName()): DrmTaskArray = {
 
+    debug(s"Making DRM task array with ${jobs.size} jobs") 
+    
     val drmJobs = jobs.zipWithIndex.map { case (commandLineJob, i) =>
       //Uger task array indices start from 1
       val indexInTaskArray = i + 1

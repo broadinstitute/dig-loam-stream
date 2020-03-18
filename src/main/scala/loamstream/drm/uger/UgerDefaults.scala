@@ -12,7 +12,7 @@ import java.nio.file.Path
  * Oct 11, 2017
  */
 object UgerDefaults {
-  val maxConcurrentJobs: Int = 2000 //scalastyle:ignore magic.number
+  val maxNumJobsPerTaskArray: Int = 2000 //scalastyle:ignore magic.number
   
   val cores: Cpus = Cpus(1)
 

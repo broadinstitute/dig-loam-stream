@@ -64,22 +64,10 @@ final class JobRunTest extends FunSuite {
     assert(JobRun(job0, Skipped, 0) === JobRun(job0, Skipped, 0))
     assert(JobRun(job0, Skipped, 0).hashCode === JobRun(job0, Skipped, 0).hashCode)
     
-    val run0 = JobRun(job0, job0.status, job0.runCount)
+    val run0 = JobRun(job0, NotStarted, 2)
     val run1 = JobRun(job0, run0.status, run0.runCount)
     
     assert((run0 eq run1) === false)
-    assert(run0 == run1)
-    assert(run0.hashCode == run1.hashCode)
-    
-    assert(job0.status === NotStarted)
-    assert(job0.runCount === 0)
-    
-    //Give job0 a different run count and status 
-    job0.transitionTo(Running)
-    
-    assert(job0.status === Running)
-    assert(job0.runCount === 1)
-    
     assert(run0 == run1)
     assert(run0.hashCode == run1.hashCode)
   }

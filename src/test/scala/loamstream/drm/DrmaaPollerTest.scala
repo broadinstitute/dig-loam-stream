@@ -8,6 +8,9 @@ import scala.util.Success
 import scala.util.Try
 
 import org.scalatest.FunSuite
+import loamstream.TestHelpers
+import loamstream.util.Observables
+import rx.lang.scala.Observable
 
 
 /**
@@ -18,92 +21,91 @@ final class DrmaaPollerTest extends FunSuite {
   import DrmStatus._
   import scala.concurrent.duration._
   
-  //TODO: Replace with Futures.waitFor
-  private def waitFor[A](f: Future[A]): A = Await.result(f, Duration.Inf)
+  private def waitFor[A](f: Future[A]): A = TestHelpers.waitFor(f)
 
   private val zero = Duration.Zero
-  
-  
+
+  import Observables.Implicits._
   
   test("drama().poll() - happy path") {
-    val jobId = "foo"
+    val taskId = DrmTaskId("foo", 42)
     
-    val client = MockDrmaaClient(Map(jobId -> Seq(Success(Running), Success(Running), Success(Done))))
+    val client = MockDrmaaClient(Map(taskId -> Seq(Success(Running), Success(Running), Success(Done))))
     
     val poller = new DrmaaPoller(client)
     
     val statuses = Seq(
-      poller.poll(Seq(jobId)),
-      poller.poll(Seq(jobId)),
-      poller.poll(Seq(jobId)))
+      poller.poll(Seq(taskId)),
+      poller.poll(Seq(taskId)),
+      poller.poll(Seq(taskId)))
     
-    val Seq(s0, s1, s2) = statuses.map(_.values.head)
+    val Seq(s0, s1, s2) = statuses.map(_.map { case (_, status) => status }.firstAsFuture).map(waitFor)
     
     assert(s0 == Success(Running))
     assert(s1 == Success(Running))
     assert(s2 == Success(Done))
       
-    assert(client.params.value == Seq(jobId -> zero, jobId -> zero, jobId -> zero))
+    assert(client.params.value == Seq(taskId -> zero, taskId -> zero, taskId -> zero))
   }
   
   test("drmaa().poll() - happy path, multiple jobs") {
-    val jobId1 = "foo"
-    val jobId2 = "bar"
-    val jobId3 = "baz"
+    val taskId1 = DrmTaskId("foo", 42)
+    val taskId2 = DrmTaskId("bar", 43)
+    val taskId3 = DrmTaskId("baz", 44)
     
-    val jobIds = Seq(jobId1, jobId2, jobId3)
+    val taskIds = Seq(taskId1, taskId2, taskId3)
     
     val client = MockDrmaaClient(
       Map(
-        jobId1 -> Seq(Success(Running), Success(Running), Success(Running), Success(Done)),
-        jobId2 -> Seq(Success(Running), Success(Done)),
-        jobId3 -> Seq(Success(Running), Success(Running), Success(Done))))
+        taskId1 -> Seq(Success(Running), Success(Running), Success(Running), Success(Done)),
+        taskId2 -> Seq(Success(Running), Success(Done)),
+        taskId3 -> Seq(Success(Running), Success(Running), Success(Done))))
     
     val poller = new DrmaaPoller(client)
   
-    def poll: Map[String, Try[DrmStatus]] = poller.poll(jobIds)
+    def poll: Map[DrmTaskId, Try[DrmStatus]] = waitFor(poller.poll(taskIds).toSeq.map(_.toMap).firstAsFuture)
     
     {
       val expected = Map(
-          jobId1 -> Success(Running),
-          jobId2 -> Success(Running),
-          jobId3 -> Success(Running))
+          taskId1 -> Success(Running),
+          taskId2 -> Success(Running),
+          taskId3 -> Success(Running))
           
       assert(poll == expected)
     }
     
     {
       val expected = Map(
-          jobId1 -> Success(Running),
-          jobId2 -> Success(Done),
-          jobId3 -> Success(Running))
+          taskId1 -> Success(Running),
+          taskId2 -> Success(Done),
+          taskId3 -> Success(Running))
           
       assert(poll == expected)
     }
     
     {
       val expected = Map(
-          jobId1 -> Success(Running),
-          jobId2 -> Success(Done),
-          jobId3 -> Success(Done))
+          taskId1 -> Success(Running),
+          taskId2 -> Success(Done),
+          taskId3 -> Success(Done))
           
       assert(poll == expected)
     }
     
     {
       val expected = Map(
-          jobId1 -> Success(Done),
-          jobId2 -> Success(Done),
-          jobId3 -> Success(Done))
+          taskId1 -> Success(Done),
+          taskId2 -> Success(Done),
+          taskId3 -> Success(Done))
           
       assert(poll == expected)
     }
     
     {
       val expected = Map(
-          jobId1 -> Success(Done),
-          jobId2 -> Success(Done),
-          jobId3 -> Success(Done))
+          taskId1 -> Success(Done),
+          taskId2 -> Success(Done),
+          taskId3 -> Success(Done))
           
       assert(poll == expected)
     }
@@ -112,22 +114,23 @@ final class DrmaaPollerTest extends FunSuite {
   test("drmaa().poll() - some failures") {
     val exception = new Exception with scala.util.control.NoStackTrace
     
-    val jobId = "foo"
+    val taskId = DrmTaskId("foo", 42)
     
-    val jobIds = Seq(jobId)
+    val taskIds = Seq(taskId)
     
     val client = MockDrmaaClient(
       Map(
-        jobId -> Seq(Success(Running), Failure(exception), Success(Done), Failure(exception))))
+        taskId -> Seq(Success(Running), Failure(exception), Success(Done), Failure(exception))))
     
     val poller = new DrmaaPoller(client)
     
+    def poll() = waitFor(poller.poll(taskIds).toSeq.map(_.toMap).firstAsFuture)
+    
     val results = Seq(
-      poller.poll(jobIds),
-      poller.poll(jobIds),
-      poller.poll(jobIds),
-      poller.poll(jobIds)).map(_.values.head)
-     
+      poll(),
+      poll(),
+      poll(),
+      poll()).map(_.values.head)
     
     val Seq(s0, s1, s2, s3) = results 
     
@@ -136,6 +139,6 @@ final class DrmaaPollerTest extends FunSuite {
     assert(s2 == Success(Done))
     assert(s3 == Failure(exception))
       
-    assert(client.params.value == Seq(jobId -> zero, jobId -> zero, jobId -> zero, jobId -> zero))
+    assert(client.params.value == Seq(taskId -> zero, taskId -> zero, taskId -> zero, taskId -> zero))
   }
 }

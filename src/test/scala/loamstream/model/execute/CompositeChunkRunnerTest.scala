@@ -21,19 +21,8 @@ import loamstream.model.jobs.JobOracle
 final class CompositeChunkRunnerTest extends FunSuite {
   
   import CompositeChunkRunnerTest.{ MockRunner, local }
-  import loamstream.TestHelpers.neverRestart
   import loamstream.TestHelpers.waitFor
   
-  test("maxNumJobs") {
-    val n1 = 3
-    val n2 = 5
-    val n3 = 1
-    
-    val runner = CompositeChunkRunner(Seq(local(n1), local(n2), local(n3)))
-    
-    assert(runner.maxNumJobs === (n1 + n2 + n3))
-  }
-
   test("canRun") {
 
     val job1 = MockJob(JobStatus.Succeeded)
@@ -63,16 +52,16 @@ final class CompositeChunkRunnerTest extends FunSuite {
     
     //Should throw if we can't run all the given jobs
     intercept[Exception] {
-      runner.run(Set(job2, job3), TestHelpers.DummyJobOracle, neverRestart)
+      runner.run(Set(job2, job3), TestHelpers.DummyJobOracle)
     }
     
     intercept[Exception] {
-      runner.run(Set(job1, job4), TestHelpers.DummyJobOracle, neverRestart)
+      runner.run(Set(job1, job4), TestHelpers.DummyJobOracle)
     }
     
     import Observables.Implicits._
     
-    val futureResults = runner.run(Set(job1, job2), TestHelpers.DummyJobOracle, neverRestart).lastAsFuture
+    val futureResults = runner.run(Set(job1, job2), TestHelpers.DummyJobOracle).lastAsFuture
     
     val expected = Map(job1 -> JobStatus.Succeeded, job2 -> JobStatus.Failed)
     
@@ -84,15 +73,12 @@ object CompositeChunkRunnerTest {
   private def local(n: Int) = AsyncLocalChunkRunner(ExecutionConfig.default, n)(ExecutionContext.global)
   
   private final case class MockRunner(allowed: MockJob) extends ChunkRunner {
-    override def maxNumJobs: Int = ???
-    
     override def canRun(job: LJob): Boolean = job eq allowed
     
     private val delegate = local(1)
     
     override def run(
         jobs: Set[LJob], 
-        jobOracle: JobOracle, 
-        shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = delegate.run(jobs, jobOracle, shouldRestart)
+        jobOracle: JobOracle): Observable[Map[LJob, RunData]] = delegate.run(jobs, jobOracle)
   }
 }

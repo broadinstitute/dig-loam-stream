@@ -192,7 +192,7 @@ object AppWiring extends Loggable {
 
       import scala.concurrent.duration._
       
-      val windowLength = 30.seconds
+      val windowLength = (1.0 / config.executionConfig.executionPollingFrequencyInHz).seconds
       
       import config.executionConfig.{ maxRunsPerJob, maxWaitTimeForOutputs, outputPollingFrequencyInHz }
       
@@ -398,7 +398,7 @@ object AppWiring extends Loggable {
 
         val jobSubmitter = JobSubmitter.Drmaa(drmaaClient, ugerConfig)
         
-        val accountingClient = QacctAccountingClient.useActualBinary(ugerConfig)
+        val accountingClient = QacctAccountingClient.useActualBinary(ugerConfig, scheduler)
         
         DrmChunkRunner(
             environmentType = EnvironmentType.Uger,
@@ -439,7 +439,7 @@ object AppWiring extends Loggable {
 
         val jobSubmitter = BsubJobSubmitter.fromExecutable(lsfConfig)
 
-        val accountingClient = BacctAccountingClient.useActualBinary(lsfConfig)
+        val accountingClient = BacctAccountingClient.useActualBinary(lsfConfig, scheduler)
         
         DrmChunkRunner(
             environmentType = EnvironmentType.Lsf,

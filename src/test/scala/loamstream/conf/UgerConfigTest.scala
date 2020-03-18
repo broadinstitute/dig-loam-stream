@@ -21,7 +21,7 @@ final class UgerConfigTest extends FunSuite {
     val config = UgerConfig()
     
     assert(config.workDir === Locations.Default.ugerDir)
-    assert(config.maxNumJobs === UgerDefaults.maxConcurrentJobs)
+    assert(config.maxNumJobsPerTaskArray === UgerDefaults.maxNumJobsPerTaskArray)
     assert(config.defaultCores === UgerDefaults.cores)
     assert(config.defaultMemoryPerCore === UgerDefaults.memoryPerCore)
     assert(config.defaultMaxRunTime === UgerDefaults.maxRunTime)
@@ -35,7 +35,7 @@ final class UgerConfigTest extends FunSuite {
     val valid = ConfigFactory.parseString("""
       loamstream {
         uger {
-          maxNumJobs=44
+          maxNumJobsPerTaskArray=44
           defaultCores = 42
           defaultMemoryPerCore = 9 // Gb
           defaultMaxRunTime = 11 // hours
@@ -50,7 +50,7 @@ final class UgerConfigTest extends FunSuite {
     val config = UgerConfig.fromConfig(valid).get
     
     assert(config.workDir === Locations.Default.ugerDir)
-    assert(config.maxNumJobs === 44)
+    assert(config.maxNumJobsPerTaskArray === 44)
     assert(config.defaultCores === Cpus(42))
     assert(config.defaultMemoryPerCore=== Memory.inGb(9))
     assert(config.defaultMaxRunTime === CpuTime.inHours(11))
@@ -72,7 +72,7 @@ final class UgerConfigTest extends FunSuite {
     val config = UgerConfig.fromConfig(valid).get
     
     assert(config.workDir === Locations.Default.ugerDir)
-    assert(config.maxNumJobs === UgerDefaults.maxConcurrentJobs)
+    assert(config.maxNumJobsPerTaskArray === UgerDefaults.maxNumJobsPerTaskArray)
     assert(config.defaultCores === UgerDefaults.cores)
     assert(config.defaultMemoryPerCore === UgerDefaults.memoryPerCore)
     assert(config.defaultMaxRunTime === UgerDefaults.maxRunTime)

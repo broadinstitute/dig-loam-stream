@@ -28,8 +28,7 @@ final case class AsyncLocalChunkRunner(
   
   override def run(
       jobs: Set[LJob], 
-      jobOracle: JobOracle, 
-      shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
+      jobOracle: JobOracle): Observable[Map[LJob, RunData]] = {
     
     if(jobs.isEmpty) { Observable.just(Map.empty) }
     else {
@@ -40,7 +39,7 @@ final case class AsyncLocalChunkRunner(
           s"Expected only LocalJobs, but found ${jobs.filterNot(canBeRun).mkString(",")}")
       
       def exec(job: LJob): Observable[RunData] = {
-        Observable.from(executeSingle(executionConfig, jobOracle, job, shouldRestart))
+        Observable.from(executeSingle(executionConfig, jobOracle, job))
       }
 
       val executionObservables: Seq[Observable[RunData]] = jobs.toSeq.map(exec)
@@ -60,10 +59,7 @@ object AsyncLocalChunkRunner extends Loggable {
   def executeSingle(
       executionConfig: ExecutionConfig,
       jobOracle: JobOracle,
-      job: LJob, 
-      shouldRestart: LJob => Boolean)(implicit executor: ExecutionContext): Future[RunData] = {
-    
-    job.transitionTo(JobStatus.Running)
+      job: LJob)(implicit executor: ExecutionContext): Future[RunData] = {
     
     val jobDir = jobOracle.dirFor(job)
     
@@ -77,14 +73,6 @@ object AsyncLocalChunkRunner extends Loggable {
       Throwables.quietly("Closing process logger failed")(processLogger.close())
     }
     
-    result.withSideEffect(closeProcessLogger).withSideEffect(handleResultOfExecution(shouldRestart))
-  }
-  
-  private[execute] def handleResultOfExecution(shouldRestart: LJob => Boolean)(runData: RunData): Unit = {
-    debug(s"Handling result of execution: ${runData.job} => $runData")
-    
-    val newStatus = ExecuterHelpers.determineFinalStatus(shouldRestart, runData.jobStatus, runData.job)
-    
-    runData.job.transitionTo(newStatus)
+    result.withSideEffect(closeProcessLogger)
   }
 }

@@ -73,21 +73,12 @@ final class Drmaa1Client(nativeSpecBuilder: NativeSpecBuilder) extends DrmaaClie
   }
 
   /**
-   * Kill the job with the specified id, if the job is running.
-   */
-  override def killJob(jobId: String): Unit = {
-    debug(s"Killing Job '$jobId'")
-
-    withSession(_.control(jobId, Session.TERMINATE))
-  }
-
-  /**
    * Kill all jobs.
    */
   override def killAllJobs(): Unit = {
     debug(s"Killing all jobs...")
 
-    killJob(Session.JOB_IDS_SESSION_ALL)
+    withSession(_.control(Session.JOB_IDS_SESSION_ALL, Session.TERMINATE))
   }
 
   /**
@@ -113,16 +104,18 @@ final class Drmaa1Client(nativeSpecBuilder: NativeSpecBuilder) extends DrmaaClie
    * @return Success wrapping the JobStatus corresponding to the code obtained from DRM,
    * or Failure if the job id isn't known.  (Lamely, this can occur if the job is finished.)
    */
-  override def statusOf(jobId: String): Try[DrmStatus] = {
+  override def statusOf(taskId: DrmTaskId): Try[DrmStatus] = {
     Try {
       withSession { session =>
-        val status = session.getJobProgramStatus(jobId)
+        //TODO Is .jobId right here?  Do we need to care about the index as well?
+        val status = session.getJobProgramStatus(taskId.jobId)
         val jobStatus = DrmStatus.fromDrmStatusCode(status)
 
-        debug(s"Job '$jobId' has status $status, mapped to $jobStatus")
+        trace(s"Job '$taskId' has status $status, mapped to $jobStatus")
 
         if (jobStatus.isFinished) {
-          doWait(session, jobId, Duration.Zero)
+          //TODO Is .jobId right here?  Do we need to care about the index as well?
+          doWait(session, taskId.jobId, Duration.Zero)
         } else {
           jobStatus
         }
@@ -158,20 +151,21 @@ final class Drmaa1Client(nativeSpecBuilder: NativeSpecBuilder) extends DrmaaClie
    * If the timeout elapses without the job finishing, return Success(Running).  If an InvalidJobException
    * is thrown while waiting, return Success(Done).
    */
-  override def waitFor(jobId: String, timeout: Duration): Try[DrmStatus] = {
+  override def waitFor(taskId: DrmTaskId, timeout: Duration): Try[DrmStatus] = {
     val waitAttempt = Try {
       withSession { session =>
-        doWait(session, jobId, timeout)
+        //TODO Is .jobId right here?  Do we need to care about the index as well?
+        doWait(session, taskId.jobId, timeout)
       }
     }
 
     //If we time out before the job finishes, and we don't get an InvalidJobException, the job must be running 
     waitAttempt.recover {
       case e: ExitTimeoutException =>
-        debug(s"Timed out waiting for job '$jobId' to finish; assuming the job's state is ${DrmStatus.Running}")
+        debug(s"Timed out waiting for job '$taskId' to finish; assuming the job's state is ${DrmStatus.Running}")
         DrmStatus.Running
       case e: InvalidJobException =>
-        debug(s"Received InvalidJobException while 'wait'ing for job '$jobId'. " +
+        debug(s"Received InvalidJobException while 'wait'ing for job '$taskId'. " +
           s"Assuming that the data records of the job was already reaped by a previous call, " +
           s"and therefore mapping its status to ${DrmStatus.Done}")
         DrmStatus.Done
@@ -261,21 +255,23 @@ final class Drmaa1Client(nativeSpecBuilder: NativeSpecBuilder) extends DrmaaClie
 
       val jobIds = session.runBulkJobs(jt, taskStartIndex, taskEndIndex, taskIndexIncr).asScala.map(_.toString)
 
-      debug(s"Jobs have been submitted with ids ${jobIds.mkString(",")}")
-
-      val idsForJobs = jobIds.zip(taskArray.drmJobs).toMap
+      val jobIdsForJobs = jobIds.zip(taskArray.drmJobs).toMap
 
       def drmIdsToJobsString = {
         (for {
-          (drmId, job) <- idsForJobs.mapValues(_.commandLineJob)
+          (drmJobId, job) <- jobIdsForJobs.mapValues(_.commandLineJob)
         } yield {
-          s"DRM Id: $drmId => $job"
+          s"DRM Id: $drmJobId => $job"
         }).mkString("\n")
       }
 
       info(s"DRM ids assigned to jobs:\n$drmIdsToJobsString")
 
-      DrmSubmissionResult.SubmissionSuccess(idsForJobs)
+      val drmTaskIdsToJobs = jobIdsForJobs.map { 
+        case (jobId, drmJobWrapper) => (DrmTaskId(jobId, drmJobWrapper.drmIndex), drmJobWrapper)
+      }
+      
+      DrmSubmissionResult.SubmissionSuccess(drmTaskIdsToJobs)
     }
   }
 

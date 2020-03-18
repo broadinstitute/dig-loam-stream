@@ -31,6 +31,7 @@ import loamstream.util.FileMonitor
 import loamstream.util.Futures
 import jdk.nashorn.internal.runtime.FinalScriptFunctionData
 import loamstream.model.jobs.JobOracle
+import loamstream.util.TimeUtils
 
 /**
  * @author kaan
@@ -54,6 +55,16 @@ final case class RxExecuter(
   import executionRecorder.record
   import loamstream.util.Observables.Implicits._
   
+  /**
+   * Execute all the jobs in an Executable, blocking until every one of them that can be run has been run.
+   * 
+   * At a high level: 
+   *  - Track the state of every job
+   *  - Poll the status of every job
+   *  - When a job becomes runnable, run it
+   *  - When a job fails, mark all its successors as CouldNotStart
+   *  - Repeat until all jobs are done or could not start 
+   */
   override def execute(
       executable: Executable, 
       makeJobOracle: Executable => JobOracle = JobOracle.fromExecutable(executionConfig, _))
@@ -61,51 +72,102 @@ final case class RxExecuter(
     
     val jobOracle = makeJobOracle(executable)
     
+    def numJobs = executable.allJobs.size
+    
+    val executionState = TimeUtils.time(s"Initializing execution state with ${numJobs} jobs", debug(_)) {
+      ExecutionState.initialFor(executable, maxRunsPerJob)
+    }
+
     val ioScheduler: Scheduler = IOScheduler()
     
-    //An Observable stream of job runs; each job is emitted when it becomes runnable.  This can be because the
-    //job's dependencies finished successfully, or because the job failed and we've decided to restart it.
-    //
-    //De-dupe jobs based on their ids and run counts.  This allows for re-running failed jobs, since while the
-    //job id would stay the same in that case, the run count would differ.  This is a blunt-force method that 
-    //prevents running the same job more than once concurrently in the face of "diamond-shaped" topologies.
-    val runnables: Observable[JobRun] = RxExecuter.deDupe(executable.multiplex(_.runnables))
-    
-    //An observable stream of "chunks" of runnable jobs, with each chunk represented as a Seq.
-    //Jobs are buffered up until the amount of time indicated by 'windowLength' elapses, or 'runner.maxNumJobs'
-    //are collected.  When that happens, the buffered "chunk" of jobs is emitted.
-    val chunks: Observable[Seq[JobRun]] = runnables.tumblingBuffer(windowLength, runner.maxNumJobs, ioScheduler)
-    
-    val chunkResults: Observable[Map[LJob, Execution]] = for {
-      //NB: .toSet is important: jobs in a chunk should be distinct, 
-      //so they're not run more than once before transitioning to a terminal state.
-      jobs <- chunks.map(_.toSet)
-      //NB: Filter out jobs from this chunk that finished when run as part of another chunk, so we don't run them
-      //more times than necessary.  This helps in the face of job-restarting, since we can't call `distinct()` 
-      //on `runnables` and declare victory like we did before, since that would filter out restarting jobs that 
-      //already ran 
-      (finishedJobs, notFinishedJobs) = jobs.partition(_.status.isTerminal)
-      if notFinishedJobs.nonEmpty
-      (jobsToMaybeRun, skippedJobs) = notFinishedJobs.map(_.job).partition(jobFilter.shouldRun)
-      (jobsToCancel, jobsToRun) = jobsToMaybeRun.partition(jobCanceler.shouldCancel)
-      _ = handleSkippedJobs(skippedJobs)
-      cancelledJobsMap = cancelJobs(jobsToCancel)
-      _ = record(jobOracle, cancelledJobsMap)
-      skippedResultMap = toSkippedResultMap(skippedJobs)
-      executionTupleOpt <- runJobs(jobsToRun, jobOracle)
-      _ = record(jobOracle, executionTupleOpt)
-      executionMap = cancelledJobsMap ++ executionTupleOpt
-      _ = logFinishedJobs(executionMap)
-    } yield {
-      executionMap ++ skippedResultMap
+    val chunkResults: Observable[Map[LJob, Execution]] = {
+      //Note onBackpressureDrop(), in case runEligibleJobs takes too long (or the polling window is too short)
+      val ticks = Observable.interval(windowLength, ioScheduler).onBackpressureDrop
+      
+      def runJobs() = runEligibleJobs(executionState, jobOracle)
+      
+      def isFinished = executionState.isFinished
+      
+      ticks.flatMap(_ => runJobs).takeUntil(_ => isFinished)
     }
-    //NB: We no longer stop on the first failure, but run each sub-tree of jobs as far as possible.
     
     val futureMergedResults = chunkResults.foldLeft(emptyExecutionMap)(_ ++ _).firstAsFuture
 
     Await.result(futureMergedResults, timeout)
   }
   
+  private def finish(executionState: ExecutionState)(results: Map[LJob, Execution]): Map[LJob, Execution] = {
+    def msg = {
+      val howMany: Int = 50 //scalastyle:ignore magic.number
+      
+      s"Finishing ${results.size} jobs; first $howMany ids: ${results.keys.take(howMany).map(_.id).mkString(",")}"
+    }
+    
+    TimeUtils.time(msg, debug(_)) {
+      executionState.finish(results)
+    }
+    
+    results
+  }
+  
+  private def runEligibleJobs(
+      executionState: ExecutionState, 
+      jobOracle: JobOracle): Observable[Map[LJob, Execution]] = {
+      
+    val jobsAndCells = executionState.updateJobs()
+    
+    val (numReadyToRun, numCannotRun) = (jobsAndCells.readyToRun.size, jobsAndCells.cannotRun.size)
+    import jobsAndCells.{ numRunning, numFinished }
+    val numRemaining = executionState.size - numReadyToRun - numCannotRun - numRunning - numFinished
+    
+    info(s"RxExecuter.runEligibleJobs(): Ready to run: $numReadyToRun; Cannot run: $numCannotRun; " +
+         s"Running: $numRunning; Finished: $numFinished; Other: $numRemaining.")
+    
+    val (finishedJobStates, notFinishedJobStates) = {
+      jobsAndCells.readyToRun.partition(_.isTerminal)
+    }
+    
+    val (finishedJobs, notFinishedJobs) = (finishedJobStates.map(_.job), notFinishedJobStates.map(_.job))
+    
+    if(notFinishedJobs.nonEmpty) {
+      runNotFinishedJobs(notFinishedJobs, executionState, jobOracle)
+    } else {
+      Observable.just(Map.empty)
+    }
+  }
+  
+  private def runNotFinishedJobs(
+      notFinishedJobs: Iterable[LJob],
+      executionState: ExecutionState, 
+      jobOracle: JobOracle): Observable[Map[LJob, Execution]] = {
+    
+    val (jobsToMaybeRun, skippedJobs) = notFinishedJobs.map(_.job).partition(jobFilter.shouldRun)
+      
+    val (jobsToCancel, jobsToRun) = jobsToMaybeRun.partition(jobCanceler.shouldCancel)
+    
+    handleSkippedJobs(skippedJobs)
+    
+    val cancelledJobsMap = cancelJobs(jobsToCancel)
+    
+    record(jobOracle, cancelledJobsMap)
+    
+    val skippedResultMap = toSkippedResultMap(skippedJobs)
+    
+    for {
+      executionTupleOpt <- runJobs(jobsToRun, jobOracle)
+    } yield {
+      record(jobOracle, executionTupleOpt)
+      
+      val executionMap = cancelledJobsMap ++ executionTupleOpt
+      
+      logFinishedJobs(executionMap)
+      
+      val results = executionMap ++ skippedResultMap
+      
+      finish(executionState)(results)
+    }
+  }
+
   private val emptyExecutionMap: Map[LJob, Execution] = Map.empty
   
   private def logFinishedJobs(jobs: Map[LJob, Execution]): Unit = {
@@ -115,9 +177,6 @@ final case class RxExecuter(
       info(s"Finished with ${execution.status} (${execution.result}) when running $job")
     }
   }
-  
-  //NB: shouldRestart() mostly factored out to the companion object for simpler testing
-  private def shouldRestart(job: LJob): Boolean = RxExecuter.shouldRestart(job, maxRunsPerJob)
   
   //Produce Optional LJob -> Execution tuples.  We need to be able to produce just one (empty) item,
   //instead of just returning Observable.empty, so that code chained onto this method's result with
@@ -131,16 +190,14 @@ final case class RxExecuter(
     
     if(jobsToRun.isEmpty) { Observable.just(None) }
     else {
-      val jobRunObs = runner.run(jobsToRun.toSet, jobOracle, shouldRestart)
+      val jobRunObs = runner.run(jobsToRun.toSet, jobOracle)
       
-      jobRunObs.flatMap(toExecutionMap(fileMonitor, shouldRestart)).map(Option(_))
+      jobRunObs.flatMap(toExecutionMap(fileMonitor)).map(Option(_))
     }
   }
   
   private def cancelJobs(jobsToCancel: Iterable[LJob]): Map[LJob, Execution] = {
     import JobStatus.Canceled
-    
-    jobsToCancel.foreach(_.transitionTo(Canceled))
     
     import loamstream.util.Traversables.Implicits._
     
@@ -149,8 +206,6 @@ final case class RxExecuter(
   
   private def handleSkippedJobs(skippedJobs: Iterable[LJob]): Unit = {
     logSkippedJobs(skippedJobs)
-    
-    markJobsSkipped(skippedJobs)
   }
   
   private def logJobsToBeRun(jobsToRun: Iterable[LJob]): Unit = {
@@ -166,10 +221,6 @@ final case class RxExecuter(
     
       skippedJobs.foreach(job => info(s"Skipped: $job"))
     }
-  }
-  
-  private def markJobsSkipped(skippedJobs: Iterable[LJob]): Unit = {
-    skippedJobs.foreach(_.transitionTo(JobStatus.Skipped))
   }
   
   private def toSkippedResultMap(skippedJobs: Iterable[LJob]): Map[LJob, Execution] = {
@@ -251,26 +302,13 @@ object RxExecuter extends Loggable {
     
     addExecutionRecorder(addJobFilter(default))
   }
-  
-  private[execute] def deDupe(jobRuns: Observable[JobRun]): Observable[JobRun] = jobRuns.distinct(_.key)
-  
-  private[execute] def shouldRestart(job: LJob, maxRunsPerJob: Int): Boolean = {
-    val runCount = job.runCount
-    
-    val result = runCount < maxRunsPerJob
-    
-    debug(s"Restarting $job ? $result (job has run $runCount times, max is $maxRunsPerJob)")
-    
-    result
-  }
 
   /**
    * Turns the passed `runDataMap` into an observable that will fire once, producing a Map derived from `runDataMap`
    * by turning `runDataMap`'s values into Executions after waiting for any missing outputs. 
    */
   private[execute] def toExecutionMap(
-      fileMonitor: FileMonitor,
-      shouldRestart: LJob => Boolean)
+      fileMonitor: FileMonitor)
       (runDataMap: Map[LJob, RunData])
       (implicit context: ExecutionContext): Observable[(LJob, Execution)] = {
   
@@ -283,26 +321,7 @@ object RxExecuter extends Loggable {
     } yield {
       import Futures.Implicits._
       
-      waitForOutputs(runData).map(execution => job -> execution).withSideEffect {
-        //Transition Job to whatever its ultimate status was: 
-        //  WaitingForOutputs => Succeeded | Failed
-        //  foo => foo
-        case (job, execution) => {
-          val finalStatus = {
-            if(execution.status.isFailure) {
-              ExecuterHelpers.determineFailureStatus(shouldRestart, execution.status, job) 
-            } else {
-              execution.status
-            }
-          }
-          
-          trace(
-            s"Done waiting for outputs, transitioning job $job with execution $execution " +
-            s"to final status '$finalStatus'")
-          
-          job.transitionTo(finalStatus)
-        }
-      }
+      waitForOutputs(runData).map(execution => job -> execution)
     }
     
     Observable.from(jobToExecutionFutures).flatMap(Observable.from(_))

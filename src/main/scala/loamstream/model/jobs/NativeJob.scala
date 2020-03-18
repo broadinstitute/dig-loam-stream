@@ -16,9 +16,10 @@ final case class NativeJob(
     body: () => Any,
     initialSettings: Settings,
     dependencies: Set[JobNode] = Set.empty,
+    protected override val successorsFn: () => Set[JobNode] = () => Set.empty,
     inputs: Set[DataHandle] = Set.empty,
     outputs: Set[DataHandle] = Set.empty,
-    private val nameOpt: Option[String] = None) extends LocalJob with Loggable {
+    private val nameOpt: Option[String] = None) extends LocalJob with JobNode.LazySucessors with Loggable {
   
   override def name: String = nameOpt.getOrElse(id.toString)
   

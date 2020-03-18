@@ -74,7 +74,8 @@ final class LoamToolBox(client: Option[CloudStorageClient] = None) {
         Some(NativeJob(
             body = nativeTool.body,
             initialSettings = settings, 
-            dependencies = inputJobs,
+            dependencies = dependencyJobs,
+            successorsFn = () => successorJobs, 
             inputs = inputs,
             outputs = outputs, 
             nameOpt = toolNameOpt))

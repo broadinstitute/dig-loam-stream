@@ -50,9 +50,9 @@ object UkbbDietaryGwas extends App {
     val varId = ColumnDef(
       aggregator.ColumnNames.marker, 
       //"{chrom}_{pos}_{ref}_{alt}"
-      strexpr"${CHR}_${BP}_${ALLELE0}_${ALLELE1}",
+      strexpr"${CHR}_${BP}_${ALLELE1}_${ALLELE0}",
       //"{chrom}_{pos}_{alt}_{ref}"
-      strexpr"${CHR}_${BP}_${ALLELE1}_${ALLELE0}")
+      strexpr"${CHR}_${BP}_${ALLELE0}_${ALLELE1}")
         
     val otherColumns = Seq(
       ColumnDef(aggregator.ColumnNames.pvalue, P_BOLT_LMM),

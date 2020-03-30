@@ -12,6 +12,14 @@ import org.scalatest.Matchers
  * Oct 17, 2016
  */
 final class OptionsTest extends FunSuite with Matchers {
+  test("orElseFalse") {
+    import Options.Implicits._
+    
+    assert(Some(true).orElseFalse === true)
+    assert(Some(false).orElseFalse === false)
+    assert(None.orElseFalse === false)
+  }
+  
   test("toTry - default failure") {
     val msg = "foo!"
     

@@ -197,7 +197,7 @@ object LoamGraphValidation {
           s"Graph contains one or more cycles including tools ${tools.mkString(", ")}"))
     }
   }
-
+  
   val consistencyRules: Validation.Composite[LoamGraph] = {
     eachStoreIsInputOrHasProducer ++ eachStoresIsOutputOfItsProducer ++ eachStoresIsInputOfItsConsumers ++
       eachToolsInputStoresArePresent ++ eachToolsOutputStoresArePresent ++ noToolsPrecedeInitialTool ++

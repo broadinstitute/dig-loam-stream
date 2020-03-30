@@ -22,6 +22,8 @@ lazy val Versions = new {
   val CommonsCsv = "1.7"
   val DigAws = "0.1-SNAPSHOT"
   val HsqlDb = "2.5.0"
+  val TestContainersScala = "0.35.2"
+  val MysqlConnector = "8.0.19"
 }
 
 lazy val Orgs = new {
@@ -64,7 +66,10 @@ lazy val mainDeps = Seq(
 )
 
 lazy val testDeps = Seq(
-  "org.scalatest" %% "scalatest" % Versions.ScalaTest % "it,test"
+  "org.scalatest" %% "scalatest" % Versions.ScalaTest % "it,test",
+  "com.dimafeng" %% "testcontainers-scala-scalatest" % Versions.TestContainersScala % "it,test",
+  "com.dimafeng" %% "testcontainers-scala-mysql" % Versions.TestContainersScala % "it,test",
+  "mysql" % "mysql-connector-java" % Versions.MysqlConnector % "it,test",
 )
 
 lazy val root = (project in file("."))

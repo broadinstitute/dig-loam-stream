@@ -24,6 +24,8 @@ object Hashes {
 
   def sha1(data: Iterator[Array[Byte]]): Hash = digest(HashType.Sha1)(data)
   
+  def md5(path: Path): Hash = hash(HashType.Md5, path)
+  
   /**
    * If the path is a file, hash its bytes and return the result; if the path is a dir,
    * compute its hash by building a Merkle Tree (https://en.wikipedia.org/wiki/Merkle_tree)

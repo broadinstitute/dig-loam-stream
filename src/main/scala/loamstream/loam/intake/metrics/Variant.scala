@@ -1,21 +1,21 @@
 package loamstream.loam.intake.metrics
 
-final case class Variant(chrom: String, pos: Int, ref: String, alt: String) {
+final case class Variant(chrom: String, pos: Int, alt: String, ref: String) {
   def underscoreDelimited: String = delimitedBy('_')
 
   def colonDelimited: String = delimitedBy(':')
   
-  def flipped: String = s"${chrom}:${pos}:${alt}:${ref}"
+  def flip: Variant = copy(ref = alt, alt = ref)
   
-  def delimitedBy(delimiter: Char): String = s"${chrom}${delimiter}${pos}${delimiter}${ref}${delimiter}${alt}"
+  def delimitedBy(delimiter: Char): String = s"${chrom}${delimiter}${pos}${delimiter}${alt}${delimiter}${ref}"
   
   def asBioIndexCoord: String = s"chr${chrom}:${pos}"
 }
   
 object Variant {
   def unapply(s: String): Option[Variant] = s match {
-    case Regexes.underscoreDelimited(chrom, pos, ref, alt) => Some(Variant(chrom, pos.toInt, ref, alt))
-    case Regexes.spaceDelimited(chrom, pos, ref, alt) => Some(Variant(chrom, pos.toInt, ref, alt))
+    case Regexes.underscoreDelimited(chrom, pos, ref, alt) => Some(Variant(chrom, pos.toInt, alt, ref))
+    case Regexes.spaceDelimited(chrom, pos, ref, alt) => Some(Variant(chrom, pos.toInt, alt, ref))
     case _ => None
   }
   

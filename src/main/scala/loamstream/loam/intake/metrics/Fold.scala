@@ -33,6 +33,18 @@ object Fold extends App {
     f.summarize(reduced)
   }
   
+  def parFold[I, A](input: Iterator[I])(f: Fold[I, A])(implicit ec: ExecutionContext): Future[A] = {
+    val traversed = Future.traverse(input)(i => Future(f.tally(i)))
+    
+    val reduced = traversed.map { ms =>
+      ms.foldLeft(f.m.empty) { (accMonoid, elem) =>
+        f.m.combine(accMonoid, elem) 
+      }
+    }
+    
+    reduced.map(f.summarize)
+  }
+  
   def sumBy[M](implicit m: Monoid[M]): Fold[M, M] = Fold(m)(identity, identity)
   
   def combine[E, A1, A2](f1: Fold[E, A1], f2: Fold[E, A2]): Fold[E, (A1, A2)] = { 

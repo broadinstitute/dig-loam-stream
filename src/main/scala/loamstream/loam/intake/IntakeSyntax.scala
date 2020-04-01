@@ -8,6 +8,7 @@ import loamstream.util.Files
 import loamstream.util.Hashes
 import loamstream.util.TimeUtils
 import loamstream.util.Loggable
+import loamstream.loam.intake.flip.FlipDetector
 
 
 /**

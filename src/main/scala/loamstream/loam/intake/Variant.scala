@@ -1,5 +1,9 @@
-package loamstream.loam.intake.metrics
+package loamstream.loam.intake
 
+/**
+ * @author clint
+ * Apr 1, 2020
+ */
 final case class Variant(chrom: String, pos: Int, alt: String, ref: String) {
   def underscoreDelimited: String = delimitedBy('_')
 
@@ -14,8 +18,9 @@ final case class Variant(chrom: String, pos: Int, alt: String, ref: String) {
   
 object Variant {
   def unapply(s: String): Option[Variant] = s match {
-    case Regexes.underscoreDelimited(chrom, pos, ref, alt) => Some(Variant(chrom, pos.toInt, alt, ref))
-    case Regexes.spaceDelimited(chrom, pos, ref, alt) => Some(Variant(chrom, pos.toInt, alt, ref))
+    case Regexes.underscoreDelimited(chrom, pos, alt, ref) => Some(Variant(chrom, pos.toInt, alt, ref))
+    case Regexes.spaceDelimited(chrom, pos, alt, ref) => Some(Variant(chrom, pos.toInt, alt, ref))
+    case Regexes.colonDelimited(chrom, pos, alt, ref) => Some(Variant(chrom, pos.toInt, alt, ref))
     case _ => None
   }
   
@@ -27,5 +32,7 @@ object Variant {
     val underscoreDelimited= """^(.+?)_(\d+?)_(.+?)_(.+?)$""".r
     
     val spaceDelimited= """^(.+?)\s(\d+?)\s(.+?)\s(.+?)$""".r
+    
+    val colonDelimited= """^(.+?)\:(\d+?)\:(.+?)\:(.+?)$""".r
   }
 }

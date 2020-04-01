@@ -6,7 +6,7 @@ import loamstream.loam.LoamScriptContext
 import loamstream.loam.intake.CsvSource
 import loamstream.util.Maps
 import loamstream.loam.intake.UnsourcedColumnDef
-import loamstream.loam.intake.FlipDetector
+import loamstream.loam.intake.flip.FlipDetector
 import loamstream.loam.intake.RowDef
 import loamstream.loam.intake.UnsourcedRowDef
 import loamstream.loam.intake.aggregator
@@ -145,7 +145,7 @@ object UkbbDietaryGwas extends App {
     generalMetadata.toMetadata(phenotype, Metadata.Quantitative.Subjects(subjects))
   }
   
-  val flipDetector: FlipDetector = new FlipDetector(
+  val flipDetector: FlipDetector = new FlipDetector.Default(
     referenceDir = aggregatorIntakePipelineConfig.genomeReferenceDir,
     isVarDataType = true,
     pathTo26kMap = aggregatorIntakePipelineConfig.twentySixKIdMap)

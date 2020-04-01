@@ -3,6 +3,7 @@ package loamstream.loam.intake
 import loamstream.util.TimeUtils
 import java.nio.file.Paths
 import loamstream.util.Loggable
+import loamstream.loam.intake.flip.FlipDetector
 
 /**
  * @author clint
@@ -79,7 +80,7 @@ object DslExample2 extends App with Loggable {
   val source = CsvSource.fromCommandLine("...").filter(MARKER_ID.matches(Regexes.rightFormat))
   
   val (header, rows) = {
-    val flipDetector = new FlipDetector(
+    val flipDetector = new FlipDetector.Default(
       referenceDir = Paths.get("/home/clint/workspace/marcins-scripts/reference"),
       isVarDataType = true,
       pathTo26kMap = Paths.get("/home/clint/workspace/marcins-scripts/26k_id.map"))

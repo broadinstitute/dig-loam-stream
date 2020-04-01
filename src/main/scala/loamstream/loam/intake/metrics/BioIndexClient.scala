@@ -1,6 +1,7 @@
 package loamstream.loam.intake.metrics
 
 import loamstream.util.Loggable
+import loamstream.loam.intake.Variant
 
 /**
  * @author clint

@@ -54,12 +54,16 @@ object UkbbDietaryGwas extends App {
       //"{chrom}_{pos}_{alt}_{ref}"
       strexpr"${CHR}_${BP}_${ALLELE0}_${ALLELE1}")
         
+    val a1Freq = A1FREQ.asDouble
+    val beta = BETA.asDouble
+    val zscore = BETA.asDouble / SE.asDouble
+      
     val otherColumns = Seq(
       ColumnDef(aggregator.ColumnNames.pvalue, P_BOLT_LMM),
       ColumnDef(aggregator.ColumnNames.stderr, SE),
-      ColumnDef(aggregator.ColumnNames.beta, BETA),
-      ColumnDef(aggregator.ColumnNames.eaf, A1FREQ),
-      ColumnDef(aggregator.ColumnNames.zscore, BETA.asDouble / SE.asDouble))
+      ColumnDef(aggregator.ColumnNames.beta, beta, beta.negate),
+      ColumnDef(aggregator.ColumnNames.eaf, a1Freq, 1.0 - a1Freq),
+      ColumnDef(aggregator.ColumnNames.zscore, zscore, zscore.negate))
       
     UnsourcedRowDef(varId, otherColumns).from(source)
   }

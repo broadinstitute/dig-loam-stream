@@ -37,15 +37,15 @@ object FlipDetector extends Loggable {
     override def isFlipped(variantId: String): Boolean = TimeUtils.time("Testing for flipped-ness", trace(_)) {
       val isValidKey: Boolean = !variantsFrom26k.contains(variantId) && !variantId.contains(",")
       
-      import Regexes.{ regex1, regex2 }
+      import Regexes.{ singleNucleotide, multiNucleotide }
       
       isValidKey && {
-        val extractor1 = extractor(regex1)
-        val extractor2 = extractor(regex2)
+        val singleNucleotideExtractor = extractor(singleNucleotide)
+        val multiNucleotideExtractor = extractor(multiNucleotide)
         
         variantId match {
-          case extractor1(variant) => method1(variant)
-          case extractor2(variant) => method2(variant)
+          case singleNucleotideExtractor(variant) => handleSingleNucleotideVariant(variant)
+          case multiNucleotideExtractor(variant) => handleMultiNucleotideVariant(variant)
           case _ => false
         }
       }
@@ -77,7 +77,7 @@ object FlipDetector extends Loggable {
   
     private lazy val referenceFiles = ReferenceFiles(referenceDir, knownChroms)
     
-    private def method1(variant: RichVariant): Boolean = {
+    private def handleSingleNucleotideVariant(variant: RichVariant): Boolean = {
       import variant.{ alt, reference }
       import loamstream.util.Options.Implicits._
       
@@ -90,7 +90,7 @@ object FlipDetector extends Loggable {
       }.orElseFalse
     }
     
-    private def method2(variant: RichVariant): Boolean = {
+    private def handleMultiNucleotideVariant(variant: RichVariant): Boolean = {
       def munge(s: String): String = {
           s.replaceAll("A", "X")
            .replaceAll("T", "A")
@@ -102,23 +102,6 @@ object FlipDetector extends Loggable {
         
       import variant.{ alt, reference }
       import loamstream.util.Options.Implicits._
-      
-      /*
-       * if(!exists  $sequence{$c}) { open(SQ,"$path_to_reference/$c.txt") || die "ERROR: no sequnce file for chromsome: $c\n"; $sequence{$c}=<SQ> }
-				my $ref=substr $sequence{$c}, $p-1, length $r;
-				if($ref ne $r) {
-					if($p-1 < length $sequence{$c}) {
-						my $alt=substr $sequence{$c}, $p-1, length $a;
-						my $r2c=$r; $r2c=~s/A/X/; $r2c=~s/T/A/; $r2c=~s/X/T/; $r2c=~s/C/X/; $r2c=~s/G/C/; $r2c=~s/X/G/;
-						my $a2c=$a; $a2c=~s/A/X/; $a2c=~s/T/A/; $a2c=~s/X/T/; $a2c=~s/C/X/; $a2c=~s/G/C/; $a2c=~s/X/G/;
-						if   ($alt eq $a  ) { $key="$c\_$p\_$a\_$r"     ; $swap=1 }
-						elsif($ref eq $r2c) { $key="$c\_$p\_$r2c\_$a2c" ;         }
-						elsif($alt eq $a2c) { $key="$c\_$p\_$a2c\_$r2c" ; $swap=1 }
-						else { } #does not match to reference genome
-					}
-					else { } #outside of reference genome
-				}
-       */
       
       (for {
         ref <- variant.refFromReferenceGenome
@@ -135,7 +118,7 @@ object FlipDetector extends Loggable {
   }
   
   private object Regexes {
-    val regex1: Regex = """^(.+)_([0-9]+)_([ATGC])_([ATGC])$""".r
-    val regex2: Regex = """^(.+)_([0-9]+)_([ATGC]+)_([ATGC]+)$""".r
+    val singleNucleotide: Regex = """^(.+)_([0-9]+)_([ATGC])_([ATGC])$""".r
+    val multiNucleotide: Regex = """^(.+)_([0-9]+)_([ATGC]+)_([ATGC]+)$""".r
   }
 }

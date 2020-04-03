@@ -6,4 +6,6 @@ package loamstream.loam.intake.metrics
  */
 trait HttpClient {
   def get(url: String): Either[String, String]
+  
+  def contentLength(url: String): Either[String, Long]
 }

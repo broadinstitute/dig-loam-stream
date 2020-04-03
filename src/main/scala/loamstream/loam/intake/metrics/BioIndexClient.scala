@@ -27,17 +27,15 @@ object BioIndexClient {
     override def isKnown(varId: String): Boolean = isKnown(Variant.from(varId))
   
     def isKnown(variant: Variant): Boolean = {
-      debug(s"Looking up ${variant.colonDelimited}")
+      info(s"Looking up ${variant.colonDelimited}")
     
-      val url = s"${baseUrl}?q=${variant.asBioIndexCoord}"
+      val url = s"${baseUrl}?q=${variant.asFullBioIndexCoord}"
     
-      val responseBody = httpClient.get(url) 
+      val contentLengthE = httpClient.contentLength(url) 
     
-      val result = responseBody.flatMap(BioIndexResultParser.containsVariant(variant, _)) 
-      
-      result match {
+      contentLengthE match {
         case Left(errorMessage) => sys.error(errorMessage)
-        case Right(r) => r
+        case Right(l) => l > 0
       }
     }
   }

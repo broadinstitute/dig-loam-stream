@@ -13,7 +13,7 @@ import org.scalactic.source.Position.apply
  * @author clint
  * Apr 1, 2020
  */
-final class FlipDetectorTest extends FunSuite {
+final class ReferenceFileHandleTest extends FunSuite {
   import Helpers.withTestFile
   
   test("readAt(i)") {

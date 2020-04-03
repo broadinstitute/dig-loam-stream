@@ -29,7 +29,7 @@ object ReferenceFiles {
       } yield {
         val path = referenceDir.resolve(s"${chrom}.txt")
         
-        require(exists(path), s"ERROR: no sequence file for chromosome: ${chrom}")
+        require(exists(path), s"ERROR: no sequence file for chromosome: ${chrom} (${path} not found)")
         
         chrom -> new ReferenceFileHandle(path.toFile)
       }

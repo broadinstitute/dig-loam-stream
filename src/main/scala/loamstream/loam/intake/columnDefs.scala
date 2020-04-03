@@ -23,12 +23,12 @@ trait ColumnDef {
   }
   
   final def getTypedValueFromSourceWhenFlipNeeded: RowParser[TypedData] = { row =>
-    (for {
-      rawValue <- getValueFromSourceWhenFlipNeeded.map(_.apply(row).toString)
-      dataType <- dataTypeFlipped
-    } yield {
-      TypedData(rawValue, dataType)
-    }).get //TODO
+    val expr: ColumnExpr[_] = getValueFromSourceWhenFlipNeeded.getOrElse(getValueFromSource)
+    
+    val rawValue = expr.eval(row).toString
+    val dt = dataTypeFlipped.getOrElse(dataType)
+    
+    TypedData(rawValue, dt)
   }
 }
 

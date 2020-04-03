@@ -35,7 +35,7 @@ object FlipDetector extends Loggable {
       pathTo26kMap: Path = Defaults.pathTo26kMap) extends FlipDetector with Loggable {
     
     override def isFlipped(variantId: String): Boolean = TimeUtils.time("Testing for flipped-ness", trace(_)) {
-      def isValidKey: Boolean = variantsFrom26k.contains(variantId) && !variantId.contains(",")
+      val isValidKey: Boolean = !variantsFrom26k.contains(variantId) && !variantId.contains(",")
       
       import Regexes.{ regex1, regex2 }
       
@@ -63,7 +63,7 @@ object FlipDetector extends Loggable {
       txtFiles.map(_.toString).collect { case fileNameNoExtensionRegex(fileName) => fileName }
     }
     
-    private val knownChroms: Set[String] = {
+    private[flip] val knownChroms: Set[String] = {
       def chromsIfVarDataType = if(isVarDataType) chromsFromReference else Iterator.empty
       
       Set("X") ++ (1 to 22).map(_.toString) ++ chromsIfVarDataType
@@ -72,7 +72,7 @@ object FlipDetector extends Loggable {
     private val variantsFrom26k: Set[String] = TimeUtils.time("Reading 26k map", debug(_)) {
       val iterator = CsvSource.fromFile(pathTo26kMap, CsvSource.Defaults.Formats.tabDelimited).records
       
-      iterator.map(_.getFieldByIndex(0)).toSet
+      iterator.map(_.getFieldByIndex(1)).toSet
     }
   
     private lazy val referenceFiles = ReferenceFiles(referenceDir, knownChroms)
@@ -81,8 +81,8 @@ object FlipDetector extends Loggable {
       import variant.{ alt, reference }
       import loamstream.util.Options.Implicits._
       
-      variant.isIn26k ||
-      variant.isIn26kMunged ||
+      variant.flip.isIn26k ||
+      variant.flip.isIn26kMunged ||
       variant.refChar.map { refChar => 
         val ref = refChar.toString
     
@@ -102,6 +102,23 @@ object FlipDetector extends Loggable {
         
       import variant.{ alt, reference }
       import loamstream.util.Options.Implicits._
+      
+      /*
+       * if(!exists  $sequence{$c}) { open(SQ,"$path_to_reference/$c.txt") || die "ERROR: no sequnce file for chromsome: $c\n"; $sequence{$c}=<SQ> }
+				my $ref=substr $sequence{$c}, $p-1, length $r;
+				if($ref ne $r) {
+					if($p-1 < length $sequence{$c}) {
+						my $alt=substr $sequence{$c}, $p-1, length $a;
+						my $r2c=$r; $r2c=~s/A/X/; $r2c=~s/T/A/; $r2c=~s/X/T/; $r2c=~s/C/X/; $r2c=~s/G/C/; $r2c=~s/X/G/;
+						my $a2c=$a; $a2c=~s/A/X/; $a2c=~s/T/A/; $a2c=~s/X/T/; $a2c=~s/C/X/; $a2c=~s/G/C/; $a2c=~s/X/G/;
+						if   ($alt eq $a  ) { $key="$c\_$p\_$a\_$r"     ; $swap=1 }
+						elsif($ref eq $r2c) { $key="$c\_$p\_$r2c\_$a2c" ;         }
+						elsif($alt eq $a2c) { $key="$c\_$p\_$a2c\_$r2c" ; $swap=1 }
+						else { } #does not match to reference genome
+					}
+					else { } #outside of reference genome
+				}
+       */
       
       (for {
         ref <- variant.refFromReferenceGenome

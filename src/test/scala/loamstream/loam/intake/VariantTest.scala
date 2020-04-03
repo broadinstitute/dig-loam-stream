@@ -1,7 +1,6 @@
-package loamstream.loam.intake.metrics
+package loamstream.loam.intake
 
 import org.scalatest.FunSuite
-import loamstream.loam.intake.Variant
 
 /**
  * @author clint
@@ -11,9 +10,9 @@ final class VariantTest extends FunSuite {
   test("from") {
     import Variant.from
     
-    assert(from("x_123_y_z") === Variant(chrom = "x", pos = 123, alt = "y", ref = "z"))
-    assert(from("x 123 y z") === Variant(chrom = "x", pos = 123, alt = "y", ref = "z"))
-    assert(from("x:123:y:z") === Variant(chrom = "x", pos = 123, alt = "y", ref = "z"))
+    assert(from("x_123_y_z") === Variant(chrom = "x", pos = 123, alt = "z", ref = "y"))
+    assert(from("x 123 y z") === Variant(chrom = "x", pos = 123, alt = "z", ref = "y"))
+    assert(from("x:123:y:z") === Variant(chrom = "x", pos = 123, alt = "z", ref = "y"))
     
     intercept[Exception] {
       from("x123yz")
@@ -26,9 +25,9 @@ final class VariantTest extends FunSuite {
   test("unapply") {
     import Variant.unapply
     
-    assert(unapply("x_123_y_z") === Some(Variant(chrom = "x", pos = 123, alt = "y", ref = "z")))
-    assert(unapply("x 123 y z") === Some(Variant(chrom = "x", pos = 123, alt = "y", ref = "z")))
-    assert(unapply("x:123:y:z") === Some(Variant(chrom = "x", pos = 123, alt = "y", ref = "z")))
+    assert(unapply("x_123_y_z") === Some(Variant(chrom = "x", pos = 123, alt = "z", ref = "y")))
+    assert(unapply("x 123 y z") === Some(Variant(chrom = "x", pos = 123, alt = "z", ref = "y")))
+    assert(unapply("x:123:y:z") === Some(Variant(chrom = "x", pos = 123, alt = "z", ref = "y")))
     
     assert(unapply("x123yz") === None)
     assert(unapply("asdf") === None)
@@ -49,6 +48,21 @@ final class VariantTest extends FunSuite {
     val v2 = Variant(chrom = "ABC", pos = 456, alt = "a", ref = "b")
     
     assert(v2.asBioIndexCoord === "chrABC:456")
+  }
+  
+  test("asFullBioIndexCoord") {
+    val v0 = Variant(chrom = "x", pos = 123, alt = "y", ref = "z")
+    
+    assert(v0.asFullBioIndexCoord === "chrx:123:z:y")
+    
+    //same chrom/pos, different ref/alt 
+    val v1 = Variant(chrom = "x", pos = 123, alt = "a", ref = "b")
+    
+    assert(v1.asFullBioIndexCoord === "chrx:123:b:a")
+    
+    val v2 = Variant(chrom = "ABC", pos = 456, alt = "a", ref = "b")
+    
+    assert(v2.asFullBioIndexCoord === "chrABC:456:b:a")
   }
   
   test("flip") {

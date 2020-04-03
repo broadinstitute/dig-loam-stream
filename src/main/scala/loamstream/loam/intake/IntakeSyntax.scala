@@ -161,23 +161,26 @@ trait IntakeSyntax extends Interpolators {
     new AggregatorIntakeConfigFileTarget(dest)
   }
   
-  private[intake] def fuse(flipDetector: FlipDetector)(columnDefs: Seq[ColumnDef]): ParseFn = { (varIdValue, row) =>
-    val flipDetected = flipDetector.isFlipped(varIdValue)
-    
-    val dataRowValues: Map[ColumnDef, TypedData] = {
-      Map.empty ++ columnDefs.map { columnDef =>
-        val columnValueFn: RowParser[TypedData] = {
-          if(flipDetected) { columnDef.getTypedValueFromSourceWhenFlipNeeded }
-          else { columnDef.getTypedValueFromSource } 
-        }
-        
-        val typedColumnValue = columnValueFn(row)
-        
-        columnDef -> typedColumnValue
-      }
-    }
+  private[intake] def fuse(flipDetector: FlipDetector)(columnDefs: Seq[ColumnDef]): ParseFn = {
+    (varIdValue, varIdDef, row) =>
+      val flipDetected = flipDetector.isFlipped(varIdValue)
       
-    DataRow(dataRowValues)
+      def getRowParser(columnDef: ColumnDef): RowParser[TypedData] = {
+        if(flipDetected) { columnDef.getTypedValueFromSourceWhenFlipNeeded }
+        else { columnDef.getTypedValueFromSource }
+      }
+      
+      val dataRowValues: Map[ColumnDef, TypedData] = {
+        Map.empty ++ (varIdDef +: columnDefs).map { columnDef =>
+          val columnValueFn: RowParser[TypedData] = getRowParser(columnDef)
+          
+          val typedColumnValue = columnValueFn(row)
+          
+          columnDef -> typedColumnValue
+        }
+      }
+        
+      DataRow(dataRowValues)
   }
   
   private def headerRowFrom(columnDefs: Seq[ColumnDef]): HeaderRow = {
@@ -227,12 +230,14 @@ trait IntakeSyntax extends Interpolators {
     }
     
     override def next(): DataRow = {
+      import rowDef.varIdDef
+      
       def parseNext(varId: String)(t: (Iterator[CsvRow], ParseFn)): DataRow = {
         val (records, parseFn) = t
         
         val record = records.next()
         
-        parseFn(varId, record)
+        parseFn(varId, varIdDef, record)
       }
       
       val varIdSourceRecord = varIdSourceRecords.next()
@@ -241,15 +246,13 @@ trait IntakeSyntax extends Interpolators {
       
       val varIdValue = varIdTypedValue.raw
       
-      val dataRowForVarId = DataRow(rowDef.varIdDef -> varIdTypedValue)
-      
-      val dataRowFromVarIdSource = parseFnForOtherColumnsFromVarIdSource(varIdValue, varIdSourceRecord)
+      val dataRowFromVarIdSource = parseFnForOtherColumnsFromVarIdSource(varIdValue, varIdDef, varIdSourceRecord)
       
       val dataRowFromOtherSources = {
         recordsAndParsersNonVarId.map(parseNext(varIdValue)).foldLeft(DataRow.empty)(_ ++ _)
       }
-      
-      dataRowForVarId ++ dataRowFromVarIdSource ++ dataRowFromOtherSources
+
+      dataRowFromVarIdSource ++ dataRowFromOtherSources
     }
   }
 }

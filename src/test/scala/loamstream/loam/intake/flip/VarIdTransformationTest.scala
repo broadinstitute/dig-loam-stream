@@ -166,5 +166,7 @@ object VarIdTransformationTest {
       
       fieldValue
     }
+    
+    override def size: Int = 1
   }
 }

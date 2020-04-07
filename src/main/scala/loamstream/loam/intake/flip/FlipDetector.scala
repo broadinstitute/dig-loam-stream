@@ -56,11 +56,19 @@ object FlipDetector extends Loggable {
           
       val referenceFiles = java.nio.file.Files.list(referenceDir).iterator.asScala
       
-      val txtFiles = referenceFiles.filter(_.getFileName.endsWith("txt"))
+      def isTxtOrGzFile(file: Path): Boolean = {
+        val fileName = file.getFileName.toString
+        
+        fileName.endsWith("txt") || fileName.endsWith("gz")
+      }
       
-      val fileNameNoExtensionRegex = """(.+)\.txt""".r
+      val txtFiles = referenceFiles.filter(isTxtOrGzFile)
       
-      txtFiles.map(_.toString).collect { case fileNameNoExtensionRegex(fileName) => fileName }
+      val fileNameNoExtensionRegex = """(.+?)\.(txt|gz)$""".r
+      
+      txtFiles.map(_.getFileName.toString).collect { 
+        case fileNameNoExtensionRegex(fileName, _) =>  fileName
+      }
     }
     
     private[flip] val knownChroms: Set[String] = {

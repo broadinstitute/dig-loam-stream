@@ -13,6 +13,8 @@ import loamstream.util.BashScript
 import loamstream.util.Loggable
 import loamstream.util.TakesEndingActionIterator
 import loamstream.util.Throwables
+import java.util.zip.GZIPInputStream
+import java.io.FileInputStream
 
 /**
  * @author clint
@@ -42,6 +44,8 @@ object CsvSource extends Loggable {
   
   object Defaults {
     object Formats {
+      val spaceDelimited: CSVFormat = CSVFormat.DEFAULT.withDelimiter(' ')
+      
       val tabDelimited: CSVFormat = CSVFormat.DEFAULT.withDelimiter('\t')
     
       val tabDelimitedWithHeaderCsvFormat: CSVFormat = tabDelimited.withFirstRecordAsHeader
@@ -63,6 +67,13 @@ object CsvSource extends Loggable {
       csvFormat: CSVFormat = Defaults.Formats.tabDelimitedWithHeaderCsvFormat): CsvSource = {
     
     fromReader(new FileReader(path.toFile), csvFormat)
+  }
+  
+  def fromGzippedFile(
+      path: Path, 
+      csvFormat: CSVFormat = Defaults.Formats.tabDelimitedWithHeaderCsvFormat): CsvSource = {
+    
+    fromReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(path.toFile))), csvFormat)
   }
   
   def fromReader(

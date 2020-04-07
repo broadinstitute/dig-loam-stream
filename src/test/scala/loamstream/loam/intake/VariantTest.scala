@@ -78,8 +78,8 @@ final class VariantTest extends FunSuite {
   test("delimitedBy/colonDelimited/underscoreDelimited") {
     val v0 = Variant(chrom = "x", pos = 123, alt = "y", ref = "z")
     
-    assert(v0.colonDelimited === "x:123:y:z")
-    assert(v0.underscoreDelimited === "x_123_y_z")
-    assert(v0.delimitedBy('>') === "x>123>y>z")
+    assert(v0.colonDelimited === "x:123:z:y")
+    assert(v0.underscoreDelimited === "x_123_z_y")
+    assert(v0.delimitedBy('>') === "x>123>z>y")
   }
 }

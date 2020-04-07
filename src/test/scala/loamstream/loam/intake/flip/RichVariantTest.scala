@@ -25,7 +25,7 @@ final class RichVariantTest extends FunSuite {
     
     val richV = new RichVariant(ReferenceFiles.empty, Set.empty, v)
     
-    assert(richV.toKey === s"a_123_b_c")
+    assert(richV.toKey === s"a_123_c_b")
   }
   
   test("toKeyMunged") {
@@ -33,7 +33,7 @@ final class RichVariantTest extends FunSuite {
     
     val richV = new RichVariant(ReferenceFiles.empty, Set.empty, v)
     
-    assert(richV.toKeyMunged === s"a_123_T_G")
+    assert(richV.toKeyMunged === s"a_123_G_T")
   }
   
   test("isIn26k") {
@@ -71,8 +71,13 @@ final class RichVariantTest extends FunSuite {
   }
   
   test("refChar") {
-    Helpers.withTestFile("123456789") { testFile =>
-      val refFiles = new ReferenceFiles(Map("a" -> new ReferenceFileHandle(testFile.toFile)))
+    Helpers.withZippedAndUnzippedTestFiles("123456789") { testFile =>
+      val handle = {
+        if(testFile.getFileName.toString.endsWith("txt")) { ReferenceFileHandle(testFile.toFile) }
+        else { ReferenceFileHandle.fromGzippedFile(testFile.toFile) }
+      }
+      
+      val refFiles = new ReferenceFiles(Map("a" -> handle))
       
       val v0 = Variant(chrom = "a", pos = 2, alt = "A", ref = "C")
     
@@ -94,8 +99,13 @@ final class RichVariantTest extends FunSuite {
   }
   
   test("refFromReferenceGenome") {
-    Helpers.withTestFile("123456789") { testFile =>
-      val refFiles = new ReferenceFiles(Map("a" -> new ReferenceFileHandle(testFile.toFile)))
+    Helpers.withZippedAndUnzippedTestFiles("123456789") { testFile =>
+      val handle = {
+        if(testFile.getFileName.toString.endsWith("txt")) { ReferenceFileHandle(testFile.toFile) }
+        else { ReferenceFileHandle.fromGzippedFile(testFile.toFile) }
+      }
+      
+      val refFiles = new ReferenceFiles(Map("a" -> handle))
       
       val v0 = Variant(chrom = "a", pos = 2, alt = "A", ref = "CCT")
     
@@ -117,8 +127,13 @@ final class RichVariantTest extends FunSuite {
   }
   
   test("altFromReferenceGenome") {
-    Helpers.withTestFile("123456789") { testFile =>
-      val refFiles = new ReferenceFiles(Map("a" -> new ReferenceFileHandle(testFile.toFile)))
+    Helpers.withZippedAndUnzippedTestFiles("123456789") { testFile =>
+      val handle = {
+        if(testFile.getFileName.toString.endsWith("txt")) { ReferenceFileHandle(testFile.toFile) }
+        else { ReferenceFileHandle.fromGzippedFile(testFile.toFile) }
+      }
+      
+      val refFiles = new ReferenceFiles(Map("a" -> handle))
       
       val v0 = Variant(chrom = "a", pos = 3, alt = "ACT", ref = "CCT")
     

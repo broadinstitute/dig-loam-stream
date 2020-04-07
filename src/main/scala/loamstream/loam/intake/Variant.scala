@@ -4,14 +4,14 @@ package loamstream.loam.intake
  * @author clint
  * Apr 1, 2020
  */
-final case class Variant(chrom: String, pos: Int, alt: String, ref: String) {
+final case class Variant(chrom: String, pos: Int, ref: String, alt: String) {
   def underscoreDelimited: String = delimitedBy('_')
 
   def colonDelimited: String = delimitedBy(':')
   
   def flip: Variant = copy(ref = alt, alt = ref)
   
-  def delimitedBy(delimiter: Char): String = s"${chrom}${delimiter}${pos}${delimiter}${alt}${delimiter}${ref}"
+  def delimitedBy(delimiter: Char): String = s"${chrom}${delimiter}${pos}${delimiter}${ref}${delimiter}${alt}"
   
   def asBioIndexCoord: String = s"chr${chrom}:${pos}"
   

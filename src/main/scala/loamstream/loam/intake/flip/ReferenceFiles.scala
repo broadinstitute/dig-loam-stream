@@ -27,11 +27,23 @@ object ReferenceFiles {
       for {
         chrom <- knownChroms.iterator
       } yield {
-        val path = referenceDir.resolve(s"${chrom}.txt")
+        val txtPath = referenceDir.resolve(s"${chrom}.txt")
+        val gzPath = referenceDir.resolve(s"${chrom}.gz")
         
-        require(exists(path), s"ERROR: no sequence file for chromosome: ${chrom} (${path} not found)")
+        require(
+            !(exists(txtPath) && exists(gzPath)), 
+            s"ERROR: both sequence files ${txtPath} and ${gzPath} exist for chromosome: ${chrom}")
         
-        chrom -> new ReferenceFileHandle(path.toFile)
+        require(
+            exists(txtPath) || exists(gzPath), 
+            s"ERROR: no sequence file for chromosome: ${chrom} (both ${txtPath} and ${gzPath} not found)")
+        
+        val handle = {
+          if(exists(txtPath)) { ReferenceFileHandle(txtPath.toFile) }
+          else { ReferenceFileHandle.fromGzippedFile(gzPath.toFile) }
+        }
+        
+        chrom -> handle
       }
     })
   }

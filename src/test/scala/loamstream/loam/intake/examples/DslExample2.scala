@@ -3,7 +3,6 @@ package loamstream.loam.intake
 import loamstream.util.TimeUtils
 import java.nio.file.Paths
 import loamstream.util.Loggable
-import loamstream.loam.intake.flip.FlipDetector
 
 /**
  * @author clint

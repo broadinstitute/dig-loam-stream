@@ -4,7 +4,6 @@ import java.nio.file.Paths
 
 import loamstream.util.Loggable
 import loamstream.util.TimeUtils
-import loamstream.loam.intake.flip.FlipDetector
 
 /**
  * @author clint

@@ -2,12 +2,8 @@ package loamstream.loam.intake.flip
 
 import org.scalatest.FunSuite
 import loamstream.loam.intake.IntakeSyntax
-import loamstream.loam.intake.CsvSource
 import loamstream.loam.intake.CsvRow
-import loamstream.loam.intake.ColumnName
-import loamstream.loam.intake.RowDef
-import loamstream.loam.intake.UnsourcedRowDef
-import loamstream.loam.intake.Variant
+
 
 /**
  * @author clint

@@ -3,7 +3,6 @@ package loamstream.loam.intake
 import org.scalatest.FunSuite
 import loamstream.util.Paths
 import loamstream.TestHelpers
-import loamstream.loam.intake.flip.FlipDetector
 import loamstream.util.Files
 import loamstream.util.TimeUtils
 import scala.util.control.NonFatal

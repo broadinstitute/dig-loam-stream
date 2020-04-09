@@ -45,16 +45,22 @@ trait AggregatorCommands {
         tag(s"make-aggregator-conf-${metadata.dataset}-${metadata.phenotype}").
         in(csvFile)
     
-    val aggregatorIntakeCondaEnv = aggregatorIntakeConfig.condaEnvName
-    val condaExecutable = aggregatorIntakeConfig.condaExecutable
-    val aggregatorIntakeScriptsRoot = aggregatorIntakeConfig.scriptsRoot
+    val aggregatorIntakeCondaEnvPart = aggregatorIntakeConfig.condaEnvName.map { condaEnv =>
+      val condaExecutable = aggregatorIntakeConfig.condaExecutable
+    
+      val envNamePart = s"-n ${condaEnv}"
+      
+      s"${condaExecutable} run ${envNamePart} "
+    }.getOrElse("")
+    
+      val aggregatorIntakeScriptsRoot = aggregatorIntakeConfig.scriptsRoot
     
     val mainPyPart = s"${aggregatorIntakeScriptsRoot}/main.py"
-    val envNamePart = s"-n ${aggregatorIntakeCondaEnv}"
+    
     
     val yesForcePart = if(yes) "--yes --force" else ""
-    
-    cmd"""${condaExecutable} run ${envNamePart} python ${mainPyPart} variants ${yesForcePart} --skip-validation ${aggregatorConfigFile}""". // scalastyle:ignore line.size.limit
+      
+    cmd"""${aggregatorIntakeCondaEnvPart}python ${mainPyPart} variants ${yesForcePart} --skip-validation ${aggregatorConfigFile}""". // scalastyle:ignore line.size.limit
         in(aggregatorConfigFile, csvFile)
   }
 }

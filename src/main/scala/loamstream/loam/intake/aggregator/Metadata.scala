@@ -21,7 +21,8 @@ final case class Metadata(
     ancestry: String,
     author: Option[String] = None,
     tech: String,
-    quantitative: Metadata.Quantitative) {
+    quantitative: Metadata.Quantitative,
+    properties: Seq[(String, String)] = Nil) {
     
   require(VarIdFormat.isValid(varIdFormat))
   

@@ -11,7 +11,7 @@ import loamstream.conf.ValueReaders
  * Mar 2, 2020
  */
 final case class AggregatorIntakeConfig(
-    condaEnvName: String,
+    condaEnvName: Option[String] = None,
     scriptsRoot: Path,
     condaExecutable: Path,
     genomeReferenceDir: Path,

@@ -8,6 +8,7 @@ import loamstream.util.Files
 import loamstream.util.Hashes
 import loamstream.util.TimeUtils
 import loamstream.util.Loggable
+import loamstream.loam.GraphFunctions
 
 
 /**
@@ -16,9 +17,38 @@ import loamstream.util.Loggable
  */
 object IntakeSyntax extends IntakeSyntax
 
-trait IntakeSyntax extends Interpolators {
+trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunctions {
   type ColumnDef = loamstream.loam.intake.ColumnDef
   val ColumnDef = loamstream.loam.intake.ColumnDef
+  
+  type UnsourcedColumnDef = loamstream.loam.intake.UnsourcedColumnDef
+  val UnsourcedColumnDef = loamstream.loam.intake.UnsourcedColumnDef
+  
+  type SourcedColumnDef = loamstream.loam.intake.SourcedColumnDef
+  val SourcedColumnDef = loamstream.loam.intake.SourcedColumnDef
+  
+  type RowDef = loamstream.loam.intake.RowDef
+  val RowDef = loamstream.loam.intake.RowDef
+  
+  type UnsourcedRowDef = loamstream.loam.intake.UnsourcedRowDef
+  val UnsourcedRowDef = loamstream.loam.intake.UnsourcedRowDef
+  
+  type CsvSource = loamstream.loam.intake.CsvSource
+  val CsvSource = loamstream.loam.intake.CsvSource
+  
+  type FlipDetector = loamstream.loam.intake.FlipDetector
+  val FlipDetector = loamstream.loam.intake.FlipDetector
+  
+  type Row = loamstream.loam.intake.Row
+  
+  type HeaderRow = loamstream.loam.intake.HeaderRow
+  val HeaderRow = loamstream.loam.intake.HeaderRow
+  
+  type DataRow = loamstream.loam.intake.DataRow
+  val DataRow = loamstream.loam.intake.DataRow
+  
+  type CsvRow = loamstream.loam.intake.CsvRow
+  val CsvRow = loamstream.loam.intake.CsvRow
   
   implicit final class ColumnNameOps(val s: String) {
     def asColumnName: ColumnName = ColumnName(s)
@@ -59,37 +89,6 @@ trait IntakeSyntax extends Interpolators {
     }
   }
   
-  final class SchemaFileTarget(dest: Store) {
-    def from(columnDefs: ColumnDef*)(implicit scriptContext: LoamScriptContext): NativeTool = {
-      val headerRow = headerRowFrom(columnDefs)
-      
-      val csvFormat = CsvSource.Defaults.Formats.tabDelimitedWithHeaderCsvFormat
-      
-      //TODO: How to wire up inputs (if any)?
-      val tool = NativeTool {
-        Files.writeTo(dest.path)(headerRow.toSchemaFile(csvFormat))
-      }
-      
-      addToGraph(tool)
-      
-      tool.out(dest)
-    }
-  }
-  
-  final class ListFilesTarget(dataListFile: Store, schemaListFile: Store) {
-    def from(dataFile: Store, schemaFile: Store)(implicit scriptContext: LoamScriptContext): NativeTool = {
-      //TODO: How to wire up inputs (if any)?
-      val tool = NativeTool {
-        Files.writeLinesTo(dataListFile.path)(Iterator(dataFile.path.toString))
-        Files.writeLinesTo(schemaListFile.path)(Iterator(schemaFile.path.toString))
-      }
-      
-      addToGraph(tool)
-      
-      tool.out(dataListFile, schemaListFile)
-    }
-  }
-  
   final class HashFileTarget(dest: Store) {
     def from(fileToBeHashed: Store)(implicit scriptContext: LoamScriptContext): NativeTool = {
       //TODO: How to wire up inputs (if any)?
@@ -118,28 +117,8 @@ trait IntakeSyntax extends Interpolators {
     }
   }
   
-  /** BEWARE: This method has the side-effect of modifying the graph within scriptContext */
-  private def addToGraph(tool: Tool)(implicit scriptContext: LoamScriptContext): Unit = {
-    scriptContext.projectContext.updateGraph { graph =>
-      graph.withTool(tool, scriptContext)
-    }
-  }
-  
   private def requireFsPath(s: Store): Unit = {
     require(s.isPathStore, s"Only writing to a destination on the FS is supported, but got ${s}")
-  }
-  
-  def produceSchemaFile(dest: Store): SchemaFileTarget = {
-    requireFsPath(dest)
-    
-    new SchemaFileTarget(dest)
-  }
-  
-  def produceListFiles(dataListFile: Store, schemaListFile: Store): ListFilesTarget = {
-    requireFsPath(dataListFile)
-    requireFsPath(schemaListFile)
-    
-    new ListFilesTarget(dataListFile, schemaListFile)
   }
   
   def produceCsv(dest: Store): TransformationTarget = {
@@ -158,97 +137,5 @@ trait IntakeSyntax extends Interpolators {
     requireFsPath(dest)
     
     new AggregatorIntakeConfigFileTarget(dest)
-  }
-  
-  private[intake] def fuse(flipDetector: FlipDetector)(columnDefs: Seq[ColumnDef]): ParseFn = { (varIdValue, row) =>
-    val flipDetected = flipDetector.isFlipped(varIdValue)
-    
-    val dataRowValues: Map[ColumnDef, TypedData] = {
-      Map.empty ++ columnDefs.map { columnDef =>
-        val columnValueFn: RowParser[TypedData] = {
-          if(flipDetected) { columnDef.getTypedValueFromSourceWhenFlipNeeded }
-          else { columnDef.getTypedValueFromSource } 
-        }
-        
-        val typedColumnValue = columnValueFn(row)
-        
-        columnDef -> typedColumnValue
-      }
-    }
-      
-    DataRow(dataRowValues)
-  }
-  
-  private def headerRowFrom(columnDefs: Seq[ColumnDef]): HeaderRow = {
-    HeaderRow(columnDefs.sortBy(_.index).map(cd => (cd.name.name, cd.getValueFromSource.dataType)))
-  }
-
-  def process(flipDetector: FlipDetector)(rowDef: RowDef): (HeaderRow, Iterator[DataRow]) = {
-    val varIdSource = rowDef.varIdDef.source
-    
-    val columnDefsBySource: Map[CsvSource, Seq[ColumnDef]] = rowDef.otherColumns.groupBy(_.source)
-    
-    val nonVarIdColumnDefsBySource: Map[CsvSource, Seq[ColumnDef]] = columnDefsBySource - varIdSource
-    
-    val columnDefsWithSameSourceAsVarID: Seq[ColumnDef] = columnDefsBySource.get(varIdSource).getOrElse(Nil)
-    
-    import loamstream.util.Maps.Implicits._
-    
-    val parseFnsBySourceNonVarId: Map[CsvSource, ParseFn] = {
-      nonVarIdColumnDefsBySource.strictMapValues(fuse(flipDetector))
-    }
-    
-    val recordsAndParsersNonVarId: Seq[(Iterator[CsvRow], ParseFn)] = {
-      parseFnsBySourceNonVarId.toSeq.map { case (source, parseFn) => (source.records, parseFn) }
-    }
-    
-    val varIdSourceRecords = varIdSource.records
-    
-    val parseFnForOtherColumnsFromVarIdSource: ParseFn = fuse(flipDetector)(columnDefsWithSameSourceAsVarID) 
-    
-    val rows: Iterator[DataRow] = {
-      dataRowIterator(rowDef, varIdSourceRecords, recordsAndParsersNonVarId, parseFnForOtherColumnsFromVarIdSource)
-    }
-    
-    val header = headerRowFrom(rowDef.columnDefs)
-    
-    (header, rows)
-  }
-  
-  private def dataRowIterator(
-      rowDef: RowDef,
-      varIdSourceRecords: Iterator[CsvRow],
-      recordsAndParsersNonVarId: Seq[(Iterator[CsvRow], ParseFn)],
-      parseFnForOtherColumnsFromVarIdSource: ParseFn): Iterator[DataRow] = new Iterator[DataRow] {
-    
-    override def hasNext: Boolean = {
-      varIdSourceRecords.hasNext && recordsAndParsersNonVarId.forall { case (records, _) => records.hasNext }
-    }
-    
-    override def next(): DataRow = {
-      def parseNext(varId: String)(t: (Iterator[CsvRow], ParseFn)): DataRow = {
-        val (records, parseFn) = t
-        
-        val record = records.next()
-        
-        parseFn(varId, record)
-      }
-      
-      val varIdSourceRecord = varIdSourceRecords.next()
-      
-      val varIdTypedValue = rowDef.varIdDef.getTypedValueFromSource(varIdSourceRecord)
-      
-      val varIdValue = varIdTypedValue.raw
-      
-      val dataRowForVarId = DataRow(rowDef.varIdDef -> varIdTypedValue)
-      
-      val dataRowFromVarIdSource = parseFnForOtherColumnsFromVarIdSource(varIdValue, varIdSourceRecord)
-      
-      val dataRowFromOtherSources = {
-        recordsAndParsersNonVarId.map(parseNext(varIdValue)).foldLeft(DataRow.empty)(_ ++ _)
-      }
-      
-      dataRowForVarId ++ dataRowFromVarIdSource ++ dataRowFromOtherSources
-    }
   }
 }

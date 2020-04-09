@@ -7,3 +7,7 @@ package loamstream.loam.intake
 final case class RowDef(varIdDef: SourcedColumnDef, otherColumns: Seq[SourcedColumnDef]) {
   def columnDefs: Seq[SourcedColumnDef] = varIdDef +: otherColumns
 }
+
+final case class UnsourcedRowDef(varIdDef: UnsourcedColumnDef, otherColumns: Seq[UnsourcedColumnDef]) {
+  def from(source: CsvSource): RowDef = RowDef(varIdDef.from(source), otherColumns.map(_.from(source)))
+}

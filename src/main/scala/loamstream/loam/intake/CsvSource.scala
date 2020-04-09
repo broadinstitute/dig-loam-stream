@@ -77,7 +77,7 @@ object CsvSource extends Loggable {
   }
   
   def fromReader(
-      reader: Reader, 
+      reader: => Reader, 
       csvFormat: CSVFormat = Defaults.Formats.tabDelimitedWithHeaderCsvFormat): CsvSource = {
     
     FromIterator(toCsvRowIterator(reader, csvFormat))

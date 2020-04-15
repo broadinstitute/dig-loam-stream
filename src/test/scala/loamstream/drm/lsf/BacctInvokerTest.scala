@@ -10,6 +10,12 @@ import loamstream.drm.DrmTaskId
  */
 final class BacctInvokerTest extends FunSuite {
   test("makeTokens") {
-    assert(BacctInvoker.makeTokens("foo", DrmTaskId("bar", 42)) === Seq("foo", "-l", "bar"))
+    assert(BacctInvoker.makeTokens("foo", Left(DrmTaskId("bar", 42))) === Seq("foo", "-l", "bar"))
+  }
+  
+  test("makeTokens - DrmTaskArray") {
+    ???
+    
+    //assert(QacctInvoker.makeTokens("foo", Right(DrmTaskArray("bar", 42))) === Seq("foo", "-j", "bar", "-t", "42"))
   }
 }

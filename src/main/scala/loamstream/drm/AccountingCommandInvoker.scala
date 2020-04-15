@@ -6,6 +6,8 @@ import loamstream.util.Loggable
 import loamstream.util.Processes
 import loamstream.util.RetryingCommandInvoker
 import rx.lang.scala.Scheduler
+import scala.util.Try
+import loamstream.util.RunResults
 
 /**
  * @author clint
@@ -19,19 +21,32 @@ object AccountingCommandInvoker {
     def useActualBinary(
         maxRetries: Int, 
         binaryName: String,
-        scheduler: Scheduler)(implicit ec: ExecutionContext): RetryingCommandInvoker[DrmTaskId] = {
+        scheduler: Scheduler)
+       (implicit ec: ExecutionContext): RetryingCommandInvoker[Either[DrmTaskId, DrmTaskArray]] = {
       
-      def invokeBinaryFor(taskId: DrmTaskId) = {
-        val tokens = makeTokens(binaryName, taskId)
+      def invokeBinaryFor(taskIdOrArray: Either[DrmTaskId, DrmTaskArray]): Try[RunResults] = {
+        val tokens = makeTokens(binaryName, taskIdOrArray)
         
         debug(s"Invoking '$binaryName': '${tokens.mkString(" ")}'")
         
-        Processes.runSync(binaryName, tokens)
+        val result = Processes.runSync(binaryName, tokens)
+        
+        result.foreach(_.logStdOutAndStdErr("FIXME: qacct output:"))
+        
+        result.recover {
+          case e => error(s"FIXME: Error invoking qacct: $e", e)
+        }
+        
+        result
       }
       
-      new RetryingCommandInvoker[DrmTaskId](maxRetries, binaryName, invokeBinaryFor, scheduler = scheduler)
+      new RetryingCommandInvoker[Either[DrmTaskId, DrmTaskArray]](
+          maxRetries, 
+          binaryName, 
+          invokeBinaryFor, 
+          scheduler = scheduler)
     }
   
-    def makeTokens(actualBinary: String, taskId: DrmTaskId): Seq[String]
+    def makeTokens(actualBinary: String, taskId: Either[DrmTaskId, DrmTaskArray]): Seq[String]
   }
 }

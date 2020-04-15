@@ -109,33 +109,36 @@ final case class DrmChunkRunner(
           jobSubmitter.submitJobs(drmSettings, drmTaskArray)
         }
 
-        toRunDataStream(drmJobs, submissionResult)
+        toRunDataStream(drmTaskArray, submissionResult)
       }
     }
   }
 
   private def toRunDataStream(
-    drmJobs: Seq[DrmJobWrapper],
+    drmTaskArray: DrmTaskArray,
     submissionResult: DrmSubmissionResult)(implicit ec: ExecutionContext): Observable[Map[LJob, RunData]] = {
+    
+    import drmTaskArray.drmJobs
     
     val commandLineJobs = drmJobs.map(_.commandLineJob)
     
     import loamstream.drm.DrmSubmissionResult._
     
     submissionResult match {
-      case SubmissionSuccess(drmJobsByDrmId) => jobsToRunDatas(drmJobsByDrmId)
+      case SubmissionSuccess(drmJobsByDrmId) => jobsToRunDatas(drmTaskArray, drmJobsByDrmId)
       case SubmissionFailure(e) => makeAllFailureMap(drmJobs, Some(e))
     }
   }
   
   private[drm] def jobsToRunDatas(
+    drmTaskArray: DrmTaskArray,
     jobsById: Map[DrmTaskId, DrmJobWrapper])(implicit ec: ExecutionContext): Observable[Map[LJob, RunData]] = {
 
     def statuses(taskIds: Iterable[DrmTaskId]): Map[DrmTaskId, Observable[DrmStatus]] = jobMonitor.monitor(taskIds)
 
     val jobsAndDrmStatusesById = combine(jobsById, statuses(jobsById.keys))
 
-    toRunDatas(accountingClient, jobsAndDrmStatusesById)
+    toRunDatas(accountingClient, drmTaskArray, jobsAndDrmStatusesById)
   }
   
   /**
@@ -172,15 +175,28 @@ object DrmChunkRunner extends Loggable {
   }
   
   private[drm] def toRunData(
-      accountingClient: AccountingClient, 
+      //accountingClient: AccountingClient,
+      infosByIdFuture: Future[Map[DrmTaskId, AccountingInfo]],
       wrapper: DrmJobWrapper, 
       taskId: DrmTaskId)(s: DrmStatus)(implicit ec: ExecutionContext): Observable[RunData] = {
     
-    val infoOptFuture: Future[Option[AccountingInfo]] = {
+    /*val infoOptFuture: Future[Option[AccountingInfo]] = infosByIdFuture.map(_.get(taskId))*//*{
       if(s.isFinished) {
         debug(s"${simpleNameOf[DrmStatus]} is finished, determining execution node and queue: $s")
         
         getAccountingInfoFor(accountingClient)(taskId)
+      } else {
+        debug(s"${simpleNameOf[DrmStatus]} is NOT finished, NOT determining execution node and queue: $s")
+        
+        Future.successful(None)
+      }
+    }*/
+    
+    val infoOptFuture: Future[Option[AccountingInfo]] =  {
+      if(s.isFinished) {
+        debug(s"${simpleNameOf[DrmStatus]} is finished, determining execution node and queue: $s")
+        
+        infosByIdFuture.map(_.get(taskId))
       } else {
         debug(s"${simpleNameOf[DrmStatus]} is NOT finished, NOT determining execution node and queue: $s")
         
@@ -206,13 +222,16 @@ object DrmChunkRunner extends Loggable {
   
   private[drm] def toRunDatas(
     accountingClient: AccountingClient, 
+    drmTaskArray: DrmTaskArray,
     jobsAndDrmStatusesById: Map[DrmTaskId, JobAndStatuses])
     (implicit ec: ExecutionContext): Observable[Map[LJob, RunData]] = {
 
+    val infosByIdFuture = accountingClient.getAccountingInfo(drmTaskArray)
+    
     val drmJobsToExecutionObservables: Iterable[(DrmJobWrapper, Observable[RunData])] = for {
       (taskId, (wrapper, drmJobStatuses)) <- jobsAndDrmStatusesById
     } yield {
-      val runDataObs = drmJobStatuses.last.flatMap(toRunData(accountingClient, wrapper, taskId))
+      val runDataObs = drmJobStatuses.last.flatMap(toRunData(infosByIdFuture, wrapper, taskId))
 
       wrapper -> runDataObs
     }

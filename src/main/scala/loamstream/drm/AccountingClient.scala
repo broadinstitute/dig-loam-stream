@@ -23,4 +23,6 @@ trait AccountingClient {
       tr <- getTerminationReason(taskId)
     } yield AccountingInfo(rs, tr)
   }
+  
+  def getAccountingInfo(taskArray: DrmTaskArray): Future[Map[DrmTaskId, AccountingInfo]]
 }

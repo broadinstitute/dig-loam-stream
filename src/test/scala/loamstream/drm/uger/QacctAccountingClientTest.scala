@@ -12,6 +12,8 @@ import loamstream.util.RunResults
 import loamstream.util.Tries
 import java.time.Month
 import loamstream.drm.DrmTaskId
+import loamstream.drm.DrmTaskArray
+import loamstream.util.Iterables
 
 /**
  * @author clint
@@ -140,7 +142,7 @@ final class QacctAccountingClientTest extends FunSuite {
     
     val expectedRawData = actualQacctOutput(Option(expectedQueue), Option(expectedNode), startTime, endTime)
     
-    def invokeQacct(taskId: DrmTaskId): Try[RunResults] = {
+    def invokeQacct(idOrArray: Either[DrmTaskId, DrmTaskArray]): Try[RunResults] = {
       timesQacctInvoked += 1
       
       if(timesQacctInvoked < 3) {
@@ -249,5 +251,65 @@ final class QacctAccountingClientTest extends FunSuite {
     val taskId = DrmTaskId("12345", 42)
 
     waitFor(mockClient.getResourceUsage(taskId).failed)
+  }
+  
+  test("isDividerLine") {
+    import QacctAccountingClient.isDividerLine
+    
+    //Actual qacct output
+    assert(isDividerLine("==============================================================") === true)
+    assert(isDividerLine("==============================================================\n") === true)
+    assert(isDividerLine("  \t ==============================================================  \n") === true)
+    assert(isDividerLine("===============================") === true)
+    assert(isDividerLine("=============================== ") === true)
+    assert(isDividerLine(" ===============================") === true)
+    assert(isDividerLine(" ===============================  ") === true)
+    
+    assert(isDividerLine("") === false)
+    assert(isDividerLine("asdf") === false)
+    assert(isDividerLine("123==============") === false)
+    assert(isDividerLine("==============456") === false)
+    assert(isDividerLine("==========5467asdf====") === false)
+  }
+  
+  test("extractDrmTaskId - happy path") {
+    import QacctAccountingClient.isDividerLine
+    import QacctAccountingClient.extractDrmTaskId
+    
+    val jobName = "foo-123-bar"
+    val jobNumber = 654321
+    
+    val multiLineQacctOutput: Iterable[String] = {
+      QacctTestHelpers.multiJobQacctOutput(jobName, jobNumber).split("[\\r\\n]+")
+    }
+    
+    import Iterables.Implicits.IterableOps
+    
+    val taskIds = multiLineQacctOutput.splitWhen(isDividerLine).flatMap(extractDrmTaskId(_).toOption).toSet
+    
+    val expected = Set(
+        DrmTaskId(jobNumber.toString, 1),
+        DrmTaskId(jobNumber.toString, 2),
+        DrmTaskId(jobNumber.toString, 3))
+        
+    assert(taskIds === expected)
+  }
+  
+  test("extractDrmTaskId - bad input") {
+    import QacctAccountingClient.isDividerLine
+    import QacctAccountingClient.extractDrmTaskId
+    
+    val jobName = "foo-123-bar"
+    val jobNumber = 654321
+    
+    val multiLineQacctOutput: Iterable[String] = {
+      QacctTestHelpers.multiJobQacctOutput(jobName, jobNumber).replaceAll("jobnumber", "ASDF").split("[\\r\\n]+")
+    }
+    
+    import Iterables.Implicits.IterableOps
+    
+    val taskIds = multiLineQacctOutput.splitWhen(isDividerLine).map(extractDrmTaskId)
+    
+    assert(taskIds.forall(_.isFailure) === true)
   }
 }

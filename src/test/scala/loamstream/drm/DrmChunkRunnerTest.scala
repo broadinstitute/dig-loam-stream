@@ -42,6 +42,8 @@ import rx.lang.scala.schedulers.IOScheduler
 import loamstream.model.execute.LocalSettings
 import loamstream.model.execute.Settings
 import loamstream.util.ValueBox
+import loamstream.drm.uger.MockQacctAccountingClient
+import loamstream.drm.uger.QacctTestHelpers
 
 
 /**
@@ -165,9 +167,23 @@ final class DrmChunkRunnerTest extends FunSuite {
       
       val failed = DrmJobWrapper(ExecutionConfig.default, defaultUgerSettings, ugerPathBuilder, job, path("."), 1)
       
-      val accountingClient = MockAccountingClient.NeverWorks
+      val accountingClient = new MockQacctAccountingClient(
+        delegateFn = {
+          case Left(taskId) => ???
+          case Right(taskArray) => {
+            QacctTestHelpers.successfulRun(
+              stdout = QacctTestHelpers.multiJobQacctOutput("some-task-array-job-name", 123).split("[\\r\\n]+"))
+          }
+        })
+
+      val taskArray = DrmTaskArray(
+          TestHelpers.config.ugerConfig.get,
+          Seq(failed),
+          "some-task-array-job-name",
+          "/dev/null",
+          "/dev/null")
       
-      val result = waitFor(toRunDatas(accountingClient, Map(id -> toTuple(failed))).firstAsFuture)
+      val result = waitFor(toRunDatas(accountingClient, taskArray, Map(id -> toTuple(failed))).firstAsFuture)
       
       val Seq((actualJob, runData)) = result.toSeq
       
@@ -201,11 +217,25 @@ final class DrmChunkRunnerTest extends FunSuite {
     def doTest(lastDrmStatus: DrmStatus, expectedLastStatus: JobStatus): Unit = {
       val job = MockDrmJob(id, Queued, Queued, Running, Running, lastDrmStatus)
       
-      val accountingClient = MockAccountingClient.NeverWorks
+      val accountingClient = new MockQacctAccountingClient(
+        delegateFn = {
+          case Left(taskId) => ???
+          case Right(taskArray) => {
+            QacctTestHelpers.successfulRun(
+              stdout = QacctTestHelpers.multiJobQacctOutput("some-task-array-job-name", 123).split("[\\r\\n]+"))
+          }
+        })
       
       val worked = DrmJobWrapper(ExecutionConfig.default, defaultUgerSettings, ugerPathBuilder, job, path("."), 1)
       
-      val result = waitFor(toRunDatas(accountingClient, Map(id -> toTuple(worked))).firstAsFuture)
+      val taskArray = DrmTaskArray(
+          TestHelpers.config.ugerConfig.get,
+          Seq(worked),
+          "some-task-array-job-name",
+          "/dev/null",
+          "/dev/null")
+      
+      val result = waitFor(toRunDatas(accountingClient, taskArray, Map(id -> toTuple(worked))).firstAsFuture)
       
       val Seq((actualJob, runData)) = result.toSeq
       
@@ -244,9 +274,23 @@ final class DrmChunkRunnerTest extends FunSuite {
       
       val input = Map(goodId -> toTuple(worked), badId -> toTuple(failed))
       
-      val accountingClient = MockAccountingClient.NeverWorks
+      val accountingClient = new MockQacctAccountingClient(
+        delegateFn = {
+          case Left(taskId) => ???
+          case Right(taskArray) => {
+            QacctTestHelpers.successfulRun(
+              stdout = QacctTestHelpers.multiJobQacctOutput("some-task-array-job-name", 123).split("[\\r\\n]+"))
+          }
+        })
       
-      val result = waitFor(toRunDatas(accountingClient, input).firstAsFuture)
+      val taskArray = DrmTaskArray(
+          TestHelpers.config.ugerConfig.get,
+          Seq(worked, failed),
+          "some-task-array-job-name",
+          "/dev/null",
+          "/dev/null")
+      
+      val result = waitFor(toRunDatas(accountingClient, taskArray, input).firstAsFuture)
       
       val goodExecution = result(workedJob)
       val badExecution = result(failedJob)

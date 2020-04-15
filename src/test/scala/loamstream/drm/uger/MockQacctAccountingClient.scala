@@ -14,13 +14,16 @@ import loamstream.model.jobs.TerminationReason
 import scala.concurrent.Future
 import loamstream.drm.DrmTaskId
 import rx.lang.scala.schedulers.ComputationScheduler
+import loamstream.drm.AccountingInfo
+import scala.concurrent.ExecutionContext
+import loamstream.drm.DrmTaskArray
 
 /**
  * @author clint
  * Mar 15, 2017
  */
 final class MockQacctAccountingClient(
-    delegateFn: DrmTaskId => Try[RunResults],
+    delegateFn: Either[DrmTaskId, DrmTaskArray] => Try[RunResults],
     ugerConfig: UgerConfig = UgerConfig(),
     delayStart: Duration = RetryingCommandInvoker.defaultDelayStart,
     delayCap: Duration = RetryingCommandInvoker.defaultDelayCap) extends AccountingClient {
@@ -31,16 +34,20 @@ final class MockQacctAccountingClient(
   
   private val timesGetTerminationReasonInvokedBox: ValueBox[Int] = ValueBox(0)
   
+  private val timesGetAccountingInfoFromTaskArrayInvokedBox: ValueBox[Int] = ValueBox(0)
+  
   def timesGetQacctOutputForInvoked: Int = timesGetQacctOutputForInvokedBox()
     
   def timesGetResourceUsageInvoked: Int = timesGetResourceUsageInvokedBox()
   
   def timesGetTerminationReasonInvoked: Int = timesGetTerminationReasonInvokedBox()
 
+  def timesGetAccountingInfoFromTaskArrayInvoked: Int = timesGetAccountingInfoFromTaskArrayInvokedBox()
+  
   private val actualDelegate = {
     val fakeBinaryName = "MOCK"
     
-    val wrappedDelegateFn: DrmTaskId => Try[RunResults] = { taskId =>
+    val wrappedDelegateFn: Either[DrmTaskId, DrmTaskArray] => Try[RunResults] = { taskId =>
       timesGetQacctOutputForInvokedBox.mutate(_ + 1)
 
       delegateFn(taskId)
@@ -49,7 +56,7 @@ final class MockQacctAccountingClient(
     import scala.concurrent.ExecutionContext.Implicits.global
     
     val invoker = {
-      new RetryingCommandInvoker[DrmTaskId](
+      new RetryingCommandInvoker[Either[DrmTaskId, DrmTaskArray]](
           ugerConfig.maxQacctRetries, 
           "MOCK", 
           wrappedDelegateFn, 
@@ -71,5 +78,11 @@ final class MockQacctAccountingClient(
     timesGetTerminationReasonInvokedBox.mutate(_ + 1)
     
     actualDelegate.getTerminationReason(taskId)
+  }
+  
+  override def getAccountingInfo(taskArray: DrmTaskArray): Future[Map[DrmTaskId, AccountingInfo]] = {
+    timesGetAccountingInfoFromTaskArrayInvokedBox.mutate(_ + 1)
+    
+    actualDelegate.getAccountingInfo(taskArray)
   }
 }

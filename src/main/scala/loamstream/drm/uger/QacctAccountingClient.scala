@@ -25,6 +25,11 @@ import loamstream.util.RetryingCommandInvoker
 import loamstream.util.Tries
 import loamstream.drm.DrmTaskId
 import rx.lang.scala.Scheduler
+import loamstream.drm.AccountingInfo
+import loamstream.drm.DrmTaskArray
+import loamstream.util.Iterables
+import loamstream.util.Maps
+import loamstream.util.Futures
 
 
 /**
@@ -36,49 +41,92 @@ import rx.lang.scala.Scheduler
  * job id, to facilitate unit testing.
  */
 final class QacctAccountingClient(
-    qacctInvoker: RetryingCommandInvoker[DrmTaskId])
+    qacctInvoker: RetryingCommandInvoker[Either[DrmTaskId, DrmTaskArray]])
     (implicit ec: ExecutionContext) extends AccountingClient with Loggable {
 
   import QacctAccountingClient._
 
-  private def getQacctOutputFor(taskId: DrmTaskId): Future[Seq[String]] = qacctInvoker(taskId).map(_.stdout)
+  override def getAccountingInfo(taskArray: DrmTaskArray): Future[Map[DrmTaskId, AccountingInfo]] = {
+    
+    def parseChunks(output: Seq[String]): Map[DrmTaskId, Future[AccountingInfo]] = {
+      import Iterables.Implicits._
+
+      warn(s"FIXME: Parsing qacct output: $output")
+      
+      val outputChunks = output.splitWhen(QacctAccountingClient.isDividerLine).filter(_.nonEmpty)
+      
+      Map.empty[DrmTaskId, Future[AccountingInfo]] ++ outputChunks.map(_.toSeq).flatMap { chunk =>
+        warn(s"FIXME: Parsing qacct chunk: $chunk")
+        
+        val taskIdAttempt = QacctAccountingClient.extractDrmTaskId(chunk)
+        
+        warn(s"FIXME: drm task id attempt: $taskIdAttempt")
+        
+        taskIdAttempt.recover {
+          case e => {
+            val joinedOutput = chunk.mkString(System.lineSeparator)
+            
+            warn(s"Error parsing DRM task id from qacct output: ${e.getMessage} output follows:\n'${joinedOutput}'", e)
+          }
+        }
+        
+        val futureAccountingInfo = toResources(chunk).map(AccountingInfo.fromResources)
+        
+        taskIdAttempt.toOption.map(tid => tid -> futureAccountingInfo)
+      }
+    }
+    
+    val result = getQacctOutputFor(Right(taskArray)).map(parseChunks).flatMap(Futures.toMap)
+    
+    warn(s"FIXME: getAccountingInfo() result: ${scala.concurrent.Await.result(result, scala.concurrent.duration.Duration.Inf)}")
+    
+    result
+  }
+  
+  private def getQacctOutputFor(taskIdOrArray: Either[DrmTaskId, DrmTaskArray]): Future[Seq[String]] = {
+    qacctInvoker(taskIdOrArray).map(_.stdout)
+  }
+  
+  private def getQacctOutputFor(taskId: DrmTaskId): Future[Seq[String]] = qacctInvoker(Left(taskId)).map(_.stdout)
 
   import Regexes.{ cpu, endTime, hostname, mem, qname, startTime }
   
   override def getResourceUsage(taskId: DrmTaskId): Future[UgerResources] = {
-    def toResources(output: Seq[String]): Future[UgerResources] = {
-      val nodeOpt = findField(output, hostname).toOption
-      val queueOpt = findField(output, qname).map(Queue(_)).toOption
-      
-      val result = for {
-        memory <- findField(output, mem).flatMap(toMemory)
-        cpuTime <- findField(output, cpu).flatMap(toCpuTime)
-        start <- findField(output, startTime).flatMap(toLocalDateTime("start"))
-        end <- findField(output, endTime).flatMap(toLocalDateTime("end"))
-      } yield  {
-        UgerResources(
-          memory = memory,
-          cpuTime = cpuTime,
-          node = nodeOpt,
-          queue = queueOpt,
-          startTime = start,
-          endTime = end,
-          raw = Some(output.mkString(System.lineSeparator)))
-      }
-      
-      result.recover {
-        case e => debug(s"Error parsing qacct output: ${e.getMessage}", e)
-      }
-      
-      Future.fromTry(result)
-    }
-    
     getQacctOutputFor(taskId).flatMap(toResources)
   }
   
   override def getTerminationReason(taskId: DrmTaskId): Future[Option[TerminationReason]] = {
     //NB: Uger/qacct does not provide this information directly. 
     Future.successful(None)
+  }
+  
+  private def toResources(output: Seq[String]): Future[UgerResources] = {
+    val nodeOpt = findField(output, hostname).toOption
+    val queueOpt = findField(output, qname).map(Queue(_)).toOption
+    
+    val result = for {
+      memory <- findField(output, mem).flatMap(toMemory)
+      cpuTime <- findField(output, cpu).flatMap(toCpuTime)
+      start <- findField(output, startTime).flatMap(toLocalDateTime("start"))
+      end <- findField(output, endTime).flatMap(toLocalDateTime("end"))
+    } yield  {
+      UgerResources(
+        memory = memory,
+        cpuTime = cpuTime,
+        node = nodeOpt,
+        queue = queueOpt,
+        startTime = start,
+        endTime = end,
+        raw = Some(output.mkString(System.lineSeparator)))
+    }
+    
+    result.recover {
+      case e => debug(s"Error parsing qacct output: ${e.getMessage}", e)
+    }
+    
+    warn(s"FIXME: Uger resources attempt: $result")
+    
+    Future.fromTry(result)
   }
 }
 
@@ -120,10 +168,27 @@ object QacctAccountingClient extends Loggable {
     }
   }
 
-  private def findField(fields: Seq[String], regex: Regex): Try[String] = {
+  private def findField(
+      fields: Iterable[String], 
+      regex: Regex,
+     ifMissingMessage: Option[() => String] = None): Try[String] = {
+    
     val opt = fields.collectFirst { case regex(value) => value.trim }.filter(_.nonEmpty)
     
-    Options.toTry(opt)(s"Couldn't find field that matched regex '$regex'")
+    def message = ifMissingMessage match {
+      case Some(m) => m()
+      case None => s"Couldn't find field that matched regex '$regex'"
+    }
+    
+    Options.toTry(opt)(message)
+  }
+  
+  private def findField(
+      fields: Iterable[String], 
+      regex: Regex,
+      ifMissingMessage: => String): Try[String] = {
+    
+    findField(fields, regex, Some(() => ifMissingMessage))
   }
   
   //Example date from qacct: 03/06/2017 17:49:50.455
@@ -143,5 +208,29 @@ object QacctAccountingClient extends Loggable {
     val startTime = "start_time\\s+(.+?)$".r
     
     val endTime = "end_time\\s+(.+?)$".r
+    
+    val jobnumber = "jobnumber\\s+(.+?)$".r
+    val taskid = "taskid\\s+(.+?)$".r
+  }
+  
+  private[uger] def isDividerLine(s: String): Boolean = {
+    val trimmed = s.trim
+    
+    trimmed.nonEmpty && trimmed.forall(_ == '=')
+  }
+  
+  private[uger] def extractJobNumber(lines: Iterable[String]): Try[String] = {
+    findField(lines, Regexes.jobnumber, s"Couldn't find jobnumber in lines ${lines}")
+  }
+  
+  private[uger] def extractTaskId(lines: Iterable[String]): Try[Int] = {
+    findField(lines, Regexes.taskid, s"Couldn't find taskid in lines ${lines}").map(_.toInt)
+  }
+  
+  private[uger] def extractDrmTaskId(lines: Iterable[String]): Try[DrmTaskId] = {
+    for {
+      jobNumber <- extractJobNumber(lines)
+      taskId <- extractTaskId(lines)
+    } yield DrmTaskId(jobNumber, taskId)
   }
 }

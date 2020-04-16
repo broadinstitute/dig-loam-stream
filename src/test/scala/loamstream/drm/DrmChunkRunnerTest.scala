@@ -42,6 +42,12 @@ import rx.lang.scala.schedulers.IOScheduler
 import loamstream.model.execute.LocalSettings
 import loamstream.model.execute.Settings
 import loamstream.util.ValueBox
+import loamstream.drm.uger.MockQacctAccountingClient
+import loamstream.drm.uger.QacctTestHelpers
+import java.time.LocalDateTime
+import loamstream.model.execute.Resources.DrmResources
+import loamstream.model.jobs.TerminationReason
+import loamstream.model.execute.Resources.UgerResources
 
 
 /**
@@ -165,7 +171,8 @@ final class DrmChunkRunnerTest extends FunSuite {
       
       val failed = DrmJobWrapper(ExecutionConfig.default, defaultUgerSettings, ugerPathBuilder, job, path("."), 1)
       
-      val accountingClient = MockAccountingClient.NeverWorks
+      val accountingClient = new DrmChunkRunnerTest.MockAccountingClient(
+          Map.empty[DrmTaskId, AccountingInfo].withDefault(_ => bogusAccountingInfo))
       
       val result = waitFor(toRunDatas(accountingClient, Map(id -> toTuple(failed))).firstAsFuture)
       
@@ -173,6 +180,7 @@ final class DrmChunkRunnerTest extends FunSuite {
       
       assert(actualJob === job)    
       assert(runData.jobStatus === JobStatus.Failed)
+      assert(runData.resourcesOpt.isDefined)
       //TODO: Other assertions about RunData?
       
       val expectedStatuses = Seq(JobStatus.Submitted, JobStatus.Running, expectedLastStatus)
@@ -201,7 +209,8 @@ final class DrmChunkRunnerTest extends FunSuite {
     def doTest(lastDrmStatus: DrmStatus, expectedLastStatus: JobStatus): Unit = {
       val job = MockDrmJob(id, Queued, Queued, Running, Running, lastDrmStatus)
       
-      val accountingClient = MockAccountingClient.NeverWorks
+      val accountingClient = new DrmChunkRunnerTest.MockAccountingClient(
+          Map.empty[DrmTaskId, AccountingInfo].withDefault(_ => bogusAccountingInfo))
       
       val worked = DrmJobWrapper(ExecutionConfig.default, defaultUgerSettings, ugerPathBuilder, job, path("."), 1)
       
@@ -211,6 +220,8 @@ final class DrmChunkRunnerTest extends FunSuite {
       
       assert(actualJob === job)
       assert(runData.jobStatus === JobStatus.WaitingForOutputs)
+      assert(runData.resourcesOpt === None)
+      assert(runData.terminationReasonOpt === None)
     }
     
     doTest(Done, JobStatus.WaitingForOutputs)
@@ -244,7 +255,10 @@ final class DrmChunkRunnerTest extends FunSuite {
       
       val input = Map(goodId -> toTuple(worked), badId -> toTuple(failed))
       
-      val accountingClient = MockAccountingClient.NeverWorks
+      import QacctTestHelpers.{successfulRun, actualQacctOutput}
+
+      val accountingClient = new DrmChunkRunnerTest.MockAccountingClient(
+          Map.empty[DrmTaskId, AccountingInfo].withDefault(_ => bogusAccountingInfo))
       
       val result = waitFor(toRunDatas(accountingClient, input).firstAsFuture)
       
@@ -255,6 +269,9 @@ final class DrmChunkRunnerTest extends FunSuite {
       
       assert(goodExecution.jobStatus === JobStatus.WaitingForOutputs)
       assert(badExecution.jobStatus === JobStatus.Failed)
+      
+      assert(goodExecution.resourcesOpt === None)
+      assert(badExecution.resourcesOpt.isDefined)
       //TODO: Other assertions about execution?
       
       val expectedGoodStatuses = Seq(JobStatus.Submitted, JobStatus.Running, expectedLastGoodStatus, Succeeded)
@@ -463,6 +480,33 @@ final class DrmChunkRunnerTest extends FunSuite {
     doTest(DrmSystem.Uger)
     doTest(DrmSystem.Lsf)
   }
+  
+  test("notSuccess") {
+    import DrmChunkRunner.notSuccess
+    
+    assert(notSuccess(DrmStatus.Done) === false)
+    assert(notSuccess(DrmStatus.CommandResult(0)) === false)
+    assert(notSuccess(DrmStatus.CommandResult(42)) === true)
+    assert(notSuccess(DrmStatus.DoneUndetermined) === true)
+    assert(notSuccess(DrmStatus.Failed) === true)
+    assert(notSuccess(DrmStatus.Queued) === true)
+    assert(notSuccess(DrmStatus.QueuedHeld) === true)
+    assert(notSuccess(DrmStatus.Requeued) === true)
+    assert(notSuccess(DrmStatus.RequeuedHeld) === true)
+    assert(notSuccess(DrmStatus.Running) === true)
+    assert(notSuccess(DrmStatus.Suspended) === true)
+    assert(notSuccess(DrmStatus.Undetermined) === true)
+  }
+  
+  private def bogusAccountingInfo: AccountingInfo = AccountingInfo(
+    UgerResources(
+      Memory.inGb(1),
+      CpuTime.inSeconds(1),
+      None,
+      None,
+      LocalDateTime.now,
+      LocalDateTime.now), 
+    None)
 }
 
 object DrmChunkRunnerTest {
@@ -507,6 +551,16 @@ object DrmChunkRunnerTest {
           terminationReasonOpt = None)
           
       Future.successful(runData)
+    }
+  }
+  
+  final class MockAccountingClient(toReturn: Map[DrmTaskId, AccountingInfo]) extends AccountingClient {
+    override def getResourceUsage(taskId: DrmTaskId): Future[DrmResources] = Future.successful {
+      toReturn(taskId).resources
+    }
+  
+    override def getTerminationReason(taskId: DrmTaskId): Future[Option[TerminationReason]] = Future.successful {
+      toReturn.get(taskId).flatMap(_.terminationReasonOpt)
     }
   }
 }

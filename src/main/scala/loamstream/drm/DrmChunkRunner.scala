@@ -26,6 +26,7 @@ import loamstream.util.Observables
 import loamstream.util.Terminable
 import rx.lang.scala.Observable
 import loamstream.util.TimeUtils
+import loamstream.util.ExitCodes
 
 
 /**
@@ -156,6 +157,12 @@ object DrmChunkRunner extends Loggable {
 
   type JobAndStatuses = (DrmJobWrapper, Observable[DrmStatus])
 
+  private[drm] def notSuccess(status: DrmStatus): Boolean = status match {
+    case DrmStatus.Done => false
+    case DrmStatus.CommandResult(ec) => ExitCodes.isFailure(ec)
+    case _ => true
+  }
+  
   private[drm] def getAccountingInfoFor(accountingClient: AccountingClient)(taskId: DrmTaskId)
                                        (implicit ec: ExecutionContext): Future[Option[AccountingInfo]] = {
     
@@ -177,7 +184,7 @@ object DrmChunkRunner extends Loggable {
       taskId: DrmTaskId)(s: DrmStatus)(implicit ec: ExecutionContext): Observable[RunData] = {
     
     val infoOptFuture: Future[Option[AccountingInfo]] = {
-      if(s.isFinished) {
+      if(s.isFinished && notSuccess(s)) {
         debug(s"${simpleNameOf[DrmStatus]} is finished, determining execution node and queue: $s")
         
         getAccountingInfoFor(accountingClient)(taskId)

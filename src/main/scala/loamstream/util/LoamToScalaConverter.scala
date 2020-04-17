@@ -10,6 +10,7 @@ import loamstream.util.code.ObjectId
 import loamstream.util.code.PackageId
 import org.scalafmt.Scalafmt
 import scala.util.control.NonFatal
+import loamstream.loam.LoamLoamScript
 
 /** 
  *  @author oliver
@@ -218,7 +219,10 @@ object LoamToScalaConverter extends Loggable {
       
     val scalaFile = scalaFileOutputDir.resolve(script.scalaFileName)
       
-    val scalaCode = script.asScalaCode(contextValId)
+    val scalaCode = script match {
+      case lls: LoamLoamScript => lls.asScalaCode(contextValId)
+      case _ => ???
+    }
       
     formatAndWrite(scalaCode, scalaFile)
       

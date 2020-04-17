@@ -26,6 +26,9 @@ import java.io.FileOutputStream
 import java.io.PrintStream
 import loamstream.util.TimeUtils
 import loamstream.conf.CompilationConfig
+import loamstream.loam.LoamLoamScript
+import loamstream.loam.ScalaLoamScript
+import loamstream.loam.asscala.ContextHolder
 
 /** The compiler compiling Loam scripts into execution plans */
 object LoamCompiler extends Loggable {
@@ -190,8 +193,9 @@ object LoamCompiler extends Loggable {
     scalaCompilerSettings
   }
 
-  private def toBatchSourceFile(projectContextReceipt: DepositBox.Receipt)(script: LoamScript) = {
-    new BatchSourceFile(script.scalaFileName, script.asScalaCode(projectContextReceipt))
+  private def toBatchSourceFile(projectContextReceipt: DepositBox.Receipt)(script: LoamScript) = script match {
+    case lls: LoamLoamScript => new BatchSourceFile(lls.scalaFileName, lls.asScalaCode(projectContextReceipt))
+    case _: ScalaLoamScript => new BatchSourceFile(script.scalaFileName, script.code)
   }
 
   private def evaluateLoamScript(classLoader: ClassLoader)(script: LoamScript): LoamScriptBox = {
@@ -229,10 +233,15 @@ final class LoamCompiler(
     project: LoamProject,
     graphBoxReceipt: DepositBox.Receipt): Unit = {
 
+    def asScalaCode(script: LoamScript): String = script match {
+      case lls: LoamLoamScript => lls.asScalaCode(graphBoxReceipt)
+      case sls: ScalaLoamScript => sls.code
+    }
+    
     if (settings.logCodeForLevel(logLevel)) {
       for (script <- project.scripts) {
         log(logLevel, script.scalaId.toString)
-        log(logLevel, script.asScalaCode(graphBoxReceipt))
+        log(logLevel, asScalaCode(script))
       }
     }
   }
@@ -309,6 +318,10 @@ final class LoamCompiler(
   def compile(project: LoamProject): LoamCompiler.Result = compileLock.synchronized {
     depositProjectContextAndThen(project) { projectContextReceipt =>
       try {
+        if(project.scripts.exists(_.isInstanceOf[ScalaLoamScript])) {
+          loamstream.loam.asscala.ContextHolder.projectContext = LoamProjectContext.depositBox.get(projectContextReceipt).get
+        }
+        
         val sourceFiles = project.scripts.map(LoamCompiler.toBatchSourceFile(projectContextReceipt))
 
         TimeUtils.time("Compiling .scala files", debug(_)) {

@@ -60,7 +60,7 @@ object LoamScript {
   def withGeneratedName(code: String): LoamScript = {
     val index = generatedNameIndices.next()
     val name = s"$generatedNameBase${StringUtils.leftPadTo(index.toString, "0", 3)}"
-    LoamScript(name, code, None)
+    LoamLoamScript(name, code, None)
   }
 
   /** Tries to read Loam script from file, deriving script name from file path. */
@@ -71,7 +71,13 @@ object LoamScript {
       name <- nameFromFilePath(path)
       code <- Try(readFromAsUtf8(path))
     } yield {
-      LoamScript(name, code, None)
+      if(path.endsWith(".loam")) {
+        LoamLoamScript(name, code, None)
+      } else if(path.endsWith(".scala")) {
+        ScalaLoamScript(name, ???, code, None)
+      } else {
+        ???
+      }
     }
   }
   
@@ -87,7 +93,13 @@ object LoamScript {
           packageParts = enclosingDir.iterator.asScala.toIndexedSeq.map(_.toString)
         } yield PackageId(packageParts)
         
-        LoamScript(name, code, packageIdOpt)
+        if(path.endsWith(".loam")) {
+          LoamLoamScript(name, code, packageIdOpt)
+        } else if(path.endsWith(".scala")) {
+          ScalaLoamScript(name, ???, code, packageIdOpt)
+        } else {
+          ???
+        }
       }
     }
   }
@@ -115,14 +127,35 @@ object LoamScript {
   }
 }
 
-/** A named Loam script */
-final case class LoamScript(name: String, code: String, subPackage: Option[PackageId] = None) {
-
+sealed trait LoamScript {
+  def name: String
+  def code: String
+  def subPackage: Option[PackageId]
+  
+  def pkg: PackageId
+  
   /** Scala id of object corresponding to this Loam script */
-  def scalaId: ObjectId = ObjectId(scriptsPackage, name)
+  def scalaId: ObjectId = ObjectId(pkg, name)
 
   /** Name of Scala source file corresponding to this Loam script */
   def scalaFileName: String = s"$name.scala"
+}
+
+/** A named Loam .scala file */
+final case class ScalaLoamScript(name: String, pkg: PackageId, code: String, subPackage: Option[PackageId] = None) extends LoamScript {
+  def asScalaCode: String = code
+}
+
+/** A named Loam script */
+final case class LoamLoamScript(name: String, code: String, subPackage: Option[PackageId] = None) extends LoamScript {
+
+  override def pkg: PackageId = scriptsPackage
+  
+  /** Scala id of object corresponding to this Loam script */
+  //def scalaId: ObjectId = ObjectId(scriptsPackage, name)
+
+  /** Name of Scala source file corresponding to this Loam script */
+  //def scalaFileName: String = s"$name.scala"
 
   /** Convert to Scala code with own local Loam project context - only use for single Loam script */
   def asScalaCode: String = asScalaCode("new LoamScriptContext(LoamProjectContext.empty)")

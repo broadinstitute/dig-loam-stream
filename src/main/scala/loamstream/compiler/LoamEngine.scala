@@ -30,6 +30,8 @@ import scala.util.Try
 import scala.util.Success
 import loamstream.util.Tries
 import scala.util.Failure
+import loamstream.loam.LoamLoamScript
+import loamstream.loam.ScalaLoamScript
 
 
 /**
@@ -80,12 +82,20 @@ final case class LoamEngine(
       case Failure(e) => error(e.getMessage)
     }
     
-    val nameShot = LoamScript.nameFromFilePath(file)
+    val nameAttempt = LoamScript.nameFromFilePath(file)
 
     for {
-      name <- nameShot 
+      name <- nameAttempt 
       code <- codeAttempt
-    } yield LoamScript(name, code, None)
+    } yield {
+      if(file.endsWith(".loam")) {
+        LoamLoamScript(name, code, None)
+      } else if(file.endsWith(".scala")) {
+        ScalaLoamScript(name, code, None)
+      } else {
+        ???
+      }
+    }
   }
 
   def compileFiles(files: Iterable[Path]): Try[LoamCompiler.Result] = {

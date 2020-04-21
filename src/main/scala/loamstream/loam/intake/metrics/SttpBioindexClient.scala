@@ -1,13 +1,15 @@
 package loamstream.loam.intake.metrics
 
-import org.json4s._
 import org.json4s.jackson.JsonMethods.parse
+import org.json4s._
+import scala.util.Try
 
 import SttpBioindexClient.Defaults
 
 import loamstream.util.Loggable
 
 import sttp.client.HttpURLConnectionBackend
+import loamstream.loam.intake.Variant
 
 
 /**

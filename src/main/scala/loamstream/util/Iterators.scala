@@ -12,23 +12,9 @@ object Iterators {
     }
   }
   
-  private[util] def deltasBetween(is: Seq[Int]): Iterator[Int] = {
-    is. 
-      //step through the list pairwise
-      sliding(2, 1).
-      //compute the difference between the numbers in each pair  
-      map { case Seq(start, end) => end - start }
-  }
-  
   def sample[A](as: Iterator[A], indices: Seq[Int]): Iterator[A] = {
-    def deltas = deltasBetween(indices.sorted)
-    
-    import Implicits._
-    
-    deltas.flatMap { d => 
-      as.drop(d)
-      
-      as.nextOption()
-    }
+    val indicesSet = indices.toSet
+
+    as.zipWithIndex.collect { case (a, i) if indicesSet.contains(i) => a }
   }
 }

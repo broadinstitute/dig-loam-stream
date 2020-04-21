@@ -70,7 +70,7 @@ object DslExample1 extends App with Loggable {
   val src: CsvSource = CsvSource.fromCommandLine("cat data.txt")
   
   val (header, rows) = TimeUtils.time("Making DataRow iterator", info(_)) {
-    val flipDetector = new FlipDetector(
+    val flipDetector = new FlipDetector.Default(
       referenceDir = Paths.get("/home/clint/workspace/marcins-scripts/reference"),
       isVarDataType = true,
       pathTo26kMap = Paths.get("/home/clint/workspace/marcins-scripts/26k_id.map"))

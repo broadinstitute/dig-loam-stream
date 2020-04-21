@@ -18,6 +18,12 @@ import loamstream.loam.GraphFunctions
 object IntakeSyntax extends IntakeSyntax
 
 trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunctions {
+  type ColumnName = loamstream.loam.intake.ColumnName
+  val ColumnName = loamstream.loam.intake.ColumnName
+  
+  type Variant = loamstream.loam.intake.Variant
+  val Variant = loamstream.loam.intake.Variant
+  
   type ColumnDef = loamstream.loam.intake.ColumnDef
   val ColumnDef = loamstream.loam.intake.ColumnDef
   
@@ -36,8 +42,8 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
   type CsvSource = loamstream.loam.intake.CsvSource
   val CsvSource = loamstream.loam.intake.CsvSource
   
-  type FlipDetector = loamstream.loam.intake.FlipDetector
-  val FlipDetector = loamstream.loam.intake.FlipDetector
+  type FlipDetector = loamstream.loam.intake.flip.FlipDetector
+  val FlipDetector = loamstream.loam.intake.flip.FlipDetector
   
   type Row = loamstream.loam.intake.Row
   

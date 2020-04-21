@@ -66,7 +66,7 @@ final class ProcessRealDataTest extends FunSuite {
       
       val actualDataPath = workDir.resolve("processed.tsv")
       
-      val renderer: Renderer = CommonsCsvRenderer(CsvSource.Defaults.Formats.tabDelimitedWithHeaderCsvFormat)
+      val renderer: Renderer = Renderer.CommonsCsv(CsvSource.Defaults.Formats.tabDelimitedWithHeaderCsvFormat)
       
       Files.writeLinesTo(actualDataPath)(Iterator(renderer.render(headerRow)) ++ resultIterator.map(renderer.render))
       

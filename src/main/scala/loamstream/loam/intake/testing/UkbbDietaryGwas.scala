@@ -48,16 +48,20 @@ object UkbbDietaryGwas extends App {
     val varId = ColumnDef(
       aggregator.ColumnNames.marker, 
       //"{chrom}_{pos}_{ref}_{alt}"
-      strexpr"${CHR}_${BP}_${ALLELE0}_${ALLELE1}",
+      strexpr"${CHR}_${BP}_${ALLELE1}_${ALLELE0}",
       //"{chrom}_{pos}_{alt}_{ref}"
-      strexpr"${CHR}_${BP}_${ALLELE1}_${ALLELE0}")
+      strexpr"${CHR}_${BP}_${ALLELE0}_${ALLELE1}")
         
+    val a1Freq = A1FREQ.asDouble
+    val beta = BETA.asDouble
+    val zscore = BETA.asDouble / SE.asDouble
+      
     val otherColumns = Seq(
       ColumnDef(aggregator.ColumnNames.pvalue, P_BOLT_LMM),
       ColumnDef(aggregator.ColumnNames.stderr, SE),
-      ColumnDef(aggregator.ColumnNames.beta, BETA),
-      ColumnDef(aggregator.ColumnNames.eaf, A1FREQ),
-      ColumnDef(aggregator.ColumnNames.zscore, BETA.asDouble / SE.asDouble))
+      ColumnDef(aggregator.ColumnNames.beta, beta, beta.negate),
+      ColumnDef(aggregator.ColumnNames.eaf, a1Freq, 1.0 - a1Freq),
+      ColumnDef(aggregator.ColumnNames.zscore, zscore, zscore.negate))
       
     UnsourcedRowDef(varId, otherColumns).from(source)
   }
@@ -139,7 +143,7 @@ object UkbbDietaryGwas extends App {
     generalMetadata.toMetadata(phenotype, Metadata.Quantitative.Subjects(subjects))
   }
   
-  val flipDetector: FlipDetector = new FlipDetector(
+  val flipDetector: FlipDetector = new FlipDetector.Default(
     referenceDir = aggregatorIntakePipelineConfig.genomeReferenceDir,
     isVarDataType = true,
     pathTo26kMap = aggregatorIntakePipelineConfig.twentySixKIdMap)

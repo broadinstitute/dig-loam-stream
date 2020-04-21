@@ -25,17 +25,6 @@ final class IteratorsTest extends FunSuite {
     assert(initiallyNonEmpty.nextOption === None)
   }
   
-  test("deltasBetween") {
-    import Iterators.deltasBetween
-    
-    assert(deltasBetween(Nil).toIndexedSeq === Nil)
-    
-    assert(deltasBetween(1 to 5).toIndexedSeq === Seq(1,1,1,1))
-    
-    assert(deltasBetween(Seq(1, 2, 4, 7, 11)).toIndexedSeq === Seq(1,2,3,4))
-    assert(deltasBetween(Seq(11, 7, 4, 2, 1)).toIndexedSeq === Seq(-4, -3, -2, -1))
-  }
-  
   test("sample") {
     import Iterators.sample
     

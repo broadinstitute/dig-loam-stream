@@ -22,4 +22,10 @@ object ExecutionContexts {
     
     (ec, Terminable { ExecutorServices.shutdown(es) })
   }
+  
+  def withThreadPool[A](numThreads: Int = 40)(f: ExecutionContext => A): A = {
+    val (ec, ecHandle) = threadPool(numThreads)
+
+    try { f(ec) } finally { ecHandle.stop() }
+  }
 }

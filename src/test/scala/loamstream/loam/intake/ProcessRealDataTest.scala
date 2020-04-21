@@ -6,6 +6,7 @@ import loamstream.TestHelpers
 import loamstream.util.Files
 import loamstream.util.TimeUtils
 import scala.util.control.NonFatal
+import loamstream.loam.intake.aggregator.ColumnDefs
 
 /**
  * @author clint
@@ -33,19 +34,14 @@ final class ProcessRealDataTest extends FunSuite {
     }
     
     import ColumnNames._
+    import ColumnDefs._
   
-    val a1Freq = A1FREQ.asDouble
-    val beta = BETA.asDouble
-    
     val rowDef = UnsourcedRowDef(
-      varIdDef = ColumnDef(
-        VAR_ID, 
-        strexpr"${CHR}_${BP}_${ALLELE0}_${ALLELE1}", 
-        strexpr"${CHR}_${BP}_${ALLELE1}_${ALLELE0}"),
+      varIdDef = marker(CHR, BP, ALLELE0, ALLELE1, VAR_ID),
       otherColumns = Seq(
-        ColumnDef(EAF_PH, a1Freq, 1.0 - a1Freq),
-        ColumnDef(MAF_PH, a1Freq.complementIf(_ > 0.5)),
-        ColumnDef(BETA, beta, -beta),
+        eaf(A1FREQ, EAF_PH),
+        ColumnDef(MAF_PH, A1FREQ.asDouble.complementIf(_ > 0.5)),
+        beta(BETA, BETA),
         ColumnDef(SE, SE, SE),
         ColumnDef(P_VALUE, P_BOLT_LMM, P_BOLT_LMM)))
     

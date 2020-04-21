@@ -56,6 +56,7 @@ final case class SourceColumns(
     
     if(zScore.isEmpty) {
       require(beta.isDefined)
+      require(stderr.isDefined)
     }
   }
 }

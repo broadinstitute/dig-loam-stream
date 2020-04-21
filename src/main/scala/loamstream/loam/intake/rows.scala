@@ -13,14 +13,6 @@ sealed trait Row {
 
 final case class HeaderRow(typedValues: Seq[(String, DataType)]) extends Row {
   override def values: Seq[String] = typedValues.unzip._1
-  
-  def toSchemaFile(csvFormat: CSVFormat): String = {
-    val asString: ((String, DataType)) => String = {
-      case (name, dataType) => csvFormat.format(name, dataType.name)
-    }
-    
-    typedValues.map(asString).mkString(System.lineSeparator)
-  }
 }
 
 final case class DataRow(valuesByColumn: Map[ColumnDef, TypedData]) extends Row {

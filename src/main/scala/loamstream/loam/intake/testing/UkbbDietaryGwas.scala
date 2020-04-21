@@ -3,12 +3,7 @@ package loamstream.loam.intake.testing
 import loamstream.loam.LoamSyntax
 import loamstream.loam.intake.IntakeSyntax
 import loamstream.loam.LoamScriptContext
-import loamstream.loam.intake.CsvSource
 import loamstream.util.Maps
-import loamstream.loam.intake.UnsourcedColumnDef
-import loamstream.loam.intake.FlipDetector
-import loamstream.loam.intake.RowDef
-import loamstream.loam.intake.UnsourcedRowDef
 import loamstream.loam.intake.aggregator
 import loamstream.loam.LoamCmdSyntax
 import loamstream.loam.intake.aggregator.Metadata
@@ -28,7 +23,10 @@ import com.typesafe.config.ConfigFactory
 object UkbbDietaryGwas extends App {
   import LoamSyntax._
   import IntakeSyntax._
-  implicit val scriptContext: LoamScriptContext = new LoamScriptContext(LoamProjectContext.empty(LoamConfig.fromConfig(ConfigFactory.load()).get))
+
+  private implicit val scriptContext: LoamScriptContext = {
+    new LoamScriptContext(LoamProjectContext.empty(LoamConfig.fromConfig(ConfigFactory.load()).get))
+  }
   
   object ColumnNames {
     val CHR = "CHR".asColumnName
@@ -153,9 +151,11 @@ object UkbbDietaryGwas extends App {
     
     val dataInAggregatorFormat = processPhenotype(phenotype, sourceStore, aggregatorIntakePipelineConfig, flipDetector)
   
-    val metadata = toMetadata(phenotype -> phenotypeConfig)
-    
-    upload(aggregatorIntakePipelineConfig, metadata, dataInAggregatorFormat, workDir = Paths.workDir, yes = false).
-      tag(s"upload-to-s3-${phenotype}")
+    if(intakeTypesafeConfig.getBoolean("AGGREGATOR_INTAKE_DO_UPLOAD")) {
+      val metadata = toMetadata(phenotype -> phenotypeConfig)
+      
+      upload(aggregatorIntakePipelineConfig, metadata, dataInAggregatorFormat, workDir = Paths.workDir, yes = false).
+        tag(s"upload-to-s3-${phenotype}")
+    }
   }
 }

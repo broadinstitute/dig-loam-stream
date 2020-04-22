@@ -42,7 +42,7 @@ final class ProcessRealDataTest extends FunSuite {
         eaf(A1FREQ, EAF_PH),
         ColumnDef(MAF_PH, A1FREQ.asDouble.complementIf(_ > 0.5)),
         beta(BETA, BETA),
-        ColumnDef(SE, SE, SE),
+        just(SE),
         ColumnDef(P_VALUE, P_BOLT_LMM, P_BOLT_LMM)))
     
     val flipDetector: FlipDetector = new FlipDetector.Default(

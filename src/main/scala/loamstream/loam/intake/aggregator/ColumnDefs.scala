@@ -28,6 +28,8 @@ object ColumnDefs {
       strexpr"${chromColumn}_${posColumn}_${altColumn}_${refColumn}")
   }
   
+  def just(columnName: ColumnName): UnsourcedColumnDef = ColumnDef(columnName)
+  
   def pvalue(sourceColumn: ColumnExpr[_], destColumn: ColumnName = ColumnNames.pvalue): UnsourcedColumnDef = {
     simpleDoubleColumn(sourceColumn, destColumn) 
   }

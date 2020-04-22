@@ -42,9 +42,7 @@ import loamstream.cli.JobFilterIntent
 object Main extends Loggable {
   def main(args: Array[String]): Unit = {
     
-    val run = new Run
-    
-    addUncaughtExceptionHandler()
+    addUncaughtExceptionHandler(None)
     
     val cli = Conf(args)
 
@@ -53,6 +51,8 @@ object Main extends Loggable {
     val intent = Intent.from(cli)
     
     import Intent._
+
+    def run = new Run
     
     intent match {
       case Right(ShowVersionAndQuit) => ()
@@ -65,11 +65,13 @@ object Main extends Loggable {
     }
   }
   
-  private def addUncaughtExceptionHandler(): Unit = {
+  private def addUncaughtExceptionHandler(wiringOpt: Option[AppWiring] = None): Unit = {
     val handler: Thread.UncaughtExceptionHandler = new Thread.UncaughtExceptionHandler {
       override def uncaughtException(t: Thread, e: Throwable): Unit = {
         error(s"[${t.getName}] Fatal uncaught exception; will trigger shutdown: ", e)
 
+        wiringOpt.foreach(shutdown)
+        
         e.printStackTrace(System.err)
       }
     }
@@ -146,6 +148,8 @@ object Main extends Loggable {
       val wiring = AppWiring.forRealRun(intent, makeDao)
       
       addShutdownHook(wiring)
+      
+      addUncaughtExceptionHandler(Some(wiring))
   
       val loamEngine = wiring.loamEngine
   
@@ -224,21 +228,21 @@ object Main extends Loggable {
       
       info(message)
     }
-    
-    private[this] val shutdownLatch: OneTimeLatch = new OneTimeLatch
+  }
   
-    private[apps] def shutdown(wiring: AppWiring): Unit = {
-      shutdownLatch.doOnce {
-        info("LoamStream shutting down...")
-        
-        wiring.shutdown() match {
-          case Nil => info("LoamStream shut down successfully")
-          case exceptions => {
-            error(s"LoamStream shut down with ${exceptions.size} errors: ")
+  private[this] val shutdownLatch: OneTimeLatch = new OneTimeLatch
   
-            exceptions.foreach { e =>
-              error(s"Error shutting down: ${e.getClass.getName}", e)
-            }
+  private[apps] def shutdown(wiring: AppWiring): Unit = {
+    shutdownLatch.doOnce {
+      info("LoamStream shutting down...")
+      
+      wiring.shutdown() match {
+        case Nil => info("LoamStream shut down successfully")
+        case exceptions => {
+          error(s"LoamStream shut down with ${exceptions.size} errors: ")
+
+          exceptions.foreach { e =>
+            error(s"Error shutting down: ${e.getClass.getName}", e)
           }
         }
       }

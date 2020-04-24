@@ -32,6 +32,18 @@ trait TestDbOps {
     executions.map(reify)
   }
   
+  protected def outputs: Seq[StoreRecord] = {
+    import dao.driver.api._
+    
+    val query = dao.tables.outputs.result
+  
+    val outputsFuture = dao.db.run(query.transactionally)
+    
+    val executions = TestHelpers.waitFor(outputsFuture)
+  
+    executions.map(_.toStoreRecord)
+  }
+  
   private def reify(executionRow: ExecutionRow): Execution.Persisted = {
     import executionRow._
     

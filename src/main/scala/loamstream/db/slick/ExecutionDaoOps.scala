@@ -147,10 +147,11 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
     outputs.map(_.withExecutionId(executionId))
   }
   
-  private object ExecutionQueries {
-    lazy val insertExecution: driver.IntoInsertActionComposer[ExecutionRow, ExecutionRow] =
+  protected object ExecutionQueries {
+    lazy val insertExecution: driver.IntoInsertActionComposer[ExecutionRow, ExecutionRow] = {
       (tables.executions returning tables.executions.map(_.id)).into {
-      (execution, newId) => execution.copy(id = newId)
+        (execution, newId) => execution.copy(id = newId)
+      }
     }
 
     def executionById(executionId: Int): Query[tables.Executions, ExecutionRow, Seq] = {

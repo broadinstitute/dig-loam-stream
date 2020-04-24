@@ -58,5 +58,5 @@ final case class OutputRow( loc: String,
 
   def withExecutionId(newExecutionId: Int): OutputRow = copy(executionId = Some(newExecutionId))
 
-  def toOutputRecord: StoreRecord = StoreRecord(loc, () => hash, () => hashType, lastModified.map(_.toInstant))
+  def toStoreRecord: StoreRecord = StoreRecord(loc, () => hash, () => hashType, lastModified.map(_.toInstant))
 }

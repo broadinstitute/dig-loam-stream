@@ -24,30 +24,4 @@ import loamstream.util.Loggable
  * For a schema description, see Tables
  */
 final class SlickLoamDao(val descriptor: DbDescriptor) extends 
-    LoamDao with CommonDaoOps with OutputDaoOps with ExecutionDaoOps {
-  
-  override val driver = descriptor.dbType.driver
-
-  import driver.api._
-
-  protected[slick] override lazy val db: driver.backend.DatabaseDef = {
-    Database.forURL(url = descriptor.url, driver = descriptor.dbType.jdbcDriverClass)
-  }
-
-  protected[slick] override lazy val tables: Tables = new Tables(driver)
-  
-  override def findCommand(loc: String): Option[String] = {
-    for {
-      outputRow <- findOutputRow(loc)
-      executionId <- outputRow.executionId
-      executionRow <- findExecutionRow(executionId)
-      commandLine <- executionRow.cmd
-    } yield commandLine
-  }
-
-  override def createTables(): Unit = tables.create(db)
-
-  override def dropTables(): Unit = tables.drop(db)
-
-  override def shutdown(): Unit = blockOn(db.shutdown)
-}
+    LoamDao with CommonDaoOps with OutputDaoOps with ExecutionDaoOps with CommandDaoOps

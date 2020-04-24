@@ -57,7 +57,7 @@ trait OutputDaoOps extends LoamDao { self: CommonDaoOps =>
     runBlocking(action)
   }
   
-  protected def toOutputRecord(row: OutputRow): StoreRecord = row.toOutputRecord
+  protected def toOutputRecord(row: OutputRow): StoreRecord = row.toStoreRecord
   
   protected def outputDeleteAction(locsToDelete: Iterable[String]): WriteAction[Int] = {
     OutputQueries.outputsByPaths(locsToDelete).delete

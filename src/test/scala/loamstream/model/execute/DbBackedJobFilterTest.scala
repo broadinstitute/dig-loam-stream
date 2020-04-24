@@ -87,6 +87,18 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
     assert(cachedNonExistentOutput.isMissing)
   }
   
+  test("lastFailureStatus - job never ran, has no outputs") {
+    createTablesAndThen {
+      val filter = new DbBackedJobFilter(dao, HashingStrategy.HashOutputs)
+      
+      val job = CommandLineJob("echo 42", TestHelpers.path("."), LocalSettings, outputs = Set.empty)
+      
+      assert(job.outputs.isEmpty === true)
+      
+      assert(filter.lastFailureStatus(job) === None)
+    }
+  }
+  
   testWithSimpleOutputSet("shouldRun - failed and successful runs") { outputs =>
     createTablesAndThen {
       val filter = new DbBackedJobFilter(dao, HashingStrategy.HashOutputs)

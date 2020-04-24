@@ -90,7 +90,7 @@ final class DbBackedJobFilter(
   }
   
   private[execute] def lastFailureStatus(job: LJob): Option[JobStatus] = {
-    dao.findLastStatus(job.outputs.head.location).filter(_.isFailure)
+    job.outputs.headOption.map(_.location).flatMap(dao.findLastStatus).filter(_.isFailure)
   }
   
   private[execute] def outputThatCausesRunningIfAny(job: LJob): Option[DataHandle] = {

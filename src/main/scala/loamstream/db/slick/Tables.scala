@@ -9,6 +9,7 @@ import slick.jdbc.JdbcProfile
 import slick.jdbc.meta.MTable
 import slick.ast.ColumnOption
 import scala.reflect.ClassTag
+import slick.lifted.ForeignKeyQuery
 
 /**
  * @author clint
@@ -53,7 +54,7 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
   }
 
   abstract class BelongsToExecution[R](tag: Tag, name: String) extends Table[R](tag, name) with HasExecutionId {
-    final def execution = {
+    final def execution: ForeignKeyQuery[Executions, ExecutionRow] = {
       val foreignKeyName = s"${executionForeignKeyPrefix}${name}"
       
       foreignKey(foreignKeyName, executionId, executions)(_.id, onUpdate = Restrict, onDelete = Cascade)

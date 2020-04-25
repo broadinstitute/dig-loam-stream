@@ -23,7 +23,9 @@ import java.io.FileInputStream
 sealed trait CsvSource {
   def records: Iterator[CsvRow]
   
-  def take(n: Int): CsvSource = fromCombinator(_.take(n)) 
+  def take(n: Int): CsvSource = fromCombinator(_.take(n))
+  
+  def drop(n: Int): CsvSource = fromCombinator(_.drop(n))
   
   def filter(p: RowPredicate): CsvSource = fromCombinator(_.filter(p))
   

@@ -37,16 +37,20 @@ sealed abstract class ColumnExpr[A : TypeTag] extends RowParser[A] {
   final def asUpperCase(implicit ev: A =:= String): ColumnExpr[String] = this.map(a => ev(a).toUpperCase)
   
   final def -(rhs: ColumnExpr[A])(implicit ev: Numeric[A]): ColumnExpr[A] = arithmeticOp(this, rhs)(_.minus)
+  final def -(rhs: A)(implicit ev: Numeric[A]): ColumnExpr[A] = this - LiteralColumnExpr(rhs)
     
   final def +(rhs: ColumnExpr[A])(implicit ev: Numeric[A]): ColumnExpr[A] = arithmeticOp(this, rhs)(_.plus)
+  final def +(rhs: A)(implicit ev: Numeric[A]): ColumnExpr[A] = this + LiteralColumnExpr(rhs)
     
   final def *(rhs: ColumnExpr[A])(implicit ev: Numeric[A]): ColumnExpr[A] = arithmeticOp(this, rhs)(_.times)
+  final def *(rhs: A)(implicit ev: Numeric[A]): ColumnExpr[A] = this * LiteralColumnExpr(rhs)
   
   final def /(rhs: ColumnExpr[A])(implicit ev: Fractional[A]): ColumnExpr[A] = {
     val fractional = implicitly[Fractional[A]]
     
     ColumnExpr.lift2(fractional.div).apply(this, rhs)
   }
+  final def /(rhs: A)(implicit ev: Fractional[A]): ColumnExpr[A] = this / LiteralColumnExpr(rhs)
   
   final def unary_-(implicit ev: Numeric[A]): ColumnExpr[A] = {
     this.map(a => implicitly[Numeric[A]].mkNumericOps(a).unary_-())

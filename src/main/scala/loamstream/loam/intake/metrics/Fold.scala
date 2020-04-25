@@ -6,6 +6,9 @@ import cats.Applicative
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext
 
+/**
+ * An abstract notion of folding over some collection of elements, producing a result.
+ */
 abstract class Fold[E, O] {
   type M
   def m: Monoid[M]
@@ -45,8 +48,6 @@ object Fold extends App {
     reduced.map(f.summarize)
   }
   
-  def sumBy[M](implicit m: Monoid[M]): Fold[M, M] = Fold(m)(identity, identity)
-  
   def combine[E, A1, A2](f1: Fold[E, A1], f2: Fold[E, A2]): Fold[E, (A1, A2)] = { 
     new Fold[E, (A1, A2)] {
       override type M = (f1.M, f2.M)
@@ -67,19 +68,6 @@ object Fold extends App {
     }
   }
   
-  implicit def foldApplicative[E]: Applicative[({type F[X]=Fold[E, X]})#F] = new Applicative[({type F[X]=Fold[E, X]})#F] {
-    import cats.kernel.instances.unit.catsKernelStdAlgebraForUnit
-    import cats.implicits._
-    
-    override def pure[X](x: X) = Fold(catsKernelStdAlgebraForUnit)(_ => (), _ => x)
-    override def ap[X, Y](ff: Fold[E, (X) => Y])(fa: Fold[E, X]): Fold[E, Y] = {
-      Fold(ff.m product fa.m)(
-        i => (ff.tally(i), fa.tally(i)),
-        { case (mf, ma) => ff.summarize(mf)(fa.summarize(ma)) }
-      )
-    }
-  }
-
   def count[A]: Fold[A, Int] = Fold(Monoids.addition[Int])(_ => 1, identity)
   
   def countIf[A](p: A => Boolean): Fold[A, Int] = Fold(Monoids.addition[Int])(a => if(p(a)) 1 else 0, identity)

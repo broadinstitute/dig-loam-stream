@@ -251,6 +251,62 @@ final class ColumnExprTest extends FunSuite {
     }
   }
   
+  test("ExprOps / {+,-,*,/} - LHS is expr, RHS is literal") {
+    import ColumnExpr.ExprOps
+    //ints
+    {
+      val lhs = LiteralColumnExpr(42)
+      
+      val plus1 = lhs + 1
+      val minus1 = lhs - 1
+      val times2 = lhs * 2
+      
+      assert(plus1.eval(nullRow) === 43)
+      assert(minus1.eval(nullRow) === 41)
+      assert(times2.eval(nullRow) === 84)
+    }
+    //longs
+    {
+      val lhs = LiteralColumnExpr(42L)
+      
+      val plus1 = lhs + 1L
+      val minus1 = lhs - 1L
+      val times2 = lhs * 2L
+      
+      assert(plus1.eval(nullRow) === 43L)
+      assert(minus1.eval(nullRow) === 41L)
+      assert(times2.eval(nullRow) === 84L)
+    }
+    //floats
+    {
+      val lhs = LiteralColumnExpr(42F)
+      
+      val plus1 = lhs + 1F
+      val minus1 = lhs - 1F
+      val times2 = lhs * 2F
+      val divBy2 = lhs / 2F
+      
+      assert(plus1.eval(nullRow) === 43F)
+      assert(minus1.eval(nullRow) === 41F)
+      assert(times2.eval(nullRow) === 84F)
+      assert(divBy2.eval(nullRow) === 21F)
+    }
+    //doubles
+    {
+      val lhs = LiteralColumnExpr(42D)
+      
+      val plus1 = lhs + 1D
+      val minus1 = lhs - 1D
+      val times2 = lhs * 2D
+      val divBy2 = lhs / 2D
+      
+      assert(plus1.eval(nullRow) === 43D)
+      assert(minus1.eval(nullRow) === 41D)
+      assert(times2.eval(nullRow) === 84D)
+      assert(divBy2.eval(nullRow) === 21D)
+    }
+  }
+  
   test("StringsAreConvertableToNumbers") {
     import ColumnExpr.StringsAreConvertableToNumbers.{toInt, toLong, toFloat, toDouble}
     

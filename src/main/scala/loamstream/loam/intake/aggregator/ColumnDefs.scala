@@ -1,9 +1,7 @@
 package loamstream.loam.intake.aggregator
 
 import loamstream.loam.intake.IntakeSyntax
-import loamstream.loam.intake.ColumnExpr
 import loamstream.loam.intake.UnsourcedColumnDef
-import loamstream.loam.intake.ColumnName
 
 /**
  * @author clint
@@ -67,35 +65,4 @@ object ColumnDefs {
   private def simpleDoubleColumn(
       sourceColumn: ColumnExpr[_],
       aggregatorName: ColumnName): UnsourcedColumnDef = ColumnDef(aggregatorName, asDouble(sourceColumn))
-
-  object Example {
-    object ColumnNames {
-      val CHR = "CHR".asColumnName
-      val BP = "BP".asColumnName
-      val ALLELE1 = "ALLELE1".asColumnName
-      val ALLELE0 = "ALLELE0".asColumnName
-      val A1FREQ = "A1FREQ".asColumnName 
-      val INFO = "INFO".asColumnName
-      val BETA = "BETA".asColumnName
-      val SE = "SE".asColumnName
-      val P_BOLT_LMM = "P_BOLT_LMM".asColumnName
-      
-      val VARID = "VARID".asColumnName
-    }
-    
-    def rowDef(source: CsvSource): RowDef = {
-      import ColumnNames._
-    
-      val varId = marker(chromColumn = CHR, posColumn = BP, refColumn = ALLELE0, altColumn = ALLELE1)
-        
-      val otherColumns = Seq(
-        pvalue(P_BOLT_LMM),
-        stderr(SE),
-        beta(BETA),
-        eaf(A1FREQ),
-        zscore(BETA, SE))
-      
-      UnsourcedRowDef(varId, otherColumns).from(source)
-    }
-  }
 }

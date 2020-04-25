@@ -21,6 +21,9 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
   type ColumnName = loamstream.loam.intake.ColumnName
   val ColumnName = loamstream.loam.intake.ColumnName
   
+  type ColumnExpr[A] = loamstream.loam.intake.ColumnExpr[A]
+  val ColumnExpr = loamstream.loam.intake.ColumnExpr
+  
   type Variant = loamstream.loam.intake.Variant
   val Variant = loamstream.loam.intake.Variant
   

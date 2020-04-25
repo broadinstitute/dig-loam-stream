@@ -128,7 +128,7 @@ object ReadMe extends AggregatorCommands {
       varIdDef = marker(CHR, BP, ALLELE0, ALLELE1),
       otherColumns = Seq(
         eaf(A1FREQ),
-        beta(BETA, BETA),
+        beta(BETA),
         stderr(SE),
         pvalue(P_BOLT_LMM)))
         

@@ -140,7 +140,7 @@ object ReadMe extends AggregatorCommands {
   
   val input = CsvSource.fromFile(
         path("src/test/resources/intake/real-input-data.tsv"), 
-        CsvSource.Defaults.Formats.tabDelimitedWithHeaderCsvFormat.withDelimiter(' '))
+        CsvSource.Formats.spaceDelimitedWithHeader)
   
   val transformedCsv = store("target/ReadMe/transformed.tsv")
   

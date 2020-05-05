@@ -52,7 +52,7 @@ final class ProcessRealDataTest extends FunSuite {
   
     val input = CsvSource.fromFile(
         path("src/test/resources/intake/real-input-data.tsv"), 
-        CsvSource.Defaults.Formats.tabDelimitedWithHeaderCsvFormat.withDelimiter(' '))
+        CsvSource.Formats.tabDelimitedWithHeader.withDelimiter(' '))
     
     val (headerRow: HeaderRow, resultIterator: Iterator[DataRow]) = process(flipDetector)(rowDef.from(input))
         
@@ -62,7 +62,7 @@ final class ProcessRealDataTest extends FunSuite {
       
       val actualDataPath = workDir.resolve("processed.tsv")
       
-      val renderer: Renderer = Renderer.CommonsCsv(CsvSource.Defaults.Formats.tabDelimitedWithHeaderCsvFormat)
+      val renderer: Renderer = Renderer.CommonsCsv(CsvSource.Formats.tabDelimitedWithHeader)
       
       Files.writeLinesTo(actualDataPath)(Iterator(renderer.render(headerRow)) ++ resultIterator.map(renderer.render))
       

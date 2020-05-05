@@ -82,7 +82,8 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
         TimeUtils.time(s"Producing ${dest.path}", info(_)) {
           val (headerRow, dataRows) = process(flipDetector)(RowDef(varIdColumnDef, otherColumnDefs))
           
-          val csvFormat = CsvSource.Defaults.Formats.tabDelimitedWithHeaderCsvFormat
+          //TODO
+          val csvFormat = CsvSource.Defaults.csvFormat
           
           val renderer = Renderer.CommonsCsv(csvFormat)
           

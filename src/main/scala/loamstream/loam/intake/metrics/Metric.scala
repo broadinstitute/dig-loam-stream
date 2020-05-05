@@ -1,13 +1,12 @@
 package loamstream.loam.intake.metrics
 
-import loamstream.loam.intake.CsvRow
-import cats.kernel.Monoid
-import loamstream.loam.intake.ColumnName
-import loamstream.loam.intake.ColumnExpr
-import cats.Functor
-import loamstream.loam.intake.CsvSource
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext
+import _root_.loamstream.loam.intake.ColumnName
+import _root_.loamstream.loam.intake.CsvRow
+
+import _root_.loamstream.loam.intake.aggregator
+import _root_.loamstream.loam.intake.flip.FlipDetector
+import _root_.loamstream.loam.intake.ColumnExpr
+
 
 /**
  * @author clint
@@ -37,8 +36,9 @@ object Metric {
   }
   
   def countKnownOrUnknown(markerColumn: ColumnName, client: BioIndexClient)(p: String => Boolean): Metric[Int] = {
-    Fold.countIf[CsvRow](row => p(markerColumn.eval(row)))
+    Fold.countIf(row => p(markerColumn.eval(row)))
   }
+  
   
   def fractionUnknown(markerColumn: ColumnName, client: BioIndexClient): Metric[Double] = {
     toFraction(countUnknown(markerColumn, client), Fold.count)
@@ -53,5 +53,40 @@ object Metric {
     functor.fmap(Fold.combine(numeratorMetric, denominatorMetric)) { 
       case (numerator, denominator) => ev.toDouble(numerator) / ev.toDouble(denominator) 
     }
+  }
+  
+  def countWithDisagreeingBetaStderrZscore(
+      flipDetector: FlipDetector)(
+      markerColumn: ColumnName = aggregator.ColumnNames.marker,
+      zscoreColumn: ColumnName = aggregator.ColumnNames.zscore,
+      betaColumn: ColumnName = aggregator.ColumnNames.beta,
+      stderrColumn: ColumnName = aggregator.ColumnNames.stderr,
+      epsilon: Double = 1e-8d): Metric[Int] = {
+    //z = beta / se  or  -(beta / se) if flipped
+    
+    def agrees(expected: Double, actual: Double): Boolean = scala.math.abs(expected - actual) < epsilon
+    
+    def agreesNoFlip(z: Double, beta: Double, se: Double): Boolean = agrees(z, beta / se)
+    
+    def agreesFlip(z: Double, beta: Double, se: Double): Boolean = agrees(z, -(beta / se))
+    
+    val isFlippedExpr: ColumnExpr[Boolean] = markerColumn.map(flipDetector.isFlipped)
+      
+    val agreesExpr: ColumnExpr[Boolean] = {
+      for {
+        isFlipped <- isFlippedExpr
+        z <- zscoreColumn.asDouble
+        se <- stderrColumn.asDouble
+        beta <- betaColumn.asDouble
+      } yield {
+        val agreesFn: (Double, Double, Double) => Boolean = if(isFlipped) agreesFlip else agreesNoFlip
+        
+        agreesFn(z, beta, se)
+      }
+    }
+    
+    def disagrees(row: CsvRow): Boolean = !agreesExpr.eval(row)
+    
+    Fold.countIf(disagrees)
   }
 }

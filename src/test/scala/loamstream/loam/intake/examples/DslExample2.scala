@@ -102,7 +102,7 @@ object DslExample2 extends App with Loggable {
     process(flipDetector)(rowDef)
   }
   
-  val renderer = Renderer.CommonsCsv(CsvSource.Defaults.Formats.tabDelimitedWithHeaderCsvFormat)
+  val renderer = Renderer.CommonsCsv(CsvSource.Formats.tabDelimitedWithHeader)
   
   val s = TimeUtils.time("processing", info(_)) {
     rows.size

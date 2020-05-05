@@ -78,7 +78,7 @@ object FlipDetector extends Loggable {
     }
   
     private val variantsFrom26k: Set[String] = TimeUtils.time("Reading 26k map", debug(_)) {
-      val iterator = CsvSource.fromFile(pathTo26kMap, CsvSource.Defaults.Formats.tabDelimited).records
+      val iterator = CsvSource.fromFile(pathTo26kMap, CsvSource.Formats.tabDelimited).records
       
       iterator.map(_.getFieldByIndex(1)).toSet
     }

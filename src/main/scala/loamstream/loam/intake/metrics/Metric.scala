@@ -13,8 +13,6 @@ import _root_.loamstream.loam.intake.ColumnExpr
  * Mar 27, 2020
  */
 object Metric {
-  private val functor = Fold.foldFunctor[CsvRow]
-  
   def countGreaterThan(column: ColumnName)(threshold: Double): Metric[Int] = {
     val columnAsDouble = column.asDouble
     
@@ -22,9 +20,7 @@ object Metric {
   }
   
   def fractionGreaterThan(column: ColumnName)(threshold: Double): Metric[Double] = {
-    val countGt: Metric[Int] = countGreaterThan(column)(threshold)
-
-    toFraction(countGt, Fold.count)
+    fractionOfTotal(countGreaterThan(column)(threshold))
   }
   
   def countKnown(markerColumn: ColumnName, client: BioIndexClient): Metric[Int] = {
@@ -35,23 +31,24 @@ object Metric {
     countKnownOrUnknown(markerColumn, client)(client.isUnknown)
   }
   
-  def countKnownOrUnknown(markerColumn: ColumnName, client: BioIndexClient)(p: String => Boolean): Metric[Int] = {
+  private def countKnownOrUnknown(markerColumn: ColumnName, client: BioIndexClient)(p: String => Boolean): Metric[Int] = {
     Fold.countIf(row => p(markerColumn.eval(row)))
   }
   
-  
   def fractionUnknown(markerColumn: ColumnName, client: BioIndexClient): Metric[Double] = {
-    toFraction(countUnknown(markerColumn, client), Fold.count)
+    fractionOfTotal(countUnknown(markerColumn, client))
   }
   
-  def toFraction[A](
+  private def fractionOfTotal[A](numeratorMetric: Metric[A])(implicit ev: Numeric[A]): Metric[Double] = {
+    toFraction(numeratorMetric, Fold.count.map(ev.fromInt))
+  }
+  
+  private def toFraction[A](
       numeratorMetric: Metric[A], 
       denominatorMetric: Metric[A])(implicit ev: Numeric[A]): Metric[Double] = {
     
-    //TODO: Figure out what I have to import to be able to just say .map()
-    //instead of making a functor and working through that.
-    functor.fmap(Fold.combine(numeratorMetric, denominatorMetric)) { 
-      case (numerator, denominator) => ev.toDouble(numerator) / ev.toDouble(denominator) 
+    Fold.combine(numeratorMetric, denominatorMetric).map {
+      case (numerator, denominator) => ev.toDouble(numerator) / ev.toDouble(denominator)
     }
   }
   
@@ -62,6 +59,7 @@ object Metric {
       betaColumn: ColumnName = aggregator.ColumnNames.beta,
       stderrColumn: ColumnName = aggregator.ColumnNames.stderr,
       epsilon: Double = 1e-8d): Metric[Int] = {
+    
     //z = beta / se  or  -(beta / se) if flipped
     
     def agrees(expected: Double, actual: Double): Boolean = scala.math.abs(expected - actual) < epsilon
@@ -79,9 +77,11 @@ object Metric {
         se <- stderrColumn.asDouble
         beta <- betaColumn.asDouble
       } yield {
-        val agreesFn: (Double, Double, Double) => Boolean = if(isFlipped) agreesFlip else agreesNoFlip
-        
-        agreesFn(z, beta, se)
+        if(isFlipped) {
+          agrees(z, -(beta / se))
+        } else {
+          agrees(z, beta / se)
+        }
       }
     }
     

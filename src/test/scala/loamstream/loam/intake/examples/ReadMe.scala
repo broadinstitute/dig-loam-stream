@@ -7,6 +7,8 @@ import loamstream.loam.LoamProjectContext
 import loamstream.loam.LoamSyntax
 import loamstream.conf.LoamConfig
 import loamstream.loam.intake.aggregator.AggregatorCommands
+import loamstream.loam.intake.aggregator.AggregatorIntakeConfig
+import loamstream.loam.intake.aggregator.Metadata
 
 /**
  * @author clint
@@ -150,14 +152,42 @@ object ReadMe extends AggregatorCommands {
     from(rowDef.from(input)).
     using(flipDetector).
     tag("makeCsv")
-    
-  val aggregatorConfigFile = store("target/ReadMe/aggregator.conf")
   
+  /*
+   * Values that work when running as diguser:
+   * condaEnvName = Some("intake")
+   * scriptsRoot = path("/humgen/diabetes/users/dig/aggregator/git-clones/dig-aggregator-intake")
+   * condaExecutable = path("/humgen/diabetes/users/dig/miniconda3/condabin/conda")
+   * genomeReferenceDir = path("/humgen/diabetes2/users/mvg/portal/scripts/reference")
+   * twentySixKIdMap = path("/humgen/diabetes2/users/mvg/portal/scripts/26k_id.map")
+   */
+  val aggregatorConfig = AggregatorIntakeConfig(
+    condaEnvName = Some("intake"),
+    scriptsRoot = path("/path/to/git/clone/of/dig-aggregator-intake"),
+    condaExecutable = path("/path/to/whatever/bin/conda"),
+    genomeReferenceDir = path("/path/to/dir/containing/reference/genome/files"),
+    twentySixKIdMap = path("/paht/to/26k_id.map"))
+
+  val metadata: Metadata = Metadata(
+    dataset = "dataset-name",
+    phenotype = "some-phenotype",
+    //See https://github.com/broadinstitute/dig-aggregator-intake
+    varIdFormat = "defaults to {chrom}_{pos}_{ref}_{alt}",
+    ancestry = "some-ancestry",
+    author = Some("John Doe"),
+    tech = "some-tech",
+    quantitative = Metadata.Quantitative.Subjects(42)
+    //or quantitative = Metadata.Quantitative.CasesAndControls(cases = 42, controls = 99)
+  )
+  
+  //NB: both aggregator.AggregatorIntakeConfigs and aggregator.Metadatas can be unmarshalled from HOCON .conf files.
+  //See aggregator.{AggregatorIntakeConfig,Metadata}.fromConfig(Config)
+    
   val reallyProceed = false
   
   upload(
-      aggregatorIntakeConfig = ???,// aggregator-intake install dir, conda env name, etc 
-      metadata = ???, //Aggregator-specific metadata - dataset/phenotype name , num cases/controls, etc etc
+      aggregatorIntakeConfig = aggregatorConfig,// aggregator-intake install dir, conda env name, etc 
+      metadata = metadata, //Aggregator-specific metadata - dataset/phenotype name , num cases/controls, etc etc
       csvFile = transformedCsv,
       yes = reallyProceed).tag("upload-to-S3")
 }

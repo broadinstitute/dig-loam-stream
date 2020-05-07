@@ -9,66 +9,57 @@ import scala.concurrent.ExecutionContext
 /**
  * An abstract notion of folding over some collection of elements, producing a result.
  */
-abstract class Fold[E, O] {
-  type M
-  def m: Monoid[M]
-
-  def tally: E => M
-  def summarize: M => O
+abstract class Fold[E, A, R] {
+  def zero: A
+  def add(acc: A, elem: E): A
+  def summarize(accumulated: A): R
+  
+  def map[S](f: R => S): Fold[E, A, S] = {
+    Fold(this.zero, this.add, acc => f(this.summarize(acc)))
+  }
 }
 
-object Fold extends App {
-  def apply[E, A, _M](_m: Monoid[_M])(
-    _tally: E => _M, 
-    _summarize: _M => A): Fold[E, A] = new Fold[E, A] {
+object Fold {
+  def apply[E, A, R](
+      z: => A,
+      doAdd: (A, E) => A,
+      doSummarize: A => R): Fold[E, A, R] = new Fold[E, A, R] {
     
-    override type M = _M
-    override val m: Monoid[M] = _m
-    override val tally: E => _M = _tally
-    override val summarize: M => A = _summarize
+    override def zero: A = z
+    override def add(acc: A, elem: E): A = doAdd(acc, elem)
+    override def summarize(accumulated: A): R = doSummarize(accumulated)
   }
   
-  def fold[I, A](input: TraversableOnce[I])(f: Fold[I, A]): A = {
-    val reduced = input.foldLeft(f.m.empty) { (accMonoid, elem) =>
-      f.m.combine(accMonoid, f.tally(elem)) 
+  def fold[E, A, R](input: TraversableOnce[E])(f: Fold[E, A, R]): R = {
+    val reduced = input.foldLeft(f.zero) { (acc, elem) =>
+      f.add(acc, elem) 
     }
     
     f.summarize(reduced)
   }
   
-  def parFold[I, A](input: Iterator[I])(f: Fold[I, A])(implicit ec: ExecutionContext): Future[A] = {
-    val traversed = Future.traverse(input)(i => Future(f.tally(i)))
-    
-    val reduced = traversed.map { ms =>
-      ms.foldLeft(f.m.empty) { (accMonoid, elem) =>
-        f.m.combine(accMonoid, elem) 
+  def combine[E, A1, A2, R1, R2](f1: Fold[E, A1, R1], f2: Fold[E, A2, R2]): Fold[E, (A1, A2), (R1, R2)] = { 
+    new Fold[E, (A1, A2), (R1, R2)] {
+      private type AccTuple = (A1, A2)
+      private type ResultTuple = (R1, R2)
+      
+      override def zero: AccTuple = (f1.zero, f2.zero)
+      
+      override def add(accs: AccTuple, elem: E): AccTuple = {
+        val (a1, a2) = accs
+        
+        (f1.add(a1, elem), f2.add(a2, elem))
+      }
+      
+      override def summarize(accs: AccTuple): ResultTuple = {
+        val (a1, a2) = accs
+
+        (f1.summarize(a1), f2.summarize(a2))
       }
     }
-    
-    reduced.map(f.summarize)
   }
   
-  def combine[E, A1, A2](f1: Fold[E, A1], f2: Fold[E, A2]): Fold[E, (A1, A2)] = { 
-    new Fold[E, (A1, A2)] {
-      override type M = (f1.M, f2.M)
-      override def m: Monoid[M] = new Monoid[M] {
-        override def empty: (f1.M, f2.M) = (f1.m.empty, f2.m.empty)
-        override def combine(l: (f1.M, f2.M), r: (f1.M, f2.M)): M = { 
-          (f1.m.combine(l._1, r._1), f2.m.combine(l._2, r._2))
-        }
-      }
-      override def tally: E => M = e => (f1.tally(e), f2.tally(e))
-      override def summarize: M => (A1, A2) = m => (f1.summarize(m._1), f2.summarize(m._2))
-    }
-  }
+  def count[E]: Fold[E, Int, Int] = Fold(0, (acc, _) => acc + 1, identity)
   
-  implicit def foldFunctor[E]: Functor[({type F[X]=Fold[E, X]})#F] = new Functor[({type F[X]=Fold[E, X]})#F] {
-    override def map[T, U](f: Fold[E, T])(fn: T => U): Fold[E, U] = { 
-      Fold(f.m)(f.tally, f.summarize.andThen(fn))
-    }
-  }
-  
-  def count[A]: Fold[A, Int] = Fold(Monoids.addition[Int])(_ => 1, identity)
-  
-  def countIf[A](p: A => Boolean): Fold[A, Int] = Fold(Monoids.addition[Int])(a => if(p(a)) 1 else 0, identity)
+  def countIf[E](p: E => Boolean): Fold[E, Int, Int] = Fold(0, (acc, e) => if(p(e)) acc + 1 else acc, identity)
 }

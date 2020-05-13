@@ -6,6 +6,10 @@ import _root_.loamstream.loam.intake.CsvRow
 import _root_.loamstream.loam.intake.aggregator
 import _root_.loamstream.loam.intake.flip.FlipDetector
 import _root_.loamstream.loam.intake.ColumnExpr
+import com.google.common.collect.TopKSelector
+import com.google.common.collect.TopKSelector
+import com.google.common.collect.TopKSelector
+import java.util.Comparator
 
 
 /**
@@ -88,5 +92,16 @@ object Metric {
     def disagrees(row: CsvRow): Boolean = !agreesExpr.eval(row)
     
     Fold.countIf(disagrees)
+  }
+  
+  def mean(columnExpr: ColumnExpr[_]): Metric[Double] = {
+    val columnAsDouble = columnExpr.asString.asDouble
+    
+    val sumFold: Fold[CsvRow, Double, Double] = Fold(0.0, _ + columnAsDouble.eval(_), identity)
+    val countFold: Fold[CsvRow, Int, Int] = Fold.count
+    
+    Fold.combine(sumFold, countFold).map {
+      case (sum, count) => sum / count.toDouble
+    }
   }
 }

@@ -59,6 +59,8 @@ object Fold {
     }
   }
   
+  def sum[E](implicit ev: Numeric[E]): Fold[E, E, E] = Fold(ev.zero, ev.plus, identity)
+  
   def count[E]: Fold[E, Int, Int] = Fold(0, (acc, _) => acc + 1, identity)
   
   def countIf[E](p: E => Boolean): Fold[E, Int, Int] = Fold(0, (acc, e) => if(p(e)) acc + 1 else acc, identity)

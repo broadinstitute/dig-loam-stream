@@ -158,6 +158,12 @@ final class MetricTest extends FunSuite {
     doMetricTest(countDisagreements, expected = 2)(source)
   }
   
+  test("mean") {
+    val mean = Metric.mean(Bar)
+    
+    doMetricTest(mean, expected = (1 + 2 + 3 + 4 + 5 + 6) / 6.0)(source)
+  }
+  
   private def doMetricTest[A](metric: Metric[A], expected: A)(rows: CsvSource): Unit = {
     assert(Fold.fold(rows.records)(metric) === expected)
     

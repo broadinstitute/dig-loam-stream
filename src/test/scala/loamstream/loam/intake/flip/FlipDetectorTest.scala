@@ -138,7 +138,7 @@ final class FlipDetectorTest extends FunSuite {
 }
 
 object FlipDetectorTest {
-  private[flip] def makeFlipDetector: FlipDetector = TimeUtils.time("Making FlipDetector", println(_)) {
+  private[flip] def makeFlipDetector: FlipDetector = {
     new FlipDetector.Default(
       referenceDir = Paths.get("/home/clint/workspace/marcins-scripts/reference/reference"),
       isVarDataType = true,

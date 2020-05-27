@@ -15,8 +15,24 @@ import loamstream.util.code.SourceUtils
 import scala.util.Try
 import loamstream.util.Tries
 import scala.util.Success
+import loamstream.util.Files
+import scala.util.Failure
 
 /** A named Loam script */
+sealed trait LoamScript {
+  def name: String
+  def code: String
+  def subPackage: Option[PackageId]
+  
+  def pkg: PackageId
+  
+  /** Scala id of object corresponding to this Loam script */
+  def scalaId: ObjectId = ObjectId(pkg, name)
+
+  /** Name of Scala source file corresponding to this Loam script */
+  def scalaFileName: String = s"$name.scala"
+}
+
 object LoamScript {
   /** Package of Scala object corresponding to Loam scripts */
   val scriptsPackage = PackageId("loamstream", "loam", "scripts")
@@ -28,18 +44,59 @@ object LoamScript {
   val generatedNameBase = "loamScript"
 
   /** File suffix for Loam scripts - .loam */
-  val fileSuffix = ".loam"
+  private val fileSuffix: String = ScriptType.Loam.suffix
 
   /** File suffix for Scala source code - .scala */
-  val scalaFileSuffix = ".scala"
+  val scalaFileSuffix: String = ScriptType.Scala.suffix
 
   /** Extracts Loam script name from file Path with suffix .loam, removing suffix. */
   def nameFromFilePath(path: Path): Try[String] = {
-    val fileName = path.getFileName.toString
-    if (fileName.endsWith(fileSuffix)) {
-      Success(fileName.dropRight(fileSuffix.length))
-    } else {
-      Tries.failure(s"Missing suffix $fileSuffix")
+    Files.tryFile(path).flatMap {
+      case LoamFile.Name(name) => Success(name)
+      case ScalaFile.Name(name) => Success(name)
+      case _ => {
+        val msg = s"Expected suffix to be one of $fileSuffix or $scalaFileSuffix, but filename was '${path.toString}'"
+        
+        Tries.failure(msg)
+      }
+    }
+  }
+  
+  def scriptTypeFromFilePath(path: Path): Try[ScriptType] = {
+    Files.tryFile(path).flatMap {
+      case LoamFile.Type(scriptType) => Success(scriptType)
+      case ScalaFile.Type(scriptType) => Success(scriptType)
+      case _ => {
+        val msg = s"Expected suffix to be one of $fileSuffix or $scalaFileSuffix, but filename was '${path.toString}'"
+        
+        Tries.failure(msg)
+      } 
+    }
+  }
+    
+  private[LoamScript] object LoamFile extends ScriptDataExtractors(ScriptType.Loam)
+  
+  private[LoamScript] object ScalaFile extends ScriptDataExtractors(ScriptType.Scala)
+
+  private[LoamScript] abstract class ScriptDataExtractors(scriptType: ScriptType) {
+    object Name {
+      def unapply(path: Path): Option[String] = {
+        val fileName = path.getFileName.toString
+       
+        import scriptType.suffix
+        
+        if (fileName.endsWith(suffix)) { Some(fileName.dropRight(suffix.length)) } 
+        else { None }
+      }
+    }
+    
+    object Type {
+      def unapply(path: Path): Option[ScriptType] = {
+        val fileName = path.getFileName.toString
+        
+        if (fileName.endsWith(scriptType.suffix)) { Some(scriptType) } 
+        else { None }
+      }
     }
   }
   
@@ -68,37 +125,38 @@ object LoamScript {
     import loamstream.util.Files.readFromAsUtf8
     
     for {
-      name <- nameFromFilePath(path)
-      code <- Try(readFromAsUtf8(path))
+      p <- Files.tryFile(path)
+      name <- nameFromFilePath(p)
+      tpe <- scriptTypeFromFilePath(p)
+      code <- Try(readFromAsUtf8(p))
     } yield {
-      if(path.endsWith(".loam")) {
-        LoamLoamScript(name, code, None)
-      } else if(path.endsWith(".scala")) {
-        ScalaLoamScript(name, ???, code, None)
-      } else {
-        ???
+      tpe match {
+        case ScriptType.Loam => LoamLoamScript(name, code)
+        case ScriptType.Scala => ScalaLoamScript(name, code)
       }
     }
   }
   
   def read(path: Path, rootDir: Path): Try[LoamScript] = {
     nameAndEnclosingDirFromFilePath(path, rootDir).flatMap { case (name, enclosingDirOpt) =>
-      Try {
+      val codeAndPackageIdAttempt = Try {
         val code = loamstream.util.Files.readFromAsUtf8(path)
         
         import scala.collection.JavaConverters._
         
-        val packageIdOpt = for {
-          enclosingDir <- enclosingDirOpt
-          packageParts = enclosingDir.iterator.asScala.toIndexedSeq.map(_.toString)
-        } yield PackageId(packageParts)
+        val packageIdOpt = enclosingDirOpt.map { enclosingDir =>
+          val packageParts = enclosingDir.iterator.asScala.toIndexedSeq.map(_.toString)
+          
+          PackageId(packageParts)
+        }
         
-        if(path.endsWith(".loam")) {
-          LoamLoamScript(name, code, packageIdOpt)
-        } else if(path.endsWith(".scala")) {
-          ScalaLoamScript(name, ???, code, packageIdOpt)
-        } else {
-          ???
+        code -> packageIdOpt
+      }
+      
+      codeAndPackageIdAttempt.flatMap { case (code, packageIdOpt) => 
+        scriptTypeFromFilePath(path).flatMap {
+          case ScriptType.Loam => Success(LoamLoamScript(name = name, code = code, subPackage = packageIdOpt))
+          case ScriptType.Scala => Success(ScalaLoamScript(name = name, code = code, subPackage = packageIdOpt))
         }
       }
     }
@@ -127,22 +185,13 @@ object LoamScript {
   }
 }
 
-sealed trait LoamScript {
-  def name: String
-  def code: String
-  def subPackage: Option[PackageId]
-  
-  def pkg: PackageId
-  
-  /** Scala id of object corresponding to this Loam script */
-  def scalaId: ObjectId = ObjectId(pkg, name)
-
-  /** Name of Scala source file corresponding to this Loam script */
-  def scalaFileName: String = s"$name.scala"
-}
-
 /** A named Loam .scala file */
-final case class ScalaLoamScript(name: String, pkg: PackageId, code: String, subPackage: Option[PackageId] = None) extends LoamScript {
+final case class ScalaLoamScript(
+    name: String,
+    code: String, 
+    pkg: PackageId = scriptsPackage, 
+    subPackage: Option[PackageId] = None) extends LoamScript {
+  
   def asScalaCode: String = code
 }
 

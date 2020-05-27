@@ -10,6 +10,7 @@ import loamstream.loam.LoamScript
 import loamstream.util.code.ObjectId
 import loamstream.util.code.PackageId
 import loamstream.util.code.RootPackageId
+import loamstream.loam.LoamLoamScript
 
 /**
  * @author clint
@@ -142,9 +143,9 @@ final class LoamToScalaConverterTest extends FunSuite {
     val c = path("src/test/loam/c.loam")
     
     val expected = Map(
-      a -> LoamFileInfo(path("a.loam"), LoamScript("a", read(a), None)),
-      b -> LoamFileInfo(path("b.loam"), LoamScript("b", read(b), None)),
-      c -> LoamFileInfo(path("c.loam"), LoamScript("c", read(c), None)))
+      a -> LoamFileInfo(path("a.loam"), LoamLoamScript("a", read(a), None)),
+      b -> LoamFileInfo(path("b.loam"), LoamLoamScript("b", read(b), None)),
+      c -> LoamFileInfo(path("c.loam"), LoamLoamScript("c", read(c), None)))
       
     assert(filesToInfos === expected)
   }
@@ -169,11 +170,11 @@ final class LoamToScalaConverterTest extends FunSuite {
     val subPackage = RootPackageId.getPackage("subdir")
     
     val expected = Map(
-      a -> LoamFileInfo(path("a.loam"), LoamScript("a", read(a), None)),
-      b -> LoamFileInfo(path("b.loam"), LoamScript("b", read(b), None)),
-      c -> LoamFileInfo(path("c.loam"), LoamScript("c", read(c), None)),
-      x -> LoamFileInfo(path("subdir/x.loam"), LoamScript("x", read(x), Some(subPackage))),
-      y -> LoamFileInfo(path("subdir/y.loam"), LoamScript("y", read(y), Some(subPackage))))
+      a -> LoamFileInfo(path("a.loam"), LoamLoamScript("a", read(a), None)),
+      b -> LoamFileInfo(path("b.loam"), LoamLoamScript("b", read(b), None)),
+      c -> LoamFileInfo(path("c.loam"), LoamLoamScript("c", read(c), None)),
+      x -> LoamFileInfo(path("subdir/x.loam"), LoamLoamScript("x", read(x), Some(subPackage))),
+      y -> LoamFileInfo(path("subdir/y.loam"), LoamLoamScript("y", read(y), Some(subPackage))))
       
     assert(filesToInfos === expected)
   }
@@ -249,7 +250,7 @@ final class LoamToScalaConverterTest extends FunSuite {
     
     import Files.{ readFromAsUtf8 => read }
     
-    val script = LoamScript("a", read(a), None)
+    val script = LoamLoamScript("a", read(a), None)
     
     val expectedScalaFile = outputDir / "loamstream" / "loam" / "scripts" / "a.scala"
     
@@ -275,7 +276,7 @@ final class LoamToScalaConverterTest extends FunSuite {
     
     import Files.{ readFromAsUtf8 => read }
     
-    val script = LoamScript("x", read(x), Some(PackageId("subdir")))
+    val script = LoamLoamScript("x", read(x), Some(PackageId("subdir")))
     
     val expectedScalaFile = outputDir / "loamstream" / "loam" / "scripts" / "subdir" / "x.scala"
     
@@ -303,8 +304,8 @@ final class LoamToScalaConverterTest extends FunSuite {
     
     import Files.{ readFromAsUtf8 => read }
     
-    val xScript = LoamScript("x", read(xLoam), None)
-    val yScript = LoamScript("y", read(yLoam), None)
+    val xScript = LoamLoamScript("x", read(xLoam), None)
+    val yScript = LoamLoamScript("y", read(yLoam), None)
     
     val expectedScalaFileX = outputDir / "loamstream/loam/scripts/x.scala"
     val expectedScalaFileY = outputDir / "loamstream/loam/scripts/y.scala"

@@ -10,5 +10,13 @@ object ContextHolder {
   def projectContext: LoamProjectContext = projectContextBox.value
   def projectContext_=(newContext: LoamProjectContext): Unit = projectContextBox.value = newContext
   
-  def newScriptContext: LoamScriptContext = new LoamScriptContext(projectContext)
+  def newScriptContext: LoamScriptContext = {
+    val pContext = projectContext
+    
+    require(
+        pContext != null, 
+        s"No ${LoamProjectContext.getClass.getSimpleName} set.  Set it with ContextHolder.projectContext = ...")
+    
+    new LoamScriptContext(pContext)
+  }
 }

@@ -3,6 +3,7 @@ package loamstream.compiler
 import loamstream.loam.{LoamCmdTool, LoamScript}
 import org.scalatest.FunSuite
 import loamstream.TestHelpers
+import loamstream.loam.LoamLoamScript
 
 /**
   * LoamStream
@@ -39,14 +40,14 @@ final class LoamCompilerMultiFileTest extends FunSuite {
 
   private def createNewCompiler: LoamCompiler = LoamCompiler.default
 
-  private val scriptValues = LoamScript("values",
+  private val scriptValues = LoamLoamScript("values",
     """
       |val greeting = "Hello"
       |val answer = 42
     """.stripMargin)
 
   test("Full name instead of import") {
-    val scriptIndividualImport = LoamScript("individualImport",
+    val scriptIndividualImport = LoamLoamScript("individualImport",
       """
         |cmd"echo ${values.greeting} the answer is ${values.answer}"
       """.stripMargin)
@@ -58,7 +59,7 @@ final class LoamCompilerMultiFileTest extends FunSuite {
   }
 
   test("Individual import") {
-    val scriptIndividualImport = LoamScript("individualImport",
+    val scriptIndividualImport = LoamLoamScript("individualImport",
       """
         |import values.{answer, greeting}
         |cmd"echo $greeting the answer is $answer"
@@ -71,7 +72,7 @@ final class LoamCompilerMultiFileTest extends FunSuite {
   }
 
   test("Renaming import") {
-    val scriptIndividualImport = LoamScript("individualImport",
+    val scriptIndividualImport = LoamLoamScript("individualImport",
       """
         |import values.{answer => answerToTheGreatQuestion, greeting => casualGreeting}
         |cmd"echo $casualGreeting the answer is $answerToTheGreatQuestion"
@@ -84,7 +85,7 @@ final class LoamCompilerMultiFileTest extends FunSuite {
   }
 
   test("Wild-card import") {
-    val scriptWildcardImport = LoamScript("wildcardImport",
+    val scriptWildcardImport = LoamLoamScript("wildcardImport",
       """
         |import values._
         |cmd"echo $greeting the answer is $answer"
@@ -98,17 +99,17 @@ final class LoamCompilerMultiFileTest extends FunSuite {
 
   test("Diamond import relationship diagram") {
     val scripts = Set(scriptValues,
-      LoamScript("greetingForwarder",
+      LoamLoamScript("greetingForwarder",
         """
           |import values.greeting
           |val copyOfGreeting = greeting
         """.stripMargin),
-      LoamScript("answerForwarder",
+      LoamLoamScript("answerForwarder",
         """
           |import values.answer
           |val copyOfAnswer = answer
         """.stripMargin),
-      LoamScript("combiner",
+      LoamLoamScript("combiner",
         """
           |import greetingForwarder.copyOfGreeting
           |import answerForwarder.copyOfAnswer

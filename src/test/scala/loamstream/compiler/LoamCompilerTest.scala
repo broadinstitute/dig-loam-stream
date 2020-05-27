@@ -9,6 +9,7 @@ import loamstream.loam.LoamProjectContext
 import loamstream.util.ValueBox
 import loamstream.model.Store
 import loamstream.conf.CompilationConfig
+import loamstream.loam.LoamLoamScript
 
 /**
   * LoamStream
@@ -42,7 +43,7 @@ final class LoamCompilerTest extends FunSuite {
       """
       // scalastyle:on regex
     }
-    val result = compiler.compile(TestHelpers.config, LoamScript("LoamCompilerTestScript1", code))
+    val result = compiler.compile(TestHelpers.config, LoamLoamScript("LoamCompilerTestScript1", code))
     assert(result.errors === Nil)
     assert(result.warnings === Nil)
   }
@@ -56,8 +57,9 @@ final class LoamCompilerTest extends FunSuite {
     and social setting, and whose awareness inevitably and necessarily gives him a sense of social responsibility.
       """
     }
-    val result = compiler.compile(TestHelpers.config, LoamScript("LoamCompilerTestScript2", code))
+    val result = compiler.compile(TestHelpers.config, LoamLoamScript("LoamCompilerTestScript2", code))
     assert(result.errors.nonEmpty)
+    assert(result.isSuccess === false)
   }
   
   test("Testing sample code toyImpute.loam") {
@@ -67,7 +69,7 @@ final class LoamCompilerTest extends FunSuite {
 
     val scriptAttempt = TestHelpers.loamEngine.loadFile(exampleFile)
         
-    assert(scriptAttempt.isSuccess)
+    assert(scriptAttempt.isSuccess, s"Expected to find $exampleFile, but got ${scriptAttempt.get}")
     
     val result = compiler.compile(LoamProject(TestHelpers.config, scriptAttempt.get))
     

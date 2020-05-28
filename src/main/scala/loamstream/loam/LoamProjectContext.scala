@@ -17,7 +17,7 @@ final class LoamProjectContext(val config: LoamConfig, private val graphBox: Val
 /** Container for compile time and run time context for a project */
 object LoamProjectContext {
 
-  val depositBox = DepositBox.empty[LoamProjectContext]
+  val depositBox: DepositBox[LoamProjectContext] = DepositBox.empty
 
   def empty(config: LoamConfig): LoamProjectContext = {
     new LoamProjectContext(config, ValueBox(LoamGraph.empty))

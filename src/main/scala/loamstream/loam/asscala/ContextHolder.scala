@@ -1,22 +1,18 @@
 package loamstream.loam.asscala
 
-import loamstream.util.ValueBox
 import loamstream.loam.LoamProjectContext
 import loamstream.loam.LoamScriptContext
 
+/**
+ * @author clint
+ * May 28, 2020
+ */
 object ContextHolder {
-  private[this] val projectContextBox: ValueBox[LoamProjectContext] = ValueBox(null)
+  private val contextVar: ThreadLocal[LoamProjectContext] = new ThreadLocal
   
-  def projectContext: LoamProjectContext = projectContextBox.value
-  def projectContext_=(newContext: LoamProjectContext): Unit = projectContextBox.value = newContext
+  def projectContext: LoamProjectContext = contextVar.get
   
-  def newScriptContext: LoamScriptContext = {
-    val pContext = projectContext
-    
-    require(
-        pContext != null, 
-        s"No ${LoamProjectContext.getClass.getSimpleName} set.  Set it with ContextHolder.projectContext = ...")
-    
-    new LoamScriptContext(pContext)
-  }
+  def projectContext_=(newProjectContext: LoamProjectContext): Unit = contextVar.set(newProjectContext)
+  
+  def clear(): Unit = contextVar.remove()
 }

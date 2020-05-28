@@ -28,7 +28,17 @@ import loamstream.util.TimeUtils
 import loamstream.conf.CompilationConfig
 import loamstream.loam.LoamLoamScript
 import loamstream.loam.ScalaLoamScript
+import loamstream.loam.asscala.LoamFile
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.SynchronousQueue
+import scala.concurrent.Future
 import loamstream.loam.asscala.ContextHolder
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
+import scala.concurrent.Promise
+import scala.util.Try
 
 /** The compiler compiling Loam scripts into execution plans */
 object LoamCompiler extends Loggable {
@@ -87,14 +97,14 @@ object LoamCompiler extends Loggable {
     }
 
     import StringUtils.soMany
-    
+
     final case class Success(
-        warnings: Seq[Issue],
-        infos: Seq[Issue],
-        graph: LoamGraph) extends Result {
+      warnings: Seq[Issue],
+      infos: Seq[Issue],
+      graph: LoamGraph) extends Result {
 
       override def errors: Seq[Issue] = Nil
-      
+
       /** Returns true if graph of stores and tools has been found */
       override def isSuccess: Boolean = true
 
@@ -108,11 +118,11 @@ object LoamCompiler extends Loggable {
         s"There were $soManyErrors, $soManyWarnings, $soManyInfos, $soManyStores and $soManyTools."
       }
     }
-    
+
     final case class Failure(
-        errors: Seq[Issue],
-        warnings: Seq[Issue],
-        infos: Seq[Issue]) extends Result {
+      errors: Seq[Issue],
+      warnings: Seq[Issue],
+      infos: Seq[Issue]) extends Result {
 
       /** Returns true if graph of stores and tools has been found */
       override def isSuccess: Boolean = false
@@ -122,16 +132,16 @@ object LoamCompiler extends Loggable {
         val soManyErrors = soMany(errors.size, "error")
         val soManyWarnings = soMany(warnings.size, "warning")
         val soManyInfos = soMany(infos.size, "info")
-        
+
         s"There were $soManyErrors, $soManyWarnings, $soManyInfos."
       }
     }
-    
+
     final case class FailureDueToException(
-        errors: Seq[Issue],
-        warnings: Seq[Issue],
-        infos: Seq[Issue],
-        throwable: Throwable) extends Result {
+      errors: Seq[Issue],
+      warnings: Seq[Issue],
+      infos: Seq[Issue],
+      throwable: Throwable) extends Result {
 
       /** Returns true if graph of stores and tools has been found */
       override def isSuccess: Boolean = false
@@ -141,9 +151,9 @@ object LoamCompiler extends Loggable {
         val soManyErrors = soMany(errors.size, "error")
         val soManyWarnings = soMany(warnings.size, "warning")
         val soManyInfos = soMany(infos.size, "info")
-        
+
         val throwableClass = throwable.getClass.getName
-        
+
         s"There were $soManyErrors, $soManyWarnings, $soManyInfos. ${throwableClass} caught: ${throwable.getMessage}"
       }
     }
@@ -193,20 +203,19 @@ object LoamCompiler extends Loggable {
     scalaCompilerSettings
   }
 
-  private def toBatchSourceFile(projectContextReceipt: DepositBox.Receipt)(script: LoamScript) = script match {
-    case lls: LoamLoamScript => new BatchSourceFile(lls.scalaFileName, lls.asScalaCode(projectContextReceipt))
-    case _: ScalaLoamScript => new BatchSourceFile(script.scalaFileName, script.code)
+  private def toBatchSourceFile(script: LoamScript): BatchSourceFile = {
+    new BatchSourceFile(script.scalaFileName, script.asScalaCode)
   }
 
-  private def evaluateLoamScript(classLoader: ClassLoader)(script: LoamScript): LoamScriptBox = {
-    ReflectionUtil.getObject[LoamScriptBox](classLoader, script.scalaId)
+  private def evaluateLoamScript(classLoader: ClassLoader)(script: LoamScript): LoamFile = {
+    ReflectionUtil.getObject[LoamFile](classLoader, script.scalaId)
   }
 }
 
 /** The compiler compiling Loam scripts into execution plans */
 final class LoamCompiler(
-    compilationConfig: CompilationConfig,
-    settings: LoamCompiler.Settings = LoamCompiler.Settings.default) extends Loggable {
+  compilationConfig: CompilationConfig,
+  settings: LoamCompiler.Settings = LoamCompiler.Settings.default) extends Loggable {
 
   private val targetDirectoryName = "target"
   private val targetDirectoryParentOption = None
@@ -230,18 +239,12 @@ final class LoamCompiler(
 
   private def logScripts(
     logLevel: Loggable.Level,
-    project: LoamProject,
-    graphBoxReceipt: DepositBox.Receipt): Unit = {
+    project: LoamProject): Unit = {
 
-    def asScalaCode(script: LoamScript): String = script match {
-      case lls: LoamLoamScript => lls.asScalaCode(graphBoxReceipt)
-      case sls: ScalaLoamScript => sls.code
-    }
-    
     if (settings.logCodeForLevel(logLevel)) {
       for (script <- project.scripts) {
         log(logLevel, script.scalaId.toString)
-        log(logLevel, asScalaCode(script))
+        log(logLevel, script.asScalaCode)
       }
     }
   }
@@ -278,11 +281,11 @@ final class LoamCompiler(
     result
   }
 
-  private def reportCompilation(project: LoamProject, graph: LoamGraph, graphBoxReceipt: DepositBox.Receipt): Unit = {
+  private def reportCompilation(project: LoamProject, graph: LoamGraph): Unit = {
     val lengthOfLine = 100
     val graphPrinter = GraphPrinter.byLine(lengthOfLine)
 
-    logScripts(Loggable.Level.Trace, project, graphBoxReceipt)
+    logScripts(Loggable.Level.Trace, project)
 
     trace(s"""|[Start Graph]
               |${graphPrinter.print(graph)}
@@ -297,12 +300,44 @@ final class LoamCompiler(
   }
 
   private def depositProjectContextAndThen[A](project: LoamProject)(f: DepositBox.Receipt => A): A = {
-    val projectContextReceipt = LoamProjectContext.depositBox.deposit(LoamProjectContext.empty(project.config))
+    val projectContext = LoamProjectContext.empty(project.config)
 
-    try { f(projectContextReceipt) }
+    val receipt = LoamProjectContext.depositBox.deposit(projectContext)
+
+    try { f(receipt) }
     finally {
-      LoamProjectContext.depositBox.remove(projectContextReceipt)
+      LoamProjectContext.depositBox.remove(receipt)
     }
+  }
+
+  private def setProjectContextAndThen[A](project: LoamProject)(f: LoamProjectContext => A): A = {
+    doInNewThread {
+      try {
+        val projectContext = LoamProjectContext.empty(project.config)
+  
+        ContextHolder.projectContext = projectContext
+  
+        f(projectContext)
+      } finally {
+        ContextHolder.clear()
+      }
+    }
+  }
+
+  private def doInNewThread[A](block: => A): A = {
+    val promise: Promise[A] = Promise()
+
+    val thread = new Thread(new Runnable {
+      override def run(): Unit = {
+        promise.complete(Try(block))
+      }
+    })
+
+    thread.start()
+
+    thread.join()
+
+    Await.result(promise.future, Duration.Inf)
   }
 
   /** Compiles Loam script into execution plan */
@@ -316,13 +351,9 @@ final class LoamCompiler(
 
   /** Compiles Loam script into execution plan */
   def compile(project: LoamProject): LoamCompiler.Result = compileLock.synchronized {
-    depositProjectContextAndThen(project) { projectContextReceipt =>
+    setProjectContextAndThen(project) { projectContext =>
       try {
-        if(project.scripts.exists(_.isInstanceOf[ScalaLoamScript])) {
-          loamstream.loam.asscala.ContextHolder.projectContext = LoamProjectContext.depositBox.get(projectContextReceipt).get
-        }
-        
-        val sourceFiles = project.scripts.map(LoamCompiler.toBatchSourceFile(projectContextReceipt))
+        val sourceFiles = project.scripts.map(LoamCompiler.toBatchSourceFile)
 
         TimeUtils.time("Compiling .scala files", debug(_)) {
           withRun { run =>
@@ -339,18 +370,15 @@ final class LoamCompiler(
             project.scripts.map(LoamCompiler.evaluateLoamScript(classLoader))
           }
 
-          val scriptBox = scriptBoxes.head
-          val graph = scriptBox.graph
-
+          val graph = projectContext.graph
+          
           if (compilationConfig.shouldValidateGraph) {
             TimeUtils.time("Validating graph", debug(_)) {
               validateGraph(graph)
             }
           }
 
-          reportCompilation(project, graph, projectContextReceipt)
-
-          val projectContext = scriptBox.projectContext
+          reportCompilation(project, graph)
 
           debug(s"Compilation finished.")
 

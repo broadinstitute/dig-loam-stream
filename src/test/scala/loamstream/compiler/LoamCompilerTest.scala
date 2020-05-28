@@ -76,7 +76,11 @@ final class LoamCompilerTest extends FunSuite {
     assert(result.errors.isEmpty)
     assert(result.warnings.isEmpty)
     
-    val graph = result.asInstanceOf[LoamCompiler.Result.Success].graph
+    val graph = result match {
+      case s: LoamCompiler.Result.Success => s.graph
+      case f: LoamCompiler.Result.FailureDueToException => throw f.throwable
+      case r => fail(s"Unexpected result: $r")
+    }
     
     assert(graph.tools.size === 2)
     assert(graph.stores.size === 4)

@@ -264,7 +264,7 @@ final class LoamToScalaConverterTest extends FunSuite {
     
     val (_, packageId, contextValId: ObjectId, _) = makeProjectContextOwnerCode(Nil)
     
-    val expectedCode = format(script.asScalaCode(contextValId))
+    val expectedCode = format(script.asScalaCode)
     
     assert(read(expectedScalaFile) === expectedCode)
   }
@@ -290,7 +290,7 @@ final class LoamToScalaConverterTest extends FunSuite {
     
     val (_, packageId, contextValId: ObjectId, _) = makeProjectContextOwnerCode(Seq("subdir"))
     
-    val expectedCode = format(script.asScalaCode(contextValId))
+    val expectedCode = format(script.asScalaCode)
     
     assert(read(expectedScalaFile) === expectedCode)
   }
@@ -331,8 +331,8 @@ final class LoamToScalaConverterTest extends FunSuite {
     
     val (_, _, contextValId: ObjectId, contextOwnerCode) = makeProjectContextOwnerCode(Nil)
     
-    val expectedCodeX = format(xScript.asScalaCode(contextValId))
-    val expectedCodeY = format(yScript.asScalaCode(contextValId))
+    val expectedCodeX = format(xScript.asScalaCode)
+    val expectedCodeY = format(yScript.asScalaCode)
     
     assert(read(expectedScalaFileX) === expectedCodeX)
     assert(read(expectedScalaFileY) === expectedCodeY)

@@ -219,10 +219,7 @@ object LoamToScalaConverter extends Loggable {
       
     val scalaFile = scalaFileOutputDir.resolve(script.scalaFileName)
       
-    val scalaCode = script match {
-      case lls: LoamLoamScript => lls.asScalaCode(contextValId)
-      case _ => ???
-    }
+    val scalaCode = script.asScalaCode
       
     formatAndWrite(scalaCode, scalaFile)
       

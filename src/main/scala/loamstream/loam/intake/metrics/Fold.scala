@@ -1,11 +1,5 @@
 package loamstream.loam.intake.metrics
 
-import cats.kernel.Monoid
-import cats.Functor
-import cats.Applicative
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext
-
 /**
  * An abstract notion of folding over some collection of elements, producing a result.
  */

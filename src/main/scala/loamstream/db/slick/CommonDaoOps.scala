@@ -38,7 +38,7 @@ trait CommonDaoOps extends DbHelpers with Loggable {
   protected[slick] def runBlocking[A](action: DBIO[A]): A = runBlocking(db)(action)
   
   protected def log(sqlAction: driver.ProfileAction[_, _, _]): Unit = {
-    sqlAction.statements.foreach(s => println(s"SQL: $s"))
+    sqlAction.statements.foreach(s => trace(s"SQL: $s"))
   }
   
   private[slick] object Implicits {

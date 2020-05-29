@@ -8,7 +8,7 @@ import scala.util.matching.Regex
  * @author clint
  * Dec 17, 2019
  */
-sealed abstract class ColumnExpr[A : TypeTag] extends RowParser[A] {
+sealed abstract class ColumnExpr[A : TypeTag] extends ColumnExpr.ArithmeticOps[A] with RowParser[A] {
   def eval(row: CsvRow): A
   
   def isDefinedAt(row: CsvRow): Boolean = true
@@ -35,24 +35,6 @@ sealed abstract class ColumnExpr[A : TypeTag] extends RowParser[A] {
   final def asDouble(implicit ev: ConvertableToNumber[A]): ColumnExpr[Double] = this.map(ev.toDouble(_))
   
   final def asUpperCase(implicit ev: A =:= String): ColumnExpr[String] = this.map(a => ev(a).toUpperCase)
-  
-  final def -(rhs: ColumnExpr[A])(implicit ev: Numeric[A]): ColumnExpr[A] = arithmeticOp(this, rhs)(_.minus)
-    
-  final def +(rhs: ColumnExpr[A])(implicit ev: Numeric[A]): ColumnExpr[A] = arithmeticOp(this, rhs)(_.plus)
-    
-  final def *(rhs: ColumnExpr[A])(implicit ev: Numeric[A]): ColumnExpr[A] = arithmeticOp(this, rhs)(_.times)
-  
-  final def /(rhs: ColumnExpr[A])(implicit ev: Fractional[A]): ColumnExpr[A] = {
-    val fractional = implicitly[Fractional[A]]
-    
-    ColumnExpr.lift2(fractional.div).apply(this, rhs)
-  }
-  
-  final def unary_-(implicit ev: Numeric[A]): ColumnExpr[A] = {
-    this.map(a => implicitly[Numeric[A]].mkNumericOps(a).unary_-())
-  }
-  
-  final def negate(implicit ev: Numeric[A]): ColumnExpr[A] = this.unary_-
   
   final def complement(implicit ev: Numeric[A]): ColumnExpr[A] = {
     this.map { a => ev.minus(ev.one, a) }
@@ -92,6 +74,31 @@ sealed abstract class ColumnExpr[A : TypeTag] extends RowParser[A] {
 }
 
 object ColumnExpr {
+  abstract class ArithmeticOps[A : TypeTag] { self: ColumnExpr[A] =>
+    final def -(rhs: ColumnExpr[A])(implicit ev: Numeric[A]): ColumnExpr[A] = arithmeticOp(this, rhs)(_.minus)
+    final def -(rhs: A)(implicit ev: Numeric[A]): ColumnExpr[A] = this - LiteralColumnExpr(rhs)
+      
+    final def +(rhs: ColumnExpr[A])(implicit ev: Numeric[A]): ColumnExpr[A] = arithmeticOp(this, rhs)(_.plus)
+    final def +(rhs: A)(implicit ev: Numeric[A]): ColumnExpr[A] = this + LiteralColumnExpr(rhs)
+      
+    final def *(rhs: ColumnExpr[A])(implicit ev: Numeric[A]): ColumnExpr[A] = arithmeticOp(this, rhs)(_.times)
+    final def *(rhs: A)(implicit ev: Numeric[A]): ColumnExpr[A] = this * LiteralColumnExpr(rhs)
+    
+    final def /(rhs: ColumnExpr[A])(implicit ev: Fractional[A]): ColumnExpr[A] = {
+      val fractional = implicitly[Fractional[A]]
+      
+      ColumnExpr.lift2(fractional.div).apply(this, rhs)
+    }
+    
+    final def /(rhs: A)(implicit ev: Fractional[A]): ColumnExpr[A] = this / LiteralColumnExpr(rhs)
+    
+    final def unary_-(implicit ev: Numeric[A]): ColumnExpr[A] = {
+      this.map(a => implicitly[Numeric[A]].mkNumericOps(a).unary_-())
+    }
+    
+    final def negate(implicit ev: Numeric[A]): ColumnExpr[A] = this.unary_-
+  }
+  
   def fromRowParser[A: TypeTag](rowParser: RowParser[A]): ColumnExpr[A] = new ColumnExpr[A] {
     override def eval(row: CsvRow): A = rowParser(row)
   }

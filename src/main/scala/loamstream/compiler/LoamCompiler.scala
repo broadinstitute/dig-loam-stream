@@ -16,7 +16,6 @@ import loamstream.loam.LoamGraphValidation
 import loamstream.loam.LoamProjectContext
 import loamstream.loam.LoamScript
 import loamstream.loam.LoamScript.LoamScriptBox
-import loamstream.util.DepositBox
 import loamstream.util.Loggable
 import loamstream.util.StringUtils
 import loamstream.util.Validation.IssueBase
@@ -296,17 +295,12 @@ final class LoamCompiler(
     f(new compiler.Run)
   }
 
-  private def depositProjectContextAndThen[A](project: LoamProject)(f: DepositBox.Receipt => A): A = {
-    val projectContext = LoamProjectContext.empty(project.config)
-
-    val receipt = LoamProjectContext.depositBox.deposit(projectContext)
-
-    try { f(receipt) }
-    finally {
-      LoamProjectContext.depositBox.remove(receipt)
-    }
-  }
-
+  /**
+   * Make a new LoamProjectContext, set the value of LoamFile.ContextHolder.projectContext with it, and run
+   * f.  Since LoamFile.ContextHolder.projectContext uses a ThreadLocal to store the passed value, do the above
+   * in a new Thread to ensure that (effectively) each Loam compilation/evaluation gets its own LoamProjectContext,
+   * as before.  When f completes, clear out the LoamFile.ContextHolder.projectContext ThreadLocal.
+   */
   private def setProjectContextAndThen[A](project: LoamProject)(f: LoamProjectContext => A): A = {
     doInNewThread {
       try {
@@ -321,6 +315,9 @@ final class LoamCompiler(
     }
   }
 
+  /**
+   * Synchronously run the passed code block, but do it in a new Thread.
+   */
   private def doInNewThread[A](block: => A): A = {
     val promise: Promise[A] = Promise()
 
@@ -348,6 +345,13 @@ final class LoamCompiler(
 
   /** Compiles Loam script into execution plan */
   def compile(project: LoamProject): LoamCompiler.Result = compileLock.synchronized {
+    /*
+     * Make a new LoamProjectContext and store it where Loam code in LoamFiles knows where to find it during this
+     * compilation run.  Note that LoamProjectContexts stored this way are unique to each compilation run, and
+     * accesible only to Loam code evaluated as part of this run, thanks to LoamFile.ContextHolder being backed by
+     * a ThreadLocal, and setProjectContextAndThen guaranteeing that passed code blocks are run in a new Thread
+     * for each compilation/evaluation run.
+     */
     setProjectContextAndThen(project) { projectContext =>
       try {
         val sourceFiles = project.scripts.map(LoamCompiler.toBatchSourceFile)

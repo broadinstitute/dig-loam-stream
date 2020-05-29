@@ -2,23 +2,21 @@ package loamstream.loam
 
 import java.nio.file.Path
 
+import scala.util.Success
+import scala.util.Try
+
+import loamstream.compiler.LoamFile
 import loamstream.loam.LoamScript.LoamScriptBox
 import loamstream.loam.LoamScript.scriptsPackage
-import loamstream.util.DepositBox
+import loamstream.util.Files
 import loamstream.util.Sequence
 import loamstream.util.StringUtils
-import loamstream.util.ValueBox
+import loamstream.util.Tries
 import loamstream.util.code.ObjectId
 import loamstream.util.code.PackageId
+import loamstream.util.code.RootPackageId
 import loamstream.util.code.ScalaId
 import loamstream.util.code.SourceUtils
-import scala.util.Try
-import loamstream.util.Tries
-import scala.util.Success
-import loamstream.util.Files
-import scala.util.Failure
-import loamstream.compiler.LoamFile
-import loamstream.util.code.RootPackageId
 
 /** A named Loam script */
 sealed trait LoamScript {

@@ -7,7 +7,6 @@ import loamstream.loam.LoamLoamScript
 import loamstream.loam.ScriptType
 import loamstream.loam.ScalaLoamScript
 import loamstream.util.code.ScalaId
-import loamstream.loam.asscala.LoamFile
 
 /**
   * LoamStream

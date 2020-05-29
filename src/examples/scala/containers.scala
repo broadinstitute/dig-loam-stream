@@ -1,4 +1,4 @@
-object containers extends loamstream.loam.asscala.LoamFile {
+object containers extends loamstream.LoamFile {
   val fileIn = store("fileIn.txt").asInput
   val fileOut1 = store("fileOut1.txt")
   val fileOut2 = store("fileOut2.txt")

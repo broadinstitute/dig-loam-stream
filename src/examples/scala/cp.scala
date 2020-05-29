@@ -1,4 +1,4 @@
-object cp extends loamstream.loam.asscala.LoamFile {
+object cp extends loamstream.LoamFile {
   val fileIn = store("fileIn.txt").asInput
   val fileTmp1 = store
   val fileTmp2 = store

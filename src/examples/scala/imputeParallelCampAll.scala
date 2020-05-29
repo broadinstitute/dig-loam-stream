@@ -1,4 +1,4 @@
-object imputeParallelCampAll extends loamstream.loam.asscala.LoamFile {
+object imputeParallelCampAll extends loamstream.LoamFile {
   //---------------------------GLOBAL SETTINGS----------------------------------------------------------------------------
   val kgp_dir = path("/humgen/diabetes/users/ryank/data/1kg_phase3/1000GP_Phase3")
   

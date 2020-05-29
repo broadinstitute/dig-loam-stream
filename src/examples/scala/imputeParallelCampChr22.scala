@@ -1,4 +1,4 @@
-object imputeParallelCampChr22 extends loamstream.loam.asscala.LoamFile {
+object imputeParallelCampChr22 extends loamstream.LoamFile {
   val kgpDir = path("/humgen/diabetes/users/ryank/data/1kg_phase3/1000GP_Phase3")
   val softwareDir = path("/humgen/diabetes/users/ryank/software")
   

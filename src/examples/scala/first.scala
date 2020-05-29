@@ -1,4 +1,4 @@
-object first extends loamstream.loam.asscala.LoamFile {
+object first extends loamstream.LoamFile {
   val genotypesId = "myImportantGenotypes"
   val cmdName = "doThis"
   val input1 = store(path("input1")).asInput

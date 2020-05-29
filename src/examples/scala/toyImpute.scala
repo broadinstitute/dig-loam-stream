@@ -1,4 +1,4 @@
-object toyImpute extends loamstream.loam.asscala.LoamFile {
+object toyImpute extends loamstream.LoamFile {
   val inputFile = path("/user/home/someone/data.vcf")
   val outputFile = path("/user/home/someone/dataImputed.vcf")
   val phaseCommand = "shapeit"

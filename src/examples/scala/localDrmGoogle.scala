@@ -1,4 +1,4 @@
-object localDrmGoogle extends loamstream.loam.asscala.LoamFile {
+object localDrmGoogle extends loamstream.LoamFile {
 //
 // The dumbest thing that could work: 
 //   1) Copy a.txt to b.txt locally

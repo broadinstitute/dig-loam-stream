@@ -1,7 +1,6 @@
 package loamstream.compiler
 
 import java.nio.file.Paths
-
 import loamstream.loam.{LoamGraphValidation, LoamScript}
 import org.scalatest.FunSuite
 import loamstream.TestHelpers
@@ -10,7 +9,6 @@ import loamstream.util.ValueBox
 import loamstream.model.Store
 import loamstream.conf.CompilationConfig
 import loamstream.loam.LoamLoamScript
-import loamstream.loam.asscala.LoamFile
 import loamstream.util.code.ScalaId
 import loamstream.loam.ScalaLoamScript
 import java.nio.file.Path

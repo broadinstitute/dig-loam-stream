@@ -7,7 +7,6 @@ import scala.tools.nsc.{ Settings => ScalaCompilerSettings }
 import scala.tools.nsc.io.VirtualDirectory
 import scala.tools.nsc.reporters.Reporter
 import scala.tools.reflect.ReflectGlobal
-
 import loamstream.compiler.Issue.Severity
 import loamstream.compiler.LoamCompiler.CompilerReporter
 import loamstream.conf.LoamConfig
@@ -28,13 +27,11 @@ import loamstream.util.TimeUtils
 import loamstream.conf.CompilationConfig
 import loamstream.loam.LoamLoamScript
 import loamstream.loam.ScalaLoamScript
-import loamstream.loam.asscala.LoamFile
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.SynchronousQueue
 import scala.concurrent.Future
-import loamstream.loam.asscala.ContextHolder
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import scala.concurrent.Promise
@@ -315,11 +312,11 @@ final class LoamCompiler(
       try {
         val projectContext = LoamProjectContext.empty(project.config)
   
-        ContextHolder.projectContext = projectContext
+        LoamFile.ContextHolder.projectContext = projectContext
   
         f(projectContext)
       } finally {
-        ContextHolder.clear()
+        LoamFile.ContextHolder.clear()
       }
     }
   }

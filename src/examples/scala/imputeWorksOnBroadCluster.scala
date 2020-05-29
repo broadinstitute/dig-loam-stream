@@ -1,4 +1,4 @@
-object imputeWorksOnBroadCluster extends loamstream.loam.asscala.LoamFile {
+object imputeWorksOnBroadCluster extends loamstream.LoamFile {
   val kgpDir = path("/humgen/diabetes/users/ryank/internal_qc/1kg_phase3/1000GP_Phase3")
   val softDir = path("/humgen/diabetes/users/ryank/software")
   

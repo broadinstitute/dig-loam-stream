@@ -1,0 +1,14 @@
+object toyImpute extends loamstream.loam.asscala.LoamFile {
+  val inputFile = path("/user/home/someone/data.vcf")
+  val outputFile = path("/user/home/someone/dataImputed.vcf")
+  val phaseCommand = "shapeit"
+  val imputeCommand = "impute2"
+  
+  val raw = store(inputFile).asInput
+  val phased = store
+  val template = store(path("/home/myself/template.vcf")).asInput
+  val imputed = store(outputFile)
+  
+  cmd"$phaseCommand -in $raw -out $phased"
+  cmd"$imputeCommand -in $phased -template $template -out $imputed"
+}

@@ -56,7 +56,7 @@ object ColumnDefs {
   def eaf(sourceColumn: ColumnExpr[_], destColumn: ColumnName = ColumnNames.eaf): UnsourcedColumnDef = {
     val expr = asDouble(sourceColumn)
     
-    ColumnDef(destColumn, expr, expr.complement),
+    ColumnDef(destColumn, expr, expr.complement)
   }
   
   //TODO: Something better, this makes potentially-superfluous .map() invocations

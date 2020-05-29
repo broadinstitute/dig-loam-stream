@@ -35,7 +35,10 @@ object Metric {
     countKnownOrUnknown(markerColumn, client)(client.isUnknown)
   }
   
-  private def countKnownOrUnknown(markerColumn: ColumnName, client: BioIndexClient)(p: String => Boolean): Metric[Int] = {
+  private def countKnownOrUnknown(
+      markerColumn: ColumnName, 
+      client: BioIndexClient)(p: String => Boolean): Metric[Int] = {
+    
     Fold.countIf(row => p(markerColumn.eval(row)))
   }
   

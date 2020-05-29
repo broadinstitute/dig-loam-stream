@@ -16,6 +16,6 @@ package object metrics {
   
     def processSampled(howMany: Int)(rows: CsvSource): A = Fold.fold(Sample.random(howMany)(rows).records)(f)
   
-    def |+|[A2](that: Metric[A2]): Metric[(A, A2)] = Fold.combine(this.f, that.f)
+    def |+|[A2](that: Metric[A2]): Metric[(A, A2)] = Fold.combine(this.f, that.f) //scalastyle:ignore method.name
   }
 }

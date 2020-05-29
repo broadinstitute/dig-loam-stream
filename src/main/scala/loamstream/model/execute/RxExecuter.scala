@@ -254,14 +254,16 @@ object RxExecuter extends Loggable {
     
     lazy val fileMonitor: FileMonitor = new FileMonitor(outputExistencePollingFrequencyInHz, maxWaitTimeForOutputs)
     
-    private[RxExecuter] lazy val (executionContext, ecHandle) = ExecutionContexts.threadPool(Defaults.maxNumConcurrentJobs)
+    private[RxExecuter] lazy val (executionContext, ecHandle) = {
+      ExecutionContexts.threadPool(Defaults.maxNumConcurrentJobs)
+    }
     
     private[RxExecuter] def chunkRunner: ChunkRunner = {
       AsyncLocalChunkRunner(Defaults.executionConfig, Defaults.maxNumConcurrentJobs)(Defaults.executionContext)
     }
   }
   
-  def apply(
+  def apply( //scalastyle:ignore parameter.number
     executionConfig: ExecutionConfig = Defaults.executionConfig,
     chunkRunner: ChunkRunner = Defaults.chunkRunner,
     fileMonitor: FileMonitor = Defaults.fileMonitor,

@@ -4,6 +4,10 @@ import loamstream.loam.{LoamCmdTool, LoamScript}
 import org.scalatest.FunSuite
 import loamstream.TestHelpers
 import loamstream.loam.LoamLoamScript
+import loamstream.loam.ScriptType
+import loamstream.loam.ScalaLoamScript
+import loamstream.util.code.ScalaId
+import loamstream.loam.asscala.LoamFile
 
 /**
   * LoamStream
@@ -38,87 +42,131 @@ final class LoamCompilerMultiFileTest extends FunSuite {
     assert(cmdTool.tokens.head.toString() === "echo Hello the answer is 42")
   }
 
-  private def createNewCompiler: LoamCompiler = LoamCompiler.default
-
-  private val scriptValues = LoamLoamScript("values",
-    """
-      |val greeting = "Hello"
-      |val answer = 42
-    """.stripMargin)
-
+  private def valuesScript(scriptType: ScriptType): LoamScript = {
+    val name = "values"
+    val code = """|val greeting = "Hello"
+                  |val answer = 42""".stripMargin
+                  
+    scriptType match {
+      case ScriptType.Loam => LoamLoamScript(name, code)
+      case ScriptType.Scala => ScalaLoamScript(name, LoamCompilerTest.wrapInLoamFile(name, code))
+    }
+  }
+  
   test("Full name instead of import") {
-    val scriptIndividualImport = LoamLoamScript("individualImport",
-      """
-        |cmd"echo ${values.greeting} the answer is ${values.answer}"
-      """.stripMargin)
-    val project = LoamProject(TestHelpers.config, scriptValues, scriptIndividualImport)
-    val compiler = createNewCompiler
-    val compileResults = compiler.compile(project)
-    assertCompiledFine(compileResults, 0, 1)
-    assertEchoCommand(compileResults)
+    def doTest(scriptType: ScriptType): Unit = {
+      val scriptIndividualImport = LoamLoamScript("individualImport",
+        """
+          |cmd"echo ${values.greeting} the answer is ${values.answer}"
+        """.stripMargin)
+      val project = LoamProject(TestHelpers.config, valuesScript(scriptType), scriptIndividualImport)
+
+      val compileResults = LoamCompiler.default.compile(project)
+      assertCompiledFine(compileResults, 0, 1)
+      assertEchoCommand(compileResults)
+    }
+    
+    doTest(ScriptType.Loam)
+    doTest(ScriptType.Scala)
   }
 
   test("Individual import") {
-    val scriptIndividualImport = LoamLoamScript("individualImport",
-      """
-        |import values.{answer, greeting}
-        |cmd"echo $greeting the answer is $answer"
-      """.stripMargin)
-    val project = LoamProject(TestHelpers.config, scriptValues, scriptIndividualImport)
-    val compiler = createNewCompiler
-    val compileResults = compiler.compile(project)
-    assertCompiledFine(compileResults, 0, 1)
-    assertEchoCommand(compileResults)
+    def doTest(scriptType: ScriptType): Unit = {
+      val scriptIndividualImport = LoamLoamScript("individualImport",
+        """
+          |import values.{answer, greeting}
+          |cmd"echo $greeting the answer is $answer"
+        """.stripMargin)
+      val project = LoamProject(TestHelpers.config, valuesScript(scriptType), scriptIndividualImport)
+
+      val compileResults = LoamCompiler.default.compile(project)
+      assertCompiledFine(compileResults, 0, 1)
+      assertEchoCommand(compileResults)
+    }
+    
+    doTest(ScriptType.Loam)
+    doTest(ScriptType.Scala)
   }
 
   test("Renaming import") {
-    val scriptIndividualImport = LoamLoamScript("individualImport",
-      """
-        |import values.{answer => answerToTheGreatQuestion, greeting => casualGreeting}
-        |cmd"echo $casualGreeting the answer is $answerToTheGreatQuestion"
-      """.stripMargin)
-    val project = LoamProject(TestHelpers.config, scriptValues, scriptIndividualImport)
-    val compiler = createNewCompiler
-    val compileResults = compiler.compile(project)
-    assertCompiledFine(compileResults, 0, 1)
-    assertEchoCommand(compileResults)
+    def doTest(scriptType: ScriptType): Unit = {
+      val scriptIndividualImport = LoamLoamScript("individualImport",
+        """
+          |import values.{answer => answerToTheGreatQuestion, greeting => casualGreeting}
+          |cmd"echo $casualGreeting the answer is $answerToTheGreatQuestion"
+        """.stripMargin)
+      val project = LoamProject(TestHelpers.config, valuesScript(scriptType), scriptIndividualImport)
+
+      val compileResults = LoamCompiler.default.compile(project)
+      assertCompiledFine(compileResults, 0, 1)
+      assertEchoCommand(compileResults)
+    }
+    
+    doTest(ScriptType.Loam)
+    doTest(ScriptType.Scala)
   }
 
   test("Wild-card import") {
-    val scriptWildcardImport = LoamLoamScript("wildcardImport",
-      """
-        |import values._
-        |cmd"echo $greeting the answer is $answer"
-      """.stripMargin)
-    val project = LoamProject(TestHelpers.config, scriptValues, scriptWildcardImport)
-    val compiler = createNewCompiler
-    val compileResults = compiler.compile(project)
-    assertCompiledFine(compileResults, 0, 1)
-    assertEchoCommand(compileResults)
+    def doTest(scriptType: ScriptType): Unit = {
+      val scriptWildcardImport = LoamLoamScript("wildcardImport",
+        """
+          |import values._
+          |cmd"echo $greeting the answer is $answer"
+        """.stripMargin)
+      val project = LoamProject(TestHelpers.config, valuesScript(scriptType), scriptWildcardImport)
+
+      val compileResults = LoamCompiler.default.compile(project)
+      assertCompiledFine(compileResults, 0, 1)
+      assertEchoCommand(compileResults)
+    }
+    
+    doTest(ScriptType.Loam)
+    doTest(ScriptType.Scala)
   }
 
   test("Diamond import relationship diagram") {
-    val scripts = Set(scriptValues,
-      LoamLoamScript("greetingForwarder",
-        """
-          |import values.greeting
-          |val copyOfGreeting = greeting
-        """.stripMargin),
-      LoamLoamScript("answerForwarder",
-        """
-          |import values.answer
-          |val copyOfAnswer = answer
-        """.stripMargin),
-      LoamLoamScript("combiner",
-        """
-          |import greetingForwarder.copyOfGreeting
-          |import answerForwarder.copyOfAnswer
-          |cmd"echo $copyOfGreeting the answer is $copyOfAnswer"
-        """.stripMargin))
-    val project = LoamProject(TestHelpers.config, scripts)
-    val compiler = createNewCompiler
-    val compileResults = compiler.compile(project)
-    assertCompiledFine(compileResults, 0, 1)
-    assertEchoCommand(compileResults)
+    def doTest(valuesScriptType: ScriptType, combinerScriptType: ScriptType): Unit = {
+      val combinerScriptName = "combiner"
+      
+      val combinerScriptCode = """
+            |import greetingForwarder.copyOfGreeting
+            |import answerForwarder.copyOfAnswer
+            |cmd"echo $copyOfGreeting the answer is $copyOfAnswer"
+            |""".stripMargin.trim
+      
+      val combinerScript: LoamScript = combinerScriptType match {
+        case ScriptType.Loam => LoamLoamScript(combinerScriptName, combinerScriptCode)
+        case ScriptType.Scala => {
+          ScalaLoamScript(
+              combinerScriptName,
+              LoamCompilerTest.wrapInLoamFile(combinerScriptName, combinerScriptCode))
+        }
+      }
+      
+      val scripts: Set[LoamScript] = Set(
+        valuesScript(valuesScriptType),
+        LoamLoamScript("greetingForwarder",
+          """
+            |import values.greeting
+            |val copyOfGreeting = greeting
+          """.stripMargin),
+        LoamLoamScript("answerForwarder",
+          """
+            |import values.answer
+            |val copyOfAnswer = answer
+          """.stripMargin),
+        combinerScript)
+          
+      val project = LoamProject(TestHelpers.config, scripts)
+
+      val compileResults = LoamCompiler.default.compile(project)
+      assertCompiledFine(compileResults, 0, 1)
+      assertEchoCommand(compileResults)
+    }
+    
+    doTest(ScriptType.Loam, ScriptType.Loam)
+    doTest(ScriptType.Loam, ScriptType.Scala)
+    doTest(ScriptType.Scala, ScriptType.Scala)
+    doTest(ScriptType.Scala, ScriptType.Loam)
   }
 }

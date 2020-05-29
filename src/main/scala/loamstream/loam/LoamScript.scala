@@ -18,6 +18,7 @@ import scala.util.Success
 import loamstream.util.Files
 import scala.util.Failure
 import loamstream.loam.asscala.LoamFile
+import loamstream.util.code.RootPackageId
 
 /** A named Loam script */
 sealed trait LoamScript {
@@ -25,10 +26,15 @@ sealed trait LoamScript {
   //def code: String
   def subPackage: Option[PackageId]
   
-  def pkg: PackageId
+  def pkg: PackageId = RootPackageId
+  
+  protected def packageForThisScript: PackageId = subPackage match {
+    case Some(subP) => pkg.getPackage(subP.inScala)
+    case None => pkg
+  }
   
   /** Scala id of object corresponding to this Loam script */
-  def scalaId: ObjectId = ObjectId(pkg, name)
+  def scalaId: ObjectId = ObjectId(packageForThisScript, name)
 
   /** Name of Scala source file corresponding to this Loam script */
   def scalaFileName: String = s"$name.scala"
@@ -36,15 +42,54 @@ sealed trait LoamScript {
   def asScalaCode: String
 }
 
+/** A named Loam .scala file */
+final case class ScalaLoamScript(
+    name: String,
+    code: String, 
+    subPackage: Option[PackageId] = None) extends LoamScript {
+  
+  //TODO
+  //override def pkg: PackageId = RootPackageId
+  
+  override def asScalaCode: String = code
+}
+
+/** A named Loam script */
+final case class LoamLoamScript(name: String, code: String, subPackage: Option[PackageId] = None) extends LoamScript {
+
+  //override def pkg: PackageId = scriptsPackage
+  
+  /** Convert to Scala code, provided code to create or obtain Loam project context */
+  override def asScalaCode: String = {
+    //s"""package ${packageForThisScript.inScalaFull}
+    s"""
+import ${ScalaId.from[LoamFile].inScalaFull}
+import java.nio.file._
+
+// scalastyle:off object.name
+
+object ${scalaId.inScala} extends ${SourceUtils.shortTypeName[LoamFile]} {
+//  = = =  Loam code below here  = = =
+
+${code.trim}
+
+//  = = =  Loam code above here  = = =
+}
+// scalastyle:on object.name
+"""
+  }
+}
+
 object LoamScript {
   /** Package of Scala object corresponding to Loam scripts */
-  val scriptsPackage = PackageId("loamstream", "loam", "scripts")
+  //val scriptsPackage: PackageId = PackageId("loamstream", "loam", "scripts")
+  val scriptsPackage: PackageId = RootPackageId
 
   /** Sequence of indices for auto-generated Loam script names */
   val generatedNameIndices: Sequence[Int] = new Sequence(0, 1)
 
   /** Base name for auto-generated Loam script names */
-  val generatedNameBase = "loamScript"
+  val generatedNameBase: String = "loamScript"
 
   /** File suffix for Loam scripts - .loam */
   private val fileSuffix: String = ScriptType.Loam.suffix
@@ -178,50 +223,10 @@ object LoamScript {
   val requiredScalaIds: Set[ScalaId] = {
     Set(
       ScalaId.from[LoamSyntax.type],
+      ScalaId.from[LoamFile],
       ScalaId.from[LoamScriptContext],
       ScalaId.from[LoamProjectContext],
       ScalaId.from[LoamProjectContext.type]
     )
-  }
-}
-
-/** A named Loam .scala file */
-final case class ScalaLoamScript(
-    name: String,
-    code: String, 
-    pkg: PackageId = scriptsPackage, 
-    subPackage: Option[PackageId] = None) extends LoamScript {
-  
-  override def asScalaCode: String = code
-}
-
-/** A named Loam script */
-final case class LoamLoamScript(name: String, code: String, subPackage: Option[PackageId] = None) extends LoamScript {
-
-  override def pkg: PackageId = scriptsPackage
-  
-  /** Convert to Scala code, provided code to create or obtain Loam project context */
-  override def asScalaCode: String = {
-    val packageForThisScript = subPackage match {
-      case Some(subP) => LoamScript.scriptsPackage.getPackage(subP.inScala)
-      case None => LoamScript.scriptsPackage
-    }
-    
-    s"""package ${packageForThisScript.inScalaFull}
-
-import ${ScalaId.from[LoamFile].inScalaFull}
-import java.nio.file._
-
-// scalastyle:off object.name
-
-object ${scalaId.inScala} extends ${SourceUtils.shortTypeName[LoamFile]} {
-//  = = =  Loam code below here  = = =
-
-${code.trim}
-
-//  = = =  Loam code above here  = = =
-}
-// scalastyle:on object.name
-"""
   }
 }

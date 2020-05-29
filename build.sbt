@@ -24,6 +24,7 @@ lazy val Versions = new {
   val HsqlDb = "2.5.0"
   val TestContainersScala = "0.35.2"
   val MysqlConnector = "8.0.19"
+  val Sttp = "2.0.6"
 }
 
 lazy val Orgs = new {
@@ -62,7 +63,8 @@ lazy val mainDeps = Seq(
   "org.codehaus.janino" % "janino" % Versions.Janino,
   "org.apache.commons" % "commons-csv" % Versions.CommonsCsv,
   Orgs.DIG %% "dig-aws" % Versions.DigAws,
-  "org.hsqldb" % "hsqldb" % Versions.HsqlDb
+  "org.hsqldb" % "hsqldb" % Versions.HsqlDb,
+  "com.softwaremill.sttp.client" %% "core" % Versions.Sttp
 )
 
 lazy val testDeps = Seq(

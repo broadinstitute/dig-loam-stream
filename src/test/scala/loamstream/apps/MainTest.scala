@@ -31,19 +31,17 @@ final class MainTest extends FunSuite {
   test("shutdown") {
     val mockWiring = new MainTest.MockAppWiring
     
-    val run = new Main.Run
-    
     assert(mockWiring.shutdownInvocations === 0)
     
-    run.shutdown(mockWiring)
+    Main.shutdown(mockWiring)
     
     assert(mockWiring.shutdownInvocations === 1)
     
-    run.shutdown(mockWiring)
+    Main.shutdown(mockWiring)
     
     assert(mockWiring.shutdownInvocations === 1)
     
-    run.shutdown(mockWiring)
+    Main.shutdown(mockWiring)
     
     assert(mockWiring.shutdownInvocations === 1)
   }

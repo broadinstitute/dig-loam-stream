@@ -39,6 +39,10 @@ final class CsvSourceTest extends FunSuite {
     assert(actualRows.size === expectedRows.size)
   }
   
+  test("fromString") {
+    doCsvSourceRecordsTest(CsvSource.fromString(rowDataAsString))
+  }
+  
   test("fromFile") {
     TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
       val file = workDir.resolve("data.csv")

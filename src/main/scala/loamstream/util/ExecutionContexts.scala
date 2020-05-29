@@ -22,4 +22,12 @@ object ExecutionContexts {
     
     (ec, Terminable { ExecutorServices.shutdown(es) })
   }
+  
+  val defaultThreadPoolSize: Int = 40 //scalastyle:ignore magic.number
+  
+  def withThreadPool[A](numThreads: Int = defaultThreadPoolSize)(f: ExecutionContext => A): A = {
+    val (ec, ecHandle) = threadPool(numThreads)
+
+    try { f(ec) } finally { ecHandle.stop() }
+  }
 }

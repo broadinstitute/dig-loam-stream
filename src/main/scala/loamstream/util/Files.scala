@@ -107,7 +107,7 @@ object Files {
     CanBeClosed.enclosed(JFiles.newBufferedWriter(file, StandardCharsets.UTF_8)) { writer =>
       def addLineEndingIfNeeded(line: String) = if(line.endsWith(lineSeparator)) line else s"${line}${lineSeparator}"
       
-      lines.map(addLineEndingIfNeeded) .foreach(writer.write)
+      lines.map(addLineEndingIfNeeded).foreach(writer.write)
     }
     
     file

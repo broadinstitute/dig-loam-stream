@@ -253,54 +253,47 @@ object RxExecuter extends Loggable {
     lazy val outputExistencePollingFrequencyInHz: Double = executionConfig.outputPollingFrequencyInHz
     
     lazy val fileMonitor: FileMonitor = new FileMonitor(outputExistencePollingFrequencyInHz, maxWaitTimeForOutputs)
+    
+    private[RxExecuter] lazy val (executionContext, ecHandle) = {
+      ExecutionContexts.threadPool(Defaults.maxNumConcurrentJobs)
+    }
+    
+    private[RxExecuter] def chunkRunner: ChunkRunner = {
+      AsyncLocalChunkRunner(Defaults.executionConfig, Defaults.maxNumConcurrentJobs)(Defaults.executionContext)
+    }
   }
   
-  def apply(runner: ChunkRunner)(implicit executionContext: ExecutionContext): RxExecuter = {
+  def apply( //scalastyle:ignore parameter.number
+    executionConfig: ExecutionConfig = Defaults.executionConfig,
+    chunkRunner: ChunkRunner = Defaults.chunkRunner,
+    fileMonitor: FileMonitor = Defaults.fileMonitor,
+    windowLength: Duration = Defaults.windowLengthInSec,
+    jobCanceler: JobCanceler = Defaults.jobCanceler,
+    jobFilter: JobFilter = Defaults.jobFilter,
+    executionRecorder: ExecutionRecorder = Defaults.executionRecorder,
+    maxRunsPerJob: Int = Defaults.maxRunsPerJob,
+    terminableComponents: Iterable[Terminable] = Seq(Defaults.ecHandle))
+    (implicit executionContext: ExecutionContext = Defaults.executionContext): RxExecuter = {
+      
     new RxExecuter(
-        Defaults.executionConfig,
-        runner, 
-        Defaults.fileMonitor, 
-        Defaults.windowLengthInSec,
-        Defaults.jobCanceler,
-        Defaults.jobFilter, 
-        Defaults.executionRecorder,
-        Defaults.maxRunsPerJob)
+      executionConfig,
+      chunkRunner, 
+      fileMonitor,
+      windowLength, 
+      jobCanceler,
+      jobFilter, 
+      executionRecorder,
+      maxRunsPerJob, 
+      terminableComponents)(executionContext)
   }
 
-  def default: RxExecuter = {
-    val (executionContext, ecHandle) = ExecutionContexts.threadPool(Defaults.maxNumConcurrentJobs)
-
-    val chunkRunner = AsyncLocalChunkRunner(Defaults.executionConfig, Defaults.maxNumConcurrentJobs)(executionContext)
-
-    new RxExecuter(
-        Defaults.executionConfig,
-        chunkRunner, 
-        Defaults.fileMonitor,
-        Defaults.windowLengthInSec, 
-        Defaults.jobCanceler,
-        Defaults.jobFilter, 
-        Defaults.executionRecorder,
-        Defaults.maxRunsPerJob, 
-        Option(ecHandle))(executionContext)
-  }
+  def default: RxExecuter = apply()
   
   def defaultWith(
       newJobFilter: JobFilter = Defaults.jobFilter, 
       newExecutionRecorder: ExecutionRecorder = Defaults.executionRecorder): RxExecuter = {
     
-    def addJobFilter(rxe: RxExecuter): RxExecuter = {
-      implicit val context = rxe.executionContext 
-      
-      if(newJobFilter eq rxe.jobFilter) rxe else rxe.copy(jobFilter = newJobFilter)
-    }
-    
-    def addExecutionRecorder(rxe: RxExecuter): RxExecuter = {
-      implicit val context = rxe.executionContext
-      
-      if(newExecutionRecorder eq rxe.executionRecorder) rxe else rxe.copy(executionRecorder = newExecutionRecorder)
-    }
-    
-    addExecutionRecorder(addJobFilter(default))
+    RxExecuter(jobFilter = newJobFilter, executionRecorder = newExecutionRecorder)
   }
 
   /**

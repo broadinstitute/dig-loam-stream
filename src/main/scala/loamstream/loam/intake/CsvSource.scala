@@ -13,6 +13,9 @@ import loamstream.util.BashScript
 import loamstream.util.Loggable
 import loamstream.util.TakesEndingActionIterator
 import loamstream.util.Throwables
+import java.util.zip.GZIPInputStream
+import java.io.FileInputStream
+import java.io.StringReader
 
 /**
  * @author clint
@@ -21,7 +24,9 @@ import loamstream.util.Throwables
 sealed trait CsvSource {
   def records: Iterator[CsvRow]
   
-  def take(n: Int): CsvSource = fromCombinator(_.take(n)) 
+  def take(n: Int): CsvSource = fromCombinator(_.take(n))
+  
+  def drop(n: Int): CsvSource = fromCombinator(_.drop(n))
   
   def filter(p: RowPredicate): CsvSource = fromCombinator(_.filter(p))
   
@@ -40,12 +45,18 @@ sealed trait CsvSource {
   
 object CsvSource extends Loggable {
   
-  object Defaults {
-    object Formats {
-      val tabDelimited: CSVFormat = CSVFormat.DEFAULT.withDelimiter('\t')
+  object Formats {
+    val spaceDelimited: CSVFormat = CSVFormat.DEFAULT.withDelimiter(' ')
     
-      val tabDelimitedWithHeaderCsvFormat: CSVFormat = tabDelimited.withFirstRecordAsHeader
-    }
+    val spaceDelimitedWithHeader: CSVFormat = spaceDelimited.withFirstRecordAsHeader
+      
+    val tabDelimited: CSVFormat = CSVFormat.DEFAULT.withDelimiter('\t')
+    
+    val tabDelimitedWithHeader: CSVFormat = tabDelimited.withFirstRecordAsHeader
+  }
+  
+  object Defaults {
+    val csvFormat: CSVFormat = Formats.tabDelimitedWithHeader 
     
     val thisDir: Path = Paths.get(".")
   }
@@ -60,21 +71,35 @@ object CsvSource extends Loggable {
 
   def fromFile(
       path: Path, 
-      csvFormat: CSVFormat = Defaults.Formats.tabDelimitedWithHeaderCsvFormat): CsvSource = {
+      csvFormat: CSVFormat = Defaults.csvFormat): CsvSource = {
     
     fromReader(new FileReader(path.toFile), csvFormat)
   }
   
+  def fromGzippedFile(
+      path: Path, 
+      csvFormat: CSVFormat = Defaults.csvFormat): CsvSource = {
+    
+    fromReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(path.toFile))), csvFormat)
+  }
+  
+  def fromString(
+      csvData: String,
+      csvFormat: CSVFormat = Defaults.csvFormat): CsvSource = {
+    
+    fromReader(new StringReader(csvData), csvFormat)
+  }
+  
   def fromReader(
-      reader: Reader, 
-      csvFormat: CSVFormat = Defaults.Formats.tabDelimitedWithHeaderCsvFormat): CsvSource = {
+      reader: => Reader, 
+      csvFormat: CSVFormat = Defaults.csvFormat): CsvSource = {
     
     FromIterator(toCsvRowIterator(reader, csvFormat))
   }
 
   def fromCommandLine(
       command: String,
-      csvFormat: CSVFormat = Defaults.Formats.tabDelimitedWithHeaderCsvFormat,
+      csvFormat: CSVFormat = Defaults.csvFormat,
       workDir: Path = Defaults.thisDir): CsvSource = {
   
     FromIterator {

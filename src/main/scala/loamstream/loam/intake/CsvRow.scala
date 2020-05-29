@@ -10,6 +10,10 @@ trait CsvRow {
   def getFieldByName(name: String): String
   
   def getFieldByIndex(i: Int): String
+  
+  def size: Int
+  
+  def values: Iterator[String] = (0 until size).iterator.map(getFieldByIndex)
 }
 
 object CsvRow {
@@ -17,5 +21,7 @@ object CsvRow {
     override def getFieldByName(name: String): String = delegate.get(name)
     
     override def getFieldByIndex(i: Int): String = delegate.get(i)
+    
+    override def size: Int = delegate.size
   }
 }

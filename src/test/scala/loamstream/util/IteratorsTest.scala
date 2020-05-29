@@ -24,4 +24,12 @@ final class IteratorsTest extends FunSuite {
     assert(initiallyNonEmpty.nextOption === Some(100))
     assert(initiallyNonEmpty.nextOption === None)
   }
+  
+  test("sample") {
+    import Iterators.sample
+    
+    assert(sample(Iterator.empty, Seq(1,2,3,4)).toIndexedSeq === Iterator.empty.toIndexedSeq)
+    
+    assert(sample(Iterator('a','b','c','d','e','f','g','h'), Seq(1, 2, 4, 6)).toIndexedSeq === Seq('b','c','e','g'))
+  }
 }

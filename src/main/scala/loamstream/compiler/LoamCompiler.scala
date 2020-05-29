@@ -344,14 +344,14 @@ final class LoamCompiler(
   }
 
   /** Compiles Loam script into execution plan */
+  /*
+   * Note use of setProjectContextAndThen, which makes a new LoamProjectContext and stores it where Loam code in 
+   * LoamFiles knows where to find it during this compilation/evaluation run.  Note that LoamProjectContexts stored
+   * this way are unique to each compilation/evaluation run, and accesible only to Loam code evaluated as part of 
+   * this run, thanks to LoamFile.ContextHolder being backed by a ThreadLocal, and setProjectContextAndThen 
+   * guaranteeing that passed code blocks are run in a new Thread for each compilation/evaluation run.
+   */
   def compile(project: LoamProject): LoamCompiler.Result = compileLock.synchronized {
-    /*
-     * Make a new LoamProjectContext and store it where Loam code in LoamFiles knows where to find it during this
-     * compilation run.  Note that LoamProjectContexts stored this way are unique to each compilation run, and
-     * accesible only to Loam code evaluated as part of this run, thanks to LoamFile.ContextHolder being backed by
-     * a ThreadLocal, and setProjectContextAndThen guaranteeing that passed code blocks are run in a new Thread
-     * for each compilation/evaluation run.
-     */
     setProjectContextAndThen(project) { projectContext =>
       try {
         val sourceFiles = project.scripts.map(LoamCompiler.toBatchSourceFile)

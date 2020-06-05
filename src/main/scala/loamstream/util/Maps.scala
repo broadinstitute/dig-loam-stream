@@ -12,9 +12,11 @@ object Maps {
   }
   
   object Implicits {
-    implicit final class MapOps[A,B](val m: Map[A,B]) extends AnyVal {
-      def strictMapValues[C](f: B => C): Map[A, C] = m.map { case (a, b) => (a, f(b)) }
-      
+    implicit final class MapOps[A, B](val m: Map[A, B]) extends AnyVal {
+      def strictMapValues[C](f: B => C): Map[A, C] = m.view.mapValues(f).toMap
+
+      def strictFilterKeys(p: A => Boolean): Map[A, B] = m.view.filterKeys(p).toMap
+
       def mapKeys[A1](f: A => A1): Map[A1, B] = m.map { case (a, b) => (f(a), b) }
       
       def collectKeys[A1](pf: PartialFunction[A, A1]): Map[A1, B] = {

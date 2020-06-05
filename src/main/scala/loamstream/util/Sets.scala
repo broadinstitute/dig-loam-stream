@@ -17,7 +17,7 @@ object Sets {
     
     def toHashSet(s: Set[A]): HashSet[A] = s match {
       case hs: HashSet[A] => hs 
-      case _ => s.to[HashSet]
+      case _ => s.to(HashSet)
     }
     
     if(lhs.isEmpty || rhs.isEmpty) { lhs }

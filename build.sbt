@@ -7,20 +7,20 @@ lazy val Versions = new {
   val GoogleCloudStorage = "1.77.0"
   val GoogleAuth = "0.16.1"
   val LogBack = "1.2.3"
-  val Scala = "2.12.10"
-  val ScalaMajor = "2.12"
-  val ScalaFmt = "1.5.1"
+  val Scala = "2.13.1"
+  val ScalaMajor = "2.13"
+  val ScalaFmt = "2.5.3"
   val ScalaTest = "3.0.8"
   val Scallop = "3.3.0"
   val TypesafeConfig = "1.3.4"
   val Slick = "3.3.2"
-  val RxScala = "0.26.5"
+  val RxScala = "0.27.0"
   val Ficus = "1.4.7"
-  val Squants = "1.4.0"
+  val Squants = "1.6.0"
   val LogbackColorizer = "1.0.1"
   val Janino = "3.0.12"
   val CommonsCsv = "1.7"
-  val DigAws = "0.1-SNAPSHOT"
+  val DigAws = "0.3.0-SNAPSHOT"
   val HsqlDb = "2.5.0"
   val TestContainersScala = "0.35.2"
   val MysqlConnector = "8.0.19"
@@ -46,7 +46,7 @@ lazy val mainDeps = Seq(
   "org.scala-lang" % "scala-library" % Versions.Scala,
   "org.scala-lang" % "scala-compiler" % Versions.Scala,
   "org.scala-lang" % "scala-reflect" % Versions.Scala,
-  "com.geirsson" %% "scalafmt-core" % Versions.ScalaFmt,
+  "org.scalameta" %% "scalafmt-core" % Versions.ScalaFmt,
   "commons-io" % "commons-io" % Versions.ApacheCommonsIO,
   "us.levk" % "drmaa-common" % Versions.DrmaaCommon,
   "us.levk" % "drmaa-gridengine" % Versions.DrmaaGridEngine,

@@ -7,17 +7,10 @@ import loamstream.drm.Queue
 import loamstream.drm.uger.UgerDefaults
 import loamstream.conf.UgerConfig
 import loamstream.conf.LsfConfig
-import loamstream.conf.DrmConfig
-import loamstream.drm.lsf.LsfDefaults
-import loamstream.conf.LoamConfig
-import scala.util.Try
-import loamstream.util.Tries
-import loamstream.drm.DrmSystem
-import loamstream.util.Options
+
 import loamstream.drm.ContainerParams
-import loamstream.model.jobs.commandline.HasCommandLine
 import loamstream.googlecloud.ClusterConfig
-import org.broadinstitute.dig.aws.emr.Cluster
+import org.broadinstitute.dig.aws.emr.ClusterDef
 
 /**
  * @author kyuksel
@@ -99,6 +92,6 @@ final case class GoogleSettings(
 /**
  * Execution-time settings for an AWS job 
  */
-final case class AwsSettings(clusterConfig: Cluster) extends Settings(EnvironmentType.Aws) {
+final case class AwsSettings(clusterConfig: ClusterDef) extends Settings(EnvironmentType.Aws) {
   def clusterId: String = clusterConfig.name
 }

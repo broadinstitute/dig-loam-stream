@@ -12,7 +12,7 @@ import java.nio.file.Path
 import loamstream.util.Paths
 import loamstream.util.{Files => LFiles}
 import loamstream.model.execute.Resources.AwsResources
-import org.broadinstitute.dig.aws.emr.Cluster
+import org.broadinstitute.dig.aws.emr.ClusterDef
 import loamstream.googlecloud.ClusterConfig
 
 
@@ -168,7 +168,7 @@ object FileSystemExecutionRecorder extends ExecutionRecorder {
       Keys.maxClusterIdleTime -> maxClusterIdleTime)
   }
   
-  private def awsClusterConfigToTuples(clusterConfig: Cluster): Seq[(String, Any)] = {
+  private def awsClusterConfigToTuples(clusterConfig: ClusterDef): Seq[(String, Any)] = {
     import clusterConfig._
         
     def toString[A](as: Iterable[A]): String = as.mkString("[", ",", "]")
@@ -178,12 +178,15 @@ object FileSystemExecutionRecorder extends ExecutionRecorder {
       Keys.cluster -> name,
       Keys.amiId -> amiId.map(_.value).getOrElse(""),
       Keys.instances -> instances,
-      Keys.masterInstanceType -> masterInstanceType.value,
-      Keys.slaveInstanceType -> slaveInstanceType.value,
+      //TODO: This will go out to AWS
+      Keys.masterInstanceType -> masterInstanceType.instanceType.toString,
+      //TODO: This will go out to AWS
+      Keys.slaveInstanceType -> slaveInstanceType.instanceType.toString,
       Keys.masterVolumeSizeInGB -> masterVolumeSizeInGB,
       Keys.slaveVolumeSizeInGB -> slaveVolumeSizeInGB,
       Keys.applications -> toString(applications.map(_.value)),
-      Keys.configurations -> toString(configurations),
+      //TODO: What to do instead?
+      //Keys.configurations -> toString(configurations),
       Keys.bootstrapScripts -> toString(bootstrapScripts.map(_.config.scriptBootstrapAction.path)),
       Keys.bootstrapSteps -> toString(bootstrapSteps),
       Keys.keepAliveWhenNoSteps -> keepAliveWhenNoSteps,

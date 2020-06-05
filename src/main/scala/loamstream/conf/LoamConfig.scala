@@ -8,7 +8,6 @@ import scala.util.Success
 import loamstream.util.Loggable
 import loamstream.util.Tries
 import loamstream.drm.DrmSystem
-import scala.collection.SortedMap.Default
 
 /**
  * @author clint

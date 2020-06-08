@@ -1,7 +1,6 @@
 package loamstream.apps
 
 import org.scalatest.FunSuite
-
 import loamstream.cli.Conf
 import loamstream.cli.Intent
 import loamstream.cli.JobFilterIntent
@@ -10,18 +9,21 @@ import loamstream.TestHelpers
 import loamstream.drm.DrmSystem
 import loamstream.compiler.LoamEngine
 
+import scala.collection.immutable.ArraySeq
+
 /**
  * @author clint
  * Jul 8, 2019
  */
 final class RunAllOfTest extends FunSuite {
   test("--run allOf .pheno.tsv") {
-    val conf = Conf(("--run allOf .pheno.tsv --conf src/test/resources/foo.conf " + 
-                    "--dry-run --backend uger --loams src/examples/loam/cp.loam").split(' '))
+    val conf = Conf(ArraySeq.unsafeWrapArray(
+      ("--run allOf .pheno.tsv --conf src/test/resources/foo.conf " +
+       "--dry-run --backend uger --loams src/examples/loam/cp.loam").split(' ')))
     
     val intentE = Intent.from(conf)
     
-    val intent = intentE.getOrElse(sys.error(intentE.left.get)).asInstanceOf[Intent.DryRun]
+    val intent = intentE.getOrElse(sys.error(intentE.left.getOrElse(???))).asInstanceOf[Intent.DryRun]
     
     val runIfAllMatch = intent.jobFilterIntent.asInstanceOf[JobFilterIntent.RunIfAllMatch]
     

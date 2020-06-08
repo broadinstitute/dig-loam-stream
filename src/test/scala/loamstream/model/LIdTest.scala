@@ -10,11 +10,11 @@ final class LIdTest extends FunSuite {
   import LId.{LNamedId, LAnonId}
   
   test("fromName") {
-    def doTestWithNonRandomName(n: String) {
+    def doTestWithNonRandomName(n: String): Unit = {
       assert(LId.fromName(n) == LNamedId(n))
     }
     
-    def doTestWithRandomName(a: Long) {
+    def doTestWithRandomName(a: Long): Unit = {
       val name = "anon$" + a
       
       if(a < 0) {

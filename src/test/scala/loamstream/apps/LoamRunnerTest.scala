@@ -46,7 +46,7 @@ final class LoamRunnerTest extends FunSuite {
     
     val results = loamRunner.run(project)
     
-    val resultsToExecutions = results.right.toOption.get
+    val resultsToExecutions = results.getOrElse(???)
     
     assert(resultsToExecutions.nonEmpty)
     

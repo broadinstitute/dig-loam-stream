@@ -4,7 +4,6 @@ import java.net.URI
 import java.nio.file.Path
 
 import org.scalatest.FunSuite
-
 import Intent.CompileOnly
 import Intent.DryRun
 import Intent.RealRun
@@ -14,6 +13,8 @@ import loamstream.TestHelpers
 import loamstream.TestHelpers.path
 import loamstream.model.execute.HashingStrategy
 import loamstream.drm.DrmSystem
+
+import scala.collection.immutable.ArraySeq
 import scala.util.Try
 import scala.util.matching.Regex
 
@@ -35,7 +36,9 @@ final class IntentTest extends FunSuite {
   private val outputUri = "gs://foo/bar/baz"
 
   private def cliConf(commandLine: String): Either[String, Conf] = {
-    Try(Conf(commandLine.split("\\s+"))).toEither.left.map(_.getMessage)
+    val args = ArraySeq.unsafeWrapArray(commandLine.split("\\s+"))
+
+    Try(Conf(args)).toEither.left.map(_.getMessage)
   }
 
   private def uri(u: String): URI = URI.create(u)
@@ -50,7 +53,7 @@ final class IntentTest extends FunSuite {
     val result = cliConf(commandLine).flatMap(from)
     
     assert(result.isRight, s"$result")
-    assert(result.right.get === expected)
+    assert(result.getOrElse(???) === expected)
   }
   
   private def assertIsValidWithAllDrmSystems(
@@ -353,7 +356,7 @@ final class IntentTest extends FunSuite {
     
       assert(result.isRight, s"$result")
         
-      val wrapped = result.right.get
+      val wrapped = result.getOrElse(???)
     
       val expected = RealRun(
         confFile = Some(confPath),
@@ -384,7 +387,7 @@ final class IntentTest extends FunSuite {
         assert(regexStringsFrom(actualRR.jobFilterIntent) === regexStringsFrom(expectedRR.jobFilterIntent))
         assert(actualRR.loams === expectedRR.loams)
       } else {
-        assert(result.right.get === expected)
+        assert(result.getOrElse(???) === expected)
       }
     }
             
@@ -428,13 +431,13 @@ final class IntentTest extends FunSuite {
     {
       val conf = cliConf(s"--disable-hashing --compile-only --loams $exampleFile0")
 
-      assert(Intent.determineHashingStrategy(conf.right.get.toValues) === HashingStrategy.DontHashOutputs)
+      assert(Intent.determineHashingStrategy(conf.getOrElse(???).toValues) === HashingStrategy.DontHashOutputs)
     }
 
     {
       val conf = cliConf(s"--compile-only --loams $exampleFile0")
 
-      assert(Intent.determineHashingStrategy(conf.right.get.toValues) === HashingStrategy.HashOutputs)
+      assert(Intent.determineHashingStrategy(conf.getOrElse(???).toValues) === HashingStrategy.HashOutputs)
     }
   }
 }

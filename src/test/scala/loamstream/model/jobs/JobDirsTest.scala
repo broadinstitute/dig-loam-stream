@@ -3,12 +3,13 @@ package loamstream.model.jobs
 import java.nio.file.Path
 
 import org.scalatest.FunSuite
-
 import loamstream.TestHelpers
 import loamstream.model.execute.LocalSettings
 import loamstream.util.Paths
 import loamstream.model.jobs.JobDirs.DirNode
 import org.scalactic.Equality
+
+import scala.collection.immutable.ArraySeq
 
 /**
  * @author clint
@@ -194,7 +195,7 @@ final class JobDirsTest extends FunSuite {
       import java.nio.file.Files.exists
       import java.nio.file.Files.isDirectory
       
-      val expectedDirs: Seq[Path] = Array(
+      val expectedDirs: Seq[Path] = ArraySeq(
         workDir / "x" / "foo",
         workDir / "x" / "bar",
         workDir / "x" / "baz",
@@ -249,7 +250,7 @@ final class JobDirsTest extends FunSuite {
       import java.nio.file.Files.exists
       import java.nio.file.Files.isDirectory
                              
-      val expectedDirs: Seq[Path] = Array(
+      val expectedDirs: Seq[Path] = ArraySeq(
         workDir / "0" / "1" / "a" / "foo",
         workDir / "0" / "1" / "a" / "bar",
         workDir / "0" / "1" / "b" / "baz",

@@ -48,8 +48,6 @@ final class CompositeChunkRunnerTest extends FunSuite {
     
     val runner = CompositeChunkRunner(Seq(MockRunner(job1), MockRunner(job2)))
     
-    import scala.concurrent.ExecutionContext.Implicits.global
-    
     //Should throw if we can't run all the given jobs
     intercept[Exception] {
       runner.run(Set(job2, job3), TestHelpers.DummyJobOracle)
@@ -64,8 +62,10 @@ final class CompositeChunkRunnerTest extends FunSuite {
     val futureResults = runner.run(Set(job1, job2), TestHelpers.DummyJobOracle).lastAsFuture
     
     val expected = Map(job1 -> JobStatus.Succeeded, job2 -> JobStatus.Failed)
-    
-    assert(waitFor(futureResults).mapValues(_.jobStatus) === expected)
+
+    import loamstream.util.Maps.Implicits._
+
+    assert(waitFor(futureResults).strictMapValues(_.jobStatus) === expected)
   }
 }
 

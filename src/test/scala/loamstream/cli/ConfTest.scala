@@ -6,7 +6,10 @@ import java.nio.file.Paths
 import org.scalatest.FunSuite
 import org.scalatest.Matchers
 import java.net.URI
+
 import loamstream.TestHelpers
+
+import scala.collection.immutable.ArraySeq
 
 /**
  * Created by kyuksel on 10/12/16.
@@ -36,7 +39,7 @@ final class ConfTest extends FunSuite with Matchers {
     }
     
     {
-      val conf = makeConf("--clean-db --clean-logs --clean-scripts".split("\\s+"))
+      val conf = makeConf(ArraySeq.unsafeWrapArray("--clean-db --clean-logs --clean-scripts".split("\\s+")))
       
       assert(conf.clean.isSupplied === false)
       assert(conf.cleanDb.isSupplied === true)
@@ -52,7 +55,7 @@ final class ConfTest extends FunSuite with Matchers {
     }
     
     {
-      val conf = makeConf("--clean --clean-db --clean-logs --clean-scripts".split("\\s+"))
+      val conf = makeConf(ArraySeq.unsafeWrapArray("--clean --clean-db --clean-logs --clean-scripts".split("\\s+")))
       
       assert(conf.clean.isSupplied === true)
       assert(conf.cleanDb.isSupplied === true)

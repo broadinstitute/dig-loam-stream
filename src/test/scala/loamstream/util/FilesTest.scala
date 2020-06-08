@@ -6,7 +6,6 @@ import java.nio.file.{Files => JFiles}
 
 import org.scalatest.FunSuite
 
-import scala.collection.JavaConverters.asScalaIteratorConverter
 import scala.util.Success
 import loamstream.TestHelpers
 
@@ -286,6 +285,8 @@ final class FilesTest extends FunSuite {
 
   private def assertEachLine(file: Path, predicateDescription: String)(predicate: String => Boolean): Unit = {
     CanBeClosed.enclosed(JFiles.newBufferedReader(file, StandardCharsets.UTF_8)) { reader =>
+      import scala.jdk.CollectionConverters._
+
       assert(reader.lines.iterator.asScala.forall(predicate), s"Not true for every line: $predicateDescription")
     }
   }

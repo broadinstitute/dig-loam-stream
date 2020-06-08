@@ -7,6 +7,8 @@ import java.security.MessageDigest
 import java.nio.file.Path
 import java.nio.file.{ Paths => JPaths }
 
+import scala.collection.immutable.ArraySeq
+
 /**
  * @author clint
  * date: Aug 1, 2016
@@ -86,6 +88,6 @@ object Hashes {
 
     data.foreach(messageDigest.update)
 
-    Hash(messageDigest.digest, hashType)
+    Hash(ArraySeq.from(messageDigest.digest), hashType)
   }
 }

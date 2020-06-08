@@ -1,16 +1,16 @@
 package loamstream.drm.uger
 
 import java.time.LocalDateTime
-import java.time.ZonedDateTime
 
 import scala.util.Success
 import scala.util.Try
-
 import loamstream.drm.Queue
 import loamstream.model.execute.Resources.UgerResources
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Memory
 import loamstream.util.RunResults
+
+import scala.collection.immutable.ArraySeq
 
 /**
  * @author clint
@@ -68,7 +68,7 @@ object QacctTestHelpers {
       queue: Option[Queue], 
       node: Option[String],
       expectedStartTime: LocalDateTime,
-      expectedEndTime: LocalDateTime): Seq[String] = s"""
+      expectedEndTime: LocalDateTime): Seq[String] = ArraySeq.unsafeWrapArray(s"""
 qname        ${queue.map(_.name).getOrElse("")}
 hostname     ${node.getOrElse("")}
 group        broad
@@ -120,6 +120,6 @@ maxrss       0.000
 maxpss       0.000
 arid         undefined
 jc_name      NONE
-    """.trim.split("[\\r\\n]+")
+    """.trim.split("[\\r\\n]+"))
   //scalastyle:on method.length
 }

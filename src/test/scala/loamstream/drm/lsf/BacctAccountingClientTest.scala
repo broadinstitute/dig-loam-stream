@@ -5,9 +5,7 @@ import java.time.temporal.ChronoField
 
 import scala.util.Success
 import scala.util.Try
-
 import org.scalatest.FunSuite
-
 import loamstream.drm.Queue
 import loamstream.model.execute.Resources.LsfResources
 import loamstream.model.jobs.TerminationReason
@@ -17,6 +15,8 @@ import loamstream.util.RetryingCommandInvoker
 import loamstream.util.RunResults
 import loamstream.drm.DrmTaskId
 import rx.lang.scala.schedulers.ComputationScheduler
+
+import scala.collection.immutable.ArraySeq
 
 /**
  * @author clint
@@ -31,7 +31,7 @@ final class BacctAccountingClientTest extends FunSuite {
       stdout: Seq[String] = Nil,
       stderr: Seq[String] = Nil): Try[RunResults] = Success(RunResults(binaryName, exitCode, stdout, stderr))
   
-  private def asTrimmedLines(s: String): Seq[String] = s.split("\\n").map(_.trim)
+  private def asTrimmedLines(s: String): Seq[String] = ArraySeq.unsafeWrapArray(s.split("\\n").map(_.trim))
   
   private val now = LocalDateTime.now
   private val currentYear: Int = now.get(ChronoField.YEAR)
@@ -56,7 +56,7 @@ final class BacctAccountingClientTest extends FunSuite {
   }
   
   test("Parse actual bacct outpout - happy path") {
-    val splitOutput = actualOutput.split("\\n")
+    val splitOutput = ArraySeq.unsafeWrapArray(actualOutput.split("\\n"))
     
     val mockInvoker = new RetryingCommandInvoker[DrmTaskId](
         0, 
@@ -91,7 +91,7 @@ final class BacctAccountingClientTest extends FunSuite {
     def doTest(lsfReason: String, lsfDesc: String, expected: Option[TerminationReason]): Unit = {
       val rawOutput = actualOutputWithTerminationReason(lsfReason, lsfDesc)
       
-      val splitOutput = rawOutput.split("\\n")
+      val splitOutput = ArraySeq.unsafeWrapArray(rawOutput.split("\\n"))
       
       val mockInvoker = new RetryingCommandInvoker[DrmTaskId](
           0, 
@@ -124,7 +124,7 @@ final class BacctAccountingClientTest extends FunSuite {
   }
   
   test("Parse actual bacct outpout - problematic output") {
-    val splitOutput = problematicOutput.split("\\n")
+    val splitOutput = ArraySeq.unsafeWrapArray(problematicOutput.split("\\n"))
     
     val mockInvoker = new RetryingCommandInvoker[DrmTaskId](
         0, 

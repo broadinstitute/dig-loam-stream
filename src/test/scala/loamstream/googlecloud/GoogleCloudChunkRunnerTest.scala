@@ -409,8 +409,10 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       checkCommandResult(job4, localResources4)
       
       assert(jobRuns.size === 4)
-      
-      assert(jobRuns.mapValues(_.settings) === Map(
+
+      import Maps.Implicits._
+
+      assert(jobRuns.strictMapValues(_.settings) === Map(
           job1 -> settings12, job2 -> settings12, job3 -> settings3, job4 -> settings4))
     }
   }

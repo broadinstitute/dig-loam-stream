@@ -30,7 +30,7 @@ final case class GcsCloudStorageClient(driver: CloudStorageDriver) extends Cloud
       case Seq(only) => Hash.fromStrings(Some(only.hash), hashAlgorithm.algorithmName)
       //For multiple blobs, as will be the case for a 'directory', hash their (Google-supplied) hashes
       case _ => {
-        val hashStrings: Iterator[String] = bs.map(_.hash).toArray.sorted.toIterator
+        val hashStrings: Iterator[String] = bs.map(_.hash).toArray.sorted.iterator
         val hashBytes = hashStrings.map(DatatypeConverter.parseBase64Binary)
 
         Option(Hashes.digest(hashAlgorithm)(hashBytes))

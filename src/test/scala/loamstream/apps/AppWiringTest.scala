@@ -43,7 +43,7 @@ final class AppWiringTest extends FunSuite with Matchers {
   
   //TODO: Purely expedient
   private def appWiring(cli: Conf): AppWiring = {
-    val intent = Intent.from(cli).right.get.asInstanceOf[Intent.RealRun]
+    val intent = Intent.from(cli).getOrElse(???).asInstanceOf[Intent.RealRun]
     
     AppWiring.forRealRun(intent, makeDao = AppWiring.makeDaoFrom(DbDescriptor.inMemoryHsqldb))
   }

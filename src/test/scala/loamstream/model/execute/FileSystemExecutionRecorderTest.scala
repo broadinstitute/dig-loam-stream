@@ -6,7 +6,7 @@ import loamstream.model.quantities.Memory
 import loamstream.model.quantities.CpuTime
 import loamstream.drm.Queue
 import loamstream.drm.ContainerParams
-import java.time.Instant
+
 import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.execute.Resources.GoogleResources
 import loamstream.model.execute.Resources.DrmResources
@@ -20,17 +20,19 @@ import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobResult
 import loamstream.util.{Files => LFiles}
 import java.nio.file.Files.exists
+
 import loamstream.googlecloud.ClusterConfig
 import loamstream.model.execute.Resources.AwsResources
 import org.broadinstitute.dig.aws.emr.AmiId
-import org.broadinstitute.dig.aws.emr.Cluster
-import org.broadinstitute.dig.aws.emr.InstanceType
+import org.broadinstitute.dig.aws.emr.ApplicationName
+import org.broadinstitute.dig.aws.emr.BootstrapScript
+import org.broadinstitute.dig.aws.emr.ClusterDef
+import org.broadinstitute.dig.aws.emr.configurations.Configuration
 import org.broadinstitute.dig.aws.JobStep
 import java.net.URI
-import org.broadinstitute.dig.aws.emr.BootstrapScript
-import org.broadinstitute.dig.aws.emr.ApplicationConfig
-import org.broadinstitute.dig.aws.emr.ApplicationName
 import java.time.LocalDateTime
+
+import org.broadinstitute.dig.aws.Ec2.Strategy
 
 /**
  * @author clint
@@ -136,7 +138,7 @@ final class FileSystemExecutionRecorderTest extends FunSuite {
   test("settingsToString - AWS settings") {
     val appNames = Seq(ApplicationName("bar"), ApplicationName("baz"))
     
-    val appConfigs = Seq(ApplicationConfig("some-classification"), ApplicationConfig("some-other-classification"))
+    val appConfigs = Seq(new Configuration("some-classification"), new Configuration("some-other-classification"))
     
     val bootstrapUri0 = URI.create("s3://some-bootstrap-script")
     val bootstrapUri1 = URI.create("s3://some-other-bootstrap-script")
@@ -146,16 +148,16 @@ final class FileSystemExecutionRecorderTest extends FunSuite {
     val scriptUri1 = URI.create("s3://some-pyspark-script")
     val bootstrapSteps = Seq(JobStep.Script(scriptUri0), JobStep.PySpark(scriptUri1))
     
-    val clusterConfig = Cluster(
+    val clusterConfig = ClusterDef(
         name = "foo",
         amiId = Some(AmiId("ami-some-ami-id")),
         instances = 42,
-        masterInstanceType = InstanceType("some-master-instance-type"),
-        slaveInstanceType = InstanceType("some-slave-instance-type"),
+        masterInstanceType = Strategy("some-master-instance-type"),
+        slaveInstanceType = Strategy("some-slave-instance-type"),
         masterVolumeSizeInGB = 12,
         slaveVolumeSizeInGB = 34,
         applications = appNames,
-        configurations = appConfigs,
+        applicationConfigurations = appConfigs,
         bootstrapScripts = bootstrapScripts,
         bootstrapSteps = bootstrapSteps,
         keepAliveWhenNoSteps = true,

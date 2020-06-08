@@ -85,7 +85,7 @@ final class DrmJobWrapperTest extends FunSuite {
       val bar = path("/bar").toAbsolutePath
       val fooBarBat = path("/foo/bar/bat").toAbsolutePath
 
-      val singularityConfig = SingularityConfig("blarg", Seq(bar, fooBarBat))
+      val singularityConfig = SingularityConfig("blarg", scala.Seq(bar, fooBarBat))
 
       val executionConfigWithSingularityParams = baseExecutionConfig.copy(singularity = singularityConfig)
 
@@ -205,7 +205,7 @@ final class DrmJobWrapperTest extends FunSuite {
       val jobOracle = TestHelpers.InDirJobOracle(testWorkDir)
       
       val taskArray = {
-        DrmTaskArray.fromCommandLineJobs(executionConfig, jobOracle, ugerSettings, drmConfig, pathBuilder, Seq(j0))
+        DrmTaskArray.fromCommandLineJobs(executionConfig, jobOracle, ugerSettings, drmConfig, pathBuilder, scala.Seq(j0))
       }
 
       val Seq(wrapper0) = taskArray.drmJobs
@@ -230,10 +230,10 @@ final class DrmJobWrapperTest extends FunSuite {
       val jobOracle = TestHelpers.InDirJobOracle(testWorkDir)
       
       val taskArray = {
-        DrmTaskArray.fromCommandLineJobs(executionConfig, jobOracle, ugerSettings, drmConfig, pathBuilder, Seq(j0))
+        DrmTaskArray.fromCommandLineJobs(executionConfig, jobOracle, ugerSettings, drmConfig, pathBuilder, scala.Seq(j0))
       }
 
-      val Seq(wrapper0) = taskArray.drmJobs
+      val scala.Seq(wrapper0) = taskArray.drmJobs
 
       val expected = path(s"${jobOracle.dirFor(j0)}/stderr").toAbsolutePath
 
@@ -260,10 +260,10 @@ final class DrmJobWrapperTest extends FunSuite {
       val jobOracle = TestHelpers.InDirJobOracle(testWorkDir)
       
       val taskArray = {
-        DrmTaskArray.fromCommandLineJobs(executionConfig, jobOracle, settings, drmConfig, pathBuilder, Seq(j0), jobName)
+        DrmTaskArray.fromCommandLineJobs(executionConfig, jobOracle, settings, drmConfig, pathBuilder, scala.Seq(j0), jobName)
       }
 
-      val Seq(wrapper0) = taskArray.drmJobs
+      val scala.Seq(wrapper0) = taskArray.drmJobs
 
       val workDir = drmConfig.workDir
       

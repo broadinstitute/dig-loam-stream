@@ -37,9 +37,10 @@ final class CsvTransformationTest extends AggregatorIntakeTest {
           ancestry = "some-ancestry",
           author = Some("some-author"),
           tech = "some-tech",
-          cases = 42,
-          controls = 21,
-          varIdFormat = Some("{chrom}_{pos}_{ref}_{alt}"))  
+          quantitative = aggregator.Metadata.Quantitative.CasesAndControls(
+            cases = 42,
+            controls = 21),
+          varIdFormat = "{chrom}_{pos}_{ref}_{alt}")
         
         val graph = Loam.code(this, paths, s3Bucket, metadata)
         
@@ -308,7 +309,7 @@ object CsvTransformationTest {
       
       val source: CsvSource = CsvSource.fromCommandLine(s"cat ${inputDataFile.path}")
       
-      val flipDetector = new FlipDetector(
+      val flipDetector = new FlipDetector.Default(
         referenceDir = path("/home/clint/workspace/marcins-scripts/reference"),
         isVarDataType = true,
         pathTo26kMap = path("/home/clint/workspace/marcins-scripts/26k_id.map"))
@@ -321,26 +322,17 @@ object CsvTransformationTest {
           tag("makeCSV").
           in(inputDataFile)
       
-      produceSchemaFile(schemaFile).
-          from(columns: _*).
-          tag("makeSchemaFile")
-      
-      produceListFiles(dataListFile, schemaListFile).
-          from(mungedDataFile, schemaFile).
-          tag("makeListFiles").
-          in(mungedDataFile, schemaFile)
-      
       val aggregatorConfigFile = store(aggregatorConfigFilePath)
       
       val sourceColumns = aggregator.SourceColumns(
           marker = Loam.ColumnNames.VARID,
           pValue = Loam.ColumnNames.PValue,
-          zScore = Loam.ColumnNames.OddsRatio,
-          stderr = Loam.ColumnNames.SE,
-          beta = Loam.ColumnNames.OddsRatio,
-          oddsRatio = Loam.ColumnNames.OddsRatio,
-          eaf = Loam.ColumnNames.EAF,
-          maf = Loam.ColumnNames.MAF)
+          zScore = Some(Loam.ColumnNames.OddsRatio),
+          stderr = Some(Loam.ColumnNames.SE),
+          beta = Some(Loam.ColumnNames.OddsRatio),
+          oddsRatio = Some(Loam.ColumnNames.OddsRatio),
+          eaf = Some(Loam.ColumnNames.EAF),
+          maf = Some(Loam.ColumnNames.MAF))
           
       val configData = aggregator.ConfigData(metadata, sourceColumns, mungedDataFile.path)      
           

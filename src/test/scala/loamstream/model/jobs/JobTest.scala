@@ -19,7 +19,7 @@ final class JobTest extends FunSuite with TestJobs {
   import loamstream.TestHelpers.waitFor
   import loamstream.util.Observables.Implicits._
 
-  private def count[A](as: Seq[A]): Map[A, Int] = as.groupBy(identity).mapValues(_.size)
+  private def count[A](as: Seq[A]): Map[A, Int] = as.groupBy(identity).mapValues(_.size).toMap
   
   //TODO: Lame :(
   private def toLJob(lj: LocalJob): LJob = lj

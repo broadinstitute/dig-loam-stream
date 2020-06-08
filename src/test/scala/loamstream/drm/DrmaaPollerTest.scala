@@ -30,7 +30,7 @@ final class DrmaaPollerTest extends FunSuite {
   test("drama().poll() - happy path") {
     val taskId = DrmTaskId("foo", 42)
     
-    val client = MockDrmaaClient(Map(taskId -> Seq(Success(Running), Success(Running), Success(Done))))
+    val client = MockDrmaaClient(Map(taskId -> scala.Seq(Success(Running), Success(Running), Success(Done))))
     
     val poller = new DrmaaPoller(client)
     
@@ -45,7 +45,7 @@ final class DrmaaPollerTest extends FunSuite {
     assert(s1 == Success(Running))
     assert(s2 == Success(Done))
       
-    assert(client.params.value == Seq(taskId -> zero, taskId -> zero, taskId -> zero))
+    assert(client.params.value == scala.Seq(taskId -> zero, taskId -> zero, taskId -> zero))
   }
   
   test("drmaa().poll() - happy path, multiple jobs") {
@@ -57,9 +57,9 @@ final class DrmaaPollerTest extends FunSuite {
     
     val client = MockDrmaaClient(
       Map(
-        taskId1 -> Seq(Success(Running), Success(Running), Success(Running), Success(Done)),
-        taskId2 -> Seq(Success(Running), Success(Done)),
-        taskId3 -> Seq(Success(Running), Success(Running), Success(Done))))
+        taskId1 -> scala.Seq(Success(Running), Success(Running), Success(Running), Success(Done)),
+        taskId2 -> scala.Seq(Success(Running), Success(Done)),
+        taskId3 -> scala.Seq(Success(Running), Success(Running), Success(Done))))
     
     val poller = new DrmaaPoller(client)
   
@@ -120,7 +120,7 @@ final class DrmaaPollerTest extends FunSuite {
     
     val client = MockDrmaaClient(
       Map(
-        taskId -> Seq(Success(Running), Failure(exception), Success(Done), Failure(exception))))
+        taskId -> scala.Seq(Success(Running), Failure(exception), Success(Done), Failure(exception))))
     
     val poller = new DrmaaPoller(client)
     

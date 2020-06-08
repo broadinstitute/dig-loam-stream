@@ -44,7 +44,7 @@ object DrmTaskArrayTest {
 
   private val executionConfig = ExecutionConfig(maxRunsPerJob = 42)
 
-  val jobs @ Seq(j0, j1, j2) = Seq(job("foo"), job("bar"), job("baz"))
+  val jobs @ scala.Seq(j0, j1, j2) = scala.Seq(job("foo"), job("bar"), job("baz"))
   
   final case class MockPathBuilder(
       pathTemplatePrefix: String,

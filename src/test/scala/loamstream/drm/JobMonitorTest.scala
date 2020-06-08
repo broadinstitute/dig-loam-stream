@@ -73,9 +73,9 @@ final class JobMonitorTest extends FunSuite {
     
     val client = MockDrmaaClient(
       Map(
-        taskId1 -> Seq(Success(Queued), Success(Running), Success(Running), Success(Done)),
-        taskId2 -> Seq(Success(Running), Success(Done)),
-        taskId3 -> Seq(Success(Running), Success(Running), Success(Done))))
+        taskId1 -> scala.Seq(Success(Queued), Success(Running), Success(Running), Success(Done)),
+        taskId2 -> scala.Seq(Success(Running), Success(Done)),
+        taskId3 -> scala.Seq(Success(Running), Success(Running), Success(Done))))
     
     import scala.concurrent.ExecutionContext.Implicits.global
     import Observables.Implicits._

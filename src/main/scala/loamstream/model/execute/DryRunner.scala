@@ -3,7 +3,6 @@ package loamstream.model.execute
 import loamstream.model.jobs.LJob
 import loamstream.util.Loggable
 import loamstream.model.jobs.JobNode
-import scala.collection.Seq
 import loamstream.util.CanBeClosed
 import java.io.PrintWriter
 import java.io.FileWriter

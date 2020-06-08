@@ -2,8 +2,6 @@ package loamstream.model.jobs
 
 import java.nio.file.Path
 
-import scala.collection.Seq
-
 import org.scalatest.FunSuite
 
 import loamstream.TestHelpers

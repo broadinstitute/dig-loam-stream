@@ -1,20 +1,13 @@
 package loamstream.apps
 
 import org.scalatest.FunSuite
+
 import loamstream.cli.Conf
-import org.scalactic.source.Position.apply
-import scala.collection.Seq
 import loamstream.cli.Intent
 import loamstream.cli.JobFilterIntent
-import loamstream.model.execute.HashingStrategy
-import loamstream.model.execute.ByNameJobFilter
-import loamstream.model.jobs.MockJob
-import loamstream.model.jobs.JobStatus
 import loamstream.model.execute.ByNameJobFilter
 import loamstream.TestHelpers
 import loamstream.drm.DrmSystem
-import loamstream.compiler.LoamPredef
-import loamstream.loam.LoamCmdTool
 import loamstream.compiler.LoamEngine
 
 /**

@@ -2,8 +2,6 @@ package loamstream.drm
 
 import java.nio.file.Path
 
-import scala.collection.Seq
-
 import org.scalatest.FunSuite
 
 import loamstream.conf.DrmConfig
@@ -17,12 +15,6 @@ import loamstream.util.BashScript.Implicits.BashPath
 import loamstream.util.Files
 import loamstream.TestHelpers
 import loamstream.drm.uger.UgerScriptBuilderParams
-import loamstream.model.quantities.Cpus
-import loamstream.model.quantities.Memory
-import loamstream.model.quantities.CpuTime
-import loamstream.drm.uger.UgerDefaults
-import loamstream.drm.lsf.LsfScriptBuilderParams
-import loamstream.conf.Locations
 import loamstream.model.execute.LocalSettings
 import loamstream.model.jobs.LJob
 
@@ -44,7 +36,7 @@ object DrmTaskArrayTest {
 
   private val executionConfig = ExecutionConfig(maxRunsPerJob = 42)
 
-  val jobs @ scala.Seq(j0, j1, j2) = scala.Seq(job("foo"), job("bar"), job("baz"))
+  val jobs @ Seq(j0, j1, j2) = Seq(job("foo"), job("bar"), job("baz"))
   
   final case class MockPathBuilder(
       pathTemplatePrefix: String,

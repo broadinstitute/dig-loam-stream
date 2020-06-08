@@ -2,8 +2,6 @@ package loamstream.drm
 
 import java.nio.file.Paths
 
-import scala.collection.Seq
-
 import org.scalatest.FunSuite
 
 import loamstream.TestHelpers
@@ -14,7 +12,6 @@ import loamstream.model.execute.DrmSettings
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.util.BashScript.Implicits.BashPath
 import loamstream.drm.uger.UgerScriptBuilderParams
-import loamstream.conf.Locations
 import loamstream.model.execute.LsfDrmSettings
 import loamstream.model.execute.UgerDrmSettings
 import loamstream.conf.DrmConfig
@@ -22,7 +19,6 @@ import loamstream.conf.ExecutionConfig
 import loamstream.conf.UgerConfig
 import loamstream.conf.LsfConfig
 import loamstream.model.execute.LocalSettings
-import loamstream.model.jobs.JobOracle
 
 /**
  * @author clint
@@ -85,7 +81,7 @@ final class DrmJobWrapperTest extends FunSuite {
       val bar = path("/bar").toAbsolutePath
       val fooBarBat = path("/foo/bar/bat").toAbsolutePath
 
-      val singularityConfig = SingularityConfig("blarg", scala.Seq(bar, fooBarBat))
+      val singularityConfig = SingularityConfig("blarg", Seq(bar, fooBarBat))
 
       val executionConfigWithSingularityParams = baseExecutionConfig.copy(singularity = singularityConfig)
 
@@ -205,7 +201,7 @@ final class DrmJobWrapperTest extends FunSuite {
       val jobOracle = TestHelpers.InDirJobOracle(testWorkDir)
       
       val taskArray = {
-        DrmTaskArray.fromCommandLineJobs(executionConfig, jobOracle, ugerSettings, drmConfig, pathBuilder, scala.Seq(j0))
+        DrmTaskArray.fromCommandLineJobs(executionConfig, jobOracle, ugerSettings, drmConfig, pathBuilder, Seq(j0))
       }
 
       val Seq(wrapper0) = taskArray.drmJobs
@@ -230,10 +226,10 @@ final class DrmJobWrapperTest extends FunSuite {
       val jobOracle = TestHelpers.InDirJobOracle(testWorkDir)
       
       val taskArray = {
-        DrmTaskArray.fromCommandLineJobs(executionConfig, jobOracle, ugerSettings, drmConfig, pathBuilder, scala.Seq(j0))
+        DrmTaskArray.fromCommandLineJobs(executionConfig, jobOracle, ugerSettings, drmConfig, pathBuilder, Seq(j0))
       }
 
-      val scala.Seq(wrapper0) = taskArray.drmJobs
+      val Seq(wrapper0) = taskArray.drmJobs
 
       val expected = path(s"${jobOracle.dirFor(j0)}/stderr").toAbsolutePath
 
@@ -260,10 +256,10 @@ final class DrmJobWrapperTest extends FunSuite {
       val jobOracle = TestHelpers.InDirJobOracle(testWorkDir)
       
       val taskArray = {
-        DrmTaskArray.fromCommandLineJobs(executionConfig, jobOracle, settings, drmConfig, pathBuilder, scala.Seq(j0), jobName)
+        DrmTaskArray.fromCommandLineJobs(executionConfig, jobOracle, settings, drmConfig, pathBuilder, Seq(j0), jobName)
       }
 
-      val scala.Seq(wrapper0) = taskArray.drmJobs
+      val Seq(wrapper0) = taskArray.drmJobs
 
       val workDir = drmConfig.workDir
       

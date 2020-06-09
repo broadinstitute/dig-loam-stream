@@ -80,7 +80,7 @@ object LoamScript {
       Try {
         val code = loamstream.util.Files.readFromAsUtf8(path)
         
-        import scala.collection.JavaConverters._
+        import scala.jdk.CollectionConverters._
         
         val packageIdOpt = for {
           enclosingDir <- enclosingDirOpt

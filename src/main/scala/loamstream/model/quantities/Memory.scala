@@ -31,7 +31,7 @@ final case class Memory private (value: Information) {
 object Memory {
   import squants.information.InformationConversions._
   
-  def inBytes(howMany: Long): Memory = Memory(byte * howMany)
+  def inBytes(howMany: Double): Memory = Memory(byte * howMany)
   
   def inKb(howMany: Double): Memory = Memory(kilobyte * howMany)
 

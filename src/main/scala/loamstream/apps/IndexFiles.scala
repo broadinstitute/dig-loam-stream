@@ -51,7 +51,7 @@ object IndexFiles {
   
   private final case class Row(job: LJob, ex: Execution) {
     def toJavaIterable: java.lang.Iterable[String] = {
-      import scala.collection.JavaConverters._
+      import scala.jdk.CollectionConverters._
       
       Iterable(job.id.toString, job.name, jobStatusPart(ex), exitCodePart(ex), jobDirPart(ex)).asJava
     }

@@ -199,7 +199,7 @@ final case class RxExecuter(
   private def cancelJobs(jobsToCancel: Iterable[LJob]): Map[LJob, Execution] = {
     import JobStatus.Canceled
     
-    import loamstream.util.Traversables.Implicits._
+    import loamstream.util.Iterables.Implicits._
     
     jobsToCancel.mapTo(job => Execution.from(job, Canceled, terminationReason = None))
   }
@@ -224,7 +224,7 @@ final case class RxExecuter(
   }
   
   private def toSkippedResultMap(skippedJobs: Iterable[LJob]): Map[LJob, Execution] = {
-    import loamstream.util.Traversables.Implicits._
+    import loamstream.util.Iterables.Implicits._
       
     skippedJobs.mapTo(job => Execution.from(job, JobStatus.Skipped, terminationReason = None))
   }

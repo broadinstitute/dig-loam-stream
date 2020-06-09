@@ -54,8 +54,8 @@ object Loops {
     }
     
     val attempts = Iterator.continually(op).take(maxRuns).map(delayIfFailure).dropWhile(_.isFailure)
-    
-    attempts.toStream.headOption match {
+
+    attempts.nextOption match {
       case Some(Success(a)) => Some(a)
       case _ => None
     }

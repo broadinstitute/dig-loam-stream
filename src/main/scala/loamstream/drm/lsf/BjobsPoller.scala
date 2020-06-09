@@ -56,7 +56,7 @@ final class BjobsPoller private[lsf] (pollingFn: InvocationFn[Set[DrmTaskId]]) e
       BjobsPoller.parseBjobsOutput(runResults.stdout)
     }
     
-    import loamstream.util.Traversables.Implicits._
+    import loamstream.util.Iterables.Implicits._
     
     chunkOfIdsToStatusesAttempt match { 
       case Failure(e) => {

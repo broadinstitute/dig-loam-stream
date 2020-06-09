@@ -8,7 +8,7 @@ import loamstream.loam.intake.aggregator
 import loamstream.loam.LoamCmdSyntax
 import loamstream.loam.intake.aggregator.Metadata
 import loamstream.loam.intake.aggregator.AggregatorIntakeConfig
-import loamstream.util.Traversables
+import loamstream.util.Iterables
 import com.typesafe.config.Config
 import loamstream.conf.DataConfig
 import loamstream.loam.intake.aggregator.AggregatorCommands

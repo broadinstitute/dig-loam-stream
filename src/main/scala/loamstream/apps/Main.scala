@@ -2,9 +2,7 @@ package loamstream.apps
 
 import scala.util.Failure
 import scala.util.Success
-
 import org.ggf.drmaa.DrmaaException
-
 import loamstream.cli.Conf
 import loamstream.compiler.LoamCompiler
 import loamstream.compiler.LoamEngine
@@ -18,6 +16,7 @@ import loamstream.util.Versions
 import loamstream.cli.Intent
 import loamstream.db.LoamDao
 import java.nio.file.Path
+
 import loamstream.model.execute.JobFilter
 import loamstream.model.execute.DbBackedJobFilter
 import loamstream.util.TimeUtils
@@ -27,12 +26,15 @@ import loamstream.conf.LoamConfig
 import org.apache.commons.io.IOUtils
 import org.apache.commons.io.FileUtils
 import java.nio.file.Paths
+
 import loamstream.conf.DrmConfig
 import loamstream.db.slick.DbDescriptor
 import loamstream.conf.ExecutionConfig
 import loamstream.conf.Locations
 import loamstream.util.Files
 import loamstream.cli.JobFilterIntent
+
+import scala.collection.immutable.ArraySeq
 
 
 /**
@@ -44,7 +46,7 @@ object Main extends Loggable {
     
     addUncaughtExceptionHandler(None)
     
-    val cli = Conf(args)
+    val cli = Conf(ArraySeq.from(args))
 
     describeLoamstream()
 

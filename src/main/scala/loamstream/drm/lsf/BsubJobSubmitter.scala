@@ -13,7 +13,7 @@ import scala.util.Success
 import scala.util.Failure
 import loamstream.util.ExitCodes
 import loamstream.drm.DrmJobWrapper
-import loamstream.util.Traversables
+import loamstream.util.Iterables
 import scala.collection.mutable.ListBuffer
 import java.nio.file.Path
 import loamstream.drm.ContainerParams
@@ -64,7 +64,7 @@ final class BsubJobSubmitter private[lsf] (
   }
   
   private def makeSuccess(jobId: String, taskArray: DrmTaskArray): DrmSubmissionResult.SubmissionSuccess = {
-    import Traversables.Implicits._
+    import Iterables.Implicits._
           
     def drmTaskId(drmJob: DrmJobWrapper): DrmTaskId = DrmTaskId(jobId, drmJob.drmIndex)
     

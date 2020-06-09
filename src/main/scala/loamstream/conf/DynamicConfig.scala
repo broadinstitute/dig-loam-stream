@@ -87,7 +87,7 @@ final case class DynamicConfig(
 
     require(rootConfig.hasPath(path), s"Couldn't find path $path in $rootConfig ")
 
-    import scala.collection.JavaConverters._
+    import scala.jdk.CollectionConverters._
     rootConfig.getConfigList(path).asScala.foreach(config => f(DynamicConfig(config)))
   }
 

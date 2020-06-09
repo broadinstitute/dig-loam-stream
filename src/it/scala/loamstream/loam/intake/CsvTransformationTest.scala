@@ -160,7 +160,7 @@ final class CsvTransformationTest extends AggregatorIntakeTest {
   }
   
   private def mapBy(rows: Seq[CsvRow], fieldName: String): Map[String, CsvRow] = {
-    import loamstream.util.Traversables.Implicits._
+    import loamstream.util.Iterables.Implicits._
       
     rows.mapBy(_.getFieldByName(fieldName))
   }

@@ -101,13 +101,13 @@ object Files {
     file
   }
   
-  def writeLinesTo(file: Path)(lines: TraversableOnce[String]): Path = {
+  def writeLinesTo(file: Path)(lines: IterableOnce[String]): Path = {
     val lineSeparator = System.lineSeparator
     
     CanBeClosed.enclosed(JFiles.newBufferedWriter(file, StandardCharsets.UTF_8)) { writer =>
       def addLineEndingIfNeeded(line: String) = if(line.endsWith(lineSeparator)) line else s"${line}${lineSeparator}"
       
-      lines.map(addLineEndingIfNeeded).foreach(writer.write)
+      lines.iterator.map(addLineEndingIfNeeded).foreach(writer.write)
     }
     
     file
@@ -142,7 +142,7 @@ object Files {
     }
 
     CanBeClosed.enclosed(toBufferedReader) { bufferedReader =>
-      import scala.collection.JavaConverters._
+      import scala.jdk.CollectionConverters._
 
       bufferedReader.lines.collect(Collectors.toList()).asScala.mkString(System.lineSeparator)
     }

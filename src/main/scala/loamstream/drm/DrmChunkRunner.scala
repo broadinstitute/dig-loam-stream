@@ -254,7 +254,7 @@ object DrmChunkRunner extends Loggable {
     }
 
     import loamstream.util.Maps.Implicits._
-    import loamstream.util.Traversables.Implicits._
+    import loamstream.util.Iterables.Implicits._
     
     Observable.just(jobs.mapTo(execution).mapKeys(_.commandLineJob))
   }

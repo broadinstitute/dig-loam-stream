@@ -10,7 +10,7 @@ final class TraversablesTest extends FunSuite {
   
   val as = Seq("a", "bb", "asdfghj")
 
-  import Traversables.Implicits._
+  import Iterables.Implicits._
 
   //scalastyle:off magic.number
   

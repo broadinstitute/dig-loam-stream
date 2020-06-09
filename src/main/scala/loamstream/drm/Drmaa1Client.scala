@@ -251,7 +251,8 @@ final class Drmaa1Client(nativeSpecBuilder: NativeSpecBuilder) extends DrmaaClie
       //NB: Where a job's stderr goes
       jt.setErrorPath(taskArray.stdErrPathTemplate)
 
-      import scala.collection.JavaConverters._
+      import scala.jdk.CollectionConverters._
+      import loamstream.util.Maps.Implicits._
 
       val jobIds = session.runBulkJobs(jt, taskStartIndex, taskEndIndex, taskIndexIncr).asScala.map(_.toString)
 
@@ -259,7 +260,7 @@ final class Drmaa1Client(nativeSpecBuilder: NativeSpecBuilder) extends DrmaaClie
 
       def drmIdsToJobsString = {
         (for {
-          (drmJobId, job) <- jobIdsForJobs.mapValues(_.commandLineJob)
+          (drmJobId, job) <- jobIdsForJobs.strictMapValues(_.commandLineJob)
         } yield {
           s"DRM Id: $drmJobId => $job"
         }).mkString("\n")

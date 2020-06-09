@@ -148,16 +148,16 @@ final class ExecutionState private (
   /**
    * Mark a job as running - change its status to Running and increment its run count.
    */
-  private[execute] def startRunning(jobs: TraversableOnce[LJob]): Unit = transition(jobs, _.markAsRunning)
+  private[execute] def startRunning(jobs: IterableOnce[LJob]): Unit = transition(jobs, _.markAsRunning)
 
   /**
    * Mark jobs as having the given status, which must be either CouldNotStart, or otherwise a non-finished status.    
    */
-  private def markAs(jobs: TraversableOnce[LJob], jobStatus: JobStatus): Unit = transition(jobs, _.markAs(jobStatus))
+  private def markAs(jobs: IterableOnce[LJob], jobStatus: JobStatus): Unit = transition(jobs, _.markAs(jobStatus))
   
-  private def transition(jobs: TraversableOnce[LJob], doTransition: JobExecutionState => JobExecutionState): Unit = {
-    if(jobs.nonEmpty) {
-      val jobSet = jobs.toSet
+  private def transition(jobs: IterableOnce[LJob], doTransition: JobExecutionState => JobExecutionState): Unit = {
+    if(jobs.iterator.hasNext) {
+      val jobSet = jobs.iterator.to(Set)
       
       jobStatesBox.foreach { jobStates =>
         val jobIndices: Iterator[Int] = jobSet.iterator.map(index(_))
@@ -187,10 +187,10 @@ final class ExecutionState private (
    * If the status is a failure and the job has NOT run too many times, mark it as runnable.
    * Otherwise, mark the job as having its associated status. 
    */
-  def finish(results: TraversableOnce[(LJob, JobStatus)])(implicit discriminator: Int = 1): Unit = {
+  def finish(results: IterableOnce[(LJob, JobStatus)])(implicit discriminator: Int = 1): Unit = {
     for {
       jobStates <- jobStatesBox
-      (job, status) <- results
+      (job, status) <- results.iterator
     } {
       val jobIndex = index(job)
         

@@ -116,7 +116,7 @@ object CsvSource extends Loggable {
   }
   
   private def toCsvRowIterator(reader: Reader, csvFormat: CSVFormat): Iterator[CsvRow] = {
-    import scala.collection.JavaConverters._
+    import scala.jdk.CollectionConverters._
       
     val parser = new CSVParser(reader, csvFormat)
     

@@ -28,7 +28,7 @@ object Futures {
    * @param context the ExecutionContext to run on
    * @return a future map of keys to values
    */
-  def toMap[A,B](tuples: Traversable[(A, Future[B])])(implicit context: ExecutionContext): Future[Map[A,B]] = {
+  def toMap[A,B](tuples: Iterable[(A, Future[B])])(implicit context: ExecutionContext): Future[Map[A,B]] = {
     val z: Future[Map[A,B]] = Future.successful(Map.empty)
     
     tuples.foldLeft(z) { (futureAcc, tuple) =>

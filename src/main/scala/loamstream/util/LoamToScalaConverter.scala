@@ -21,7 +21,7 @@ import scala.util.control.NonFatal
  */
 object LoamToScalaConverter extends Loggable {
 
-  import scala.collection.JavaConverters._
+  import scala.jdk.CollectionConverters._
 
   def convert(rootDir: Path, outputDir: Path, recursive: Boolean = true): Seq[File] = {
 
@@ -126,7 +126,7 @@ object LoamToScalaConverter extends Loggable {
     
     info(s"Found ${StringUtils.soMany(loamFiles.size, "Loam file")}, now loading.")
 
-    import Traversables.Implicits._
+    import Iterables.Implicits._
     
     loamFiles.mapTo { loam =>
       val relativePath = rootDir.relativize(loam)

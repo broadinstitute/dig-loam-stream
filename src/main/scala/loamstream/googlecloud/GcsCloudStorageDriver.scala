@@ -26,7 +26,7 @@ import com.google.cloud.storage.Blob
  */
 final case class GcsCloudStorageDriver(credentialsFile: Path) extends CloudStorageDriver with Loggable {
   import loamstream.util.Uris.Implicits._
-  import scala.collection.JavaConverters._
+  import scala.jdk.CollectionConverters._
   
   /**
    * Instantiate a GCS handle using given credentials.

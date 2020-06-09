@@ -52,7 +52,7 @@ object FlipDetector extends Loggable {
     }
     
     private def chromsFromReference: Iterator[String] = TimeUtils.time("Listing chrom files", debug(_)) {
-      import scala.collection.JavaConverters._
+      import scala.jdk.CollectionConverters._
           
       val referenceFiles = java.nio.file.Files.list(referenceDir).iterator.asScala
       

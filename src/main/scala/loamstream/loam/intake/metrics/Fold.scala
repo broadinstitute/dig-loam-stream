@@ -24,8 +24,8 @@ object Fold {
     override def summarize(accumulated: A): R = doSummarize(accumulated)
   }
   
-  def fold[E, A, R](input: TraversableOnce[E])(f: Fold[E, A, R]): R = {
-    val reduced = input.foldLeft(f.zero) { (acc, elem) =>
+  def fold[E, A, R](input: IterableOnce[E])(f: Fold[E, A, R]): R = {
+    val reduced = input.iterator.foldLeft(f.zero) { (acc, elem) =>
       f.add(acc, elem) 
     }
     

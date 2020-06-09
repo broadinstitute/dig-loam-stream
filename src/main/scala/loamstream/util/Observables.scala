@@ -7,7 +7,6 @@ import scala.util.Failure
 import scala.util.Success
 
 import rx.lang.scala.Observable
-import scala.concurrent.duration.Duration
 
 /**
  * @author clint
@@ -53,7 +52,7 @@ object Observables extends Loggable {
    * @param context the ExecutionContext to run on
    * @return an Observable producing map of keys to values
    */
-  def toMap[A,B](tuples: Traversable[(A, Observable[B])]): Observable[Map[A,B]] = {
+  def toMap[A,B](tuples: Iterable[(A, Observable[B])]): Observable[Map[A,B]] = {
     //NB: Use merge() instead of folding over the `tuples` Traversable to avoid blowing the stack.
     
     val tupleObservables: Iterable[Observable[(A, B)]] = tuples.toIterable.map { case (a, bs) => bs.map(b => (a, b)) }
@@ -81,7 +80,7 @@ object Observables extends Loggable {
    */
   def merge[A](os: Iterable[Observable[A]]): Observable[A] = {
     import rx.lang.scala.JavaConversions.{ toJavaObservable, toScalaObservable }
-    import scala.collection.JavaConverters._
+    import scala.jdk.CollectionConverters._
 
     //NB: Cast 'should be' safe.  It's needed because toJavaObservable, when given an rx.lang.scala.Observable[A],
     //returns an rx.Observable[_ <: A].  Combined with converting the scala.Iterable to a java.lang.Iterable, this

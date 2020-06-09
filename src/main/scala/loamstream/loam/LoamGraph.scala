@@ -9,7 +9,7 @@ import loamstream.model.Tool
 import loamstream.model.Tool.AllStores
 import loamstream.model.Tool.InputsAndOutputs
 import loamstream.util.Sequence
-import loamstream.util.Traversables
+import loamstream.util.Iterables
 import loamstream.util.BiMap
 import loamstream.model.execute.Settings
 
@@ -96,7 +96,7 @@ final case class LoamGraph(
         case InputsAndOutputs(inputs, outputs) => (inputs.toSet, outputs.toSet)
       }
 
-      import Traversables.Implicits._
+      import Iterables.Implicits._
       
       val outputsWithProducer: Map[Store, Tool] = toolOutputStores.mapTo(_ => tool)
       
@@ -276,7 +276,7 @@ final case class LoamGraph(
 
     if(toolsToKeep == tools) { this }
     else {
-      import loamstream.util.Traversables.Implicits._
+      import loamstream.util.Iterables.Implicits._
       
       val retainedInputs: Set[Store] = toolsToKeep.flatMap(toolInputs(_))
       val retainedOutputs: Set[Store] = toolsToKeep.flatMap(toolOutputs(_))

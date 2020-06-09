@@ -69,7 +69,7 @@ object Versions {
   private final implicit class PropertiesOps(val props: Properties) extends AnyVal {
     def tryGetProperty(key: String): Try[String] = {
       Options.toTry(Option(props.getProperty(key)).map(_.trim).filter(_.nonEmpty)) {
-        import scala.collection.JavaConverters._
+        import scala.jdk.CollectionConverters._
         
         val sortedPropKvPairs = props.asScala.toSeq.sortBy { case (k, _) => k }
         

@@ -33,7 +33,7 @@ final case class DataConfig private(config: Config) {
   
   def getObj(path: String): DataConfig = DataConfig(config.getConfig(path))
 
-  import scala.collection.JavaConverters._
+  import scala.jdk.CollectionConverters._
 
   def getObjList(path: String): Seq[DataConfig] = config.getConfigList(path).asScala.map(DataConfig(_)).toVector
 

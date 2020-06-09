@@ -5,10 +5,10 @@ package loamstream.util
  * date: Aug 11, 2016
  */
 object Maps {
-  def mergeMaps[A, B](maps: TraversableOnce[Map[A, B]]): Map[A, B] = {
+  def mergeMaps[A, B](maps: IterableOnce[Map[A, B]]): Map[A, B] = {
     val z: Map[A, B] = Map.empty
 
-    maps.foldLeft(z)(_ ++ _)
+    maps.iterator.foldLeft(z)(_ ++ _)
   }
   
   object Implicits {

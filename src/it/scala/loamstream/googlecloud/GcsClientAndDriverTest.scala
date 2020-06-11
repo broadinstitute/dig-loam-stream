@@ -126,7 +126,7 @@ final class GcsClientAndDriverTest extends FunSuite {
   
   private def deleteTestDataAndThen[A](
       driver: GcsCloudStorageDriver, 
-      testName: String)(f: (String => String, String => URI) => A) {
+      testName: String)(f: (String => String, String => URI) => A): Unit = {
     val testSubDir = s"${testDataDir}/${testName}"
     
     driver.deleteWithPrefix(bucketName, testSubDir)

@@ -6,7 +6,6 @@ import loamstream.model.quantities.Memory
 import loamstream.model.quantities.CpuTime
 import loamstream.drm.Queue
 import loamstream.drm.ContainerParams
-
 import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.execute.Resources.GoogleResources
 import loamstream.model.execute.Resources.DrmResources
@@ -33,6 +32,7 @@ import java.net.URI
 import java.time.LocalDateTime
 
 import org.broadinstitute.dig.aws.Ec2.Strategy
+import software.amazon.awssdk.services.ec2.model.InstanceType
 
 /**
  * @author clint
@@ -152,8 +152,8 @@ final class FileSystemExecutionRecorderTest extends FunSuite {
         name = "foo",
         amiId = Some(AmiId("ami-some-ami-id")),
         instances = 42,
-        masterInstanceType = Strategy("some-master-instance-type"),
-        slaveInstanceType = Strategy("some-slave-instance-type"),
+        masterInstanceType = Strategy(InstanceType.A1_LARGE),
+        slaveInstanceType = Strategy(InstanceType.A1_MEDIUM),
         masterVolumeSizeInGB = 12,
         slaveVolumeSizeInGB = 34,
         applications = appNames,
@@ -168,12 +168,12 @@ final class FileSystemExecutionRecorderTest extends FunSuite {
         "cluster" -> "foo",
         "ami-id" -> "ami-some-ami-id",
         "instances" -> "42",
-        "master-instance-type" -> "some-master-instance-type",
-        "slave-instance-type" -> "some-slave-instance-type",
+        "master-instance-type" -> "A1_LARGE",
+        "slave-instance-type" -> "A1_MEDIUM",
         "master-volume-size-in-gb" -> "12",
         "slave-volume-size-in-gb" -> "34",
         "applications" -> "[bar,baz]",
-        "configurations" -> appConfigs.mkString("[", ",", "]"),
+        "configurations" -> appConfigs.map(_.classification).mkString("[", ",", "]"),
         "bootstrap-scripts" -> Seq(bootstrapUri0, bootstrapUri1).mkString("[", ",", "]"),
         "bootstraps-steps" -> bootstrapSteps.mkString("[", ",", "]"),
         "keep-alive-when-no-steps" -> "true",

@@ -179,14 +179,14 @@ object FileSystemExecutionRecorder extends ExecutionRecorder {
       Keys.amiId -> amiId.map(_.value).getOrElse(""),
       Keys.instances -> instances,
       //TODO: This will go out to AWS
-      Keys.masterInstanceType -> masterInstanceType.instanceType.toString,
+      Keys.masterInstanceType -> masterInstanceType.instanceType.name,
       //TODO: This will go out to AWS
-      Keys.slaveInstanceType -> slaveInstanceType.instanceType.toString,
+      Keys.slaveInstanceType -> slaveInstanceType.instanceType.name,
       Keys.masterVolumeSizeInGB -> masterVolumeSizeInGB,
       Keys.slaveVolumeSizeInGB -> slaveVolumeSizeInGB,
       Keys.applications -> toString(applications.map(_.value)),
-      //TODO: What to do instead?
-      //Keys.configurations -> toString(configurations),
+      //TODO: What to do with properties and sub-configurations?  For now just write the classification names.
+      Keys.configurations -> toString(applicationConfigurations.map(_.classification)),
       Keys.bootstrapScripts -> toString(bootstrapScripts.map(_.config.scriptBootstrapAction.path)),
       Keys.bootstrapSteps -> toString(bootstrapSteps),
       Keys.keepAliveWhenNoSteps -> keepAliveWhenNoSteps,

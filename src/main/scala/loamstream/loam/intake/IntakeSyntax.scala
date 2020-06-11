@@ -59,6 +59,8 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
   type CsvRow = loamstream.loam.intake.CsvRow
   val CsvRow = loamstream.loam.intake.CsvRow
   
+  implicit val doubleOrdering: Ordering[Double] = Ordering.Double.IeeeOrdering
+
   implicit final class ColumnNameOps(val s: String) {
     def asColumnName: ColumnName = ColumnName(s)
   }

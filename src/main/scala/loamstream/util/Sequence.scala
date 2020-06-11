@@ -37,5 +37,11 @@ object Sequence {
    * @param step the amount to advance the Sequence by - default is 1
    * @param N the type of values produced by the sequence.  An instance of scala.Numeric[N] needs to be available.
    */
-  def apply[N: Numeric](start: N = 0, step: N = 1): Sequence[N] = new Sequence(start, step)
+  def apply[N: Numeric](start: N, step: N): Sequence[N] = new Sequence(start, step)
+
+  def apply[N: Numeric](): Sequence[N] = new Sequence(zero, one)
+
+  private def zero[N](implicit evidence: Numeric[N]): N = evidence.zero
+
+  private def one[N](implicit evidence: Numeric[N]): N = evidence.one
 }

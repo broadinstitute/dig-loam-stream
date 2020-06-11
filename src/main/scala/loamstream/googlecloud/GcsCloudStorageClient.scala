@@ -2,12 +2,16 @@ package loamstream.googlecloud
 
 import java.net.URI
 import java.time.Instant
-import javax.xml.bind.DatatypeConverter
 
+import loamstream.util.Base64
+import loamstream.util.Hash
+import loamstream.util.Hashes
+import loamstream.util.HashType
 import loamstream.util.HashType.Md5
-import loamstream.util._
+import loamstream.util.Loggable
 
 import scala.util.Try
+
 
 /**
  * @author kyuksel
@@ -31,7 +35,7 @@ final case class GcsCloudStorageClient(driver: CloudStorageDriver) extends Cloud
       //For multiple blobs, as will be the case for a 'directory', hash their (Google-supplied) hashes
       case _ => {
         val hashStrings: Iterator[String] = bs.map(_.hash).toArray.sorted.iterator
-        val hashBytes = hashStrings.map(DatatypeConverter.parseBase64Binary)
+        val hashBytes = hashStrings.map(Base64.decode)
 
         Option(Hashes.digest(hashAlgorithm)(hashBytes))
       }

@@ -4,10 +4,7 @@ import java.io.StringReader
 import java.net.URI
 import java.nio.file.Path
 
-import org.broadinstitute.dig.aws.AWS
-import org.broadinstitute.dig.aws.config.AWSConfig
 import org.broadinstitute.dig.aws.config.S3Config
-import org.broadinstitute.dig.aws.config.emr.EmrConfig
 import org.broadinstitute.dig.aws.config.emr.SubnetId
 
 import loamstream.IntegrationTestHelpers

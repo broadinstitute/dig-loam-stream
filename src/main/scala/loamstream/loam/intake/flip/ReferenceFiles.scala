@@ -12,16 +12,10 @@ import loamstream.util.Loggable
 final class ReferenceFiles private[flip] (chromsToFiles: Map[String, ReferenceFileHandle]) extends Loggable {
   def isKnown(chrom: String): Boolean = chromsToFiles.contains(chrom)
   
-  def getChar(chrom: String, position: Long): Option[Char] = {
-    //TimeUtils.time(s"Getting char from chrom $chrom at pos $position", info(_)) {
-      chromsToFiles.get(chrom).flatMap(_.readAt(position))
-    //}
-  }
+  def getChar(chrom: String, position: Long): Option[Char] = chromsToFiles.get(chrom).flatMap(_.readAt(position))
   
   def getString(chrom: String, position: Long, length: Int): Option[String] = {
-    //TimeUtils.time(s"Getting $length chars from chrom $chrom at pos $position", info(_)) {
-      chromsToFiles.get(chrom).flatMap(_.readAt(position, length))
-    //}
+    chromsToFiles.get(chrom).flatMap(_.readAt(position, length))
   }
 }
   
@@ -45,8 +39,13 @@ object ReferenceFiles {
             s"ERROR: no sequence file for chromosome: ${chrom} (both ${txtPath} and ${gzPath} not found)")
         
         val handle = {
-          if(exists(txtPath)) { ReferenceFileHandle(txtPath.toFile, inMemory = true) }
-          else { ReferenceFileHandle.fromGzippedFile(gzPath.toFile, inMemory = true) }
+          //prefer unzipped files, if both zipped and unzipped are present
+          val path = if(exists(txtPath)) txtPath else gzPath
+          
+          //NB: Keep reference files in memory for performance.  These files are large, but only hundreds of megs.
+          //Keeping them in memory results in a ~500x speedup, which makes the difference between processing a large
+          //input file in hundreds of hours and tens of minutes.
+          ReferenceFileHandle(path.toFile, inMemory = true)
         }
         
         chrom -> handle

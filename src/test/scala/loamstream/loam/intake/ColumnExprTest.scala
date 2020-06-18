@@ -421,4 +421,38 @@ final class ColumnExprTest extends FunSuite {
     assert(cn.asString.eval(row) === "lol")
     assert(cn.eval(row) === "lol")
   }
+  
+  test("trim") {
+    val cn = ColumnName("baz")
+
+    val row = Helpers.csvRow("bar" -> "42", "baz" -> "asdf  ", "foo" -> "lol")
+    
+    assert(cn.eval(row) === "asdf  ")
+    assert(cn.trim.eval(row) === "asdf")
+  }
+  
+  test("isEmpty") {
+    val baz = ColumnName("baz")
+    val foo = ColumnName("foo")
+    val blerg = ColumnName("blerg")
+
+    val row = Helpers.csvRow("bar" -> "42", "baz" -> "asdf  ", "foo" -> "", "blerg" -> "  ")
+    
+    assert(baz.isEmpty.apply(row) === false)
+    assert(foo.isEmpty.apply(row) === true)
+    assert(blerg.isEmpty.apply(row) === false)
+    
+  }
+  
+  test("isEmptyIgnoreWhitespace") {
+    val baz = ColumnName("baz")
+    val foo = ColumnName("foo")
+    val blerg = ColumnName("blerg")
+
+    val row = Helpers.csvRow("bar" -> "42", "baz" -> "asdf  ", "foo" -> "", "blerg" -> "  ")
+    
+    assert(baz.isEmptyIgnoreWhitespace.apply(row) === false)
+    assert(foo.isEmptyIgnoreWhitespace.apply(row) === true)
+    assert(blerg.isEmptyIgnoreWhitespace.apply(row) === true)
+  }
 }

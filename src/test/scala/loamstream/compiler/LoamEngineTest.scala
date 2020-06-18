@@ -11,6 +11,7 @@ import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.util.Files
 import loamstream.util.Paths
 import loamstream.model.execute.LocalSettings
+import loamstream.loam.LoamLoamScript
 
 
 /**
@@ -30,7 +31,7 @@ final class LoamEngineTest extends FunSuite {
     
     assert(script.name === "cp")
     assert(script.subPackage === None)
-    assert(script.code === Files.readFrom(cpDotLoam))
+    assert(script.asInstanceOf[LoamLoamScript].code === Files.readFrom(cpDotLoam))
   }
   
   test("scriptsFrom") {
@@ -47,7 +48,7 @@ final class LoamEngineTest extends FunSuite {
     
       assert(cpScript.name === "cp")
       assert(cpScript.subPackage === None)
-      assert(cpScript.code === Files.readFrom(cpDotLoam))
+      assert(cpScript.asInstanceOf[LoamLoamScript].code === Files.readFrom(cpDotLoam))
     }
 
     //Multiple files
@@ -61,11 +62,11 @@ final class LoamEngineTest extends FunSuite {
     
     assert(cpScript.name === "cp")
     assert(cpScript.subPackage === None)
-    assert(cpScript.code === Files.readFrom(cpDotLoam))
+    assert(cpScript.asInstanceOf[LoamLoamScript].code === Files.readFrom(cpDotLoam))
     
     assert(firstScript.name === "first")
     assert(firstScript.subPackage === None)
-    assert(firstScript.code === Files.readFrom(firstDotLoam))
+    assert(firstScript.asInstanceOf[LoamLoamScript].code === Files.readFrom(firstDotLoam))
   }
   
   test("compile") {

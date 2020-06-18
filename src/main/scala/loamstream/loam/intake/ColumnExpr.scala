@@ -67,6 +67,12 @@ sealed abstract class ColumnExpr[A : TypeTag] extends ColumnExpr.ArithmeticOps[A
   final def ===(rhs: A): RowPredicate = this.map(_ == rhs)
   final def !==(rhs: A): RowPredicate = this.map(_ != rhs) //scalastyle:ignore method.name
   
+  final def trim(implicit ev: A =:= String): ColumnExpr[String] = this.map(_.trim)
+  
+  final def isEmpty(implicit ev: A =:= String): RowPredicate = this.map(_.isEmpty)
+  
+  final def isEmptyIgnoreWhitespace(implicit ev: A =:= String): RowPredicate = this.map(_.trim.isEmpty)
+  
   final def <(rhs: A)(implicit ev: Ordering[A]): RowPredicate = this.map(lhs => ev.lt(lhs, rhs))
   final def <=(rhs: A)(implicit ev: Ordering[A]): RowPredicate = this.map(lhs => ev.lteq(lhs, rhs))
   final def >(rhs: A)(implicit ev: Ordering[A]): RowPredicate = this.map(lhs => ev.gt(lhs, rhs))

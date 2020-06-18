@@ -297,41 +297,16 @@ final class LoamCompiler(
 
   /**
    * Make a new LoamProjectContext, set the value of LoamFile.ContextHolder.projectContext with it, and run
-   * f.  Since LoamFile.ContextHolder.projectContext uses a ThreadLocal to store the passed value, do the above
-   * in a new Thread to ensure that (effectively) each Loam compilation/evaluation gets its own LoamProjectContext,
-   * as before.  When f completes, clear out the LoamFile.ContextHolder.projectContext ThreadLocal.
+   * f.  Since LoamFile.ContextHolder uses a scala.util.DynamicVariable (backed by a ThreadLocal) to store 
+   * the passed value, and compile() is synchronized, we can be sure that no two threads will use the same 
+   * LoamProjectContext when compiling and evaluating Loam code.
    */
   private def setProjectContextAndThen[A](project: LoamProject)(f: LoamProjectContext => A): A = {
-    doInNewThread {
-      try {
-        val projectContext = LoamProjectContext.empty(project.config)
+    val projectContext = LoamProjectContext.empty(project.config)
   
-        LoamFile.ContextHolder.projectContext = projectContext
-  
-        f(projectContext)
-      } finally {
-        LoamFile.ContextHolder.clear()
-      }
+    LoamFile.ContextHolder.withContext(projectContext) {
+      f(LoamFile.ContextHolder.projectContext)
     }
-  }
-
-  /**
-   * Synchronously run the passed code block, but do it in a new Thread.
-   */
-  private def doInNewThread[A](block: => A): A = {
-    val promise: Promise[A] = Promise()
-
-    val thread = new Thread(new Runnable {
-      override def run(): Unit = {
-        promise.complete(Try(block))
-      }
-    })
-
-    thread.start()
-
-    thread.join()
-
-    Await.result(promise.future, Duration.Inf)
   }
 
   /** Compiles Loam script into execution plan */
@@ -348,8 +323,7 @@ final class LoamCompiler(
    * Note use of setProjectContextAndThen, which makes a new LoamProjectContext and stores it where Loam code in 
    * LoamFiles knows where to find it during this compilation/evaluation run.  Note that LoamProjectContexts stored
    * this way are unique to each compilation/evaluation run, and accesible only to Loam code evaluated as part of 
-   * this run, thanks to LoamFile.ContextHolder being backed by a ThreadLocal, and setProjectContextAndThen 
-   * guaranteeing that passed code blocks are run in a new Thread for each compilation/evaluation run.
+   * this run, thanks to LoamFile.ContextHolder being backed by a ThreadLocal.
    */
   def compile(project: LoamProject): LoamCompiler.Result = compileLock.synchronized {
     setProjectContextAndThen(project) { projectContext =>

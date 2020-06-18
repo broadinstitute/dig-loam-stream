@@ -18,7 +18,16 @@ import loamstream.util.code.RootPackageId
 import loamstream.util.code.ScalaId
 import loamstream.util.code.SourceUtils
 
-/** A named Loam script */
+/**
+ * @author oliverr
+ * ???, 2016
+ * @author clint
+ * May, 2020
+ *  
+ * A trait to represent a handle to Loam code, usually read from storage, either
+ * as a .scala or a .loam file.  In the latter case, the contents of the .loam file
+ * are wrapped in needed support code before compilation.
+ */
 sealed trait LoamScript {
   def name: String
 

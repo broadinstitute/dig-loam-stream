@@ -1,32 +1,21 @@
 package loamstream.loam.intake.testing
 
-import loamstream.loam.LoamSyntax
-import loamstream.loam.intake.IntakeSyntax
-import loamstream.loam.LoamScriptContext
-import loamstream.util.Maps
-import loamstream.loam.intake.aggregator
-import loamstream.loam.LoamCmdSyntax
-import loamstream.loam.intake.aggregator.Metadata
-import loamstream.loam.intake.aggregator.AggregatorIntakeConfig
-import loamstream.util.Traversables
 import com.typesafe.config.Config
-import loamstream.conf.DataConfig
-import loamstream.loam.intake.aggregator.AggregatorCommands
-import loamstream.loam.LoamProjectContext
-import loamstream.conf.LoamConfig
 import com.typesafe.config.ConfigFactory
+
+import loamstream.conf.LoamConfig
+import loamstream.loam.LoamProjectContext
+import loamstream.loam.LoamScriptContext
+import loamstream.loam.intake.aggregator
+import loamstream.loam.intake.aggregator.AggregatorIntakeConfig
+import loamstream.loam.intake.aggregator.Metadata
 
 /**
  * @author clint
  * Feb 28, 2020
  */
-object UkbbDietaryGwas extends App {
-  import LoamSyntax._
-  import IntakeSyntax._
-
-  private implicit val scriptContext: LoamScriptContext = {
-    new LoamScriptContext(LoamProjectContext.empty(LoamConfig.fromConfig(ConfigFactory.load()).get))
-  }
+object UkbbDietaryGwas extends loamstream.LoamFile {
+  import loamstream.loam.intake.IntakeSyntax._
   
   object ColumnNames {
     val CHR = "CHR".asColumnName
@@ -81,7 +70,7 @@ object UkbbDietaryGwas extends App {
   }
   
   def sourceStores(phenotypesToFileFragments: Map[String, PhenotypeConfig]): Map[String, Store] = {
-    import Maps.Implicits._
+    import loamstream.util.Maps.Implicits._
     
     phenotypesToFileFragments.strictMapValues(sourceStore(_).asInput)
   }
@@ -135,7 +124,7 @@ object UkbbDietaryGwas extends App {
     intakeTypesafeConfig.as[Map[String, PhenotypeConfig]](key)
   }
   
-  import AggregatorCommands.upload
+  import loamstream.loam.intake.aggregator.AggregatorCommands.upload
   
   def toMetadata(phenotypeConfigTuple: (String, PhenotypeConfig)): Metadata = {
     val (phenotype, PhenotypeConfig(_, subjects)) = phenotypeConfigTuple

@@ -21,6 +21,7 @@ trait AggregatorCommands {
       aggregatorIntakeConfig: AggregatorIntakeConfig,
       metadata: Metadata, 
       csvFile: Store, 
+      sourceColumnMapping: SourceColumns,
       workDir: Path = Paths.get("."),
       yes: Boolean = false)(implicit scriptContext: LoamScriptContext): Tool = {
     
@@ -28,15 +29,7 @@ trait AggregatorCommands {
       workDir.resolve(s"aggregator-intake-${metadata.dataset}-${metadata.phenotype}.conf")
     }
     
-    val sourceColumns = SourceColumns(
-        marker = ColumnNames.marker,
-        pValue = ColumnNames.pvalue,
-        zScore = Some(ColumnNames.zscore),
-        stderr = Some(ColumnNames.stderr),
-        beta = Some(ColumnNames.beta),
-        eaf = Some(ColumnNames.eaf))
-            
-    val configData = ConfigData(metadata, sourceColumns, csvFile.path)      
+    val configData = ConfigData(metadata, sourceColumnMapping, csvFile.path)      
         
     val aggregatorConfigFile = store(aggregatorConfigFileName)
     

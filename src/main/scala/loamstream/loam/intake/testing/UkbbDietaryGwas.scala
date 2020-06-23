@@ -9,6 +9,7 @@ import loamstream.loam.LoamScriptContext
 import loamstream.loam.intake.aggregator
 import loamstream.loam.intake.aggregator.AggregatorIntakeConfig
 import loamstream.loam.intake.aggregator.Metadata
+import loamstream.loam.intake.aggregator.SourceColumns
 
 /**
  * @author clint
@@ -147,8 +148,18 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
     if(intakeTypesafeConfig.getBoolean("AGGREGATOR_INTAKE_DO_UPLOAD")) {
       val metadata = toMetadata(phenotype -> phenotypeConfig)
       
-      upload(aggregatorIntakePipelineConfig, metadata, dataInAggregatorFormat, workDir = Paths.workDir, yes = false).
-        tag(s"upload-to-s3-${phenotype}")
+      val sourceColumnMapping = SourceColumns.defaultMarkerAndPvalueOnly
+        .withDefaultZscore
+        .withDefaultStderr
+        .withDefaultBeta
+        .withDefaultEaf
+      
+      upload(
+          aggregatorIntakePipelineConfig, 
+          metadata, dataInAggregatorFormat, 
+          sourceColumnMapping, 
+          workDir = Paths.workDir, 
+          yes = false).tag(s"upload-to-s3-${phenotype}")
     }
   }
 }

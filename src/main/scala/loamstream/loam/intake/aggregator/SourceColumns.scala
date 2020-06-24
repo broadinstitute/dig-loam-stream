@@ -12,8 +12,6 @@ final case class SourceColumns(
     eaf: Option[ColumnName] = None,
     maf: Option[ColumnName] = None) {
   
-  validate()
-  
   def withoutZscore: SourceColumns = copy(zscore = None)
   def withoutStderr: SourceColumns = copy(stderr = None)
   def withoutBeta: SourceColumns = copy(beta = None)
@@ -58,26 +56,36 @@ final case class SourceColumns(
     aggregatorColumnNameToSourceColumnNameLines.mkString(System.lineSeparator)
   }
   
-  private def validate(): Unit = {
+  def validate(): Unit = {
     if(maf.isEmpty) {
-      require(eaf.isDefined)
+      require(eaf.isDefined, s"If ${ColumnNames.maf} column is not provided, then ${ColumnNames.eaf} must be.")
     }
     
     if(beta.isEmpty) {
-      require(oddsRatio.isDefined)
+      require(
+          oddsRatio.isDefined, 
+          s"If ${ColumnNames.beta} column is not provided, then ${ColumnNames.odds_ratio} must be.")
     }
     
     if(oddsRatio.isEmpty) {
-      require(beta.isDefined)
+      require(
+          beta.isDefined,
+          s"If ${ColumnNames.odds_ratio} column is not provided, then ${ColumnNames.beta} must be.")
     }
     
     if(stderr.isEmpty) {
-      require(beta.isDefined)
+      require(
+          beta.isDefined,
+          s"If ${ColumnNames.stderr} column is not provided, then ${ColumnNames.beta} must be.")
     }
     
     if(zscore.isEmpty) {
-      require(beta.isDefined)
-      require(stderr.isDefined)
+      def msg = {
+        s"If ${ColumnNames.zscore} column is not provided, then ${ColumnNames.beta} and ${ColumnNames.stderr} must be."
+      }
+      
+      require(beta.isDefined, msg)
+      require(stderr.isDefined, msg)
     }
   }
 }

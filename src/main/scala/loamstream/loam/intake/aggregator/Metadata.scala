@@ -29,10 +29,12 @@ final case class Metadata(
   def subjects: Int = quantitative.subjects
   
   def asConfigFileContents: String = {
-    val authorPart = author.map(a => s"author ${a}").getOrElse("")
+    import Metadata.escape
+    
+    val authorPart = author.map(a => s"author ${escape(a)}").getOrElse("")
     
     import Metadata.Quantitative.CasesAndControls
-    
+
     val casesPart = quantitative match {
       case CasesAndControls(cases, _) => s"cases ${cases}"
       case _ => ""
@@ -44,8 +46,8 @@ final case class Metadata(
     }
     
     s"""|dataset ${dataset} ${phenotype}
-        |ancestry ${ancestry}
-        |tech ${tech}
+        |ancestry ${escape(ancestry)}
+        |tech ${escape(tech)}
         |${casesPart}
         |${controlsPart}
         |subjects ${subjects}
@@ -55,6 +57,22 @@ final case class Metadata(
 }
 
 object Metadata extends ConfigParser[Metadata] {
+
+  /**
+   * Wrap strings containing whitespace in double quotes, escaping any existing double-quote characters.
+   */
+  def escape(s: String): String = {
+    //flatMapping feels odd, but it works.  Figuring out the right combination of escapes in order to use 
+    //String.replaceAll (which takes a regex as a Java/Scala string as its first arg, requiring its own escaping)
+    //was obviously possible, but not worth much frustration for such a small, relatively-infrequently-called method.    
+    def withQuotesEscaped = s.flatMap {
+      case '\"' => "\\\""
+      case c => c.toString
+    }
+    
+    if(s.exists(_.isWhitespace)) s""""${withQuotesEscaped}"""" else s
+  }
+  
   sealed trait Quantitative {
     def subjects: Int
   }

@@ -23,6 +23,7 @@ trait AggregatorCommands {
       csvFile: Store, 
       sourceColumnMapping: SourceColumns,
       workDir: Path = Paths.get("."),
+      skipValidation: Boolean = false,
       yes: Boolean = false)(implicit scriptContext: LoamScriptContext): Tool = {
     
     val aggregatorConfigFileName: Path = {
@@ -50,10 +51,11 @@ trait AggregatorCommands {
     
     val mainPyPart = s"${aggregatorIntakeScriptsRoot}/main.py"
     
-    
     val yesForcePart = if(yes) "--yes --force" else ""
       
-    cmd"""${aggregatorIntakeCondaEnvPart}python ${mainPyPart} variants ${yesForcePart} --skip-validation ${aggregatorConfigFile}""". // scalastyle:ignore line.size.limit
+    val skipValidationPart = if(skipValidation) "--skip-validation" else ""
+      
+    cmd"""${aggregatorIntakeCondaEnvPart}python ${mainPyPart} variants ${yesForcePart} ${skipValidationPart} ${aggregatorConfigFile}""". // scalastyle:ignore line.size.limit
         in(aggregatorConfigFile, csvFile)
   }
 }

@@ -10,6 +10,7 @@ import loamstream.loam.intake.aggregator
 import loamstream.loam.intake.aggregator.AggregatorIntakeConfig
 import loamstream.loam.intake.aggregator.Metadata
 import loamstream.loam.intake.aggregator.SourceColumns
+import loamstream.loam.intake.aggregator.ColumnDefs
 
 /**
  * @author clint
@@ -32,28 +33,20 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
     val VARID = "VARID".asColumnName
   }
   
-  def rowDef(source: CsvSource): RowDef = {
+  val rowDef = {
     import ColumnNames._
+    import ColumnDefs._
     
-    val varId = ColumnDef(
-      aggregator.ColumnNames.marker, 
-      //"{chrom}_{pos}_{ref}_{alt}"
-      strexpr"${CHR}_${BP}_${ALLELE1}_${ALLELE0}",
-      //"{chrom}_{pos}_{alt}_{ref}"
-      strexpr"${CHR}_${BP}_${ALLELE0}_${ALLELE1}")
+    val varId = marker(chromColumn = CHR, posColumn = BP, refColumn = ALLELE1, altColumn = ALLELE0)
         
-    val a1Freq = A1FREQ.asDouble
-    val beta = BETA.asDouble
-    val zscore = BETA.asDouble / SE.asDouble
-      
     val otherColumns = Seq(
-      ColumnDef(aggregator.ColumnNames.pvalue, P_BOLT_LMM),
-      ColumnDef(aggregator.ColumnNames.stderr, SE),
-      ColumnDef(aggregator.ColumnNames.beta, beta, beta.negate),
-      ColumnDef(aggregator.ColumnNames.eaf, a1Freq, 1.0 - a1Freq),
-      ColumnDef(aggregator.ColumnNames.zscore, zscore, zscore.negate))
-      
-    UnsourcedRowDef(varId, otherColumns).from(source)
+        pvalue(P_BOLT_LMM),
+        stderr(SE),
+        beta(BETA),
+        eaf(A1FREQ),
+        zscore(BETA, SE))
+        
+    RowDef(varId, otherColumns)
   }
   
   object Paths {
@@ -91,7 +84,7 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
     
     val source = CsvSource.fromCommandLine(s"zcat ${sourceStore.path}", csvFormat)
     
-    val columns = rowDef(source)
+    val columns = rowDef.from(source)
         
     produceCsv(dest).
         from(columns).

@@ -32,4 +32,8 @@ object JobFilter {
   object RunEverything extends JobFilter {
     override def shouldRun(job: LJob): Boolean = true
   }
+  
+  object WithAnyMissingOutputs extends JobFilter {
+    override def shouldRun(job: LJob): Boolean = job.outputs.isEmpty || job.outputs.exists(_.isMissing)
+  }
 }

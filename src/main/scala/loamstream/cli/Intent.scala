@@ -173,14 +173,13 @@ object Intent extends Loggable {
   }
   
   private[cli] def determineJobFilterIntent(values: Conf.Values): JobFilterIntent = {
-    def nameOf(field: Conf => ScallopOption[_]) = field(values.derivedFrom).name
-    
     def toRegexes(regexStrings: Seq[String]) = regexStrings.map(_.r)
     
     import JobFilterIntent._
     
     values.run match {
       case Some((Conf.RunStrategies.Everything, _)) => RunEverything
+      case Some((Conf.RunStrategies.WithAnyMissingOutputs, _)) => WithAnyMissingOutputs
       case Some((Conf.RunStrategies.AllOf, regexStrings)) => RunIfAllMatch(toRegexes(regexStrings))
       case Some((Conf.RunStrategies.AnyOf, regexStrings)) => RunIfAnyMatch(toRegexes(regexStrings))
       case Some((Conf.RunStrategies.NoneOf, regexStrings)) => RunIfNoneMatch(toRegexes(regexStrings))

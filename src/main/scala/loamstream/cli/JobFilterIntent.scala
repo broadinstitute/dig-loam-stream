@@ -32,6 +32,10 @@ object JobFilterIntent {
     final override def toJobFilter: JobFilter = JobFilter.RunEverything
   }
   
+  case object WithAnyMissingOutputs extends ConvertibleToJobFilter {
+    final override def toJobFilter: JobFilter = JobFilter.WithAnyMissingOutputs
+  }
+  
   case object DontFilterByName extends JobFilterIntent
   
   final case class RunIfAllMatch(regexes: Seq[Regex]) extends ConvertibleToByNameJobFilter {

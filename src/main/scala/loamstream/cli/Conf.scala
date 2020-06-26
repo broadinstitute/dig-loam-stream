@@ -80,11 +80,13 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) wit
               "--clean-db, --clean-logs, and --clean-scripts")
   
   val run: ScallopOption[List[String]] = opt(
-      descr = "How to run jobs: " +
-              "<everything> - always run jobs, never skip them; " +
-              "<allOf> <regexes> - run jobs if their names match ALL of the passed regexes" +
-              "<anyOf> <regexes> - run jobs if their names match ANY of the passed regexes" +
-              "<noneOf> <regexes> - run jobs if their names match NONE of the passed regexes",
+      descr = 
+        "How to run jobs: " +
+        "<everything> - always run jobs, never skip them; " +
+        "<withAnyMissingOutputs> - run jobs if at least one of their outputs are missing; ignore mod time and hash; " +
+        "<allOf> <regexes> - run jobs if their names match ALL of the passed regexes; " +
+        "<anyOf> <regexes> - run jobs if their names match ANY of the passed regexes; " +
+        "<noneOf> <regexes> - run jobs if their names match NONE of the passed regexes",
       required = false)
   
   val noValidation: ScallopOption[Boolean] = opt[Boolean](
@@ -172,6 +174,7 @@ object Conf {
   
   object RunStrategies {
     val Everything = "everything"
+    val WithAnyMissingOutputs = "withAnyMissingOutputs"
     val AllOf = "allOf"
     val AnyOf = "anyOf"
     val NoneOf = "noneOf"

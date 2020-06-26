@@ -64,7 +64,8 @@ object Metadata extends ConfigParser[Metadata] {
   def escape(s: String): String = {
     //flatMapping feels odd, but it works.  Figuring out the right combination of escapes in order to use 
     //String.replaceAll (which takes a regex as a Java/Scala string as its first arg, requiring its own escaping)
-    //was obviously possible, but not worth much frustration for such a small, relatively-infrequently-called method.    
+    //was obviously possible, but not worth the required frustration for such a small, 
+    //relatively-infrequently-called method.    
     def withQuotesEscaped = s.flatMap {
       case '\"' => "\\\""
       case c => c.toString

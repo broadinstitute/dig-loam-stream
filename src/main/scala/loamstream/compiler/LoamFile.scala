@@ -26,7 +26,7 @@ abstract class LoamFile extends LoamSyntax with LoamScript.LoamScriptBox {
     val context = LoamFile.ContextHolder.projectContext
     
     require(
-        context != null,
+        context != null, //scalastyle:ignore null
         s"No ${LoamProjectContext.getClass.getSimpleName} set.  Set it with ContextHolder.projectContext = ...")
     
     context
@@ -41,7 +41,9 @@ object LoamFile {
    * May 28, 2020
    */
   private[compiler] object ContextHolder {
-    private[this] val contextVar: DynamicVariable[LoamProjectContext] = new DynamicVariable(null)
+    private[this] val contextVar: DynamicVariable[LoamProjectContext] = {
+      new DynamicVariable(null) //scalastyle:ignore null
+    }
     
     def projectContext: LoamProjectContext = contextVar.value
     

@@ -14,7 +14,7 @@ final class Base64Test extends FunSuite {
   test("encode") {
     assert(encode(someBytes) === "Rk9PIGxhbGFsYQ==")
 
-	assert(encode(Array.empty) === "")
+    assert(encode(Array.empty) === "")
   }
 
   test("decode") {

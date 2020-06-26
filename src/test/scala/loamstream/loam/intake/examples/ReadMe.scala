@@ -9,6 +9,7 @@ import loamstream.conf.LoamConfig
 import loamstream.loam.intake.aggregator.AggregatorCommands
 import loamstream.loam.intake.aggregator.AggregatorIntakeConfig
 import loamstream.loam.intake.aggregator.Metadata
+import loamstream.loam.intake.aggregator.SourceColumns
 
 /**
  * @author clint
@@ -126,7 +127,7 @@ object ReadMe extends AggregatorCommands {
   import ColumnNames._
   
   //Use aggregator-default column names to make things easier
-  val rowDef = UnsourcedRowDef(
+  val rowDef = RowDef(
       varIdDef = marker(CHR, BP, ALLELE0, ALLELE1),
       otherColumns = Seq(
         eaf(A1FREQ),
@@ -185,9 +186,17 @@ object ReadMe extends AggregatorCommands {
     
   val reallyProceed = false
   
+  val sourceColumnMapping = {
+    SourceColumns.defaultMarkerAndPvalueOnly
+      .withDefaultEaf  
+      .withDefaultBeta
+      .withDefaultStderr
+  }
+  
   upload(
       aggregatorIntakeConfig = aggregatorConfig,// aggregator-intake install dir, conda env name, etc 
       metadata = metadata, //Aggregator-specific metadata - dataset/phenotype name , num cases/controls, etc etc
       csvFile = transformedCsv,
+      sourceColumnMapping = sourceColumnMapping,
       yes = reallyProceed).tag("upload-to-S3")
 }

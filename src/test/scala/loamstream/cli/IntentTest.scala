@@ -16,6 +16,7 @@ import loamstream.model.execute.HashingStrategy
 import loamstream.drm.DrmSystem
 import scala.util.Try
 import scala.util.matching.Regex
+import Intent.LookupOutput
 
 /**
  * @author clint
@@ -267,6 +268,16 @@ final class IntentTest extends FunSuite {
     //--uger and --lsf gone in favor of --backend {uger,lsf}
     assertIsInvalidWithAllDrmSystems(s"--lsf --conf $confFile --loams $exampleFile0 $exampleFile1")
     assertIsInvalidWithAllDrmSystems(s"--uger --conf $confFile --loams $exampleFile0 $exampleFile1")
+    
+    //--lookup
+    assertIsInvalidWithAllDrmSystems("--lookup") //no output file
+    assertIsInvalidWithAllDrmSystems(s"--conf $confFile --lookup") //no output file
+    
+    assertValid(s"--lookup $outputFile", LookupOutput(None, Left(path(outputFile))))
+    assertValid(s"--lookup $outputUri", LookupOutput(None, Right(uri(outputUri))))
+    
+    assertValid(s"--conf $confFile --lookup $outputFile", LookupOutput(Some(confPath), Left(path(outputFile))))
+    assertValid(s"--conf $confFile --lookup $outputUri", LookupOutput(Some(confPath), Right(uri(outputUri))))
     
     //Run some loams
     

@@ -82,7 +82,7 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
     }
   }
   
-  override def findLastStatus(outputLocation: String): Option[JobStatus] = {
+  private def findExecutionRowByOutputLocation(outputLocation: String): Option[ExecutionRow] = {
     val executionForPath = for {
       output <- tables.outputs.filter(_.locator === outputLocation)
       execution <- output.execution
@@ -90,9 +90,21 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
       execution
     }
     
-    val executionOpt = runBlocking(executionForPath.result.headOption)
-    
-    executionOpt.map(_.status)
+    runBlocking(executionForPath.result.headOption)
+  }
+  
+  override def findExecution(outputLocation: String): Option[Execution.Persisted] = {
+    findExecutionRowByOutputLocation(outputLocation).map { executionRow =>
+      val outputsForExecution = tables.outputs.filter(_.executionId === executionRow.id)
+      
+      val outputRows = runBlocking(outputsForExecution.result)
+      
+      executionRow.toExecution(outputRows)
+    }
+  }
+  
+  override def findLastStatus(outputLocation: String): Option[JobStatus] = {
+    findExecutionRowByOutputLocation(outputLocation).map(_.status)
   }
   
   protected def findExecutionRow(executionId: Int): Option[ExecutionRow] = {

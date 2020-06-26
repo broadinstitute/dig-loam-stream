@@ -115,6 +115,13 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) wit
       descr = "Path(s) to loam script(s)",
       required = false,
       validate = _.nonEmpty)(listPathConverter)
+      
+  /**
+   * Look up information about a job that produced a path or URI
+   */
+  val lookup: ScallopOption[Either[Path, URI]] = opt[Either[Path, URI]](
+      descr = "Path to output file or URI; look up info on command that made it",
+      required = false)(ValueConverters.PathOrGoogleUriConverter)
 
   /**
    * Don't hash job outputs when determining whether jobs may be skipped
@@ -144,6 +151,7 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) wit
       
     Conf.Values(
       loams = loams.toOption.toSeq.flatten,
+      lookup = lookup.toOption,
       cleanDbSupplied = cleanDb.isSupplied || clean.isSupplied,
       cleanLogsSupplied = cleanLogs.isSupplied || clean.isSupplied,
       cleanScriptsSupplied = cleanScripts.isSupplied || clean.isSupplied,
@@ -171,6 +179,7 @@ object Conf {
   
   final case class Values(
       loams: Seq[Path],
+      lookup: Option[Either[Path, URI]],
       cleanDbSupplied: Boolean,
       cleanLogsSupplied: Boolean,
       cleanScriptsSupplied: Boolean,
@@ -184,6 +193,8 @@ object Conf {
       backend: Option[String],
       run: Option[(String, Seq[String])],
       derivedFrom: Conf) {
+    
+    def lookupSupplied: Boolean = lookup.isDefined
     
     def confSupplied: Boolean = conf.isDefined
   }

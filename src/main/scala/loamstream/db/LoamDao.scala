@@ -16,6 +16,9 @@ import loamstream.model.jobs.JobStatus
 trait LoamDao {
   final def insertExecutions(execution: Execution, others: Execution*): Unit = insertExecutions(execution +: others)
   def insertExecutions(rows: Iterable[Execution]): Unit
+  
+  final def findExecution(output: StoreRecord): Option[Execution.Persisted] = findExecution(output.loc)
+  def findExecution(outputLocation: String): Option[Execution.Persisted]
 
   final def findLastStatus(output: StoreRecord): Option[JobStatus] = findLastStatus(output.loc)
   def findLastStatus(outputLocation: String): Option[JobStatus]

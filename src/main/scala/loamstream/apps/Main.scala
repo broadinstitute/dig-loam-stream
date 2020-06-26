@@ -33,6 +33,7 @@ import loamstream.conf.ExecutionConfig
 import loamstream.conf.Locations
 import loamstream.util.Files
 import loamstream.cli.JobFilterIntent
+import loamstream.cli.ExecutionInfo
 
 
 /**
@@ -57,6 +58,7 @@ object Main extends Loggable {
     intent match {
       case Right(ShowVersionAndQuit) => ()
       case Right(ShowHelpAndQuit) => cli.printHelp()
+      case Right(lookup: LookupOutput) => run.doLookup(lookup)
       case Right(compileOnly: CompileOnly) => run.doCompileOnly(compileOnly)
       case Right(dryRun: DryRun) => run.doDryRun(dryRun)
       case Right(real: RealRun) => run.doRealRun(real)
@@ -141,6 +143,18 @@ object Main extends Loggable {
         //Any compilaiton errors will already have been logged by LoamCompiler 
         case _ => ()
       }
+    }
+    
+    def doLookup(intent: Intent.LookupOutput): Unit = {
+      val dao = AppWiring.daoForOutputLookup(intent)
+      
+      val outputPathOrUri = intent.output
+      
+      val descriptionOpt = ExecutionInfo.forOutput(dao)(outputPathOrUri)
+      
+      def outputAsString: String = outputPathOrUri.fold(_.toString, _.toString)
+      
+      info(descriptionOpt.getOrElse(s"No records found for $outputAsString"))
     }
     
     def doRealRun(intent: Intent.RealRun, makeDao: => LoamDao = AppWiring.makeDefaultDb): Unit = {

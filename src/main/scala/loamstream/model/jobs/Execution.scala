@@ -87,6 +87,29 @@ object Execution extends Loggable {
     def terminationReason: Option[TerminationReason]
   }
   
+  object Persisted {
+    def apply(
+        envType: EnvironmentType,
+        cmd: Option[String],
+        status: JobStatus,
+        result: Option[JobResult],
+        outputs: Set[StoreRecord],
+        jobDir: Option[Path],
+        terminationReason: Option[TerminationReason]): Persisted = {
+
+      PersistedExecution(envType, cmd, status, result, outputs, jobDir, terminationReason)
+    }
+    
+    private final case class PersistedExecution(
+      envType: EnvironmentType,
+      cmd: Option[String],
+      status: JobStatus,
+      result: Option[JobResult],
+      outputs: Set[StoreRecord],
+      jobDir: Option[Path],
+      terminationReason: Option[TerminationReason]) extends Persisted
+  }
+  
   object WithCommandResult {
     def unapply(e: Execution): Option[CommandResult] = e.result match {
       case Some(cr: CommandResult) => Some(cr)

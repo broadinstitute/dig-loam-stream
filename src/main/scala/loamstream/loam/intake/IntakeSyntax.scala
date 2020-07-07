@@ -18,6 +18,15 @@ import loamstream.loam.GraphFunctions
 object IntakeSyntax extends IntakeSyntax
 
 trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunctions {
+  type ColumnName = loamstream.loam.intake.ColumnName
+  val ColumnName = loamstream.loam.intake.ColumnName
+  
+  type ColumnExpr[A] = loamstream.loam.intake.ColumnExpr[A]
+  val ColumnExpr = loamstream.loam.intake.ColumnExpr
+  
+  type Variant = loamstream.loam.intake.Variant
+  val Variant = loamstream.loam.intake.Variant
+  
   type ColumnDef = loamstream.loam.intake.ColumnDef
   val ColumnDef = loamstream.loam.intake.ColumnDef
   
@@ -36,8 +45,8 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
   type CsvSource = loamstream.loam.intake.CsvSource
   val CsvSource = loamstream.loam.intake.CsvSource
   
-  type FlipDetector = loamstream.loam.intake.FlipDetector
-  val FlipDetector = loamstream.loam.intake.FlipDetector
+  type FlipDetector = loamstream.loam.intake.flip.FlipDetector
+  val FlipDetector = loamstream.loam.intake.flip.FlipDetector
   
   type Row = loamstream.loam.intake.Row
   
@@ -73,9 +82,10 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
         TimeUtils.time(s"Producing ${dest.path}", info(_)) {
           val (headerRow, dataRows) = process(flipDetector)(RowDef(varIdColumnDef, otherColumnDefs))
           
-          val csvFormat = CsvSource.Defaults.Formats.tabDelimitedWithHeaderCsvFormat
+          //TODO
+          val csvFormat = CsvSource.Defaults.csvFormat
           
-          val renderer = CommonsCsvRenderer(csvFormat)
+          val renderer = Renderer.CommonsCsv(csvFormat)
           
           val rowsToWrite: Iterator[Row] = Iterator(headerRow) ++ dataRows
           

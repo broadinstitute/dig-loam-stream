@@ -11,5 +11,5 @@ package object intake {
   
   type RowPredicate = RowParser[Boolean]
   
-  type ParseFn = (String, CsvRow) => DataRow
+  type ParseFn = (String, ColumnDef, CsvRow) => DataRow
 }

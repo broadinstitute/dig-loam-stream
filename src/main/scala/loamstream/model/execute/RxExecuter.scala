@@ -84,11 +84,11 @@ final case class RxExecuter(
       //Note onBackpressureDrop(), in case runEligibleJobs takes too long (or the polling window is too short)
       val ticks = Observable.interval(windowLength, ioScheduler).onBackpressureDrop
       
-      def runJobs() = runEligibleJobs(executionState, jobOracle)
+      def runJobs(jobsAndCells: ExecutionState.JobStatuses) = runEligibleJobs(executionState, jobOracle, jobsAndCells)
       
       def isFinished = executionState.isFinished
       
-      ticks.flatMap(_ => runJobs).takeUntil(_ => isFinished)
+      ticks.map(_ => executionState.updateJobs()).distinctUntilChanged.flatMap(runJobs).takeUntil(_ => isFinished)
     }
     
     val futureMergedResults = chunkResults.foldLeft(emptyExecutionMap)(_ ++ _).firstAsFuture
@@ -112,9 +112,8 @@ final case class RxExecuter(
   
   private def runEligibleJobs(
       executionState: ExecutionState, 
-      jobOracle: JobOracle): Observable[Map[LJob, Execution]] = {
-      
-    val jobsAndCells = executionState.updateJobs()
+      jobOracle: JobOracle,
+      jobsAndCells: ExecutionState.JobStatuses): Observable[Map[LJob, Execution]] = {
     
     val (numReadyToRun, numCannotRun) = (jobsAndCells.readyToRun.size, jobsAndCells.cannotRun.size)
     import jobsAndCells.{ numRunning, numFinished }
@@ -254,14 +253,16 @@ object RxExecuter extends Loggable {
     
     lazy val fileMonitor: FileMonitor = new FileMonitor(outputExistencePollingFrequencyInHz, maxWaitTimeForOutputs)
     
-    private[RxExecuter] lazy val (executionContext, ecHandle) = ExecutionContexts.threadPool(Defaults.maxNumConcurrentJobs)
+    private[RxExecuter] lazy val (executionContext, ecHandle) = {
+      ExecutionContexts.threadPool(Defaults.maxNumConcurrentJobs)
+    }
     
     private[RxExecuter] def chunkRunner: ChunkRunner = {
       AsyncLocalChunkRunner(Defaults.executionConfig, Defaults.maxNumConcurrentJobs)(Defaults.executionContext)
     }
   }
   
-  def apply(
+  def apply( //scalastyle:ignore parameter.number
     executionConfig: ExecutionConfig = Defaults.executionConfig,
     chunkRunner: ChunkRunner = Defaults.chunkRunner,
     fileMonitor: FileMonitor = Defaults.fileMonitor,

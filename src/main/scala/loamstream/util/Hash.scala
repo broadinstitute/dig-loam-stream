@@ -1,7 +1,5 @@
 package loamstream.util
 
-import javax.xml.bind.DatatypeConverter
-
 import scala.collection.mutable
 
 /**
@@ -14,13 +12,13 @@ final case class Hash(value: mutable.WrappedArray[Byte], tpe: HashType) {
   
   override def toString: String = s"$tpe($valueAsBase64String)"
   
-  def valueAsBase64String: String = DatatypeConverter.printBase64Binary(value.toArray)
+  def valueAsBase64String: String = Base64.encode(value.toArray)
 }
 
 object Hash {
   def fromStrings(value: Option[String], tpe: String): Option[Hash] = {
     for {
-      bytes <- value.map(DatatypeConverter.parseBase64Binary)
+      bytes <- value.map(Base64.decode)
       hashType <- HashType.fromAlgorithmName(tpe)
     } yield Hash(bytes, hashType)
   }

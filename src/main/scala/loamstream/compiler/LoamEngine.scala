@@ -30,6 +30,9 @@ import scala.util.Try
 import scala.util.Success
 import loamstream.util.Tries
 import scala.util.Failure
+import loamstream.loam.LoamLoamScript
+import loamstream.loam.ScalaLoamScript
+import loamstream.util.Files
 
 
 /**
@@ -60,33 +63,7 @@ final case class LoamEngine(
     executer: Executer,
     csClient: Option[CloudStorageClient] = None) extends Loggable {
 
-  def loadFile(file: Path): Try[LoamScript] = {
-    val fileAttempt = {
-      if (JFiles.exists(file)) {
-        Success(file)
-      }
-      else {
-        Tries.failure(s"Could not find '$file'.")
-      }
-    }
-    
-    import java.nio.file.Files.readAllBytes
-    import loamstream.util.StringUtils.fromUtf8Bytes
-
-    val codeAttempt = fileAttempt.flatMap(file => Try(fromUtf8Bytes(readAllBytes(file))))
-
-    codeAttempt match {
-      case Success(_) => info(s"Loaded '$file'.")
-      case Failure(e) => error(e.getMessage)
-    }
-    
-    val nameShot = LoamScript.nameFromFilePath(file)
-
-    for {
-      name <- nameShot 
-      code <- codeAttempt
-    } yield LoamScript(name, code, None)
-  }
+  def loadFile(file: Path): Try[LoamScript] = LoamScript.read(file)
 
   def compileFiles(files: Iterable[Path]): Try[LoamCompiler.Result] = {
     def compileScripts(scripts: Iterable[LoamScript]): LoamCompiler.Result = {

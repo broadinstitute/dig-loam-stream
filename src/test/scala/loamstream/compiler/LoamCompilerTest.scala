@@ -1,7 +1,6 @@
 package loamstream.compiler
 
 import java.nio.file.Paths
-
 import loamstream.loam.{LoamGraphValidation, LoamScript}
 import org.scalatest.FunSuite
 import loamstream.TestHelpers
@@ -9,6 +8,10 @@ import loamstream.loam.LoamProjectContext
 import loamstream.util.ValueBox
 import loamstream.model.Store
 import loamstream.conf.CompilationConfig
+import loamstream.loam.LoamLoamScript
+import loamstream.util.code.ScalaId
+import loamstream.loam.ScalaLoamScript
+import java.nio.file.Path
 
 /**
   * LoamStream
@@ -20,6 +23,14 @@ object LoamCompilerTest {
 
   private def classIsLoaded(classLoader: ClassLoader, className: String): Boolean = {
     classLoader.loadClass(className).getName == className
+  }
+  
+  private[compiler] def wrapInLoamFile(wrappingObjectName: String, code: String): String = {
+    s"""|
+        |object ${wrappingObjectName} extends ${ScalaId.from[LoamFile].inScalaFull} {
+        |  ${code}
+        |}
+        |""".stripMargin.trim
   }
 }
 
@@ -42,9 +53,14 @@ final class LoamCompilerTest extends FunSuite {
       """
       // scalastyle:on regex
     }
-    val result = compiler.compile(TestHelpers.config, LoamScript("LoamCompilerTestScript1", code))
-    assert(result.errors === Nil)
-    assert(result.warnings === Nil)
+    
+    testAsLoamAndScala(code, "Code") { script =>
+      val result = compiler.compile(TestHelpers.config, script)
+     
+      assert(result.errors === Nil)
+      
+      assert(result.warnings === Nil)
+    }
   }
   
   test("Testing that compilation of illegal code fragment causes compile errors.") {
@@ -56,32 +72,52 @@ final class LoamCompilerTest extends FunSuite {
     and social setting, and whose awareness inevitably and necessarily gives him a sense of social responsibility.
       """
     }
-    val result = compiler.compile(TestHelpers.config, LoamScript("LoamCompilerTestScript2", code))
-    assert(result.errors.nonEmpty)
+
+    testAsLoamAndScala(code, "Code") { script =>
+      val result = compiler.compile(TestHelpers.config, script)
+      
+      assert(result.errors.nonEmpty)
+      
+      assert(result.isSuccess === false)
+    }
   }
   
-  test("Testing sample code toyImpute.loam") {
-    val compiler = LoamCompiler.default
+  test("Testing sample code toyImpute.{loam,scala}") {
+    def doTest(exampleFile: Path): Unit = {
+      val scriptAttempt = TestHelpers.loamEngine.loadFile(exampleFile)
+          
+      assert(scriptAttempt.isSuccess, s"Expected to find $exampleFile, but got ${scriptAttempt.get}")
+      
+      val result = LoamCompiler.default.compile(LoamProject(TestHelpers.config, scriptAttempt.get))
+      
+      assert(result.errors.isEmpty)
+      assert(result.warnings.isEmpty)
+      
+      val graph = result match {
+        case s: LoamCompiler.Result.Success => s.graph
+        case f: LoamCompiler.Result.FailureDueToException => throw f.throwable
+        case r => fail(s"Unexpected result: $r")
+      }
+      
+      assert(graph.tools.size === 2)
+      assert(graph.stores.size === 4)
+      assert(graph.stores.exists(store => !graph.storeProducers.contains(store)))
+      assert((graph.stores -- graph.inputStores).forall(store => graph.storeProducers.contains(store)))
+      
+      val validationIssues = LoamGraphValidation.allRules(graph)
+      assert(validationIssues.isEmpty)
+    }
 
-    val exampleFile = Paths.get("src/examples/loam/toyImpute.loam")
-
-    val scriptAttempt = TestHelpers.loamEngine.loadFile(exampleFile)
-        
-    assert(scriptAttempt.isSuccess)
+    val Seq(exampleLoamFile, exampleScalaFile) = {
+      Seq("loam", "scala" ).map(extension => Paths.get(s"src/examples/${extension}/toyImpute.${extension}"))
+    }
     
-    val result = compiler.compile(LoamProject(TestHelpers.config, scriptAttempt.get))
-    
-    assert(result.errors.isEmpty)
-    assert(result.warnings.isEmpty)
-    
-    val graph = result.asInstanceOf[LoamCompiler.Result.Success].graph
-    
-    assert(graph.tools.size === 2)
-    assert(graph.stores.size === 4)
-    assert(graph.stores.exists(store => !graph.storeProducers.contains(store)))
-    assert((graph.stores -- graph.inputStores).forall(store => graph.storeProducers.contains(store)))
-    
-    val validationIssues = LoamGraphValidation.allRules(graph)
-    assert(validationIssues.isEmpty)
+    doTest(exampleLoamFile)
+    doTest(exampleScalaFile)
+  }
+  
+  private def testAsLoamAndScala(code: String, wrappingObjectName: String)(testCode: LoamScript => Any): Unit = {
+    testCode(LoamLoamScript("LoamCode", code))
+    testCode(ScalaLoamScript(wrappingObjectName, LoamCompilerTest.wrapInLoamFile(wrappingObjectName, code)))
   }
 }

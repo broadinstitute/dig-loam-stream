@@ -150,7 +150,7 @@ sealed trait ChildId extends ScalaId {
   /** Id of the parent */
   def parent: ScalaId
 
-  def parentOpt: Some[ScalaId] = Some(parent)
+  override def parentOpt: Some[ScalaId] = Some(parent)
 
   override def childPrefixInScala: String = s"$inScalaFull."
 

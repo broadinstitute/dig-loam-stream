@@ -10,6 +10,7 @@ import scala.util.Try
 import RetryingCommandInvoker.InvocationFn
 import RetryingCommandInvoker.SuccessfulInvocationFn
 import rx.lang.scala.Scheduler
+import rx.lang.scala.Observable
 
 /**
  * @author clint
@@ -55,18 +56,20 @@ final class RetryingCommandInvoker[A](
         
     val maxRuns = maxRetries + 1
     
-    def invokeBinary(): Try[RunResults.Successful] = delegateFn(param) match {
-      //Coerce invocations producing non-zero exit codes to Failures
-      case Success(r: RunResults.Unsuccessful) => {
-        val msg = s"Error invoking '${r.commandLine}' (exit code ${r.exitCode})"
-        
-        r.logStdOutAndStdErr(s"$msg; output streams follow:", Loggable.Level.Warn)
-        
-        Tries.failure(msg)
+    def invokeBinary(): Observable[Try[RunResults.Successful]] = Observable.just {
+      delegateFn(param) match {
+        //Coerce invocations producing non-zero exit codes to Failures
+        case Success(r: RunResults.Unsuccessful) => {
+          val msg = s"Error invoking '${r.commandLine}' (exit code ${r.exitCode})"
+          
+          r.logStdOutAndStdErr(s"$msg; output streams follow:", Loggable.Level.Warn)
+          
+          Tries.failure(msg)
+        }
+        case Success(r: RunResults.Successful) => Success(r)
+        //pass failure-failures and successful (0 exit code) invocations through
+        case Failure(e) => Failure(e)
       }
-      case Success(r: RunResults.Successful) => Success(r)
-      //pass failure-failures and successful (0 exit code) invocations through
-      case Failure(e) => Failure(e)
     }
     
     val resultOptObs = Loops.retryUntilSuccessWithBackoffAsync(maxRuns, delayStart, delayCap, scheduler) {

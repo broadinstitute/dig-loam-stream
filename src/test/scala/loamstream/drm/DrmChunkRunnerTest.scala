@@ -513,10 +513,10 @@ object DrmChunkRunnerTest {
   final class MockJobSubmitter extends JobSubmitter {
     @volatile var params: Seq[(DrmSettings, DrmTaskArray)] = Vector.empty
     
-    override def submitJobs(drmSettings: DrmSettings, taskArray: DrmTaskArray): DrmSubmissionResult = {
+    override def submitJobs(drmSettings: DrmSettings, taskArray: DrmTaskArray): Observable[DrmSubmissionResult] = {
       params :+= (drmSettings -> taskArray)
       
-      DrmSubmissionResult.SubmissionSuccess(Map.empty)
+      Observable.just(DrmSubmissionResult.SubmissionSuccess(Map.empty))
     }
     
     override def stop(): Unit = ()

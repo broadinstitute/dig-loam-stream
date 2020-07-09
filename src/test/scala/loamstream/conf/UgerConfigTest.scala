@@ -29,6 +29,7 @@ final class UgerConfigTest extends FunSuite {
     assert(config.condaEnvName === UgerDefaults.condaEnvName)
     assert(config.staticJobSubmissionParams === UgerDefaults.staticJobSubmissionParams)
     assert(config.maxQacctRetries === UgerDefaults.maxQacctRetries)
+    assert(config.maxJobSubmissionRetries === UgerDefaults.maxJobSubmissionRetries)
   }
   
   test("Parsing a UgerConfig with all values provided should work") {
@@ -43,6 +44,7 @@ final class UgerConfigTest extends FunSuite {
           condaEnvName = fooEnv
           staticJobSubmissionParams = "foo bar baz"
           maxQacctRetries = 123
+          maxJobSubmissionRetries = 999
         }
       }
       """)
@@ -58,6 +60,7 @@ final class UgerConfigTest extends FunSuite {
     assert(config.condaEnvName === "fooEnv")
     assert(config.staticJobSubmissionParams === "foo bar baz")
     assert(config.maxQacctRetries === 123)
+    assert(config.maxJobSubmissionRetries === 999)
   }
   
   test("Parsing a UgerConfig with optional values omitted should work") {
@@ -80,5 +83,6 @@ final class UgerConfigTest extends FunSuite {
     assert(config.condaEnvName === UgerDefaults.condaEnvName)
     assert(config.staticJobSubmissionParams === UgerDefaults.staticJobSubmissionParams)
     assert(config.maxQacctRetries === UgerDefaults.maxQacctRetries)
+    assert(config.maxJobSubmissionRetries === UgerDefaults.maxJobSubmissionRetries)
   }
 }

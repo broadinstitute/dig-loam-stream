@@ -12,6 +12,8 @@ import rx.lang.scala.Observable
 import rx.lang.scala.schedulers.IOScheduler
 import rx.lang.scala.Scheduler
 
+import scala.language.higherKinds
+
 /**
  * @author clint
  * Apr 24, 2019
@@ -46,7 +48,7 @@ object Loops {
         
         if(howMuch > 0) {
           //TODO: Evaluate whether or not blocking is ok. For now, it's expedient and doesn't seem to cause problems.
-          Thread.sleep(delays.next().toMillis)
+          Thread.sleep(howMuch)
         }
       }
       
@@ -65,17 +67,17 @@ object Loops {
       maxRuns: Int, 
       delayStart: Duration, 
       delayCap: Duration,
-      scheduler: Scheduler = IOScheduler())(op: => Try[A]): Observable[Option[A]] = {
+      scheduler: Scheduler = IOScheduler())(op: => Observable[Try[A]]): Observable[Option[A]] = {
     
     val delays = Backoff.delaySequence(delayStart, delayCap)
     
     def delayAndThen[X](f: => X): Observable[X] = Observable.timer(delays.next(), scheduler).map(_ => f)
     
-    def next(tuple: (Int, Try[A])): Observable[(Int, Try[A])] = {
-      val (i, attempt) = tuple
+    def next(tuple: (Int, Observable[Try[A]])): Observable[(Int, Try[A])] = {
+      val (i, attemptObs) = tuple
       
-      attempt match {
-        case Success(_) => Observable.just(tuple)
+      attemptObs.flatMap {
+        case Success(_) => attemptObs.map(attempt => (i, attempt))
         case Failure(_) if i >= maxRuns => Observable.empty
         case _ => delayAndThen((i + 1) -> op).flatMap(next)
       }

@@ -105,13 +105,7 @@ final case class DrmChunkRunner(
 
     drmTaskArray.drmJobs match {
       case Nil => Observable.just(Map.empty)
-      case drmJobs => {
-        val submissionResult = TimeUtils.time(s"Submitting DrmTaskArray with ${drmTaskArray.size} jobs") {
-          jobSubmitter.submitJobs(drmSettings, drmTaskArray)
-        }
-
-        toRunDataStream(drmJobs, submissionResult)
-      }
+      case drmJobs => jobSubmitter.submitJobs(drmSettings, drmTaskArray).flatMap(toRunDataStream(drmJobs, _))
     }
   }
 

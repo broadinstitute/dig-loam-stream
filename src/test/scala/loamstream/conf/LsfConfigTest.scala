@@ -25,6 +25,7 @@ final class LsfConfigTest extends FunSuite {
     assert(config.defaultMemoryPerCore === LsfDefaults.memoryPerCore)
     assert(config.defaultMaxRunTime === LsfDefaults.maxRunTime)
     assert(config.maxBacctRetries === LsfDefaults.maxBacctRetries)
+    assert(config.maxJobSubmissionRetries === LsfDefaults.maxJobSubmissionRetries)
   }
   
   test("Parsing a UgerConfig with all values provided should work") {
@@ -36,6 +37,7 @@ final class LsfConfigTest extends FunSuite {
           defaultMemoryPerCore = 9 // Gb
           defaultMaxRunTime = 11 // hours
           maxBacctRetries = 123
+          maxJobSubmissionRetries = 999
         }
       }
       """)
@@ -48,6 +50,7 @@ final class LsfConfigTest extends FunSuite {
     assert(lsfConfig.defaultMemoryPerCore=== Memory.inGb(9))
     assert(lsfConfig.defaultMaxRunTime === CpuTime.inHours(11))
     assert(lsfConfig.maxBacctRetries === 123)
+    assert(lsfConfig.maxJobSubmissionRetries === 999)
   }
   
   test("Parsing a UgerConfig with optional values omitted should work") {
@@ -67,5 +70,6 @@ final class LsfConfigTest extends FunSuite {
     assert(lsfConfig.defaultMemoryPerCore === LsfDefaults.memoryPerCore)
     assert(lsfConfig.defaultMaxRunTime === LsfDefaults.maxRunTime)
     assert(lsfConfig.maxBacctRetries === LsfDefaults.maxBacctRetries)
+    assert(lsfConfig.maxJobSubmissionRetries === LsfDefaults.maxJobSubmissionRetries)
   }
 }

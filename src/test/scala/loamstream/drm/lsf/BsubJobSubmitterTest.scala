@@ -21,6 +21,7 @@ import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
 import loamstream.util.RunResults
 import loamstream.drm.DrmTaskId
+import loamstream.util.Observables
 
 /**
  * @author clint
@@ -28,6 +29,8 @@ import loamstream.drm.DrmTaskId
  */
 final class BsubJobSubmitterTest extends FunSuite {
   import loamstream.TestHelpers.path
+  import loamstream.TestHelpers.waitFor
+  import Observables.Implicits.ObservableOps
   
   test("submitJobs - happy path") {
     def submissionFn(drmSettings: DrmSettings, taskArray: DrmTaskArray): Try[RunResults] = {
@@ -36,7 +39,7 @@ final class BsubJobSubmitterTest extends FunSuite {
     
     val submitter = new BsubJobSubmitter(submissionFn)
     
-    val result = submitter.submitJobs(settings, taskArray)
+    val result = waitFor(submitter.submitJobs(settings, taskArray).firstAsFuture)
     
     assert(result.isSuccess)
     
@@ -56,7 +59,7 @@ final class BsubJobSubmitterTest extends FunSuite {
     
     val submitter = new BsubJobSubmitter(submissionFn)
     
-    val result = submitter.submitJobs(settings, taskArray)
+    val result = waitFor(submitter.submitJobs(settings, taskArray).firstAsFuture)
     
     assert(result.isFailure)
   }
@@ -68,7 +71,7 @@ final class BsubJobSubmitterTest extends FunSuite {
     
     val submitter = new BsubJobSubmitter(submissionFn)
     
-    val result = submitter.submitJobs(settings, taskArray)
+    val result = waitFor(submitter.submitJobs(settings, taskArray).firstAsFuture)
     
     assert(result.isFailure)
   }

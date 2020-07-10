@@ -90,7 +90,7 @@ final class ExecutionState private (
   def jobStatuses: ExecutionState.JobStatuses = { 
     val jobStates = snapshot()
   
-    TimeUtils.time("Computing JobStatuses", debug(_)) {
+    TimeUtils.time("Computing JobStatuses", trace(_)) {
       val numRunning = jobStates.count(_.isRunning)
       val numFinished = jobStates.count(_.isFinished)
       

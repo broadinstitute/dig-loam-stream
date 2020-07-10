@@ -102,6 +102,7 @@ test in assembly := {}
 //Make integration tests run serially; this is needed since some integration tests use Uger, and we can only have
 //one Uger/DRMAA session active at once.
 parallelExecution in IntegrationTest := false
+IntegrationTest / fork := true
 
 //Show full stack traces from unit and integration tests (F); display test run times (D)
 testOptions in IntegrationTest += Tests.Argument("-oFD")

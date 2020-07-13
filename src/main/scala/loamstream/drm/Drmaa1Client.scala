@@ -18,6 +18,7 @@ import loamstream.util.OneTimeLatch
 import loamstream.util.Throwables
 import loamstream.util.ValueBox
 import org.ggf.drmaa.JobInfo
+import org.ggf.drmaa.AlreadyActiveSessionException
 
 
 /**
@@ -49,6 +50,10 @@ final class Drmaa1Client(nativeSpecBuilder: NativeSpecBuilder) extends DrmaaClie
   //Latch to ensure we only stop() once
   private[this] val stopLatch: OneTimeLatch = new OneTimeLatch
 
+  private def currentThreadName: String = Thread.currentThread.getName
+  
+  private val sessionMakersBox: ValueBox[Seq[String]] = ValueBox(Nil)
+  
   private def getNewSession: Session = {
     debug("Getting new DRMAA session")
 
@@ -63,12 +68,20 @@ final class Drmaa1Client(nativeSpecBuilder: NativeSpecBuilder) extends DrmaaClie
       //DRMAA implementation available" according to the DRMAA javadocs. (Whatever that means :\)
       s.init("")
 
+      sessionMakersBox.mutate(_ :+ currentThreadName)
+      
       s
     } catch {
-      case e: UnsatisfiedLinkError =>
+      case e: UnsatisfiedLinkError => {
         error(s"Please check if you are running on a system with UGER (e.g. Broad VM). " +
           s"Note that UGER is required if the configuration file specifies a 'uger { ... }' block.")
         throw e
+      }
+      case e: AlreadyActiveSessionException => {
+        error(s"There is already an active DRMAA Session: This thread: '${currentThreadName}'; threads that have made Sessions: ${sessionMakersBox.value}")
+
+        throw e 
+      }
     }
   }
 

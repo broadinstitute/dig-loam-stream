@@ -20,7 +20,9 @@ object LsfDefaults {
     
   val maxRunTime: CpuTime = CpuTime.inHours(2)
   
-  val maxBacctRetries: Int = 9
+  val maxBacctRetries: Int = maxRetries
   
-  val maxJobSubmissionRetries: Int = 2
+  val maxJobSubmissionRetries: Int = maxRetries
+  
+  private def maxRetries = 9
 }

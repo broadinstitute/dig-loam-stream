@@ -173,7 +173,11 @@ object Main extends Loggable {
         
         describeRunResults(loamEngine.config, runResults)
       } catch {
-        case e: DrmaaException => warn(s"Unexpected DRMAA exception: ${e.getClass.getName}", e)
+        case e: DrmaaException => {
+          warn(s"Unexpected DRMAA exception: ${e.getClass.getName}", e)
+          
+          shutdown(wiring)
+        }
       }
     }
     

@@ -88,6 +88,7 @@ import loamstream.googlecloud.HailCtlDataProcClient
 import loamstream.googlecloud.HailConfig
 import loamstream.model.jobs.JobOracle
 import scala.concurrent.ExecutionContext
+import loamstream.drm.SessionSource
 
 
 /**
@@ -382,7 +383,9 @@ object AppWiring extends Loggable {
     } yield {
       debug("Creating Uger ChunkRunner...")
 
-      val drmaaClient = new Drmaa1Client(UgerNativeSpecBuilder(ugerConfig))
+      val drmaaClient = new Drmaa1Client(
+          UgerNativeSpecBuilder(ugerConfig),
+          SessionSource.default(ugerConfig))
 
       import loamstream.model.execute.ExecuterHelpers._
 

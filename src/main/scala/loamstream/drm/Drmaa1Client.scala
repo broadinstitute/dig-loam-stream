@@ -65,9 +65,7 @@ final class Drmaa1Client(
    * Shut down this client and dispose of any DRMAA resources it has acquired (Sessions, etc).
    * Only the first call will do anything; subsequent calls won't have any effect.
    */
-  override def stop(): Unit = throw new Exception("Drmaa1Client.stop()") /*stopLatch.doOnce {
-    
-    
+  override def stop(): Unit = stopLatch.doOnce {
     withSession { session =>
       val failures = Throwables.collectFailures(
         () => killAllJobs(),
@@ -77,7 +75,7 @@ final class Drmaa1Client(
         throw new CompositeException(failures)
       }
     }
-  }*/
+  }
 
   /**
    * Synchronously obtain the status of one running DRM job, given its id.

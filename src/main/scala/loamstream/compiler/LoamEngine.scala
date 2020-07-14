@@ -100,6 +100,8 @@ final case class LoamEngine(
       case NonFatal(e) => {
         error(s"Caught exception when running, attempting to provide information about jobs for debugging.", e)
         
+        executer.stop()
+        
         makeExecutionMapInCaseOfException(executable, jobOracle)
       }
     }

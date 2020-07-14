@@ -60,6 +60,7 @@ final class SimpleLocalAndUgerPipelineTest extends FunSuite {
       case Some(dir) => s"""|  uger {
                             |    maxNumJobs = 2400
                             |    workDir = "$dir"
+                            |    maxJobSubmissionRetries = 19
                             |  }""".stripMargin
       case None => ""
     }

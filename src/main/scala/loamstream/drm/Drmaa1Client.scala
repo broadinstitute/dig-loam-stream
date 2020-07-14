@@ -186,8 +186,13 @@ final class Drmaa1Client(
   }
 
   private def tryShuttingDown(s: Session): Unit = {
-    try { s.exit() }
-    catch {
+    try {
+      warn("Shutting down DRMAA session...")
+      
+      s.exit() 
+      
+      warn("DRMAA session shudown complete.")
+    } catch {
       //NB: session.exit() will fail if an exception was thrown by session.init(), or if it is invoked more than
       //once.  In those cases, there's not much we can do.
       case e: DrmaaException => warn(s"Could not properly exit DRMAA Session due to ${e.getClass.getName}", e)

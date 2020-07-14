@@ -66,6 +66,8 @@ final class Drmaa1Client(
    * Only the first call will do anything; subsequent calls won't have any effect.
    */
   override def stop(): Unit = stopLatch.doOnce {
+    throw new Exception("Drmaa1Client.stop()")
+    
     withSession { session =>
       val failures = Throwables.collectFailures(
         () => killAllJobs(),

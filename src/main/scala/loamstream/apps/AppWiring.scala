@@ -413,7 +413,7 @@ object AppWiring extends Loggable {
             accountingClient = accountingClient)
       }
 
-      val handles = Seq(schedulerHandle, ugerRunner)
+      val handles = Seq(schedulerHandle, ugerRunner, drmaaClient)
 
       (ugerRunner, handles)
     }

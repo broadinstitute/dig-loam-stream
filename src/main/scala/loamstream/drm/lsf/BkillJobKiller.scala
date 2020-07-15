@@ -20,7 +20,7 @@ final class BkillJobKiller(invocationFn: JobKiller.InvocationFn) extends JobKill
 }
 
 object BkillJobKiller extends JobKiller.Companion[BkillJobKiller]("bkill", new BkillJobKiller(_)) {
-  override protected def makeTokens(actualExecutable: String, username: String): Seq[String] = {
+  override protected[lsf] def makeTokens(actualExecutable: String, username: String): Seq[String] = {
     Seq(actualExecutable, "-u", username, "0")
   }
 }

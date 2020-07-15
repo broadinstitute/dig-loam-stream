@@ -1,14 +1,15 @@
 package loamstream.drm
 
-import org.ggf.drmaa.Session
-import loamstream.util.LogContext
-import loamstream.util.Loggable
 import scala.concurrent.duration.Duration
-import loamstream.util.RetryingCommandInvoker
-import loamstream.util.Loops
 import scala.util.Try
+
+import org.ggf.drmaa.Session
 import org.ggf.drmaa.SessionFactory
+
 import loamstream.conf.DrmConfig
+import loamstream.util.CommandInvoker
+import loamstream.util.Loggable
+import loamstream.util.Loops
 
 /**
  * @author clint
@@ -33,8 +34,8 @@ object SessionSource extends Loggable {
   final case class Retrying(
       delegate: SessionSource,
       maxRetries: Int,
-      delayStart: Duration = RetryingCommandInvoker.defaultDelayStart,
-      delayCap: Duration = RetryingCommandInvoker.defaultDelayCap) extends SessionSource {
+      delayStart: Duration = CommandInvoker.Retrying.defaultDelayStart,
+      delayCap: Duration = CommandInvoker.Retrying.defaultDelayCap) extends SessionSource {
     
     override def getSession: Session = {
       val maxAttempts = maxRetries + 1

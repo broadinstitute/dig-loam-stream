@@ -7,8 +7,8 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-import RetryingCommandInvoker.InvocationFn
-import RetryingCommandInvoker.SuccessfulInvocationFn
+import CommandInvoker.InvocationFn
+import CommandInvoker.SuccessfulInvocationFn
 import rx.lang.scala.Scheduler
 import rx.lang.scala.Observable
 
@@ -22,41 +22,24 @@ import rx.lang.scala.Observable
  * and greater periods after each failure, starting at delayStart and doubling after each failure, up to a max of
  * delayCap.  See Loops.Backoff.delaySequence and Loops.retryUntilSuccessWithBackoff . 
  */
-final class RetryingCommandInvoker[A](
-    maxRetries: Int,
-    binaryName: String,
-    delegateFn: InvocationFn[A],
-    delayStart: Duration = RetryingCommandInvoker.defaultDelayStart,
-    delayCap: Duration = RetryingCommandInvoker.defaultDelayCap,
-    scheduler: Scheduler)(implicit ec: ExecutionContext) extends (SuccessfulInvocationFn[A]) with Loggable {
+trait CommandInvoker[A] extends (SuccessfulInvocationFn[A])
+
+object CommandInvoker {
+  type InvocationFn[A] = A => Try[RunResults]
   
-  //Memoize the function that retrieves the metadata, to avoid running something expensive, like invoking
-  //bacct/qacct, more than necessary.
-  //NB: If the operation fails, retry up to maxRetries times, by default waiting 
-  //0.5, 1, 2, 4, ... up to 30s in between each one.
-  override def apply(param: A): Future[RunResults.Successful] = runCommand(param)
+  type SuccessfulInvocationFn[A] = A => Future[RunResults.Successful]
   
-  private val runCommand: SuccessfulInvocationFn[A] = {
-    doRetries(
-        binaryName = binaryName, 
-        maxRetries = maxRetries, 
-        delayStart = delayStart, 
-        delayCap = delayCap, 
-        delegateFn = delegateFn,
-        scheduler = scheduler)
-  }
-  
-  private def doRetries(
-      binaryName: String,
-      maxRetries: Int,
-      delayStart: Duration,
-      delayCap: Duration,
-      delegateFn: InvocationFn[A],
-      scheduler: Scheduler): SuccessfulInvocationFn[A] = { param =>
-        
-    val maxRuns = maxRetries + 1
+  final class JustOnce[A](
+      val binaryName: String,
+      delegateFn: InvocationFn[A])(implicit ec: ExecutionContext) extends CommandInvoker[A] with Loggable {
     
-    def invokeBinary(): Observable[Try[RunResults.Successful]] = Observable.just {
+    override def apply(param: A): Future[RunResults.Successful] = {
+      import Observables.Implicits._
+      
+      invokeBinary(param).firstAsFuture.flatMap(Future.fromTry)
+    }
+    
+    private[CommandInvoker] def invokeBinary(param: A): Observable[Try[RunResults.Successful]] = Observable.just {
       delegateFn(param) match {
         //Coerce invocations producing non-zero exit codes to Failures
         case Success(r: RunResults.Unsuccessful) => {
@@ -71,35 +54,76 @@ final class RetryingCommandInvoker[A](
         case Failure(e) => Failure(e)
       }
     }
-    
-    val resultOptObs = Loops.retryUntilSuccessWithBackoffAsync(maxRuns, delayStart, delayCap, scheduler) {
-      invokeBinary()
-    }
-    
-    import Observables.Implicits._
-    
-    val result: Future[RunResults.Successful] = resultOptObs.firstAsFuture.flatMap {
-      case Some(a) => Future.successful(a)
-      case _ => {
-        val msg = s"Invoking '$binaryName' for with param '$param' failed after $maxRuns runs"
-        
-        debug(msg)
-
-        Future.failed(new Exception(msg))
-      }
-    }
-    
-    result
   }
-}
+  
+  final class Retrying[A](
+      delegate: JustOnce[A],
+      maxRetries: Int,
+      delayStart: Duration = Retrying.defaultDelayStart,
+      delayCap: Duration = Retrying.defaultDelayCap,
+      scheduler: Scheduler)(implicit ec: ExecutionContext) extends (SuccessfulInvocationFn[A]) with Loggable {
+  
+    override def apply(param: A): Future[RunResults.Successful] = runCommand(param)
+  
+    private val runCommand: SuccessfulInvocationFn[A] = {
+      doRetries(
+          binaryName = delegate.binaryName, 
+          maxRetries = maxRetries, 
+          delayStart = delayStart, 
+          delayCap = delayCap, 
+          scheduler = scheduler)
+    }
+    
+    private def doRetries(
+      binaryName: String,
+      maxRetries: Int,
+      delayStart: Duration,
+      delayCap: Duration,
+      scheduler: Scheduler): SuccessfulInvocationFn[A] = { param =>
+        
+      val maxRuns = maxRetries + 1
+      
+      val resultOptObs = Loops.retryUntilSuccessWithBackoffAsync(maxRuns, delayStart, delayCap, scheduler) {
+        delegate.invokeBinary(param)
+      }
+      
+      import Observables.Implicits._
+      
+      val result: Future[RunResults.Successful] = resultOptObs.firstAsFuture.flatMap {
+        case Some(a) => Future.successful(a)
+        case _ => {
+          val msg = s"Invoking '$binaryName' with param '$param' failed after $maxRuns runs"
+          
+          debug(msg)
+  
+          Future.failed(new Exception(msg))
+        }
+      }
+      
+      result
+    }
+  }
+  
+  object Retrying {
+    def apply[A](
+      maxRetries: Int,
+      binaryName: String,
+      delegateFn: InvocationFn[A],
+      delayStart: Duration = Retrying.defaultDelayStart,
+      delayCap: Duration = Retrying.defaultDelayCap,
+      scheduler: Scheduler)(implicit ec: ExecutionContext): Retrying[A] = {
 
-object RetryingCommandInvoker {
-  type InvocationFn[A] = A => Try[RunResults]
+      new Retrying(
+          new JustOnce[A](binaryName, delegateFn),
+          maxRetries,
+          delayStart,
+          delayCap,
+          scheduler)
+    }
+    
+    import scala.concurrent.duration._
   
-  type SuccessfulInvocationFn[A] = A => Future[RunResults.Successful]
-  
-  import scala.concurrent.duration._
-  
-  val defaultDelayStart: Duration = 0.5.seconds
-  val defaultDelayCap: Duration = 30.seconds
+    val defaultDelayStart: Duration = 0.5.seconds
+    val defaultDelayCap: Duration = 30.seconds
+  }
 }

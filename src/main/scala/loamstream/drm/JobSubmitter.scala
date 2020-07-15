@@ -11,6 +11,8 @@ import loamstream.drm.DrmSubmissionResult.SubmissionSuccess
 import scala.concurrent.duration.Duration
 import loamstream.util.RetryingCommandInvoker
 import loamstream.util.TimeUtils
+import scala.util.Try
+import loamstream.util.RunResults
 
 /**
  * @author clint
@@ -82,5 +84,9 @@ object JobSubmitter {
     }
     
     override def stop(): Unit = drmaaClient.stop()
+  }
+  
+  abstract class CommandSubmitterCompanion[A <: JobSubmitter](val drmSystem: DrmSystem) {
+    type SubmissionFn = (drmSystem.Settings, DrmTaskArray) => Try[RunResults]
   }
 }

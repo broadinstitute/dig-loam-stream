@@ -14,26 +14,34 @@ import loamstream.model.execute.LsfDrmSettings
  * May 23, 2018
  */
 sealed trait DrmSystem {
+  type Config <: DrmConfig
+  
+  type Settings <: DrmSettings
+  
   def name: String
   
   def defaultQueue: Option[Queue]
   
-  def config(scriptContext: LoamScriptContext): DrmConfig
+  def config(scriptContext: LoamScriptContext): Config
   
-  def settingsFromConfig(scriptContext: LoamScriptContext): DrmSettings
+  def settingsFromConfig(scriptContext: LoamScriptContext): Settings
   
   def settingsMaker: DrmSettings.SettingsMaker
 }
 
 object DrmSystem {
   final case object Uger extends DrmSystem {
+    override type Config = UgerConfig
+  
+    override type Settings = UgerDrmSettings
+    
     override def name: String = toString
     
     override def defaultQueue: Option[Queue] = Option(UgerDefaults.queue)
     
     override def config(scriptContext: LoamScriptContext): UgerConfig = scriptContext.ugerConfig
   
-    override def settingsFromConfig(scriptContext: LoamScriptContext): DrmSettings = {
+    override def settingsFromConfig(scriptContext: LoamScriptContext): Settings = {
       DrmSettings.fromUgerConfig(config(scriptContext))
     }
     
@@ -41,13 +49,17 @@ object DrmSystem {
   }
   
   final case object Lsf extends DrmSystem {
+    override type Config = LsfConfig
+  
+    override type Settings = LsfDrmSettings
+    
     override def name: String = toString
     
     override def defaultQueue: Option[Queue] = None
     
     override def config(scriptContext: LoamScriptContext): LsfConfig = scriptContext.lsfConfig
     
-    override def settingsFromConfig(scriptContext: LoamScriptContext): DrmSettings = {
+    override def settingsFromConfig(scriptContext: LoamScriptContext): Settings = {
       DrmSettings.fromLsfConfig(config(scriptContext))
     }
     

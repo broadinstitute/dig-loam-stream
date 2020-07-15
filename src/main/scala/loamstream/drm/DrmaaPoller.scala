@@ -42,10 +42,6 @@ final class DrmaaPoller(client: DrmaaClient) extends Poller with Loggable {
       jobId -> statusAttempt(jobId)
     }
     
-    /*val pollResults = Map.empty ++ sortedJobIds.iterator.map { jobId =>
-      jobId -> statusAttempt(jobId)
-    }*/
-    
     trace(s"Polled ${sortedJobIds.mkString(",")}")
     
     pollResults

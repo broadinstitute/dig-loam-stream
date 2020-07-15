@@ -89,6 +89,7 @@ import loamstream.googlecloud.HailConfig
 import loamstream.model.jobs.JobOracle
 import scala.concurrent.ExecutionContext
 import loamstream.drm.SessionSource
+import loamstream.drm.uger.QdelJobKiller
 
 
 /**
@@ -328,10 +329,6 @@ object AppWiring extends Loggable {
     
     val (lsfRunnerOption, terminables) = unpack(makeLsfChunkRunner(loamConfig, threadPoolSize))
     
-    val jobKillerTerminable = Terminable {
-      BkillJobKiller.fromExecutable().killAllJobs()
-    }
-
     //TODO: A better way to enable or disable Uger support; for now, this is purely expedient
     if(lsfRunnerOption.isEmpty) {
       val msg = s"""LSF support is NOT enabled. It can be enabled by defining loamstream.lsf section
@@ -340,7 +337,7 @@ object AppWiring extends Loggable {
       debug(msg)
     }
     
-    (lsfRunnerOption, terminables :+ jobKillerTerminable)
+    (lsfRunnerOption, terminables)
   }
   
   private def unpack[A,B](o: Option[(A, Seq[B])]): (Option[A], Seq[B]) = o match {
@@ -410,7 +407,8 @@ object AppWiring extends Loggable {
             drmConfig = ugerConfig, 
             jobSubmitter = jobSubmitter, 
             jobMonitor = jobMonitor,
-            accountingClient = accountingClient)
+            accountingClient = accountingClient,
+            jobKiller = QdelJobKiller.fromExecutable())
       }
 
       val handles = Seq(schedulerHandle, ugerRunner, drmaaClient)
@@ -451,7 +449,8 @@ object AppWiring extends Loggable {
             drmConfig = lsfConfig, 
             jobSubmitter = jobSubmitter, 
             jobMonitor = jobMonitor,
-            accountingClient = accountingClient)
+            accountingClient = accountingClient,
+            jobKiller = BkillJobKiller.fromExecutable())
       }
 
       val handles = Seq(schedulerHandle, lsfRunner)

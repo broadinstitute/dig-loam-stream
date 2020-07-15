@@ -42,14 +42,19 @@ final case class DrmChunkRunner(
     drmConfig: DrmConfig,
     jobSubmitter: JobSubmitter,
     jobMonitor: JobMonitor,
-    accountingClient: AccountingClient)(implicit ec: ExecutionContext) extends ChunkRunnerFor(environmentType) with 
+    accountingClient: AccountingClient,
+    jobKiller: JobKiller)(implicit ec: ExecutionContext) extends ChunkRunnerFor(environmentType) with 
         Terminable.StopsComponents with Loggable {
 
   require(environmentType.isUger || environmentType.isLsf, "Only UGER and LSF environments are supported")
   
   import DrmChunkRunner._
 
-  override protected val terminableComponents: Iterable[Terminable] = Seq(jobMonitor, jobSubmitter)
+  override protected val terminableComponents: Iterable[Terminable] = {
+    val jobKillerTerminable: Terminable = Terminable(jobKiller.killAllJobs())
+    
+    Seq(jobMonitor, jobSubmitter, jobKillerTerminable)
+  }
 
   /**
    * Run the provided jobs, using the provided predicate (`shouldRestart`) to decide whether to re-run them if they

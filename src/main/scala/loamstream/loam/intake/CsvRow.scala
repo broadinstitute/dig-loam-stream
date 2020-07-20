@@ -14,6 +14,8 @@ trait CsvRow {
   def size: Int
   
   def values: Iterator[String] = (0 until size).iterator.map(getFieldByIndex)
+  
+  def recordNumber: Long
 }
 
 object CsvRow {
@@ -23,5 +25,7 @@ object CsvRow {
     override def getFieldByIndex(i: Int): String = delegate.get(i)
     
     override def size: Int = delegate.size
+    
+    override def recordNumber: Long = delegate.getRecordNumber
   }
 }

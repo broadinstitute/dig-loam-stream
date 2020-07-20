@@ -26,8 +26,8 @@ final class ColumnExprTest extends FunSuite {
     
     val f: Int => Double = _.toDouble
     
-    assert(bar.asInt.map(f).eval(row) === 42.0D)
-    assert((bar.asInt |> f).eval(row) === 42.0D)
+    assert(bar.asInt.map(f).apply(row) === 42.0D)
+    assert((bar.asInt |> f).apply(row) === 42.0D)
   }
   
   test("flatMap") {
@@ -35,71 +35,71 @@ final class ColumnExprTest extends FunSuite {
     
     val f: (Int => ColumnExpr[Double]) = i => LiteralColumnExpr(i.toDouble)
     
-    assert(bar.asInt.flatMap(f).eval(row) === 42.0D)
+    assert(bar.asInt.flatMap(f).apply(row) === 42.0D)
   }
   
   test("asString") {
     val row = Helpers.csvRow("foo" -> "0.1", "bar" -> "42", "baz" -> "x_y_z_q")
     
-    assert(foo.asString.eval(row) === "0.1")
-    assert(bar.asInt.map(_ + 1).asString.eval(row) === "43")
+    assert(foo.asString(row) === "0.1")
+    assert(bar.asInt.map(_ + 1).asString(row) === "43")
   }
   
   test("as{Int,Long,Double}") {
     val row = Helpers.csvRow("foo" -> "0.1", "bar" -> "42", "baz" -> "x_y_z_q")
     
     intercept[Exception] {
-      foo.asInt.eval(row)
+      foo.asInt.apply(row)
     }
     
-    assert(bar.asInt.eval(row) === 42)
+    assert(bar.asInt.apply(row) === 42)
     
     intercept[Exception] {
-      foo.asLong.eval(row)
+      foo.asLong.apply(row)
     }
     
-    assert(bar.asLong.eval(row) === 42L)
+    assert(bar.asLong.apply(row) === 42L)
     
-    assert(foo.asDouble.eval(row) === 0.1D)
-    assert(bar.asDouble.eval(row) === 42.0D)
+    assert(foo.asDouble.apply(row) === 0.1D)
+    assert(bar.asDouble.apply(row) === 42.0D)
   }
   
   test("asUpperCase") {
     val row = Helpers.csvRow("foo" -> "0.1", "bar" -> "hello99", "baz" -> "x_y_z_q")
     
-    assert(foo.asUpperCase.eval(row) === "0.1")
-    assert(bar.asUpperCase.eval(row) === "HELLO99")
+    assert(foo.asUpperCase.apply(row) === "0.1")
+    assert(bar.asUpperCase.apply(row) === "HELLO99")
   }
   
   test("unary_-") {
     val row = Helpers.csvRow("foo" -> "0.1", "bar" -> "hello99", "baz" -> "x_y_z_q")
     
-    assert(-(foo.asDouble).eval(row) === -0.1)
-    assert(-(-(foo.asDouble)).eval(row) === 0.1)
-    assert(-(-(-(foo.asDouble))).eval(row) === -0.1)
+    assert(-(foo.asDouble).apply(row) === -0.1)
+    assert(-(-(foo.asDouble)).apply(row) === 0.1)
+    assert(-(-(-(foo.asDouble))).apply(row) === -0.1)
   }
   
   test("negate") {
     val row = Helpers.csvRow("foo" -> "0.1", "bar" -> "hello99", "baz" -> "x_y_z_q")
     
-    assert(foo.asDouble.negate.eval(row) === -0.1)
-    assert(foo.asDouble.negate.negate.eval(row) === 0.1)
-    assert(foo.asDouble.negate.negate.negate.eval(row) === -0.1)
+    assert(foo.asDouble.negate.apply(row) === -0.1)
+    assert(foo.asDouble.negate.negate.apply(row) === 0.1)
+    assert(foo.asDouble.negate.negate.negate.apply(row) === -0.1)
   }
   
   test("complement/complementIf") {
     val row = Helpers.csvRow("foo" -> "0.1", "bar" -> "hello99", "baz" -> "x_y_z_q")
     
-    assert(foo.asDouble.complement.eval(row) === 0.9)
+    assert(foo.asDouble.complement.apply(row) === 0.9)
     
-    assert(foo.asDouble.complementIf(_ > 0.5).eval(row) === 0.1)
-    assert(foo.asDouble.complementIf(_ < 0.5).eval(row) === 0.9)
+    assert(foo.asDouble.complementIf(_ > 0.5).apply(row) === 0.1)
+    assert(foo.asDouble.complementIf(_ < 0.5).apply(row) === 0.9)
   }
   
   test("exp") {
     val row = Helpers.csvRow("foo" -> "0.1", "bar" -> "hello99", "baz" -> "x_y_z_q")
     
-    assert(foo.asDouble.exp.eval(row) === scala.math.exp(0.1))
+    assert(foo.asDouble.exp.apply(row) === scala.math.exp(0.1))
   }
   
   test("mapRegex") {
@@ -112,10 +112,10 @@ final class ColumnExprTest extends FunSuite {
       case Seq(a, b, c, d) => a + b + c + d
     }
     
-    assert(expr.eval(row) === "xyzq")
+    assert(expr(row) === "xyzq")
     
     intercept[Exception] {
-      expr.eval(noMatch)
+      expr(noMatch)
     }
   }
   
@@ -124,11 +124,11 @@ final class ColumnExprTest extends FunSuite {
     
     val someExpr: ColumnExpr[Option[Char]] = bar.map(_.headOption)
     
-    assert(someExpr.orElse('z').eval(row) === 'h')
+    assert(someExpr.orElse('z').apply(row) === 'h')
     
     val noneExpr: ColumnExpr[Option[Char]] = foo.map(_ => None)
     
-    assert(noneExpr.orElse('z').eval(row) === 'z') 
+    assert(noneExpr.orElse('z').apply(row) === 'z') 
   }
   
   test("matches") {
@@ -205,9 +205,9 @@ final class ColumnExprTest extends FunSuite {
       val minus1 = lhs - LiteralColumnExpr(1)
       val times2 = lhs * LiteralColumnExpr(2)
       
-      assert(plus1.eval(nullRow) === 43)
-      assert(minus1.eval(nullRow) === 41)
-      assert(times2.eval(nullRow) === 84)
+      assert(plus1(nullRow) === 43)
+      assert(minus1(nullRow) === 41)
+      assert(times2(nullRow) === 84)
     }
     //longs
     {
@@ -217,9 +217,9 @@ final class ColumnExprTest extends FunSuite {
       val minus1 = lhs - LiteralColumnExpr(1L)
       val times2 = lhs * LiteralColumnExpr(2L)
       
-      assert(plus1.eval(nullRow) === 43L)
-      assert(minus1.eval(nullRow) === 41L)
-      assert(times2.eval(nullRow) === 84L)
+      assert(plus1(nullRow) === 43L)
+      assert(minus1(nullRow) === 41L)
+      assert(times2(nullRow) === 84L)
     }
     //floats
     {
@@ -230,10 +230,10 @@ final class ColumnExprTest extends FunSuite {
       val times2 = lhs * LiteralColumnExpr(2F)
       val divBy2 = lhs / LiteralColumnExpr(2F)
       
-      assert(plus1.eval(nullRow) === 43F)
-      assert(minus1.eval(nullRow) === 41F)
-      assert(times2.eval(nullRow) === 84F)
-      assert(divBy2.eval(nullRow) === 21F)
+      assert(plus1(nullRow) === 43F)
+      assert(minus1(nullRow) === 41F)
+      assert(times2(nullRow) === 84F)
+      assert(divBy2(nullRow) === 21F)
     }
     //doubles
     {
@@ -244,10 +244,10 @@ final class ColumnExprTest extends FunSuite {
       val times2 = lhs * LiteralColumnExpr(2D)
       val divBy2 = lhs / LiteralColumnExpr(2D)
       
-      assert(plus1.eval(nullRow) === 43D)
-      assert(minus1.eval(nullRow) === 41D)
-      assert(times2.eval(nullRow) === 84D)
-      assert(divBy2.eval(nullRow) === 21D)
+      assert(plus1(nullRow) === 43D)
+      assert(minus1(nullRow) === 41D)
+      assert(times2(nullRow) === 84D)
+      assert(divBy2(nullRow) === 21D)
     }
   }
   
@@ -261,9 +261,9 @@ final class ColumnExprTest extends FunSuite {
       val minus1 = lhs - 1
       val times2 = lhs * 2
       
-      assert(plus1.eval(nullRow) === 43)
-      assert(minus1.eval(nullRow) === 41)
-      assert(times2.eval(nullRow) === 84)
+      assert(plus1(nullRow) === 43)
+      assert(minus1(nullRow) === 41)
+      assert(times2(nullRow) === 84)
     }
     //longs
     {
@@ -273,9 +273,9 @@ final class ColumnExprTest extends FunSuite {
       val minus1 = lhs - 1L
       val times2 = lhs * 2L
       
-      assert(plus1.eval(nullRow) === 43L)
-      assert(minus1.eval(nullRow) === 41L)
-      assert(times2.eval(nullRow) === 84L)
+      assert(plus1(nullRow) === 43L)
+      assert(minus1(nullRow) === 41L)
+      assert(times2(nullRow) === 84L)
     }
     //floats
     {
@@ -286,10 +286,10 @@ final class ColumnExprTest extends FunSuite {
       val times2 = lhs * 2F
       val divBy2 = lhs / 2F
       
-      assert(plus1.eval(nullRow) === 43F)
-      assert(minus1.eval(nullRow) === 41F)
-      assert(times2.eval(nullRow) === 84F)
-      assert(divBy2.eval(nullRow) === 21F)
+      assert(plus1(nullRow) === 43F)
+      assert(minus1(nullRow) === 41F)
+      assert(times2(nullRow) === 84F)
+      assert(divBy2(nullRow) === 21F)
     }
     //doubles
     {
@@ -300,10 +300,10 @@ final class ColumnExprTest extends FunSuite {
       val times2 = lhs * 2D
       val divBy2 = lhs / 2D
       
-      assert(plus1.eval(nullRow) === 43D)
-      assert(minus1.eval(nullRow) === 41D)
-      assert(times2.eval(nullRow) === 84D)
-      assert(divBy2.eval(nullRow) === 21D)
+      assert(plus1(nullRow) === 43D)
+      assert(minus1(nullRow) === 41D)
+      assert(times2(nullRow) === 84D)
+      assert(divBy2(nullRow) === 21D)
     }
   }
   
@@ -391,7 +391,7 @@ final class ColumnExprTest extends FunSuite {
     assert(pexpr.isDefinedAt(rowInDomain) === true)
     assert(pexpr.isDefinedAt(rowNotInDomain) === false)
     
-    assert(pexpr.eval(rowInDomain) === 42)
+    assert(pexpr(rowInDomain) === 42)
     assert(pexpr(rowInDomain) === 42)
   }
   
@@ -400,15 +400,15 @@ final class ColumnExprTest extends FunSuite {
 
     assert(a.value === 42)
     assert(a.dataType === DataType.Int)
-    assert(a.asString.eval(nullRow) === "42")
-    assert(a.eval(nullRow) === 42)
+    assert(a.asString(nullRow) === "42")
+    assert(a(nullRow) === 42)
     assert(a.toString === "42")
     
     val b = LiteralColumnExpr("hello")
     
     assert(b.value === "hello")
-    assert(b.asString.eval(nullRow) === "hello")
-    assert(b.eval(nullRow) === "hello")
+    assert(b.asString(nullRow) === "hello")
+    assert(b(nullRow) === "hello")
     assert(b.toString === "hello")
   }
   
@@ -418,8 +418,8 @@ final class ColumnExprTest extends FunSuite {
     val row = Helpers.csvRow("bar" -> "42", "baz" -> "asdf", "foo" -> "lol")
     
     assert(cn.dataType === DataType.String)
-    assert(cn.asString.eval(row) === "lol")
-    assert(cn.eval(row) === "lol")
+    assert(cn.asString(row) === "lol")
+    assert(cn(row) === "lol")
   }
   
   test("trim") {
@@ -427,8 +427,8 @@ final class ColumnExprTest extends FunSuite {
 
     val row = Helpers.csvRow("bar" -> "42", "baz" -> "asdf  ", "foo" -> "lol")
     
-    assert(cn.eval(row) === "asdf  ")
-    assert(cn.trim.eval(row) === "asdf")
+    assert(cn(row) === "asdf  ")
+    assert(cn.trim.apply(row) === "asdf")
   }
   
   test("isEmpty") {

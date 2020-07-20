@@ -13,6 +13,8 @@ object Helpers {
     override def getFieldByIndex(i: Int): String = columnNamesToValues.unzip._2.apply(i)
     
     override def size: Int = columnNamesToValues.size
+    
+    override def recordNumber: Long = 1337
   }
   
   def csvRows(columnNames: Seq[String], values: Seq[String]*)(implicit discriminator: Int = 1): Seq[CsvRow] = {

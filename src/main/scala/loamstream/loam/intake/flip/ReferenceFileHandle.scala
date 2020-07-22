@@ -10,6 +10,11 @@ import java.nio.file.Path
 import java.lang.ref.WeakReference
 import java.io.InputStream
 import org.apache.commons.io.IOUtils
+import java.io.RandomAccessFile
+import java.nio.MappedByteBuffer
+import java.nio.channels.FileChannel
+import scala.util.Try
+import scala.util.control.NonFatal
 
 /**
  * @author clint
@@ -32,108 +37,60 @@ trait ReferenceFileHandle {
 }
 
 object ReferenceFileHandle {
-  def apply(file: java.io.File, inMemory: Boolean = false): ReferenceFileHandle = {
-    if(file.toString.endsWith("gz")) { fromGzippedFile(file, inMemory) }
-    else { fromUnzippedFile(file, inMemory) }
-  }
+  def apply(file: java.io.File): ReferenceFileHandle = new MemoryMapped(file)
   
-  def fromUnzippedFile(file: java.io.File, inMemory: Boolean = false): ReferenceFileHandle = {
-    fromStream(new FileInputStream(file), inMemory)
-  }
-  
-  def fromGzippedFile(file: java.io.File, inMemory: Boolean = false): ReferenceFileHandle = {
-    fromStream(new GZIPInputStream(new FileInputStream(file)), inMemory)
-  }
-  
-  private def fromStream(newStream: => InputStream, inMemory: Boolean): ReferenceFileHandle = {
-    if(inMemory) { new InMemory(newStream) }
-    else { new OnDisk(new InputStreamReader(newStream)) }
-  }
+  final class MemoryMapped(file: java.io.File) extends ReferenceFileHandle {
+    private[this] val raFile = new RandomAccessFile(file, "r") 
+		
+    private[this] val channel = raFile.getChannel
     
-  final class InMemory(newStream: => InputStream) extends ReferenceFileHandle {
-    //Use a WeakReference to store the data in a reference file, so that it may be garbage-collected.
-    //Since most input files are broadly sorted by chromosome, this means it's likely that only one reference
-    //file will be needed at once.  Allowing the files' data to ge GC'd means that only hundreds of megs need
-    //stay on the heap at any time, instead of ~4GB.
-    private var dataRef: WeakReference[Array[Byte]] = _
+    private[this] val size: Long = channel.size
     
-    private def dataOpt: Option[Array[Byte]] = Option(dataRef).flatMap(ref => Option(ref.get)) 
+    require(size <= Integer.MAX_VALUE, s"File '$file' is too big to be memory-mapped")
     
-    private def getData: Array[Byte] = dataOpt match {
-      case Some(data) => data
-      case None => {
-        val data: Array[Byte] = CanBeClosed.enclosed(newStream)(IOUtils.toByteArray)
-        
-        dataRef = new WeakReference(data)
-        
-        data
-      }
-    }
-    
-    private def withData[A](f: Array[Byte] => A): A = f(getData)
-    
-    override def readAt(i: Long): Option[Char] = {
-      require(i >= 0)
+		private[this] val mappedBuffer: MappedByteBuffer = channel.map(FileChannel.MapMode.READ_ONLY, 0, size)
+		
+		override def readAt(i: Long): Option[Char] = {
+      require(i >= 0, s"Can't read from negative position $i in file '$file'")
       
-      withData { data =>
-        //Note i.toInt, since JVM array indices are ints :\
-        //Note .toChar, which assumes that the bytes loaded from the reference files represent characters convertible
-        //to JVM (unicode) chars.  (Ultimately this boils down to something like Numeric[Byte].toInt.toChar .)
-        //This is the same assumption (basically) as was made by the Perl code this is based on.
-        if(i < data.length) { Some(data(i.toInt).toChar) }
-        else { None }
-      }
+      seekTo(i.toInt).flatMap(_ => get())
     }
     
     override def readAt(start: Long, length: Int): Option[String] = {
-      require(start >= 0)
+      require(start >= 0, s"Can't seek to negative position $start in file '$file'")
+      require(length >= 0, s"Can't read a negative number of bytes ($length) from file '$file'")
       
-      withData { data =>
-        val end = start + length
-        
-        val available = data.length - start
-        
-        if(end > data.length) { None }
-        else if(available < length) { None }
-        else {
-          val arr: Array[Byte] = Array.ofDim(length)
+      val arr: Array[Byte] = Array.ofDim(length)
+      
+      def read(): Option[String] = {
+        noneIfException {
+          mappedBuffer.get(arr, 0, length)
           
-          Array.copy(data, start.toInt, arr, 0, length)
-          
-          Some(arr.iterator.map(_.toChar).mkString) 
+          Some(arr.map(_.toChar).mkString)
         }
       }
+
+      seekTo(start.toInt).flatMap(_ => read())
     }
-  }
-  
-  final class OnDisk(makeNewReader: => Reader) extends ReferenceFileHandle {
-    override def readAt(i: Long): Option[Char] = {
-      CanBeClosed.enclosed(makeNewReader) { reader =>
-        val numSkipped = reader.skip(i)
-      
-        if(numSkipped == i) {
-          val ch = reader.read()
-          
-          if(ch >= 0) { Some(ch.toChar) }
-          else { None }
-        } 
-        else { None }
+		
+		private def noneIfException[A](f: => Option[A]): Option[A] = {
+      try { f }
+      catch { 
+        case NonFatal(_) => None
+      }
+    }
+		
+		private def seekTo(pos: Int): Option[Unit] = {
+      noneIfException {
+        mappedBuffer.position(pos)
+        
+        Some(())
       }
     }
     
-    override def readAt(start: Long, length: Int): Option[String] = {
-      val arr: Array[Char] = Array.ofDim(length)
-      
-      CanBeClosed.enclosed(makeNewReader) { reader =>
-        def read(): Option[String] = {
-          val numRead = reader.read(arr, 0, length)
-        
-          if(numRead == length) Some(arr.mkString) else None
-        }
-        
-        val numSkipped = reader.skip(start)
-        
-        if(numSkipped == start) read() else None
+    private def get(): Option[Char] = {
+      noneIfException {
+        Some(mappedBuffer.get().toChar)
       }
     }
   }

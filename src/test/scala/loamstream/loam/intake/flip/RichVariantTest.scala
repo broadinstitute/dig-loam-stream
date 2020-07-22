@@ -83,11 +83,8 @@ final class RichVariantTest extends FunSuite {
   }
   
   test("refChar") {
-    Helpers.withZippedAndUnzippedTestFiles("123456789") { testFile =>
-      val handle = {
-        if(testFile.getFileName.toString.endsWith("txt")) { ReferenceFileHandle(testFile.toFile) }
-        else { ReferenceFileHandle.fromGzippedFile(testFile.toFile) }
-      }
+    Helpers.withTestFile("123456789") { testFile =>
+      val handle = ReferenceFileHandle(testFile.toFile)
       
       val refFiles = new ReferenceFiles(Map("a" -> handle))
       
@@ -111,11 +108,8 @@ final class RichVariantTest extends FunSuite {
   }
   
   test("refFromReferenceGenome") {
-    Helpers.withZippedAndUnzippedTestFiles("123456789") { testFile =>
-      val handle = {
-        if(testFile.getFileName.toString.endsWith("txt")) { ReferenceFileHandle(testFile.toFile) }
-        else { ReferenceFileHandle.fromGzippedFile(testFile.toFile) }
-      }
+    Helpers.withTestFile("123456789") { testFile =>
+      val handle = ReferenceFileHandle(testFile.toFile)
       
       val refFiles = new ReferenceFiles(Map("a" -> handle))
       
@@ -139,11 +133,8 @@ final class RichVariantTest extends FunSuite {
   }
   
   test("altFromReferenceGenome") {
-    Helpers.withZippedAndUnzippedTestFiles("123456789") { testFile =>
-      val handle = {
-        if(testFile.getFileName.toString.endsWith("txt")) { ReferenceFileHandle(testFile.toFile) }
-        else { ReferenceFileHandle.fromGzippedFile(testFile.toFile) }
-      }
+    Helpers.withTestFile("123456789") { testFile =>
+      val handle = ReferenceFileHandle(testFile.toFile)
       
       val refFiles = new ReferenceFiles(Map("a" -> handle))
       

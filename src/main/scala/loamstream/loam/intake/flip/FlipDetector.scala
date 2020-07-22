@@ -59,7 +59,7 @@ object FlipDetector extends Loggable {
       def isTxtOrGzFile(file: Path): Boolean = {
         val fileName = file.getFileName.toString
         
-        fileName.endsWith("txt") || fileName.endsWith("gz")
+        fileName.endsWith("txt")// || fileName.endsWith("gz")
       }
       
       val txtFiles = referenceFiles.filter(isTxtOrGzFile)

@@ -14,6 +14,7 @@ sealed abstract class ColumnExpr[A : TypeTag] extends ColumnExpr.ArithmeticOps[A
   final override def apply(row: CsvRow): A = {
     try { eval(row) }
     catch {
+      case e: CsvProcessingException => throw e
       case NonFatal(e) => {
         throw new CsvProcessingException(s"Error processing record number ${row.recordNumber}; row is '$row':", row, e)
       }

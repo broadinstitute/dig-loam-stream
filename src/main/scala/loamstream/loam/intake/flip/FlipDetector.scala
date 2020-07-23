@@ -34,7 +34,7 @@ object FlipDetector extends Loggable {
       isVarDataType: Boolean = Defaults.isVarDataType,
       pathTo26kMap: Path = Defaults.pathTo26kMap) extends FlipDetector with Loggable {
     
-    override def isFlipped(variantId: String): Boolean = TimeUtils.time("Testing for flipped-ness", trace(_)) {
+    override def isFlipped(variantId: String): Boolean = {
       val isValidKey: Boolean = !variantsFrom26k.contains(variantId) && !variantId.contains(",")
       
       import Regexes.{ singleNucleotide, multiNucleotide }
@@ -51,7 +51,7 @@ object FlipDetector extends Loggable {
       }
     }
     
-    private def chromsFromReference: Iterator[String] = TimeUtils.time("Listing chrom files", debug(_)) {
+    private def chromsFromReference: Iterator[String] = {
       import scala.collection.JavaConverters._
           
       val referenceFiles = java.nio.file.Files.list(referenceDir).iterator.asScala
@@ -59,7 +59,7 @@ object FlipDetector extends Loggable {
       def isTxtOrGzFile(file: Path): Boolean = {
         val fileName = file.getFileName.toString
         
-        fileName.endsWith("txt") || fileName.endsWith("gz")
+        fileName.endsWith("txt")// || fileName.endsWith("gz")
       }
       
       val txtFiles = referenceFiles.filter(isTxtOrGzFile)
@@ -77,10 +77,14 @@ object FlipDetector extends Loggable {
       Set("X") ++ (1 to 22).map(_.toString) ++ chromsIfVarDataType
     }
   
-    private val variantsFrom26k: Set[String] = TimeUtils.time("Reading 26k map", debug(_)) {
+    private val variantsFrom26k: java.util.Set[String] = TimeUtils.time("Reading 26k map", trace(_)) {
       val iterator = CsvSource.fromFile(pathTo26kMap, CsvSource.Formats.tabDelimited).records
       
-      iterator.map(_.getFieldByIndex(1)).toSet
+      val result: java.util.Set[String] = new java.util.HashSet
+      
+      iterator.map(_.getFieldByIndex(1)).foreach(result.add)
+      
+      result
     }
   
     private lazy val referenceFiles = ReferenceFiles(referenceDir, knownChroms)

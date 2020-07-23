@@ -25,7 +25,7 @@ trait ColumnDef {
   final def getTypedValueFromSourceWhenFlipNeeded: RowParser[TypedData] = { row =>
     val expr: ColumnExpr[_] = getValueFromSourceWhenFlipNeeded.getOrElse(getValueFromSource)
     
-    val rawValue = expr.eval(row).toString
+    val rawValue = expr(row).toString
     val dt = dataTypeFlipped.getOrElse(dataType)
     
     TypedData(rawValue, dt)

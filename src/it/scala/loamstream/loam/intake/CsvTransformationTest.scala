@@ -145,6 +145,8 @@ final class CsvTransformationTest extends AggregatorIntakeTest {
         override def getFieldByIndex(i: Int): String = ???
         
         override def size: Int = ???
+        
+        override def recordNumber: Long = ???
       }
     }
     
@@ -327,8 +329,8 @@ object CsvTransformationTest {
       
       val sourceColumns = aggregator.SourceColumns(
           marker = Loam.ColumnNames.VARID,
-          pValue = Loam.ColumnNames.PValue,
-          zScore = Some(Loam.ColumnNames.OddsRatio),
+          pvalue = Loam.ColumnNames.PValue,
+          zscore = Some(Loam.ColumnNames.OddsRatio),
           stderr = Some(Loam.ColumnNames.SE),
           beta = Some(Loam.ColumnNames.OddsRatio),
           oddsRatio = Some(Loam.ColumnNames.OddsRatio),

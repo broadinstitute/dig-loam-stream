@@ -42,10 +42,9 @@ object ReferenceFiles {
           //prefer unzipped files, if both zipped and unzipped are present
           val path = if(exists(txtPath)) txtPath else gzPath
           
-          //NB: Keep reference files in memory for performance.  These files are large, but only hundreds of megs.
-          //Keeping them in memory results in a ~500x speedup, which makes the difference between processing a large
-          //input file in hundreds of hours and tens of minutes.
-          ReferenceFileHandle(path.toFile, inMemory = true)
+          //NB: Memory-map reference files for performance.  These files are large, but only hundreds of megs.
+          //Doing this results in a ~500x speedup compared to seeking into files with java.io.Readers.
+          ReferenceFileHandle(path.toFile)
         }
         
         chrom -> handle

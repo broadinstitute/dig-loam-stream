@@ -20,7 +20,7 @@ object Metric {
   def countGreaterThan(column: ColumnName)(threshold: Double): Metric[Int] = {
     val columnAsDouble = column.asDouble
     
-    Fold.countIf[CsvRow](row => columnAsDouble.eval(row) > threshold)
+    Fold.countIf[CsvRow](row => columnAsDouble(row) > threshold)
   }
   
   def fractionGreaterThan(column: ColumnName)(threshold: Double): Metric[Double] = {
@@ -92,7 +92,7 @@ object Metric {
       }
     }
     
-    def disagrees(row: CsvRow): Boolean = !agreesExpr.eval(row)
+    def disagrees(row: CsvRow): Boolean = !agreesExpr(row)
     
     Fold.countIf(disagrees)
   }
@@ -100,7 +100,7 @@ object Metric {
   def mean(columnExpr: ColumnExpr[_]): Metric[Double] = {
     val columnAsDouble = columnExpr.asString.asDouble
     
-    val sumFold: Fold[CsvRow, Double, Double] = Fold(0.0, _ + columnAsDouble.eval(_), identity)
+    val sumFold: Fold[CsvRow, Double, Double] = Fold(0.0, _ + columnAsDouble(_), identity)
     val countFold: Fold[CsvRow, Int, Int] = Fold.count
     
     Fold.combine(sumFold, countFold).map {

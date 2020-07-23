@@ -145,6 +145,8 @@ final class CsvTransformationTest extends AggregatorIntakeTest {
         override def getFieldByIndex(i: Int): String = ???
         
         override def size: Int = ???
+        
+        override def recordNumber: Long = ???
       }
     }
     

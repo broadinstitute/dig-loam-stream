@@ -14,61 +14,51 @@ import org.scalactic.source.Position.apply
  * Apr 1, 2020
  */
 final class ReferenceFileHandleTest extends FunSuite {
-  import Helpers.withZippedAndUnzippedTestFiles
+  import Helpers.withTestFile
   
   test("readAt(i)") {
-    withZippedAndUnzippedTestFiles("0123456789") { testFile =>
-      def doTest(inMemory: Boolean): Unit = {
-        val handle = ReferenceFileHandle(testFile.toFile, inMemory)
-        
-        intercept[Exception] {
-          handle.readAt(-100) === None
-        }
-        
-        intercept[Exception] {
-          handle.readAt(-1) === None
-        }
-        
-        assert(handle.readAt(0) === Some('0'))
-        assert(handle.readAt(5) === Some('5'))
-        assert(handle.readAt(1) === Some('1'))
-        assert(handle.readAt(9) === Some('9'))
-        
-        //EOF
-        assert(handle.readAt(10) === None) 
-        assert(handle.readAt(100) === None)
+    withTestFile("0123456789") { testFile =>
+      val handle = ReferenceFileHandle(testFile.toFile)
+      
+      intercept[Exception] {
+        handle.readAt(-100) === None
       }
       
-      doTest(inMemory = false)
-      doTest(inMemory = true)
+      intercept[Exception] {
+        handle.readAt(-1) === None
+      }
+      
+      assert(handle.readAt(0) === Some('0'))
+      assert(handle.readAt(5) === Some('5'))
+      assert(handle.readAt(1) === Some('1'))
+      assert(handle.readAt(9) === Some('9'))
+      
+      //EOF
+      assert(handle.readAt(10) === None) 
+      assert(handle.readAt(100) === None)
     }
   }
   
   test("readAt(i, length)") {
-    withZippedAndUnzippedTestFiles("0123456789") { testFile =>
-      def doTest(inMemory: Boolean): Unit = {
-        val handle = ReferenceFileHandle(testFile.toFile, inMemory)
-        
-        intercept[Exception] {
-          handle.readAt(-100, 2) === None
-        }
-        
-        intercept[Exception] {
-          handle.readAt(-1, 42) === None
-        }
-        
-        assert(handle.readAt(0, 1) === Some("0"))
-        assert(handle.readAt(5, 1) === Some("5"))
-        assert(handle.readAt(1, 1) === Some("1"))
-        assert(handle.readAt(9, 1) === Some("9"))
-        
-        //EOF
-        assert(handle.readAt(10, 1) === None) 
-        assert(handle.readAt(100) === None)
+    withTestFile("0123456789") { testFile =>
+      val handle = ReferenceFileHandle(testFile.toFile)
+      
+      intercept[Exception] {
+        handle.readAt(-100, 2) === None
       }
       
-      doTest(inMemory = false)
-      doTest(inMemory = true)
+      intercept[Exception] {
+        handle.readAt(-1, 42) === None
+      }
+      
+      assert(handle.readAt(0, 1) === Some("0"))
+      assert(handle.readAt(5, 1) === Some("5"))
+      assert(handle.readAt(1, 1) === Some("1"))
+      assert(handle.readAt(9, 1) === Some("9"))
+      
+      //EOF
+      assert(handle.readAt(10, 1) === None) 
+      assert(handle.readAt(100) === None)
     }
   }
 }

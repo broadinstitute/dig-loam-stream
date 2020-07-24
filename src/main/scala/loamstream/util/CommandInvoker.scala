@@ -61,7 +61,7 @@ object CommandInvoker {
       maxRetries: Int,
       delayStart: Duration = Retrying.defaultDelayStart,
       delayCap: Duration = Retrying.defaultDelayCap,
-      scheduler: Scheduler)(implicit ec: ExecutionContext) extends (SuccessfulInvocationFn[A]) with Loggable {
+      scheduler: Scheduler)(implicit ec: ExecutionContext) extends CommandInvoker[A] with Loggable {
   
     override def apply(param: A): Future[RunResults.Successful] = runCommand(param)
   

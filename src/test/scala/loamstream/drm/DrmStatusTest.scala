@@ -29,6 +29,15 @@ final class DrmStatusTest extends FunSuite {
       Some(broadQueue),
       LocalDateTime.now,
       LocalDateTime.now)
+  
+  test("fromExitCode") {
+    assert(fromExitCode(0) === Done)
+    
+    assert(fromExitCode(-1) === Failed)
+    assert(fromExitCode(-100) === Failed)
+    assert(fromExitCode(1) === Failed)
+    assert(fromExitCode(42) === Failed)
+  }
       
   test("fromUgerStatusCode") {
     import org.ggf.drmaa.Session._

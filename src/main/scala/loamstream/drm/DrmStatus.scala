@@ -3,6 +3,7 @@ package loamstream.drm
 import loamstream.model.jobs.{JobResult, JobStatus}
 import org.ggf.drmaa.Session
 import loamstream.model.execute.Resources.DrmResources
+import loamstream.util.ExitCodes
 
 /**
  * @author clint
@@ -59,6 +60,8 @@ object DrmStatus {
     case UNDETERMINED | _                                           => Undetermined
   }
 
+  def fromExitCode(exitCode: Int): DrmStatus = if(ExitCodes.isSuccess(exitCode)) DrmStatus.Done else DrmStatus.Failed
+  
   def toJobStatus(status: DrmStatus): JobStatus = status match {
     case Done                                          => JobStatus.WaitingForOutputs
     case CommandResult(exitStatus)                     => JobStatus.fromExitCode(exitStatus)

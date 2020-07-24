@@ -76,7 +76,7 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
       varIdColumnDef: SourcedColumnDef, 
       otherColumnDefs: SourcedColumnDef*) extends Loggable {
     
-    def using(flipDetector: FlipDetector)(implicit scriptContext: LoamScriptContext): NativeTool = {
+    def using(flipDetector: => FlipDetector)(implicit scriptContext: LoamScriptContext): NativeTool = {
       //TODO: How to wire up inputs (if any)?
       val tool = NativeTool {
         TimeUtils.time(s"Producing ${dest.path}", info(_)) {

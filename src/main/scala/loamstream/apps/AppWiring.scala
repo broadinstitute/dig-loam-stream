@@ -22,8 +22,6 @@ import loamstream.db.slick.DbType
 import loamstream.db.slick.SlickLoamDao
 
 import loamstream.drm.AccountingClient
-import loamstream.drm.Drmaa1Client
-import loamstream.drm.DrmaaPoller
 import loamstream.drm.DrmChunkRunner
 import loamstream.drm.DrmSystem
 import loamstream.drm.JobMonitor
@@ -82,7 +80,6 @@ import loamstream.model.execute.RequiresPresentInputsJobCanceler
 import loamstream.model.execute.JobCanceler
 import loamstream.conf.Locations
 import loamstream.drm.lsf.BacctAccountingClient
-import loamstream.drm.DrmaaClient
 import loamstream.model.execute.FileSystemExecutionRecorder
 import loamstream.googlecloud.HailCtlDataProcClient
 import loamstream.googlecloud.HailConfig
@@ -90,6 +87,10 @@ import loamstream.model.jobs.JobOracle
 import scala.concurrent.ExecutionContext
 import loamstream.drm.SessionSource
 import loamstream.drm.uger.QdelJobKiller
+import loamstream.drm.uger.QstatQacctPoller
+import loamstream.drm.uger.Qsub
+import loamstream.drm.uger.QsubJobSubmitter
+import loamstream.drm.uger.QconfSessionSource
 
 
 /**
@@ -380,13 +381,9 @@ object AppWiring extends Loggable {
     } yield {
       debug("Creating Uger ChunkRunner...")
 
-      val drmaaClient = new Drmaa1Client(
-          UgerNativeSpecBuilder(ugerConfig),
-          SessionSource.default(ugerConfig))
-
       import loamstream.model.execute.ExecuterHelpers._
 
-      val poller = new DrmaaPoller(drmaaClient)
+      val poller = QstatQacctPoller.fromExecutables()
 
       val (scheduler, schedulerHandle) = RxSchedulers.backedByThreadPool(threadPoolSize)
 
@@ -396,7 +393,7 @@ object AppWiring extends Loggable {
         
         val jobMonitor = new JobMonitor(scheduler, poller, pollingFrequencyInHz)
 
-        val jobSubmitter = JobSubmitter.Drmaa(drmaaClient, ugerConfig)
+        val jobSubmitter = QsubJobSubmitter.fromExecutable(ugerConfig)
         
         val accountingClient = QacctAccountingClient.useActualBinary(ugerConfig, scheduler)
         
@@ -408,10 +405,11 @@ object AppWiring extends Loggable {
             jobSubmitter = jobSubmitter, 
             jobMonitor = jobMonitor,
             accountingClient = accountingClient,
-            jobKiller = QdelJobKiller.fromExecutable())
+            jobKiller = QdelJobKiller.fromExecutable(),
+            sessionSource = QconfSessionCreator.fromExecutable(ugerConfig))
       }
 
-      val handles = Seq(schedulerHandle, ugerRunner, drmaaClient)
+      val handles = Seq(schedulerHandle, ugerRunner)
 
       (ugerRunner, handles)
     }

@@ -47,7 +47,7 @@ final class Drmaa1Client(
    * We use one Session per client to ensure that all operations performed by this instance use the same Session.
    * We wrap the Session in a ValueBox to make it easier to synchronize access to it.   
    */
-  private[this] lazy val sessionBox: ValueBox[Session] = ValueBox(sessionSource.getSession)
+  private[this] lazy val sessionBox: ValueBox[Session] = ValueBox(???)
 
   //Latch to ensure we only stop() once
   private[this] val stopLatch: OneTimeLatch = new OneTimeLatch

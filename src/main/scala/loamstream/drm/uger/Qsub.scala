@@ -49,6 +49,8 @@ object Qsub extends Loggable {
       Seq(
         "-si",
         Sessions.sessionId,
+        "-t",
+        s"1-${taskArray.size}",
         "-binding",
         s"linear:${numCores}",
         "-pe",
@@ -57,13 +59,12 @@ object Qsub extends Loggable {
       queuePart ++
       Seq(
         "-l",
-        runTimePart,
-        memPart) ++
+        s"${runTimePart},${memPart}") ++
       osPart :+ 
       taskArray.drmScriptFile.toAbsolutePath.toString
     }
 
-    staticPartFromUgerConfig.toList ++ dynamicPart
+    actualExecutable +: (staticPartFromUgerConfig.toList ++ dynamicPart)
   }
     
   final def commandInvoker(
@@ -74,7 +75,7 @@ object Qsub extends Loggable {
     def invocationFn(params: Params): Try[RunResults] = {
       val tokens = makeTokens(actualExecutable, params)
       
-      trace(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
+      debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
       
       Processes.runSync(actualExecutable, tokens)
     }

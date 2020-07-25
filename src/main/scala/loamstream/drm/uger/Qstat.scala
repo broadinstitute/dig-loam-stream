@@ -23,7 +23,7 @@ object Qstat extends Loggable {
     def invocationFn(ignored: Unit): Try[RunResults] = {
       val tokens = makeTokens(actualExecutable)
       
-      trace(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
+      debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
       
       Processes.runSync(actualExecutable, tokens)
     }

@@ -15,6 +15,8 @@ import loamstream.util.Tries
 import rx.lang.scala.Observable
 import rx.lang.scala.schedulers.IOScheduler
 import loamstream.drm.SessionSource
+import loamstream.conf.UgerConfig
+import scala.util.control.NonFatal
 
 /**
  * @author clint
@@ -162,7 +164,19 @@ object QstatQacctPoller extends Loggable {
     def parseQacctResults(t: (DrmTaskId, Seq[String])): (DrmTaskId, Try[DrmStatus]) = {
       import loamstream.util.Tuples.Implicits.Tuple2Ops
         
-      t.mapSecond(getExitStatus(_).map(DrmStatus.fromExitCode))
+      val (tid, _) = t
+      
+      def parseOutputLines(lines: Seq[String]): Try[DrmStatus] = {
+        getExitStatus(lines).map(DrmStatus.fromExitCode).recover {
+          case NonFatal(e) => {
+            warn(s"Error parsing qacct output for ${tid}: ", e)
+            
+            DrmStatus.Undetermined
+          }
+        }
+      }
+      
+      t.mapSecond(parseOutputLines)
     }
     
     def getExitStatus(qacctOutput: Seq[String]): Try[Int] = {

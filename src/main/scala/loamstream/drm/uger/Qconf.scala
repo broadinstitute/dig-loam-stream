@@ -17,7 +17,7 @@ import loamstream.util.Options
  */
 object Qconf extends Loggable {
   private[uger] def makeCreateTokens(actualExecutable: String = "qconf"): Seq[String] = {
-    Seq(actualExecutable, "-cli")
+    Seq(actualExecutable, "-csi")
   }
   
   private[uger] def makeDeleteTokens(actualExecutable: String = "qconf", sessionId: String): Seq[String] = {

@@ -5,6 +5,7 @@ import scala.util.Success
 
 import loamstream.drm.JobKiller
 import loamstream.util.Loggable
+import loamstream.drm.SessionSource
 
 /**
  * @author clint
@@ -20,7 +21,8 @@ final class BkillJobKiller(invocationFn: JobKiller.InvocationFn) extends JobKill
 }
 
 object BkillJobKiller extends JobKiller.Companion[BkillJobKiller]("bkill", new BkillJobKiller(_)) {
-  override protected[lsf] def makeTokens(actualExecutable: String, username: String): Seq[String] = {
-    Seq(actualExecutable, "-u", username, "0")
-  }
+  override protected[lsf] def makeTokens(
+      sessionSource: SessionSource, 
+      actualExecutable: String, 
+      username: String): Seq[String] = Seq(actualExecutable, "-u", username, "0")
 }

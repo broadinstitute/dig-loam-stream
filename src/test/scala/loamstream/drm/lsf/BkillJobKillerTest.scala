@@ -6,6 +6,7 @@ import org.scalatest.FunSuite
 
 import loamstream.util.RunResults
 import loamstream.util.Tries
+import loamstream.drm.SessionSource
 
 /**
  * @author clint
@@ -16,7 +17,7 @@ final class BkillJobKillerTest extends FunSuite {
     val executable = "foo"
     val user = "asdf"
     
-    assert(BkillJobKiller.makeTokens(executable, user) === Seq(executable, "-u", user, "0"))
+    assert(BkillJobKiller.makeTokens(SessionSource.Noop, executable, user) === Seq(executable, "-u", user, "0"))
   }
   
   test("killAllJobs - happy path") {

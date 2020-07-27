@@ -6,6 +6,7 @@ import loamstream.util.CommandInvoker
 import loamstream.util.Loggable
 import loamstream.util.Processes
 import scala.concurrent.ExecutionContext
+import loamstream.drm.SessionSource
 
 /**
  * @author clint
@@ -14,14 +15,16 @@ import scala.concurrent.ExecutionContext
 object Qstat extends Loggable {
   type InvocationFn[A] = A => Try[RunResults]
   
-  private[uger] def makeTokens(actualExecutable: String): Seq[String] = {
-    Seq(actualExecutable, "-si", Sessions.sessionId)
+  private[uger] def makeTokens(actualExecutable: String, sessionSource: SessionSource): Seq[String] = {
+    Seq(actualExecutable, "-si", sessionSource.getSession)
   }
     
-  final def commandInvoker(actualExecutable: String = "qstat")(implicit ec: ExecutionContext): CommandInvoker[Unit] = {
+  final def commandInvoker(
+      sessionSource: SessionSource,
+      actualExecutable: String = "qstat")(implicit ec: ExecutionContext): CommandInvoker[Unit] = {
     //Unit and ignored args are obviously a smell, but a more principled refactoring will have to wait.
     def invocationFn(ignored: Unit): Try[RunResults] = {
-      val tokens = makeTokens(actualExecutable)
+      val tokens = makeTokens(actualExecutable, sessionSource)
       
       debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
       

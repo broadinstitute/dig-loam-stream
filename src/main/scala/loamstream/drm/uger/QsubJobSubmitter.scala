@@ -19,6 +19,7 @@ import loamstream.drm.DrmTaskId
 import loamstream.util.Options
 import loamstream.util.Tries
 import scala.concurrent.ExecutionContext
+import loamstream.drm.SessionSource
 
 
 /**
@@ -52,12 +53,18 @@ object QsubJobSubmitter extends Loggable {
   
   type SubmissionFn = (DrmSettings, DrmTaskArray) => Try[RunResults]
   
-  def fromExecutable(ugerConfig: UgerConfig, actualExecutable: String = "qsub"): QsubJobSubmitter = {
+  def fromExecutable(
+      sessionSource: SessionSource, 
+      ugerConfig: UgerConfig, 
+      actualExecutable: String = "qsub"): QsubJobSubmitter = {
+    
     //TODO
     val scheduler = IOScheduler()
     import scala.concurrent.ExecutionContext.Implicits._
     
-    new QsubJobSubmitter(Qsub.commandInvoker(actualExecutable, ugerConfig, scheduler), ugerConfig)
+    new QsubJobSubmitter(
+        Qsub.commandInvoker(sessionSource, ugerConfig, actualExecutable, scheduler), 
+        ugerConfig)
   }
   
   private object Regexes {

@@ -16,17 +16,22 @@ import loamstream.util.Options
  * Jul 24, 2020
  */
 object Qconf extends Loggable {
-  private[uger] def makeTokens(actualExecutable: String = "qconf"): Seq[String] = {
+  private[uger] def makeCreateTokens(actualExecutable: String = "qconf"): Seq[String] = {
     Seq(actualExecutable, "-cli")
   }
   
-  private[uger] def commandInvoker(
+  private[uger] def makeDeleteTokens(actualExecutable: String = "qconf", sessionId: String): Seq[String] = {
+    Seq(actualExecutable, "-dsi", sessionId)
+  }
+  
+  private[uger] def createCommandInvoker(
       maxRetries: Int, 
       actualExecutable: String = "qconf",
       //TODO
       scheduler: Scheduler = IOScheduler())(implicit ec: ExecutionContext): CommandInvoker[Unit] = {
+    
     def invocationFn(ignored: Unit): Try[RunResults] = {
-      val tokens = makeTokens(actualExecutable)
+      val tokens = makeCreateTokens(actualExecutable)
       
       debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
       
@@ -34,6 +39,25 @@ object Qconf extends Loggable {
     }
     
     val justOnce = new CommandInvoker.JustOnce[Unit](actualExecutable, invocationFn)
+    
+    new CommandInvoker.Retrying(justOnce, maxRetries, scheduler = scheduler)
+  }
+  
+  private[uger] def deleteCommandInvoker(
+      maxRetries: Int, 
+      actualExecutable: String = "qconf",
+      //TODO
+      scheduler: Scheduler = IOScheduler())(implicit ec: ExecutionContext): CommandInvoker[String] = {
+    
+    def invocationFn(sessionId: String): Try[RunResults] = {
+      val tokens = makeDeleteTokens(actualExecutable, sessionId)
+      
+      debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
+      
+      Processes.runSync(actualExecutable, tokens)
+    }
+    
+    val justOnce = new CommandInvoker.JustOnce[String](actualExecutable, invocationFn)
     
     new CommandInvoker.Retrying(justOnce, maxRetries, scheduler = scheduler)
   }

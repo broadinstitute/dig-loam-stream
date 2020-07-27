@@ -43,15 +43,11 @@ final case class DrmChunkRunner(
     jobSubmitter: JobSubmitter,
     jobMonitor: JobMonitor,
     accountingClient: AccountingClient,
-    jobKiller: JobKiller,
-    sessionSource: SessionSource = SessionSource.Noop
+    jobKiller: JobKiller
   )(implicit ec: ExecutionContext) extends ChunkRunnerFor(environmentType) with 
         Terminable.StopsComponents with Loggable {
 
   require(environmentType.isUger || environmentType.isLsf, "Only UGER and LSF environments are supported")
-  
-  //TODO: FIXME
-  loamstream.drm.uger.Sessions.init(sessionSource.getSession)
   
   import DrmChunkRunner._
 

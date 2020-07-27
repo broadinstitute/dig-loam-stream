@@ -14,6 +14,7 @@ import loamstream.util.Options
 import loamstream.util.Tries
 import rx.lang.scala.Observable
 import rx.lang.scala.schedulers.IOScheduler
+import loamstream.drm.SessionSource
 
 /**
  * @author clint
@@ -68,6 +69,7 @@ final class QstatQacctPoller private[uger] (
 object QstatQacctPoller extends Loggable {
     
   def fromExecutables(
+      sessionSource: SessionSource,
       actualQstatExecutable: String = "qstat",
       actualQacctExecutable: String = "qacct")(implicit ec: ExecutionContext): QstatQacctPoller = {
     
@@ -75,7 +77,7 @@ object QstatQacctPoller extends Loggable {
     import Qstat.{ commandInvoker => qstatCommandInvoker }
     
     val qacct = qacctCommandInvoker(0, "qacct", IOScheduler())
-    val qstat = qstatCommandInvoker(actualQstatExecutable)
+    val qstat = qstatCommandInvoker(sessionSource, actualQstatExecutable)
     
     new QstatQacctPoller(qstat, qacct)
   }

@@ -11,6 +11,7 @@ import loamstream.model.execute.DrmSettings
 import loamstream.util.Processes
 import rx.lang.scala.schedulers.IOScheduler
 import rx.lang.scala.Scheduler
+import loamstream.drm.SessionSource
 
 /**
  * @author clint
@@ -21,7 +22,7 @@ object Qsub extends Loggable {
   
   final case class Params(ugerConfig: UgerConfig, settings: DrmSettings, taskArray: DrmTaskArray)
   
-  private[uger] def makeTokens(actualExecutable: String, params: Params): Seq[String] = {
+  private[uger] def makeTokens(sessionSource: SessionSource, actualExecutable: String, params: Params): Seq[String] = {
     import params.{ ugerConfig, settings, taskArray } 
     
     val staticPartFromUgerConfig = {
@@ -48,7 +49,7 @@ object Qsub extends Loggable {
       
       Seq(
         "-si",
-        Sessions.sessionId,
+        sessionSource.getSession,
         "-t",
         s"1-${taskArray.size}",
         "-binding",
@@ -68,12 +69,13 @@ object Qsub extends Loggable {
   }
     
   final def commandInvoker(
-      actualExecutable: String = "qsub",
+      sessionSource: SessionSource,
       ugerConfig: UgerConfig,
+      actualExecutable: String = "qsub",
       scheduler: Scheduler = IOScheduler())(implicit ec: ExecutionContext): CommandInvoker[Params] = {
 
     def invocationFn(params: Params): Try[RunResults] = {
-      val tokens = makeTokens(actualExecutable, params)
+      val tokens = makeTokens(sessionSource, actualExecutable, params)
       
       debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
       

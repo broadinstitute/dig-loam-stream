@@ -6,6 +6,7 @@ import scala.util.Success
 import loamstream.drm.JobKiller
 import loamstream.util.Loggable
 import loamstream.util.Users
+import loamstream.drm.SessionSource
 
 /**
  * @author clint
@@ -21,7 +22,8 @@ final class QdelJobKiller(invocationFn: JobKiller.InvocationFn) extends JobKille
 }
 
 object QdelJobKiller extends JobKiller.Companion[QdelJobKiller]("qdel", new QdelJobKiller(_)) {
-  override protected[drm] def makeTokens(actualExecutable: String, username: String): Seq[String] = {
-    Seq(actualExecutable, "-u", username, "-si", Sessions.sessionId)
-  }
+  override protected[drm] def makeTokens(
+      sessionSource: SessionSource,
+      actualExecutable: String, 
+      username: String): Seq[String] = Seq(actualExecutable, "-u", username, "-si", sessionSource.getSession)
 }

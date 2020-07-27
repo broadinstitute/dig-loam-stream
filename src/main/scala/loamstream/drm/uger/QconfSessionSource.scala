@@ -14,24 +14,38 @@ import rx.lang.scala.Scheduler
  * @author clint
  * Jul 24, 2020
  */
-final class QconfSessionSource(invoker: CommandInvoker[Unit])(implicit ec: ExecutionContext) extends SessionSource {
+final class QconfSessionSource(
+    createInvoker: CommandInvoker[Unit],
+    deleteInvoker: CommandInvoker[String])(implicit ec: ExecutionContext) extends SessionSource {
+  
   override lazy val getSession: String = {
-    val resultsFuture = invoker.apply(())
+    val resultsFuture = createInvoker.apply(())
     
     val sessionIdFuture = resultsFuture.map(_.stdout).flatMap(lines => Future.fromTry(Qconf.parseOutput(lines)))
     
-    //TODOs
+    //TODO
     Await.result(sessionIdFuture, Duration.Inf)
+  }
+  
+  override def stop(): Unit = {
+    val resultsFuture = deleteInvoker.apply(getSession)
+    
+    //TODO
+    Await.result(resultsFuture, Duration.Inf)
   }
 }
 
-object QconfSessionCreator {
+object QconfSessionSource {
   def fromExecutable(
       ugerConfig: UgerConfig, 
       actualExecutable: String = "qconf",
       //TODO
       scheduler: Scheduler = IOScheduler())(implicit ec: ExecutionContext): QconfSessionSource = {
     
-    new QconfSessionSource(Qconf.commandInvoker(ugerConfig.maxJobSubmissionRetries, actualExecutable, scheduler))
+    val createInvoker= Qconf.createCommandInvoker(ugerConfig.maxJobSubmissionRetries, actualExecutable, scheduler)
+    
+    val deleteInvoker = Qconf.deleteCommandInvoker(ugerConfig.maxJobSubmissionRetries, actualExecutable, scheduler)
+    
+    new QconfSessionSource(createInvoker, deleteInvoker)
   }
 }

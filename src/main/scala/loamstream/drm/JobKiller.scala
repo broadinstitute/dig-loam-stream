@@ -20,14 +20,15 @@ object JobKiller {
       defaultExecutable: String,
       constructor: InvocationFn => A) {
     
-    protected def makeTokens(actualExecutable: String, username: String): Seq[String]
+    protected def makeTokens(sessionSource: SessionSource, actualExecutable: String, username: String): Seq[String]
     
     def fromExecutable(
+        sessionSource: SessionSource,
         actualExecutable: String = defaultExecutable,
         username: String = Users.currentUser): A = {
         
       val killJobs: InvocationFn = { () =>
-        Processes.runSync(makeTokens(actualExecutable, username))
+        Processes.runSync(makeTokens(sessionSource, actualExecutable, username))
       }
       
       constructor(killJobs)

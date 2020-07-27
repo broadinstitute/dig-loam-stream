@@ -53,16 +53,18 @@ final class QstatQacctPoller private[uger] (
       
       //TODO: chunk up not-found task ids, to avoid running qacct too many times?
       
-      val qacctOutputsObs = Observables.merge(notFoundByQstat.iterator.map(invokeQacctFor).toIterable)
+      val qacctResultsObs = Observables.merge(notFoundByQstat.iterator.map(invokeQacctFor).toIterable)
       
-      val qacctResultsObs = qacctOutputsObs.map(QacctSupport.parseQacctResults)
-      
-      Observable.from(byTaskId) ++ qacctResultsObs
+      Observable.from(byTaskId) ++ qacctResultsObs.map { case (tid, status) => (tid, Success(status)) }
     }
   }
   
-  private def invokeQacctFor(drmTaskId: DrmTaskId)(implicit ec: ExecutionContext): Observable[(DrmTaskId, Seq[String])] = {
-    Observable.from(qacctInvoker(drmTaskId)).map(drmTaskId -> _.stdout)
+  private def invokeQacctFor(drmTaskId: DrmTaskId)(implicit ec: ExecutionContext): Observable[(DrmTaskId, DrmStatus)] = {
+    val f = qacctInvoker(drmTaskId).map(drmTaskId -> _.stdout).map(QacctSupport.parseQacctResults).recover {
+      case NonFatal(e) => drmTaskId -> DrmStatus.Undetermined 
+    }
+    
+    Observable.from(f)
   }
   
   override def stop(): Unit = ()
@@ -161,19 +163,13 @@ object QstatQacctPoller extends Loggable {
       val exitStatus = "exit_status\\s+(.+?)$".r
     }
     
-    def parseQacctResults(t: (DrmTaskId, Seq[String])): (DrmTaskId, Try[DrmStatus]) = {
+    def parseQacctResults(t: (DrmTaskId, Seq[String])): (DrmTaskId, DrmStatus) = {
       import loamstream.util.Tuples.Implicits.Tuple2Ops
         
       val (tid, _) = t
       
-      def parseOutputLines(lines: Seq[String]): Try[DrmStatus] = {
-        getExitStatus(lines).map(DrmStatus.fromExitCode).recover {
-          case NonFatal(e) => {
-            warn(s"Error parsing qacct output for ${tid}: ", e)
-            
-            DrmStatus.Undetermined
-          }
-        }
+      def parseOutputLines(lines: Seq[String]): DrmStatus = {
+        getExitStatus(lines).map(DrmStatus.fromExitCode).getOrElse(DrmStatus.Undetermined)
       }
       
       t.mapSecond(parseOutputLines)

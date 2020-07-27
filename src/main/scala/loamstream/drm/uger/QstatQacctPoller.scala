@@ -24,7 +24,7 @@ import scala.util.control.NonFatal
  */
 final class QstatQacctPoller private[uger] (
     qstatInvoker: CommandInvoker[Unit],
-    qacctInvoker: CommandInvoker[DrmTaskId]) extends Poller with Loggable {
+    qacctInvoker: CommandInvoker[DrmTaskId])(implicit ec: ExecutionContext) extends Poller with Loggable {
   
   import QstatQacctPoller._
   
@@ -37,8 +37,6 @@ final class QstatQacctPoller private[uger] (
      * 19115592 0.56956 test.sh    cgilbert     r     07/24/2020 11:51:18 broad@uger-c104.broadinstitute                                    1 2
      *         
      */
-    //TODO
-    import scala.concurrent.ExecutionContext.Implicits.global
     
     val qstatResultObs = Observable.from(qstatInvoker.apply(()))
 
@@ -59,12 +57,16 @@ final class QstatQacctPoller private[uger] (
     }
   }
   
-  private def invokeQacctFor(drmTaskId: DrmTaskId)(implicit ec: ExecutionContext): Observable[(DrmTaskId, DrmStatus)] = {
-    val f = qacctInvoker(drmTaskId).map(drmTaskId -> _.stdout).map(QacctSupport.parseQacctResults).recover {
-      case NonFatal(e) => drmTaskId -> DrmStatus.Undetermined 
+  private def invokeQacctFor(
+      drmTaskId: DrmTaskId)(implicit ec: ExecutionContext): Observable[(DrmTaskId, DrmStatus)] = {
+    
+    val taskIdToStatusFuture = {
+      qacctInvoker(drmTaskId).map(drmTaskId -> _.stdout).map(QacctSupport.parseQacctResults).recover {
+        case NonFatal(e) => drmTaskId -> DrmStatus.Undetermined 
+      }
     }
     
-    Observable.from(f)
+    Observable.from(taskIdToStatusFuture)
   }
   
   override def stop(): Unit = ()

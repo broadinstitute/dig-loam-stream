@@ -173,7 +173,7 @@ object QstatQacctPoller extends Loggable {
       val (tid, _) = t
       
       def parseOutputLines(lines: Seq[String]): DrmStatus = {
-        getExitStatus(lines).map(DrmStatus.fromExitCode).getOrElse(DrmStatus.Undetermined)
+        getExitStatus(lines).map(DrmStatus.CommandResult).getOrElse(DrmStatus.Undetermined)
       }
       
       t.mapSecond(parseOutputLines)

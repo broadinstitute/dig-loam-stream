@@ -30,15 +30,6 @@ final class DrmStatusTest extends FunSuite {
       LocalDateTime.now,
       LocalDateTime.now)
   
-  test("fromExitCode") {
-    assert(fromExitCode(0) === Done)
-    
-    assert(fromExitCode(-1) === Failed)
-    assert(fromExitCode(-100) === Failed)
-    assert(fromExitCode(1) === Failed)
-    assert(fromExitCode(42) === Failed)
-  }
-      
   test("toJobStatus") {
     assert(toJobStatus(Done) === JobStatus.WaitingForOutputs)
     

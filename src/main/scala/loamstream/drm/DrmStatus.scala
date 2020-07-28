@@ -49,8 +49,6 @@ object DrmStatus {
   case object Suspended extends DrmStatus
   case object Undetermined extends DrmStatus
 
-  def fromExitCode(exitCode: Int): DrmStatus = if(ExitCodes.isSuccess(exitCode)) DrmStatus.Done else DrmStatus.Failed
-  
   def toJobStatus(status: DrmStatus): JobStatus = status match {
     case Done                                          => JobStatus.WaitingForOutputs
     case CommandResult(exitStatus)                     => JobStatus.fromExitCode(exitStatus)

@@ -44,30 +44,28 @@ object Qsub extends Loggable {
       val mem: Int = memoryPerCore.gb.toInt
 
       val queuePart = queue.map(q => Seq("-q", q.name)).getOrElse(Nil)
-      
-      val osPart = containerParams match {
-        case Some(_) => Seq("-l", "os=RedHat7")
-        case None => Nil
-      }
+
+      val osPart = containerParams.map(_ => Seq("-l", "os=RedHat7")).getOrElse(Nil)
       
       val memPart = s"h_vmem=${mem}G"
-      
       val runTimePart = s"h_rt=${runTimeInHours}:0:0"
+      val runtimeAndMemPart = Seq("-l", s"${runTimePart},${memPart}")
+
+      val sessionPart = Seq("-si", sessionSource.getSession)
+      val taskArrayPart = Seq("-t", s"1-${taskArraySize}")
       
-      Seq(
-        "-si",
-        sessionSource.getSession,
-        "-t",
-        s"1-${taskArraySize}",
+      val numCoresPart = Seq(
         "-binding",
         s"linear:${numCores}",
         "-pe",
         "smp",
-        numCores.toString) ++
+        numCores.toString)
+      
+      sessionPart ++
+      taskArrayPart ++
+      numCoresPart ++
       queuePart ++
-      Seq(
-        "-l",
-        s"${runTimePart},${memPart}") ++
+      runtimeAndMemPart ++
       osPart :+ 
       drmScriptFile.toAbsolutePath.toString
     }

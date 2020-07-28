@@ -12,10 +12,7 @@ final class QstatTest extends FunSuite {
   test("makeTokens") {
     import Qstat.makeTokens
     
-    val sessionSource: SessionSource = new SessionSource {
-      override def getSession: String = "lalala"
-      override def stop(): Unit = ()
-    }
+    val sessionSource = MockSessionSource("lalala")
     
     assert(makeTokens("foo", sessionSource) === Seq("foo", "-si", "lalala"))
   }

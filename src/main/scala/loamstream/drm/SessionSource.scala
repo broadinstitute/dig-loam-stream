@@ -3,9 +3,6 @@ package loamstream.drm
 import scala.concurrent.duration.Duration
 import scala.util.Try
 
-import org.ggf.drmaa.Session
-import org.ggf.drmaa.SessionFactory
-
 import loamstream.conf.DrmConfig
 import loamstream.util.CommandInvoker
 import loamstream.util.Loggable
@@ -22,7 +19,7 @@ trait SessionSource extends Terminable {
 
 object SessionSource extends Loggable {
   object Noop extends SessionSource {
-    override def getSession: String = ""
+    override def getSession: String = "ls"
     
     override def stop(): Unit = ()
   }

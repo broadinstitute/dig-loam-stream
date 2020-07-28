@@ -1,6 +1,5 @@
 package loamstream.drm.uger
 
-import org.ggf.drmaa.JobTemplate
 import org.scalatest.FunSuite
 
 import loamstream.TestHelpers
@@ -51,7 +50,7 @@ final class UgerPathBuilderTest extends FunSuite {
     
     val pathBuilder = new UgerPathBuilder(params)
     
-    val expected = workDir.resolve(s"blarg-blahblah.${JobTemplate.PARAMETRIC_INDEX}.stdout")
+    val expected = workDir.resolve(s"blarg-blahblah.$$drmaa_incr_ph$$.stdout")
     
     doPathTemplateTest(pathBuilder.stdOutPathTemplate, s":${expected.render}")
   }
@@ -61,7 +60,7 @@ final class UgerPathBuilderTest extends FunSuite {
     
     val pathBuilder = new UgerPathBuilder(params)
     
-    val expected = workDir.resolve(s"blarg-blahblah.${JobTemplate.PARAMETRIC_INDEX}.stderr")
+    val expected = workDir.resolve(s"blarg-blahblah.$$drmaa_incr_ph$$.stderr")
     
     doPathTemplateTest(pathBuilder.stdErrPathTemplate, s":${expected.render}")
   }

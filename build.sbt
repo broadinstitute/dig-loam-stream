@@ -2,8 +2,6 @@ import sbt.project
 
 lazy val Versions = new {
   val ApacheCommonsIO = "2.6"
-  val DrmaaCommon = "1.0"
-  val DrmaaGridEngine = "6.2u5"
   val GoogleCloudStorage = "1.77.0"
   val GoogleAuth = "0.16.1"
   val LogBack = "1.2.3"
@@ -48,8 +46,6 @@ lazy val mainDeps = Seq(
   "org.scala-lang" % "scala-reflect" % Versions.Scala,
   "com.geirsson" %% "scalafmt-core" % Versions.ScalaFmt,
   "commons-io" % "commons-io" % Versions.ApacheCommonsIO,
-  "us.levk" % "drmaa-common" % Versions.DrmaaCommon,
-  "us.levk" % "drmaa-gridengine" % Versions.DrmaaGridEngine,
   "ch.qos.logback" % "logback-classic" % Versions.LogBack,
   "com.typesafe" % "config" % Versions.TypesafeConfig,
   "io.reactivex" %% "rxscala" % Versions.RxScala,

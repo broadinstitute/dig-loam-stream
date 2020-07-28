@@ -46,9 +46,7 @@ final class JobMonitorTest extends FunSuite {
   
   test("stop()") {
     withThreadPoolScheduler(1) { scheduler =>
-      val client = MockDrmaaClient(Map.empty)
-      
-      val jobMonitor = new JobMonitor(scheduler, new DrmaaPoller(client))
+      val jobMonitor = new JobMonitor(scheduler, MockPoller(Map.empty))
       
       assert(jobMonitor.isStopped === false)
       
@@ -71,7 +69,7 @@ final class JobMonitorTest extends FunSuite {
     
     val jobIds = Seq(taskId1, taskId2, taskId3)
     
-    val client = MockDrmaaClient(
+    val poller = MockPoller(
       Map(
         taskId1 -> Seq(Success(Queued), Success(Running), Success(Running), Success(Done)),
         taskId2 -> Seq(Success(Running), Success(Done)),
@@ -79,8 +77,6 @@ final class JobMonitorTest extends FunSuite {
     
     import scala.concurrent.ExecutionContext.Implicits.global
     import Observables.Implicits._
-    
-    val poller = new DrmaaPoller(client)
     
     withThreadPoolScheduler(3) { scheduler =>
       val statuses = (new JobMonitor(scheduler, poller, 9.99)).monitor(jobIds)

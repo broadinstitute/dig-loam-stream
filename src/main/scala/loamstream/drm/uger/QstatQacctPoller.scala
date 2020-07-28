@@ -29,28 +29,24 @@ final class QstatQacctPoller private[uger] (
   import QstatQacctPoller._
   
   override def poll(jobIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, Try[DrmStatus])] = {
-    //TODO: Invoke qstat, get info for all jobs, parse output, run qacct for any missing jobs
-    /*
-     * job-ID     prior   name       user         state submit/start at     queue                          jclass                         slots ja-task-ID
-     * ------------------------------------------------------------------------------------------------------------------------------------------------
-     * 19115592 0.56956 test.sh    cgilbert     r     07/24/2020 11:51:17 broad@uger-c104.broadinstitute                                    1 1
-     * 19115592 0.56956 test.sh    cgilbert     r     07/24/2020 11:51:18 broad@uger-c104.broadinstitute                                    1 2
-     *         
-     */
-    
+    //Invoke qstat, to get the status of all submitted-but-not-finished jobs in this session
     val qstatResultObs = Observable.from(qstatInvoker.apply(()))
 
-    val jobIdSet = jobIds.toSet
-    
+    //Parse out DrmTaskIds and DrmStatuses from raw qstat output
     val pollingResultsFromQstatObs = qstatResultObs.map { qstatResults => 
       QstatSupport.getByTaskId(qstatResults.stdout)
     }
     
+    val jobIdSet = jobIds.toSet
+    
+    //For all the jobs that we're polling for but were not mentioned by qstat, assume they've finished 
+    //(qstat only returns info about running jobs) and invoke qacct to determine their final status.
     pollingResultsFromQstatObs.flatMap { byTaskId =>
       val notFoundByQstat = jobIdSet -- byTaskId.keys
       
+      //Run qstat once for each job, producing a merged stream of id -> status tuples
       //TODO: chunk up not-found task ids, to avoid running qacct too many times?
-      
+      //TODO: Run qacct in bulk?  Use -e to look up all recently-finished jobs?
       val qacctResultsObs = Observables.merge(notFoundByQstat.iterator.map(invokeQacctFor).toIterable)
       
       Observable.from(byTaskId) ++ qacctResultsObs.map { case (tid, status) => (tid, Success(status)) }
@@ -99,7 +95,16 @@ object QstatQacctPoller extends Loggable {
       }.toMap 
     }
     
-    def parseQstatOutput(lines: Seq[String]): Seq[Try[(DrmTaskId, DrmStatus)]] = {
+    /**
+     * Parse qacct output like the following.  Results are returned one line per job/task
+     * 
+     * job-ID     prior   name       user         state submit/start at     queue                          jclass                         slots ja-task-ID
+     * ------------------------------------------------------------------------------------------------------------------------------------------------
+     * 19115592 0.56956 test.sh    cgilbert     r     07/24/2020 11:51:17 broad@uger-c104.broadinstitute                                    1 1
+     * 19115592 0.56956 test.sh    cgilbert     r     07/24/2020 11:51:18 broad@uger-c104.broadinstitute                                    1 2
+     *         
+     */
+    def parseQstatOutput(lines: Seq[String]): Iterator[Try[(DrmTaskId, DrmStatus)]] = {
       lines.iterator.map(_.trim).collect {
         case QstatRegexes.jobIdStatusAndTaskIndex(jobId, ugerStatusCode, taskIndexString) => {
           for {
@@ -107,10 +112,30 @@ object QstatQacctPoller extends Loggable {
             drmStatus <- toDrmStatus(ugerStatusCode.trim)
           } yield drmTaskId -> drmStatus
         }
-      }.toList
+      }
     }
-    
+
+    /**
+     * Map a Uger status code (as reported by qstat) to a DrmStatus
+     */
     def toDrmStatus(ugerStatusCode: String): Try[DrmStatus] = {
+      /*
+       * From the qstat man page:
+       * 
+       * the  status  of  the  job  - one of:
+       *   d(eletion), 
+       *   E(rror), 
+       *   h(old), 
+       *   r(unning), 
+       *   R(estarted), 
+       *   s(uspended), 
+       *   S(uspended), 
+       *   e(N)hanced suspended, 
+       *   (P)reempted, 
+       *   t(ransfering), 
+       *   T(hreshold) or
+       *   w(aiting).
+       */
       val parseMappedCodes: PartialFunction[String, DrmStatus] = {
         case "E" => DrmStatus.Failed //TODO ???
         case "h" => DrmStatus.QueuedHeld //TODO: ???
@@ -128,35 +153,6 @@ object QstatQacctPoller extends Loggable {
         case s @ Success(_) => s
         case failure => Tries.failure(s"Unknown Uger status code '$ugerStatusCode' encountered")
       }
-      
-      /*
-       * the  status  of  the  job  - one of:
-       *   d(eletion), 
-       *   E(rror), 
-       *   h(old), 
-       *   r(unning), 
-       *   R(estarted), 
-       *   s(uspended), 
-       *   S(uspended), 
-       *   e(N)hanced suspended, 
-       *   (P)reempted, 
-       *   t(ransfering), 
-       *   T(hreshold) or
-       *   w(aiting).
-       */
-      /*ugerStatusCode match {
-        case "E" => Success(DrmStatus.Failed) //TODO ???
-        case "h" => Success(DrmStatus.QueuedHeld) //TODO: ???
-        case "r" | "R" => Success(DrmStatus.Running)
-        case "s" | "S" | "N" => Success(DrmStatus.Suspended)
-        case "w" => Success(DrmStatus.Queued) //TODO: ???
-        case u @ ("d" | "P" | "t" | "T") => {
-          warn(s"Unmapped Uger status code '${u}' mapped to '${DrmStatus.Undetermined}'")
-          
-          Success(DrmStatus.Undetermined)
-        }
-        case _ => Tries.failure(s"Unknown Uger status code '$ugerStatusCode' encountered")
-      }*/
     }
   }
   
@@ -165,6 +161,10 @@ object QstatQacctPoller extends Loggable {
       val exitStatus = "exit_status\\s+(.+?)$".r
     }
     
+    /**
+     * Determine a job/task's DrmStatus from qacct output.
+     * qacct doesn't return a status code, but it returns an exit code: 0 for success, anything else is a failure.
+     */
     def parseQacctResults(t: (DrmTaskId, Seq[String])): (DrmTaskId, DrmStatus) = {
       import loamstream.util.Tuples.Implicits.Tuple2Ops
         

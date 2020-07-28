@@ -22,8 +22,8 @@ final class QstatQacctPollerTest extends FunSuite {
     "------------------------------------------------------------------------------------------------------------------------------------------------")
     
   private val dataLines = Seq(
-    "19115592 0.56956 test.sh    cgilbert     r     07/24/2020 11:51:17 broad@uger-c104.broadinstitute                                    1 1",
-    "19115592 0.56956 test.sh    cgilbert     r     07/24/2020 11:51:18 broad@uger-c104.broadinstitute                                    1 2")
+    "19115592 0.56956 test.sh    cgilbert     r     07/24/2020 11:51:17 broad@uger-c104.broadinstitute                                    1 2",
+    "19115592 0.56956 test.sh    cgilbert     r     07/24/2020 11:51:18 broad@uger-c104.broadinstitute                                    1 1")
     
   private val dataLinesWithBadStatuses = Seq(
     "19115592 0.56956 test.sh    cgilbert     xyz     07/24/2020 11:51:17 broad@uger-c104.broadinstitute                                    1 1",
@@ -60,7 +60,7 @@ final class QstatQacctPollerTest extends FunSuite {
     
     import Observables.Implicits._
     
-    val runningTaskIds = Seq(DrmTaskId("19115592", 1), DrmTaskId("19115592", 2))
+    val runningTaskIds = Seq(DrmTaskId("19115592", 2), DrmTaskId("19115592", 1))
     
     val finishedTaskId = DrmTaskId("19115592", 3)
     
@@ -88,16 +88,16 @@ final class QstatQacctPollerTest extends FunSuite {
   
   test("parseQstatOutput - happy path") {
     val expected = Iterable(
-      Success(DrmTaskId("19115592", 1) -> DrmStatus.Running),
-      Success(DrmTaskId("19115592", 2) -> DrmStatus.Running))
+      Success(DrmTaskId("19115592", 2) -> DrmStatus.Running),
+      Success(DrmTaskId("19115592", 1) -> DrmStatus.Running))
         
-    assert(QstatSupport.parseQstatOutput(lines) === expected)
+    assert(QstatSupport.parseQstatOutput(lines).toList === expected)
     
-    assert(QstatSupport.parseQstatOutput(dataLines) === expected)
+    assert(QstatSupport.parseQstatOutput(dataLines).toList === expected)
     
-    assert(QstatSupport.parseQstatOutput(headerLines) === Nil)
+    assert(QstatSupport.parseQstatOutput(headerLines).isEmpty)
     
-    assert(QstatSupport.parseQstatOutput(Nil) === Nil)
+    assert(QstatSupport.parseQstatOutput(Nil).isEmpty)
   }
   
   test("parseQstatOutput - bad lines should be ignored") {
@@ -106,16 +106,16 @@ final class QstatQacctPollerTest extends FunSuite {
     val lines = headerLines ++ Seq(d0, "some bogus line lalala", d1)
     
     val expected = Iterable(
-      Success(DrmTaskId("19115592", 1) -> DrmStatus.Running),
-      Success(DrmTaskId("19115592", 2) -> DrmStatus.Running))
+      Success(DrmTaskId("19115592", 2) -> DrmStatus.Running),
+      Success(DrmTaskId("19115592", 1) -> DrmStatus.Running))
         
-    assert(QstatSupport.parseQstatOutput(lines) === expected)
+    assert(QstatSupport.parseQstatOutput(lines).toList === expected)
   }
   
   test("parseQstatOutput - bad statuses should be failures") {
     val lines = headerLines ++ dataLinesWithBadStatuses
     
-    val actual = QstatSupport.parseQstatOutput(lines)
+    val actual = QstatSupport.parseQstatOutput(lines).toList
     
     assert(actual.forall(_.isFailure))
     
@@ -124,8 +124,8 @@ final class QstatQacctPollerTest extends FunSuite {
   
   test("getByTaskId - happy path") {
     val expected = Map(
-      DrmTaskId("19115592", 1) -> Success(DrmStatus.Running),
-      DrmTaskId("19115592", 2) -> Success(DrmStatus.Running))
+      DrmTaskId("19115592", 2) -> Success(DrmStatus.Running),
+      DrmTaskId("19115592", 1) -> Success(DrmStatus.Running))
         
     assert(QstatSupport.getByTaskId(lines) === expected)
     
@@ -213,8 +213,8 @@ final class QstatQacctPollerTest extends FunSuite {
     
     val tid = DrmTaskId("foo", 99)
     
-    assert(QacctSupport.parseQacctResults(tid -> outputWithExitCode(0)) === (tid -> Success(DrmStatus.Done)))
-    assert(QacctSupport.parseQacctResults(tid -> outputWithExitCode(42)) === (tid -> Success(DrmStatus.Failed)))
+    assert(QacctSupport.parseQacctResults(tid -> outputWithExitCode(0)) === (tid -> DrmStatus.Done))
+    assert(QacctSupport.parseQacctResults(tid -> outputWithExitCode(42)) === (tid -> DrmStatus.Failed))
   }
   
   test("parseQacctResults - bad input") {
@@ -227,17 +227,17 @@ final class QstatQacctPollerTest extends FunSuite {
     val tid = DrmTaskId("foo", 99)
     
     {
-      val (actualTid, actualStatusAttempt) = QacctSupport.parseQacctResults(tid -> missingField) 
+      val (actualTid, actualStatus) = QacctSupport.parseQacctResults(tid -> missingField) 
       
       assert(actualTid === tid)
-      assert(actualStatusAttempt.isFailure)
+      assert(actualStatus === DrmStatus.Undetermined)
     }
     
     {
-      val (actualTid, actualStatusAttempt) = QacctSupport.parseQacctResults(tid -> brokenField) 
+      val (actualTid, actualStatus) = QacctSupport.parseQacctResults(tid -> brokenField) 
       
       assert(actualTid === tid)
-      assert(actualStatusAttempt.isFailure)
+      assert(actualStatus === DrmStatus.Undetermined)
     }
   }
 }

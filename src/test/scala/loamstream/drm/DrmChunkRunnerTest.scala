@@ -100,13 +100,13 @@ final class DrmChunkRunnerTest extends FunSuite {
   private val ugerPathBuilder = new UgerPathBuilder(UgerScriptBuilderParams(ugerConfig))
   
   test("No failures when empty set of jobs is presented - Uger") {
-    val mockDrmClient = new MockDrmaaClient(Map.empty)
+    val mockDrmClient = new MockPoller(Map.empty)
     val runner = DrmChunkRunner(
         environmentType = EnvironmentType.Uger,
         pathBuilder = ugerPathBuilder,
         executionConfig = executionConfig,
         drmConfig = ugerConfig,
-        jobSubmitter = JobSubmitter.Drmaa(mockDrmClient, ugerConfig),
+        jobSubmitter = new MockJobSubmitter,
         //NB: The poller can always fail, since it should never be invoked
         jobMonitor = new JobMonitor(scheduler, JustFailsMockPoller),
         accountingClient = MockAccountingClient.NeverWorks,
@@ -409,15 +409,13 @@ final class DrmChunkRunnerTest extends FunSuite {
     
     def makeChunkRunner(drmSystem: DrmSystem, mockJobSubmitter: MockJobSubmitter): DrmChunkRunner = drmSystem match {
       case DrmSystem.Uger => { 
-        val mockDrmaaClient = MockDrmaaClient(Map.empty)
-
         DrmChunkRunner(
             environmentType = EnvironmentType.Uger,
             pathBuilder = ugerPathBuilder,
             executionConfig = executionConfig,
             drmConfig = ugerConfig,
             jobSubmitter = mockJobSubmitter,
-            jobMonitor = new JobMonitor(poller = new DrmaaPoller(mockDrmaaClient)),
+            jobMonitor = new JobMonitor(poller = MockPoller(Map.empty)),
             accountingClient = MockAccountingClient.NeverWorks,
             jobKiller = MockJobKiller.DoesNothing)
       }

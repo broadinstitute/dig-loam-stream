@@ -39,7 +39,7 @@ sealed trait DrmConfig {
   
   def scriptBuilderParams: ScriptBuilderParams
   
-  def maxJobSubmissionRetries: Int
+  def maxRetries: Int
 }
 
 /**
@@ -57,7 +57,7 @@ final case class UgerConfig(
     condaEnvName: String = UgerDefaults.condaEnvName,
     staticJobSubmissionParams: String = UgerDefaults.staticJobSubmissionParams,
     maxQacctRetries: Int =  UgerDefaults.maxQacctRetries,
-    maxJobSubmissionRetries: Int = UgerDefaults.maxJobSubmissionRetries) extends DrmConfig {
+    maxRetries: Int = UgerDefaults.maxRetries) extends DrmConfig {
   
   override def scriptBuilderParams: ScriptBuilderParams = new UgerScriptBuilderParams(extraPathDir, condaEnvName)
 }
@@ -73,7 +73,7 @@ object UgerConfig extends ConfigParser[UgerConfig] with Loggable {
     condaEnvName: String = UgerDefaults.condaEnvName,
     staticJobSubmissionParams: String = UgerDefaults.staticJobSubmissionParams,
     maxQacctRetries: Int =  UgerDefaults.maxQacctRetries,
-    maxJobSubmissionRetries: Int = UgerDefaults.maxJobSubmissionRetries) {
+    maxRetries: Int = UgerDefaults.maxRetries) {
     
     def toUgerConfig: UgerConfig = UgerConfig(
       maxNumJobsPerTaskArray = maxNumJobsPerTaskArray,
@@ -84,7 +84,7 @@ object UgerConfig extends ConfigParser[UgerConfig] with Loggable {
       condaEnvName = condaEnvName,
       staticJobSubmissionParams = staticJobSubmissionParams,
       maxQacctRetries = maxQacctRetries,
-      maxJobSubmissionRetries = maxJobSubmissionRetries)
+      maxRetries = maxRetries)
   }
   
   override def fromConfig(config: Config): Try[UgerConfig] = {
@@ -117,7 +117,7 @@ final case class LsfConfig(
     defaultMemoryPerCore: Memory = LsfDefaults.memoryPerCore,
     defaultMaxRunTime: CpuTime = LsfDefaults.maxRunTime,
     maxBacctRetries: Int =  LsfDefaults.maxBacctRetries,
-    maxJobSubmissionRetries: Int = LsfDefaults.maxJobSubmissionRetries) extends DrmConfig {
+    maxRetries: Int = LsfDefaults.maxRetries) extends DrmConfig {
   
   override def scriptBuilderParams: ScriptBuilderParams = LsfScriptBuilderParams
 }
@@ -132,7 +132,7 @@ object LsfConfig extends ConfigParser[LsfConfig] with Loggable {
     defaultMemoryPerCore: Memory = LsfDefaults.memoryPerCore,
     defaultMaxRunTime: CpuTime = LsfDefaults.maxRunTime,
     maxBacctRetries: Int = LsfDefaults.maxBacctRetries,
-    maxJobSubmissionRetries: Int = LsfDefaults.maxJobSubmissionRetries) {
+    maxRetries: Int = LsfDefaults.maxRetries) {
     
     def toLsfConfig: LsfConfig = LsfConfig(
       maxNumJobsPerTaskArray = maxNumJobsPerTaskArray,
@@ -140,7 +140,7 @@ object LsfConfig extends ConfigParser[LsfConfig] with Loggable {
       defaultMemoryPerCore = defaultMemoryPerCore,
       defaultMaxRunTime = defaultMaxRunTime,
       maxBacctRetries = maxBacctRetries,
-      maxJobSubmissionRetries = maxJobSubmissionRetries)
+      maxRetries = maxRetries)
   }
   
   override def fromConfig(config: Config): Try[LsfConfig] = {

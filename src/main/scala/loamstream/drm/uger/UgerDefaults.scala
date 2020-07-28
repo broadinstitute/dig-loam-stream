@@ -28,9 +28,7 @@ object UgerDefaults {
   
   val staticJobSubmissionParams: String = "-cwd -shell y -b n"
   
+  val maxRetries: Int = 9
+  
   val maxQacctRetries: Int = maxRetries
-  
-  val maxJobSubmissionRetries: Int = maxRetries
-  
-  private def maxRetries = 9
 }

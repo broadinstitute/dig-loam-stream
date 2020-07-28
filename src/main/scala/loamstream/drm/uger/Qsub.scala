@@ -12,6 +12,7 @@ import loamstream.util.Processes
 import rx.lang.scala.schedulers.IOScheduler
 import rx.lang.scala.Scheduler
 import loamstream.drm.SessionSource
+import java.nio.file.Path
 
 /**
  * @author clint
@@ -20,10 +21,16 @@ import loamstream.drm.SessionSource
 object Qsub extends Loggable {
   type InvocationFn[A] = A => Try[RunResults]
   
-  final case class Params(ugerConfig: UgerConfig, settings: DrmSettings, taskArray: DrmTaskArray)
+  final case class Params(ugerConfig: UgerConfig, settings: DrmSettings, taskArraySize: Int, drmScriptFile: Path)
+  
+  object Params {
+    def apply(ugerConfig: UgerConfig, settings: DrmSettings, taskArray: DrmTaskArray): Params = {
+      new Params(ugerConfig, settings, taskArray.size, taskArray.drmScriptFile)
+    }
+  }
   
   private[uger] def makeTokens(sessionSource: SessionSource, actualExecutable: String, params: Params): Seq[String] = {
-    import params.{ ugerConfig, settings, taskArray } 
+    import params.{ ugerConfig, settings, taskArraySize, drmScriptFile } 
     
     val staticPartFromUgerConfig = {
       ugerConfig.staticJobSubmissionParams.split("\\s+").iterator.map(_.trim).filter(_.nonEmpty)
@@ -51,7 +58,7 @@ object Qsub extends Loggable {
         "-si",
         sessionSource.getSession,
         "-t",
-        s"1-${taskArray.size}",
+        s"1-${taskArraySize}",
         "-binding",
         s"linear:${numCores}",
         "-pe",
@@ -62,7 +69,7 @@ object Qsub extends Loggable {
         "-l",
         s"${runTimePart},${memPart}") ++
       osPart :+ 
-      taskArray.drmScriptFile.toAbsolutePath.toString
+      drmScriptFile.toAbsolutePath.toString
     }
 
     actualExecutable +: (staticPartFromUgerConfig.toList ++ dynamicPart)
@@ -84,6 +91,6 @@ object Qsub extends Loggable {
     
     val justOnce = new CommandInvoker.JustOnce[Params](actualExecutable, invocationFn)
     
-    new CommandInvoker.Retrying(justOnce, ugerConfig.maxJobSubmissionRetries, scheduler = scheduler)
+    new CommandInvoker.Retrying(justOnce, ugerConfig.maxRetries, scheduler = scheduler)
   }
 }

@@ -17,10 +17,11 @@ import loamstream.TestHelpers
 final class QstatQacctPollerTest extends FunSuite {
   import QstatQacctPoller._
   
+  // scalastyle:off line.size.limit
   private val headerLines = Seq(
     "job-ID     prior   name       user         state submit/start at     queue                          jclass                         slots ja-task-ID",
     "------------------------------------------------------------------------------------------------------------------------------------------------")
-    
+  
   private val dataLines = Seq(
     "19115592 0.56956 test.sh    cgilbert     r     07/24/2020 11:51:17 broad@uger-c104.broadinstitute                                    1 2",
     "19115592 0.56956 test.sh    cgilbert     r     07/24/2020 11:51:18 broad@uger-c104.broadinstitute                                    1 1")
@@ -28,6 +29,7 @@ final class QstatQacctPollerTest extends FunSuite {
   private val dataLinesWithBadStatuses = Seq(
     "19115592 0.56956 test.sh    cgilbert     xyz     07/24/2020 11:51:17 broad@uger-c104.broadinstitute                                    1 1",
     "19115592 0.56956 test.sh    cgilbert     lala     07/24/2020 11:51:18 broad@uger-c104.broadinstitute                                    1 2")
+  // scalastyle:on line.size.limit
   
   val lines = headerLines ++ dataLines
     

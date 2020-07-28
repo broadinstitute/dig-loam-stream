@@ -42,9 +42,9 @@ object QconfSessionSource {
       //TODO
       scheduler: Scheduler = IOScheduler())(implicit ec: ExecutionContext): QconfSessionSource = {
     
-    val createInvoker= Qconf.createCommandInvoker(ugerConfig.maxJobSubmissionRetries, actualExecutable, scheduler)
+    val createInvoker= Qconf.createCommandInvoker(ugerConfig.maxRetries, actualExecutable, scheduler)
     
-    val deleteInvoker = Qconf.deleteCommandInvoker(ugerConfig.maxJobSubmissionRetries, actualExecutable, scheduler)
+    val deleteInvoker = Qconf.deleteCommandInvoker(ugerConfig.maxRetries, actualExecutable, scheduler)
     
     new QconfSessionSource(createInvoker, deleteInvoker)
   }

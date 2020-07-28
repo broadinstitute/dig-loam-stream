@@ -95,6 +95,7 @@ object QstatQacctPoller extends Loggable {
       }.toMap 
     }
     
+    // scalastyle:off line.size.limit
     /**
      * Parse qacct output like the following.  Results are returned one line per job/task
      * 
@@ -104,6 +105,7 @@ object QstatQacctPoller extends Loggable {
      * 19115592 0.56956 test.sh    cgilbert     r     07/24/2020 11:51:18 broad@uger-c104.broadinstitute                                    1 2
      *         
      */
+    // scalastyle:on line.size.limit
     def parseQstatOutput(lines: Seq[String]): Iterator[Try[(DrmTaskId, DrmStatus)]] = {
       lines.iterator.map(_.trim).collect {
         case QstatRegexes.jobIdStatusAndTaskIndex(jobId, ugerStatusCode, taskIndexString) => {

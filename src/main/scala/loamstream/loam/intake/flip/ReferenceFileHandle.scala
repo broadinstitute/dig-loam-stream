@@ -41,16 +41,16 @@ object ReferenceFileHandle {
   
   final class MemoryMapped(file: java.io.File) extends ReferenceFileHandle {
     private[this] val raFile = new RandomAccessFile(file, "r") 
-		
+
     private[this] val channel = raFile.getChannel
     
     private[this] val size: Long = channel.size
     
     require(size <= Integer.MAX_VALUE, s"File '$file' is too big to be memory-mapped")
     
-		private[this] val mappedBuffer: MappedByteBuffer = channel.map(FileChannel.MapMode.READ_ONLY, 0, size)
-		
-		override def readAt(i: Long): Option[Char] = {
+    private[this] val mappedBuffer: MappedByteBuffer = channel.map(FileChannel.MapMode.READ_ONLY, 0, size)
+    
+    override def readAt(i: Long): Option[Char] = {
       require(i >= 0, s"Can't read from negative position $i in file '$file'")
       
       seekTo(i.toInt).flatMap(_ => get())
@@ -72,15 +72,15 @@ object ReferenceFileHandle {
 
       seekTo(start.toInt).flatMap(_ => read())
     }
-		
-		private def noneIfException[A](f: => Option[A]): Option[A] = {
+    
+    private def noneIfException[A](f: => Option[A]): Option[A] = {
       try { f }
       catch { 
         case NonFatal(_) => None
       }
     }
-		
-		private def seekTo(pos: Int): Option[Unit] = {
+    
+    private def seekTo(pos: Int): Option[Unit] = {
       noneIfException {
         mappedBuffer.position(pos)
         

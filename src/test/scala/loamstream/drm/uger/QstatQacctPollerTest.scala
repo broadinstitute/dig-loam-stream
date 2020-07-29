@@ -82,7 +82,7 @@ final class QstatQacctPollerTest extends FunSuite {
       val expected = Seq(
           runningTaskIds(0) -> Success(DrmStatus.Running),
           runningTaskIds(1) -> Success(DrmStatus.Running),
-          finishedTaskId -> Success(DrmStatus.Done))
+          finishedTaskId -> Success(DrmStatus.CommandResult(0)))
           
       assert(results === expected)
     }
@@ -215,8 +215,8 @@ final class QstatQacctPollerTest extends FunSuite {
     
     val tid = DrmTaskId("foo", 99)
     
-    assert(QacctSupport.parseQacctResults(tid -> outputWithExitCode(0)) === (tid -> DrmStatus.Done))
-    assert(QacctSupport.parseQacctResults(tid -> outputWithExitCode(42)) === (tid -> DrmStatus.Failed))
+    assert(QacctSupport.parseQacctResults(tid -> outputWithExitCode(0)) === (tid -> DrmStatus.CommandResult(0)))
+    assert(QacctSupport.parseQacctResults(tid -> outputWithExitCode(42)) === (tid -> DrmStatus.CommandResult(42)))
   }
   
   test("parseQacctResults - bad input") {

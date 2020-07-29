@@ -36,7 +36,7 @@ final case class UgerScriptBuilderParams(extraPathDir: Path, condaEnvName: Strin
   override val preamble: Option[String] = Option(ugerPreamble)
   override val indexEnvVarName: String = "SGE_TASK_ID"
   override val jobIdEnvVarName: String = "JOB_ID"
-  override val drmIndexVarExpr: String = "$drmaa_incr_ph$"
+  override val drmIndexVarExpr: String = "$JOB_ID.$TASK_ID"
 }
 
 object UgerScriptBuilderParams {

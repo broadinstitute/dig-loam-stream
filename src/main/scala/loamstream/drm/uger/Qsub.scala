@@ -21,11 +21,23 @@ import java.nio.file.Path
 object Qsub extends Loggable {
   type InvocationFn[A] = A => Try[RunResults]
   
-  final case class Params(ugerConfig: UgerConfig, settings: DrmSettings, taskArraySize: Int, drmScriptFile: Path)
+  final case class Params(
+      ugerConfig: UgerConfig, 
+      settings: DrmSettings, 
+      taskArraySize: Int, 
+      drmScriptFile: Path,
+      stdOutPathTemplate: String,
+      stdErrPathTemplate: String)
   
   object Params {
     def apply(ugerConfig: UgerConfig, settings: DrmSettings, taskArray: DrmTaskArray): Params = {
-      new Params(ugerConfig, settings, taskArray.size, taskArray.drmScriptFile)
+      new Params(
+          ugerConfig, 
+          settings, 
+          taskArray.size, 
+          taskArray.drmScriptFile, 
+          taskArray.stdOutPathTemplate, 
+          taskArray.stdErrPathTemplate)
     }
   }
   
@@ -54,6 +66,9 @@ object Qsub extends Loggable {
       val sessionPart = Seq("-si", sessionSource.getSession)
       val taskArrayPart = Seq("-t", s"1-${taskArraySize}")
       
+      val stdoutPathPart = Seq("-o", params.stdOutPathTemplate)
+      val stderrPathPart = Seq("-e", params.stdErrPathTemplate)
+      
       val numCoresPart = Seq(
         "-binding",
         s"linear:${numCores}",
@@ -66,6 +81,8 @@ object Qsub extends Loggable {
       numCoresPart ++
       queuePart ++
       runtimeAndMemPart ++
+      stdoutPathPart ++ 
+      stderrPathPart ++
       osPart :+ 
       drmScriptFile.toAbsolutePath.toString
     }

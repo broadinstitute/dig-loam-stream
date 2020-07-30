@@ -17,6 +17,10 @@ import rx.lang.scala.schedulers.IOScheduler
 import loamstream.drm.SessionSource
 import loamstream.conf.UgerConfig
 import scala.util.control.NonFatal
+import loamstream.util.Traversables
+import scala.util.matching.Regex
+import scala.util.Failure
+import scala.annotation.tailrec
 
 /**
  * @author clint
@@ -24,7 +28,7 @@ import scala.util.control.NonFatal
  */
 final class QstatQacctPoller private[uger] (
     qstatInvoker: CommandInvoker[Unit],
-    qacctInvoker: CommandInvoker[DrmTaskId])(implicit ec: ExecutionContext) extends Poller with Loggable {
+    qacctInvoker: CommandInvoker[String])(implicit ec: ExecutionContext) extends Poller with Loggable {
   
   import QstatQacctPoller._
   
@@ -44,16 +48,25 @@ final class QstatQacctPoller private[uger] (
     pollingResultsFromQstatObs.flatMap { byTaskId =>
       val notFoundByQstat = jobIdSet -- byTaskId.keys
       
+      debug(s"${notFoundByQstat.size} finished jobs not found by qstat, ${notFoundByQstat.groupBy(_.jobId).size} job IDs")
+      
+      val jobIdsNotFoundByQstat = notFoundByQstat.iterator.map(_.jobId).toSet
+      
       //Run qstat once for each job, producing a merged stream of id -> status tuples
       //TODO: chunk up not-found task ids, to avoid running qacct too many times?
       //TODO: Run qacct in bulk?  Use -e to look up all recently-finished jobs?
-      val qacctResultsObs = Observables.merge(notFoundByQstat.iterator.map(invokeQacctFor).toIterable)
+      //val qacctResultsObs = Observables.merge(notFoundByQstat.iterator.map(invokeQacctFor).toIterable)
       
-      Observable.from(byTaskId) ++ qacctResultsObs.map { case (tid, status) => (tid, Success(status)) }
+      
+      val qacctResultsObs = Observables.merge(jobIdsNotFoundByQstat.iterator.map(invokeQacctFor(jobIdSet)).toIterable)
+      
+      Observable.from(byTaskId) ++ {
+        qacctResultsObs.map { case (tid, status) => (tid, Success(status)) }.onBackpressureDrop
+      }
     }
   }
   
-  private def invokeQacctFor(
+  /*private def invokeQacctFor(
       drmTaskId: DrmTaskId)(implicit ec: ExecutionContext): Observable[(DrmTaskId, DrmStatus)] = {
     
     val taskIdToStatusFuture = {
@@ -63,6 +76,24 @@ final class QstatQacctPoller private[uger] (
     }
     
     Observable.from(taskIdToStatusFuture)
+  }*/
+  
+  private def invokeQacctFor(
+      drmTaskIds: Set[DrmTaskId])
+     (jobNumber: String)
+     (implicit ec: ExecutionContext): Observable[(DrmTaskId, DrmStatus)] = {
+    
+    val tuplesObs = Observable.from(qacctInvoker(jobNumber).map(jobNumber -> _.stdout).map {
+      QacctSupport.parseMultiTaskQacctResults(drmTaskIds)
+    }).flatMap(Observable.from(_))
+    
+    tuplesObs.onErrorResumeNext {
+      case NonFatal(e) => {
+        warn(s"Error invoking qacct for task array with job id '${jobNumber}'", e)
+        
+        Observable.empty
+      }
+    }
   }
   
   override def stop(): Unit = ()
@@ -75,7 +106,7 @@ object QstatQacctPoller extends Loggable {
       actualQstatExecutable: String = "qstat",
       actualQacctExecutable: String = "qacct")(implicit ec: ExecutionContext): QstatQacctPoller = {
     
-    import QacctInvoker.{ useActualBinary => qacctCommandInvoker }
+    import QacctInvoker.ByTaskArray.{ useActualBinary => qacctCommandInvoker }
     import Qstat.{ commandInvoker => qstatCommandInvoker }
     
     val qacct = qacctCommandInvoker(0, "qacct", IOScheduler())
@@ -161,6 +192,41 @@ object QstatQacctPoller extends Loggable {
   private[uger] object QacctSupport {
     object Regexes {
       val exitStatus = "exit_status\\s+(.+?)$".r
+      val jobNumber = "jobnumber\\s+(.+?)$".r
+      val taskId = "taskid\\s+(.+?)$".r
+    }
+    
+    def parseMultiTaskQacctResults(
+        idsToLookFor: Set[DrmTaskId])
+       (t: (String, Seq[String])): Map[DrmTaskId, DrmStatus] = {
+      
+      import Traversables.Implicits._
+      
+      def isDivider(line: String): Boolean = line.startsWith("======")
+      
+      val (jobNumberToLookFor, lines) = t
+      
+      val tupleAttempts = lines.splitOn(isDivider).map { linesForOneTask =>
+        for {
+          fieldsTuple <- getFields(linesForOneTask)
+          (jobNumber, taskIndex, exitStatus) = fieldsTuple
+          drmTaskId = DrmTaskId(jobNumber, taskIndex)
+          if idsToLookFor.contains(drmTaskId)
+        } yield {
+          drmTaskId -> DrmStatus.CommandResult(exitStatus)
+        }
+      }
+      
+      val tuples = tupleAttempts.flatMap { 
+        case Success(t) => Iterator(t)
+        case Failure(e) => {
+          warn(s"Couldn't parse qacct results: ", e)
+          
+          Iterator.empty
+        }
+      }
+      
+      tuples.toMap
     }
     
     /**
@@ -179,12 +245,72 @@ object QstatQacctPoller extends Loggable {
       t.mapSecond(parseOutputLines)
     }
     
-    def getExitStatus(qacctOutput: Seq[String]): Try[Int] = {
+    private def findField(qacctOutput: Seq[String])(fieldName: String, regex: Regex): Try[String] = {
       val opt = qacctOutput.iterator.map(_.trim).collectFirst { 
-        case Regexes.exitStatus(value) => value.trim 
+        case regex(value) => value.trim 
       }.filter(_.nonEmpty)
-          
-      Options.toTry(opt)(s"Couldn't find 'exit_status' field").map(_.toInt)
+      
+      Options.toTry(opt)(s"Couldn't find '$fieldName' field")
+    }
+    
+    def getExitStatus(qacctOutput: Seq[String]): Try[Int] = {
+      findField(qacctOutput)("exit_status", Regexes.exitStatus).map(_.toInt)
+    }
+    
+    private def getJobNumber(qacctOutput: Seq[String]): Try[String] = {
+      findField(qacctOutput)("jobnumber", Regexes.jobNumber)
+    }
+    
+    private def getTaskIndex(qacctOutput: Seq[String]): Try[Int] = {
+      findField(qacctOutput)("taskid", Regexes.taskId).map(_.toInt)
+    }
+    
+    private def getFields(qacctOutput: Seq[String]): Try[(String, Int, Int)] = {
+      final case class State(jobNumber: Option[String], taskIndex: Option[Int], exitStatus: Option[Int]) {
+        def isDone: Boolean = jobNumber.isDefined && taskIndex.isDefined && exitStatus.isDefined
+        
+        def toTry: Try[(String, Int, Int)] = this match {
+          case State(Some(jn), Some(ti), Some(es)) => Success((jn, ti, es))
+          case State(None, _, _) => Tries.failure(s"Missing jobnumber field")
+          case State(_, None, _) => Tries.failure(s"Missing taskid field")
+          case State(_, _, None) => Tries.failure(s"Missing exit_status field")
+        }
+        
+        def withJobNumber(jn: String): State = copy(jobNumber = Option(jn))
+        def withTaskIndex(ti: => Int): State = copy(taskIndex = Try(ti).toOption)
+        def withExitStatus(es: => Int): State = copy(exitStatus = Try(es).toOption)
+      }
+      
+      @tailrec
+      def loop(acc: State, remaining: Seq[String]): State = {
+        if(remaining.isEmpty) { acc }
+        else {
+          remaining.head match {
+            case Regexes.jobNumber(jn) => {
+              val newAcc = acc.withJobNumber(jn.trim)
+              if(newAcc.isDone) newAcc else loop(newAcc, remaining.tail)
+            }
+            case Regexes.taskId(tid) =>  {
+              val newAcc = acc.withTaskIndex(tid.trim.toInt)
+              if(newAcc.isDone) newAcc else loop(newAcc, remaining.tail)
+            }
+            case Regexes.exitStatus(es) => {
+              val newAcc = acc.withExitStatus(es.trim.toInt)
+              if(newAcc.isDone) newAcc else loop(newAcc, remaining.tail)
+            }
+            case _ => loop(acc, remaining.tail)
+          }
+        }
+      }
+      
+      loop(State(None, None, None), qacctOutput).toTry
+    }
+    
+    def getDrmTaskId(qacctOutput: Seq[String]): Try[DrmTaskId] = {
+      for {
+        jobNumber <- getJobNumber(qacctOutput)
+        taskId <- getTaskIndex(qacctOutput)
+      } yield DrmTaskId(jobNumber, taskId)
     }
   }
 }

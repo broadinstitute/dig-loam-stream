@@ -21,6 +21,17 @@ object Traversables {
       def mapBy[K](f: A => K): Map[K, A] = {
         as.map(a => f(a) -> a).toMap
       }
+      
+      def splitOn(p: A => Boolean): Iterator[List[A]] = new Iterator[List[A]] {
+        private val itr: Iterator[A] = as.toIterator
+        
+        override def hasNext: Boolean = itr.hasNext
+        
+        override def next(): List[A] = {
+          try { itr.takeWhile(a => !p(a)).toList }
+          finally { itr.dropWhile(p) }
+        }
+      }.filter(_.nonEmpty)
     }
     
     final implicit class TraversableTuple2Ops[A, B](val ts: Traversable[(A, B)]) extends AnyVal {

@@ -14,6 +14,23 @@ final class TraversablesTest extends FunSuite {
 
   //scalastyle:off magic.number
   
+  test("splitOn") {
+    import Traversables.Implicits._
+    
+    def split(t: Traversable[Char]): List[String] = t.splitOn(_ == '-').toList.map(_.mkString)
+    
+    assert(split("abc-tuv-xyz-".toTraversable) === List("abc", "tuv", "xyz"))
+    assert(split("-abc-tuv-xyz".toTraversable) === List("abc", "tuv", "xyz"))
+    
+    assert(split(Nil) === Nil)
+    
+    assert(split("abctuvxyz".toTraversable) === List("abctuvxyz"))
+    
+    assert(split("abctuvxyz-".toTraversable) === List("abctuvxyz"))
+    
+    assert(split("---".toTraversable) === Nil)
+  }
+  
   test("mapTo") {
     val map = as.mapTo(_.size)
 

@@ -13,7 +13,7 @@ import loamstream.drm.DrmTaskId
  * @author clint
  * Apr 23, 2019
  */
-object BacctInvoker extends AccountingCommandInvoker.Companion {
+object BacctInvoker extends AccountingCommandInvoker.Companion[DrmTaskId] {
   override def makeTokens(actualBinary: String = "bacct", taskId: DrmTaskId): Seq[String] = {
     Seq(
         actualBinary,

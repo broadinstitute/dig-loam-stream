@@ -12,17 +12,17 @@ import rx.lang.scala.Scheduler
  * Apr 25, 2019
  */
 object AccountingCommandInvoker {
-  abstract class Companion extends Loggable {
+  abstract class Companion[P] extends Loggable {
     /**
      * Make a CommandInvoker that will retrieve job metadata by running some executable.
      */
     def useActualBinary(
         maxRetries: Int, 
         binaryName: String,
-        scheduler: Scheduler)(implicit ec: ExecutionContext): CommandInvoker[DrmTaskId] = {
+        scheduler: Scheduler)(implicit ec: ExecutionContext): CommandInvoker[P] = {
       
-      def invokeBinaryFor(taskId: DrmTaskId) = {
-        val tokens = makeTokens(binaryName, taskId)
+      def invokeBinaryFor(param: P) = {
+        val tokens = makeTokens(binaryName, param)
         
         debug(s"Invoking '$binaryName': '${tokens.mkString(" ")}'")
         
@@ -31,15 +31,15 @@ object AccountingCommandInvoker {
       
       val notRetrying = maxRetries == 0
       
-      val invokeOnce = new CommandInvoker.JustOnce[DrmTaskId](binaryName, invokeBinaryFor)
+      val invokeOnce = new CommandInvoker.JustOnce[P](binaryName, invokeBinaryFor)
       
       if(notRetrying) {
         invokeOnce
       } else {
-        new CommandInvoker.Retrying[DrmTaskId](delegate = invokeOnce, maxRetries = maxRetries, scheduler = scheduler)
+        new CommandInvoker.Retrying[P](delegate = invokeOnce, maxRetries = maxRetries, scheduler = scheduler)
       }
     }
   
-    def makeTokens(actualBinary: String, taskId: DrmTaskId): Seq[String]
+    def makeTokens(actualBinary: String, param: P): Seq[String]
   }
 }

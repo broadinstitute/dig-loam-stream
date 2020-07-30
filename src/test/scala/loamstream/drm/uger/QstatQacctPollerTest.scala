@@ -9,6 +9,7 @@ import loamstream.util.CommandInvoker
 import loamstream.util.RunResults
 import loamstream.util.Observables
 import loamstream.TestHelpers
+import loamstream.drm.DrmStatus.CommandResult
 
 /**
  * @author clint
@@ -33,6 +34,50 @@ final class QstatQacctPollerTest extends FunSuite {
   
   val lines = headerLines ++ dataLines
     
+  test("parseMultiTaskQacctResults") {
+    val jobNumber = "2314325"
+    
+    val lines = {
+      Seq("=================") ++
+      QacctTestHelpers.actualQacctOutput(
+          None, 
+          None, 
+          LocalDateTime.now, 
+          LocalDateTime.now, 
+          jobNumber = jobNumber,
+          taskIndex = 3,
+          exitCode = 42) ++
+      Seq("=================") ++
+      QacctTestHelpers.actualQacctOutput(
+          None, 
+          None, 
+          LocalDateTime.now, 
+          LocalDateTime.now, 
+          jobNumber = jobNumber,
+          taskIndex = 99)  ++
+      Seq("=================") ++
+      QacctTestHelpers.actualQacctOutput(
+          None, 
+          None, 
+          LocalDateTime.now, 
+          LocalDateTime.now, 
+          jobNumber = jobNumber,
+          taskIndex = 4,
+          exitCode = 0)
+    }
+    
+    val tid3 = DrmTaskId(jobNumber, 3)
+    val tid4 = DrmTaskId(jobNumber, 4)
+    
+    val idsToLookFor = Set(tid3, tid4)
+    
+    val actual = QstatQacctPoller.QacctSupport.parseMultiTaskQacctResults(idsToLookFor)(jobNumber -> lines)
+    
+    val expected = Map(tid3 -> CommandResult(42), tid4 -> CommandResult(0))
+    
+    assert(actual === expected)
+  }
+  
   test("poll - happy path") {
     import scala.concurrent.ExecutionContext.Implicits.global
     
@@ -42,21 +87,38 @@ final class QstatQacctPollerTest extends FunSuite {
     
     val qstatInvoker: CommandInvoker[Unit] = new CommandInvoker.JustOnce("MOCK_QSTAT", qstatInvocationFn)
     
-    val qacctInvocationFn: CommandInvoker.InvocationFn[DrmTaskId] = { tid =>
+    val qacctInvocationFn: CommandInvoker.InvocationFn[String] = { jobNumber =>
       val lines = {
+        Seq("=================") ++
         QacctTestHelpers.actualQacctOutput(
             None, 
             None, 
             LocalDateTime.now, 
             LocalDateTime.now, 
-            jobNumber = tid.jobId,
-            taskIndex = tid.taskIndex) 
+            jobNumber = jobNumber,
+            taskIndex = 3) ++
+        Seq("=================") ++
+        QacctTestHelpers.actualQacctOutput(
+            None, 
+            None, 
+            LocalDateTime.now, 
+            LocalDateTime.now, 
+            jobNumber = "82375682365872365",
+            taskIndex = 99) ++
+        Seq("=================") ++
+        QacctTestHelpers.actualQacctOutput(
+            None, 
+            None, 
+            LocalDateTime.now, 
+            LocalDateTime.now, 
+            jobNumber = jobNumber,
+            taskIndex = 99) 
       }
       
       Success(RunResults.Successful("MOCK_QACCT", lines, Nil))
     }
     
-    val qacctInvoker: CommandInvoker[DrmTaskId] = new CommandInvoker.JustOnce("MOCK_QACCT", qacctInvocationFn)
+    val qacctInvoker: CommandInvoker[String] = new CommandInvoker.JustOnce("MOCK_QACCT", qacctInvocationFn)
     
     val poller = new QstatQacctPoller(qstatInvoker, qacctInvoker)
     

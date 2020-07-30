@@ -408,7 +408,7 @@ object AppWiring extends Loggable {
           accountingClient = accountingClient,
           jobKiller = QdelJobKiller.fromExecutable(sessionSource))
 
-      val handles = Seq(schedulerHandle, ugerRunner, sessionSource)
+      val handles = Seq(sessionSource, ugerRunner, schedulerHandle)
 
       (ugerRunner, handles)
     }

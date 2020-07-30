@@ -54,7 +54,7 @@ final case class DrmChunkRunner(
   override protected val terminableComponents: Iterable[Terminable] = {
     val jobKillerTerminable: Terminable = Terminable(jobKiller.killAllJobs())
     
-    Seq(jobMonitor, jobSubmitter, jobKillerTerminable)
+    Seq(jobKillerTerminable, jobSubmitter, jobMonitor)
   }
 
   /**

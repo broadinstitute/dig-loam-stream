@@ -29,6 +29,8 @@ object CommandInvoker {
   
   type SuccessfulInvocationFn[A] = A => Future[RunResults.Successful]
   
+  trait Sync[A] extends (InvocationFn[A])
+  
   final class JustOnce[A](
       val binaryName: String,
       delegateFn: InvocationFn[A])(implicit ec: ExecutionContext) extends CommandInvoker[A] with Loggable {
@@ -53,6 +55,25 @@ object CommandInvoker {
         //pass failure-failures and successful (0 exit code) invocations through
         case Failure(e) => Failure(e)
       }
+    }
+  }
+  
+  final class SyncJustOnce[A](
+      val binaryName: String,
+      delegateFn: InvocationFn[A]) extends CommandInvoker.Sync[A] with Loggable {
+    
+    override def apply(param: A): Try[RunResults.Successful] = delegateFn(param) match {
+      //Coerce invocations producing non-zero exit codes to Failures
+      case Success(r: RunResults.Unsuccessful) => {
+        val msg = s"Error invoking '${r.commandLine}' (exit code ${r.exitCode})"
+        
+        r.logStdOutAndStdErr(s"$msg; output streams follow:", Loggable.Level.Warn)
+        
+        Tries.failure(msg)
+      }
+      case Success(r: RunResults.Successful) => Success(r)
+      //pass failure-failures and successful (0 exit code) invocations through
+      case Failure(e) => Failure(e)
     }
   }
   
@@ -119,6 +140,68 @@ object CommandInvoker {
           delayStart,
           delayCap,
           scheduler)
+    }
+    
+    import scala.concurrent.duration._
+  
+    val defaultDelayStart: Duration = 0.5.seconds
+    val defaultDelayCap: Duration = 30.seconds
+  }
+  
+  final class SyncRetrying[A](
+      delegate: SyncJustOnce[A],
+      maxRetries: Int,
+      delayStart: Duration = Retrying.defaultDelayStart,
+      delayCap: Duration = Retrying.defaultDelayCap) extends CommandInvoker.Sync[A] with Loggable {
+  
+    override def apply(param: A): Try[RunResults.Successful] = {
+      doRetries(
+          binaryName = delegate.binaryName, 
+          maxRetries = maxRetries, 
+          delayStart = delayStart, 
+          delayCap = delayCap)(param)
+    }
+  
+    private def doRetries(
+      binaryName: String,
+      maxRetries: Int,
+      delayStart: Duration,
+      delayCap: Duration): A => Try[RunResults.Successful] = { param =>
+        
+      val maxRuns = maxRetries + 1
+      
+      val resultOpt = Loops.retryUntilSuccessWithBackoff(maxRuns, delayStart, delayCap) {
+        delegate(param)
+      }
+      
+      import Observables.Implicits._
+      
+      resultOpt match {
+        case Some(a) => Success(a)
+        case _ => {
+          val msg = s"Invoking '$binaryName' with param '$param' failed after $maxRuns runs"
+          
+          debug(msg)
+  
+          Tries.failure(msg)
+        }
+      }
+    }
+  }
+  
+  object SyncRetrying {
+    def apply[A](
+      maxRetries: Int,
+      binaryName: String,
+      delegateFn: InvocationFn[A],
+      delayStart: Duration = Retrying.defaultDelayStart,
+      delayCap: Duration = Retrying.defaultDelayCap): SyncRetrying[A] = {
+
+      new SyncRetrying(
+          new SyncJustOnce[A](binaryName, delegateFn),
+          maxRetries,
+          delayStart,
+          delayCap)
     }
     
     import scala.concurrent.duration._

@@ -1,15 +1,11 @@
 package loamstream.loam.intake.metrics
 
-import _root_.loamstream.loam.intake.ColumnName
-import _root_.loamstream.loam.intake.CsvRow
-
-import _root_.loamstream.loam.intake.aggregator
-import _root_.loamstream.loam.intake.flip.FlipDetector
-import _root_.loamstream.loam.intake.ColumnExpr
-import com.google.common.collect.TopKSelector
-import com.google.common.collect.TopKSelector
-import com.google.common.collect.TopKSelector
-import java.util.Comparator
+import loamstream.loam.intake.ColumnExpr
+import loamstream.loam.intake.ColumnName
+import loamstream.loam.intake.CsvRow
+import loamstream.loam.intake.aggregator
+import loamstream.loam.intake.flip.FlipDetector
+import loamstream.util.Fold
 
 
 /**

@@ -6,21 +6,31 @@ import scala.util.Success
 import loamstream.drm.JobKiller
 import loamstream.util.Loggable
 import loamstream.drm.SessionSource
+import loamstream.util.CommandInvoker
+import scala.util.Try
+import loamstream.util.RunResults
 
 /**
  * @author clint
  * May 22, 2018
  */
-final class BkillJobKiller(invocationFn: JobKiller.InvocationFn) extends JobKiller with Loggable {
+final class BkillJobKiller(
+    commandInvoker: CommandInvoker.Sync[Unit], 
+    sessionSource: SessionSource = SessionSource.Noop) extends JobKiller with Loggable {
+  
   override def killAllJobs(): Unit = {
-    invocationFn() match {
+    commandInvoker(()) match {
       case Success(runResults) => debug("Killed LSF jobs")
       case Failure(e) => warn(s"Error killing all LSF jobs: ${e.getMessage}", e)
     }
   }
 }
 
-object BkillJobKiller extends JobKiller.Companion[BkillJobKiller]("bkill", new BkillJobKiller(_)) {
+object BkillJobKiller extends JobKiller.Companion[BkillJobKiller]("bkill", new BkillJobKiller(_, _)) {
+  private[lsf] def apply(fn: () => Try[RunResults]): BkillJobKiller = {
+    new BkillJobKiller(new CommandInvoker.SyncJustOnce[Unit]("bkill", _ => fn()))
+  }
+  
   override protected[lsf] def makeTokens(
       sessionSource: SessionSource, 
       actualExecutable: String, 

@@ -7,6 +7,6 @@ import loamstream.drm.SessionSource
  * @author clint
  * Jul 28, 2020
  */
-final case class MockSessionSource(getSession: String) extends SessionSource {
+final case class MockSessionSource(getSession: String, isInitialized: Boolean = false) extends SessionSource {
   override def stop(): Unit = ()
 }

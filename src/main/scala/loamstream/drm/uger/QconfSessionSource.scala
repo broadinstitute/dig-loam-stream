@@ -21,13 +21,11 @@ import scala.util.Try
  */
 final class QconfSessionSource(
     createInvoker: CommandInvoker[Unit],
-    deleteInvoker: CommandInvoker[String])(implicit ec: ExecutionContext) extends SessionSource with Loggable {
+    deleteInvoker: CommandInvoker.Sync[String])(implicit ec: ExecutionContext) extends SessionSource with Loggable {
   
   private[this] val sessionBox: ValueBox[Option[String]] = ValueBox(None)
   
-  private def isInitialized: Boolean = sessionBox.value.isDefined
-  
-  private[this] lazy val init: Unit = {
+  private[this] def doInit(): Unit = {
     val resultsFuture = createInvoker.apply(())
     
     val sessionIdFuture = resultsFuture.map(_.stdout).flatMap(lines => Future.fromTry(Qconf.parseOutput(lines)))
@@ -37,15 +35,19 @@ final class QconfSessionSource(
       val sessionId = Await.result(sessionIdFuture, Duration.Inf)
       
       sessionBox := Some(sessionId)
+      
+      debug(s"Created Uger session '$sessionId'")
     } catch {
       case NonFatal(e) => error(s"Couldn't get Uger session: ", e)
     }
   }
+
+  override def isInitialized: Boolean = sessionBox.value.isDefined
   
-  private def doInit(): Unit = init
-  
-  override lazy val getSession: String = {
-    doInit()
+  override def getSession: String = sessionBox.get { sessionIdOpt =>
+    if(sessionIdOpt.isEmpty) {
+      doInit()
+    }
     
     sessionBox.value.getOrElse {
       sys.error(s"Uger session initialization failed previously; see earlier log messages")
@@ -54,12 +56,8 @@ final class QconfSessionSource(
   
   override def stop(): Unit = sessionBox.foreach { sessionIdOpt =>
     if(sessionIdOpt.isDefined) {
-      val resultsFuture = deleteInvoker.apply(getSession)
-    
       try {
-        //TODO
-        
-        Await.result(resultsFuture, Duration.Inf)
+        deleteInvoker.apply(getSession)
       } catch {
         case NonFatal(e) => error(s"Couldn't delete Uger session") 
       }

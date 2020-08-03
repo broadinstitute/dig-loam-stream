@@ -406,7 +406,7 @@ object AppWiring extends Loggable {
           jobSubmitter = jobSubmitter, 
           jobMonitor = jobMonitor,
           accountingClient = accountingClient,
-          jobKiller = QdelJobKiller.fromExecutable(sessionSource))
+          jobKiller = QdelJobKiller.fromExecutable(sessionSource, ugerConfig))
 
       val handles = Seq(sessionSource, ugerRunner, schedulerHandle)
 
@@ -446,7 +446,7 @@ object AppWiring extends Loggable {
           jobSubmitter = jobSubmitter, 
           jobMonitor = jobMonitor,
           accountingClient = accountingClient,
-          jobKiller = BkillJobKiller.fromExecutable(SessionSource.Noop))
+          jobKiller = BkillJobKiller.fromExecutable(SessionSource.Noop, lsfConfig))
 
       val handles = Seq(schedulerHandle, lsfRunner)
 

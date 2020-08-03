@@ -1,4 +1,6 @@
-package loamstream.loam.intake.metrics
+package loamstream.util
+
+import scala.util.matching.Regex
 
 /**
  * An abstract notion of folding over some collection of elements, producing a result.
@@ -11,6 +13,10 @@ abstract class Fold[E, A, R] {
   def map[S](f: R => S): Fold[E, A, S] = {
     Fold(this.zero, this.add, acc => f(this.summarize(acc)))
   }
+  
+  def |+|[A1, R1](other: Fold[E, A1, R1]): Fold[E, (A, A1), (R, R1)] = Fold.combine(this, other)
+  
+  def process(es: TraversableOnce[E]): R = Fold.fold(es)(this)
 }
 
 object Fold {
@@ -58,4 +64,26 @@ object Fold {
   def count[E]: Fold[E, Int, Int] = Fold(0, (acc, _) => acc + 1, identity)
   
   def countIf[E](p: E => Boolean): Fold[E, Int, Int] = Fold(0, (acc, e) => if(p(e)) acc + 1 else acc, identity)
+  
+  def findFirst[E](p: E => Boolean): Fold[E, Option[E], Option[E]] = {
+    Fold(None, (acc, e) => if(acc.isEmpty && p(e)) Some(e) else acc, identity)
+  }
+  
+  def matchFirst(r: Regex): Fold[String, Seq[String], Seq[String]] = {
+    def accumulate(acc: Seq[String], e: String): Seq[String] = {
+      if(acc.nonEmpty) { acc }
+      else { r.unapplySeq(e).getOrElse(Nil) }
+    }
+    
+    Fold(Nil, accumulate, identity)
+  }
+  
+  def matchFirst1(r: Regex): Fold[String, Option[String], Option[String]] = {
+    def accumulate(acc: Option[String], e: String): Option[String] = {
+      if(acc.nonEmpty) { acc }
+      else { r.unapplySeq(e).flatMap(_.headOption) }
+    }
+    
+    Fold(None, accumulate, identity)
+  }
 }

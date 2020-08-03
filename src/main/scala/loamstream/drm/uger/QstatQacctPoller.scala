@@ -21,6 +21,7 @@ import loamstream.util.Traversables
 import scala.util.matching.Regex
 import scala.util.Failure
 import scala.annotation.tailrec
+import loamstream.util.Fold
 
 /**
  * @author clint
@@ -206,9 +207,17 @@ object QstatQacctPoller extends Loggable {
       
       val (jobNumberToLookFor, lines) = t
       
+      def toTry(t: (Option[String], Option[Int], Option[Int])): Try[(String, Int, Int)] = t match {
+        case (Some(jn), Some(ti), Some(es)) => Success((jn, ti, es))
+        case (None, _, _) => Tries.failure(s"Missing jobnumber field")
+        case (_, None, _) => Tries.failure(s"Missing taskid field")
+        case (_, _, None) => Tries.failure(s"Missing exit_status field")
+      }
+      
       val tupleAttempts = lines.splitOn(isDivider).map { linesForOneTask =>
         for {
           fieldsTuple <- getFields(linesForOneTask)
+          //fieldsTuple <- toTry(Folds.fields.process(linesForOneTask))
           (jobNumber, taskIndex, exitStatus) = fieldsTuple
           drmTaskId = DrmTaskId(jobNumber, taskIndex)
           if idsToLookFor.contains(drmTaskId)
@@ -303,6 +312,8 @@ object QstatQacctPoller extends Loggable {
         }
       }
       
+      val x: (Option[String], Option[Int], Option[Int]) = Folds.fields.process(qacctOutput)
+      
       loop(State(None, None, None), qacctOutput).toTry
     }
     
@@ -311,6 +322,22 @@ object QstatQacctPoller extends Loggable {
         jobNumber <- getJobNumber(qacctOutput)
         taskId <- getTaskIndex(qacctOutput)
       } yield DrmTaskId(jobNumber, taskId)
+    }
+    
+    object Folds {
+      val taskIndex = Fold.matchFirst1(Regexes.taskId).map(_.flatMap(s => Try(s.toInt).toOption))
+      val jobNumber = Fold.matchFirst1(Regexes.jobNumber)
+      val exitStatus = Fold.matchFirst1(Regexes.exitStatus).map(_.flatMap(s => Try(s.toInt).toOption))
+      
+      val drmTaskId = (jobNumber |+| taskIndex).map { 
+        case (Some(jn), Some(ti)) => Some(DrmTaskId(jn, ti))
+        case _ => None
+      }
+      
+      val fields: Fold[String, _, (Option[String], Option[Int], Option[Int])] = (jobNumber |+| taskIndex |+| exitStatus).map {
+        case ((jn, ti), es) => (jn, ti, es)
+        case _ => (None, None, None)
+      }
     }
   }
 }

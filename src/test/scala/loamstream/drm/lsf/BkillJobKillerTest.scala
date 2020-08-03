@@ -23,9 +23,9 @@ final class BkillJobKillerTest extends FunSuite {
   test("killAllJobs - happy path") {
     //Basically the best we can do is test that we don't throw
     
-    val killer = new BkillJobKiller( () => 
+    val killer = BkillJobKiller { () => 
       Success(RunResults("foo", 0, Nil, Nil))
-    )
+    }
     
     killer.killAllJobs()
   }
@@ -33,9 +33,9 @@ final class BkillJobKillerTest extends FunSuite {
   test("killAllJobs - non-zero exit code") {
     //Basically the best we can do is test that we don't throw
     
-    val killer = new BkillJobKiller( () => 
+    val killer = BkillJobKiller { () => 
       Success(RunResults("foo", 42, Nil, Nil))
-    )
+    }
     
     killer.killAllJobs()
   }
@@ -43,9 +43,9 @@ final class BkillJobKillerTest extends FunSuite {
   test("killAllJobs - something threw") {
     //Basically the best we can do is test that we don't throw
     
-    val killer = new BkillJobKiller( () => 
+    val killer = BkillJobKiller { () =>
       Tries.failure("blerg")
-    )
+    }
     
     killer.killAllJobs()
   }

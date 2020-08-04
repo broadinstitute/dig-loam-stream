@@ -21,7 +21,7 @@ object Qstat extends Loggable {
     
   final def commandInvoker(
       sessionSource: SessionSource,
-      actualExecutable: String = "qstat")(implicit ec: ExecutionContext): CommandInvoker[Unit] = {
+      actualExecutable: String = "qstat")(implicit ec: ExecutionContext): CommandInvoker.Async[Unit] = {
     //Unit and ignored args are obviously a smell, but a more principled refactoring will have to wait.
     def invocationFn(ignored: Unit): Try[RunResults] = {
       val tokens = makeTokens(actualExecutable, sessionSource)
@@ -31,6 +31,6 @@ object Qstat extends Loggable {
       Processes.runSync(actualExecutable, tokens)
     }
     
-    new CommandInvoker.JustOnce[Unit](actualExecutable, invocationFn)
+    new CommandInvoker.Async.JustOnce[Unit](actualExecutable, invocationFn)
   }
 }

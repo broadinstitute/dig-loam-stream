@@ -28,7 +28,7 @@ object Qconf extends Loggable {
       maxRetries: Int, 
       actualExecutable: String = "qconf",
       //TODO
-      scheduler: Scheduler = IOScheduler())(implicit ec: ExecutionContext): CommandInvoker[Unit] = {
+      scheduler: Scheduler = IOScheduler())(implicit ec: ExecutionContext): CommandInvoker.Sync[Unit] = {
     
     def invocationFn(ignored: Unit): Try[RunResults] = {
       val tokens = makeCreateTokens(actualExecutable)
@@ -42,9 +42,9 @@ object Qconf extends Loggable {
       result
     }
     
-    val justOnce = new CommandInvoker.JustOnce[Unit](actualExecutable, invocationFn)
+    val justOnce = new CommandInvoker.Sync.JustOnce[Unit](actualExecutable, invocationFn)
     
-    new CommandInvoker.Retrying(justOnce, maxRetries, scheduler = scheduler)
+    new CommandInvoker.Sync.Retrying(justOnce, maxRetries)
   }
   
   private[uger] def deleteCommandInvoker(
@@ -65,9 +65,9 @@ object Qconf extends Loggable {
       result
     }
     
-    val justOnce = new CommandInvoker.SyncJustOnce[String](actualExecutable, invocationFn)
+    val justOnce = new CommandInvoker.Sync.JustOnce[String](actualExecutable, invocationFn)
     
-    new CommandInvoker.SyncRetrying(justOnce, maxRetries)
+    new CommandInvoker.Sync.Retrying(justOnce, maxRetries)
   }
   
   private[uger] def parseOutput(lines: Seq[String]): Try[String] = {

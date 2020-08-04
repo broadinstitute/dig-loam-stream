@@ -94,7 +94,7 @@ object Qsub extends Loggable {
       sessionSource: SessionSource,
       ugerConfig: UgerConfig,
       actualExecutable: String = "qsub",
-      scheduler: Scheduler = IOScheduler())(implicit ec: ExecutionContext): CommandInvoker[Params] = {
+      scheduler: Scheduler = IOScheduler())(implicit ec: ExecutionContext): CommandInvoker.Async[Params] = {
 
     def invocationFn(params: Params): Try[RunResults] = {
       val tokens = makeTokens(sessionSource, actualExecutable, params)
@@ -104,8 +104,8 @@ object Qsub extends Loggable {
       Processes.runSync(actualExecutable, tokens)
     }
     
-    val justOnce = new CommandInvoker.JustOnce[Params](actualExecutable, invocationFn)
+    val justOnce = new CommandInvoker.Async.JustOnce[Params](actualExecutable, invocationFn)
     
-    new CommandInvoker.Retrying(justOnce, ugerConfig.maxRetries, scheduler = scheduler)
+    new CommandInvoker.Async.Retrying(justOnce, ugerConfig.maxRetries, scheduler = scheduler)
   }
 }

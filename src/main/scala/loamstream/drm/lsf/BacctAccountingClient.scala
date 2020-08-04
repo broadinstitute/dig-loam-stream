@@ -32,7 +32,7 @@ import rx.lang.scala.Scheduler
  * Apr 18, 2019
  */
 final class BacctAccountingClient(
-    bacctInvoker: CommandInvoker[DrmTaskId])
+    bacctInvoker: CommandInvoker.Async[DrmTaskId])
     (implicit ec: ExecutionContext) extends AccountingClient with Loggable {
 
   import BacctAccountingClient._

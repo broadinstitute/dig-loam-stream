@@ -28,7 +28,7 @@ final class BkillJobKiller(
 
 object BkillJobKiller extends JobKiller.Companion[BkillJobKiller]("bkill", new BkillJobKiller(_, _)) {
   private[lsf] def apply(fn: () => Try[RunResults]): BkillJobKiller = {
-    new BkillJobKiller(new CommandInvoker.SyncJustOnce[Unit]("bkill", _ => fn()))
+    new BkillJobKiller(new CommandInvoker.Sync.JustOnce[Unit]("bkill", _ => fn()))
   }
   
   override protected[lsf] def makeTokens(

@@ -85,7 +85,7 @@ final class QstatQacctPollerTest extends FunSuite {
       Success(RunResults.Successful("MOCK_QSTAT", lines, Nil))
     }
     
-    val qstatInvoker: CommandInvoker[Unit] = new CommandInvoker.JustOnce("MOCK_QSTAT", qstatInvocationFn)
+    val qstatInvoker: CommandInvoker.Async[Unit] = new CommandInvoker.Async.JustOnce("MOCK_QSTAT", qstatInvocationFn)
     
     val qacctInvocationFn: CommandInvoker.InvocationFn[String] = { jobNumber =>
       val lines = {
@@ -118,7 +118,7 @@ final class QstatQacctPollerTest extends FunSuite {
       Success(RunResults.Successful("MOCK_QACCT", lines, Nil))
     }
     
-    val qacctInvoker: CommandInvoker[String] = new CommandInvoker.JustOnce("MOCK_QACCT", qacctInvocationFn)
+    val qacctInvoker: CommandInvoker.Async[String] = new CommandInvoker.Async.JustOnce("MOCK_QACCT", qacctInvocationFn)
     
     val poller = new QstatQacctPoller(qstatInvoker, qacctInvoker)
     

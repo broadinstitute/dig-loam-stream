@@ -28,8 +28,8 @@ import loamstream.util.Fold
  * Jul 15, 2020
  */
 final class QstatQacctPoller private[uger] (
-    qstatInvoker: CommandInvoker[Unit],
-    qacctInvoker: CommandInvoker[String])(implicit ec: ExecutionContext) extends Poller with Loggable {
+    qstatInvoker: CommandInvoker.Async[Unit],
+    qacctInvoker: CommandInvoker.Async[String])(implicit ec: ExecutionContext) extends Poller with Loggable {
   
   import QstatQacctPoller._
   

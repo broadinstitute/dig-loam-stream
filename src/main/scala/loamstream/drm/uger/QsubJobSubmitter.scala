@@ -27,7 +27,7 @@ import loamstream.drm.SessionSource
  * Jul 14, 2020
  */
 final class QsubJobSubmitter private[uger] (
-    commandInvoker: CommandInvoker[Qsub.Params],
+    commandInvoker: CommandInvoker.Async[Qsub.Params],
     ugerConfig: UgerConfig)(implicit ec: ExecutionContext) extends JobSubmitter with Loggable {
   
   override def submitJobs(drmSettings: DrmSettings, taskArray: DrmTaskArray): Observable[DrmSubmissionResult] = {

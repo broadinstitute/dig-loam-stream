@@ -14,31 +14,35 @@ import loamstream.util.OneTimeLatch
 import scala.util.control.NonFatal
 import loamstream.util.Loggable
 import scala.util.Try
+import scala.util.Success
+import scala.util.Failure
 
 /**
  * @author clint
  * Jul 24, 2020
  */
 final class QconfSessionSource(
-    createInvoker: CommandInvoker[Unit],
+    createInvoker: CommandInvoker.Sync[Unit],
     deleteInvoker: CommandInvoker.Sync[String])(implicit ec: ExecutionContext) extends SessionSource with Loggable {
   
   private[this] val sessionBox: ValueBox[Option[String]] = ValueBox(None)
   
   private[this] def doInit(): Unit = {
-    val resultsFuture = createInvoker.apply(())
+    val resultsAttempt = createInvoker.apply(())
     
-    val sessionIdFuture = resultsFuture.map(_.stdout).flatMap(lines => Future.fromTry(Qconf.parseOutput(lines)))
+    val sessionIdAttempt = resultsAttempt.map(_.stdout).flatMap(Qconf.parseOutput)
     
-    //TODO
-    try { 
-      val sessionId = Await.result(sessionIdFuture, Duration.Inf)
+    sessionIdAttempt match {
+      case Success(sessionId) => {
+        sessionBox := Some(sessionId)
       
-      sessionBox := Some(sessionId)
-      
-      debug(s"Created Uger session '$sessionId'")
-    } catch {
-      case NonFatal(e) => error(s"Couldn't get Uger session: ", e)
+        debug(s"Created Uger session '$sessionId'")
+      }
+      case Failure(e) => {
+        error(s"Couldn't get Uger session: ", e)
+        //TODO
+        throw e
+      }
     }
   }
 

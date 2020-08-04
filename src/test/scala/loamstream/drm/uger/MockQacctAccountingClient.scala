@@ -21,8 +21,8 @@ import rx.lang.scala.schedulers.ComputationScheduler
 final class MockQacctAccountingClient(
     delegateFn: DrmTaskId => Try[RunResults],
     ugerConfig: UgerConfig = UgerConfig(),
-    delayStart: Duration = CommandInvoker.Retrying.defaultDelayStart,
-    delayCap: Duration = CommandInvoker.Retrying.defaultDelayCap) extends AccountingClient {
+    delayStart: Duration = CommandInvoker.Async.Retrying.defaultDelayStart,
+    delayCap: Duration = CommandInvoker.Async.Retrying.defaultDelayCap) extends AccountingClient {
   
   private val timesGetQacctOutputForInvokedBox: ValueBox[Int] = ValueBox(0)
 
@@ -48,7 +48,7 @@ final class MockQacctAccountingClient(
     import scala.concurrent.ExecutionContext.Implicits.global
     
     val invoker = {
-      CommandInvoker.Retrying[DrmTaskId](
+      CommandInvoker.Async.Retrying[DrmTaskId](
           ugerConfig.maxQacctRetries, 
           "MOCK", 
           wrappedDelegateFn, 

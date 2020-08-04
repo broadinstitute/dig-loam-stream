@@ -43,9 +43,9 @@ object JobKiller extends Loggable {
         }
       }
       
-      val justOnce = new CommandInvoker.SyncJustOnce[Unit](actualExecutable, killJobs)
+      val justOnce = new CommandInvoker.Sync.JustOnce[Unit](actualExecutable, killJobs)
       
-      val commandInvoker = new CommandInvoker.SyncRetrying(justOnce, maxRetries = config.maxRetries)
+      val commandInvoker = new CommandInvoker.Sync.Retrying(justOnce, maxRetries = config.maxRetries)
       
       constructor(commandInvoker, sessionSource)
     }

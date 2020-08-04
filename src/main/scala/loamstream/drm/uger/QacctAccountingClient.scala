@@ -35,7 +35,7 @@ import rx.lang.scala.Scheduler
  * job id, to facilitate unit testing.
  */
 final class QacctAccountingClient(
-    qacctInvoker: CommandInvoker[DrmTaskId])
+    qacctInvoker: CommandInvoker.Async[DrmTaskId])
     (implicit ec: ExecutionContext) extends AccountingClient with Loggable {
 
   import QacctAccountingClient._

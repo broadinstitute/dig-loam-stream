@@ -40,7 +40,7 @@ final class BacctAccountingClientTest extends FunSuite {
   
   test("Parse actual bacct outpout - bad input") {
     def doTest(bacctOutput: Seq[String]): Unit = {
-      val mockInvoker = CommandInvoker.Retrying[DrmTaskId](
+      val mockInvoker = CommandInvoker.Async.Retrying[DrmTaskId](
           0, 
           "MOCK", 
           _ => runResultsAttempt(stdout = bacctOutput), 
@@ -58,7 +58,7 @@ final class BacctAccountingClientTest extends FunSuite {
   test("Parse actual bacct outpout - happy path") {
     val splitOutput = actualOutput.split("\\n")
     
-    val mockInvoker = CommandInvoker.Retrying[DrmTaskId](
+    val mockInvoker = CommandInvoker.Async.Retrying[DrmTaskId](
         0, 
         "MOCK", 
         _ => runResultsAttempt(stdout = splitOutput),
@@ -93,7 +93,7 @@ final class BacctAccountingClientTest extends FunSuite {
       
       val splitOutput = rawOutput.split("\\n")
       
-      val mockInvoker = CommandInvoker.Retrying[DrmTaskId](
+      val mockInvoker = CommandInvoker.Async.Retrying[DrmTaskId](
           0, 
           "MOCK", 
           _ => runResultsAttempt(stdout = splitOutput),
@@ -126,7 +126,7 @@ final class BacctAccountingClientTest extends FunSuite {
   test("Parse actual bacct outpout - problematic output") {
     val splitOutput = problematicOutput.split("\\n")
     
-    val mockInvoker = CommandInvoker.Retrying[DrmTaskId](
+    val mockInvoker = CommandInvoker.Async.Retrying[DrmTaskId](
         0, 
         "MOCK", 
         _ => runResultsAttempt(stdout = splitOutput),

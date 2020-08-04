@@ -19,7 +19,7 @@ object AccountingCommandInvoker {
     def useActualBinary(
         maxRetries: Int, 
         binaryName: String,
-        scheduler: Scheduler)(implicit ec: ExecutionContext): CommandInvoker[P] = {
+        scheduler: Scheduler)(implicit ec: ExecutionContext): CommandInvoker.Async[P] = {
       
       def invokeBinaryFor(param: P) = {
         val tokens = makeTokens(binaryName, param)
@@ -31,12 +31,12 @@ object AccountingCommandInvoker {
       
       val notRetrying = maxRetries == 0
       
-      val invokeOnce = new CommandInvoker.JustOnce[P](binaryName, invokeBinaryFor)
+      val invokeOnce = new CommandInvoker.Async.JustOnce[P](binaryName, invokeBinaryFor)
       
       if(notRetrying) {
         invokeOnce
       } else {
-        new CommandInvoker.Retrying[P](delegate = invokeOnce, maxRetries = maxRetries, scheduler = scheduler)
+        new CommandInvoker.Async.Retrying[P](delegate = invokeOnce, maxRetries = maxRetries, scheduler = scheduler)
       }
     }
   

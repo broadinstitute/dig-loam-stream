@@ -63,16 +63,22 @@ object Fold {
   
   def count[E]: Fold[E, Int, Int] = Fold(0, (acc, _) => acc + 1, identity)
   
-  def countIf[E](p: E => Boolean): Fold[E, Int, Int] = Fold(0, (acc, e) => if(p(e)) acc + 1 else acc, identity)
+  def countIf[E](p: E => Boolean): Fold[E, Int, Int] = {
+    def accumulate(acc: Int, elem: E): Int = if(p(elem)) acc + 1 else acc
+    
+    Fold(0, accumulate, identity)
+  }
   
   def findFirst[E](p: E => Boolean): Fold[E, Option[E], Option[E]] = {
-    Fold(None, (acc, e) => if(acc.isEmpty && p(e)) Some(e) else acc, identity)
+    def accumulate(acc: Option[E], elem: E): Option[E] = if(acc.isEmpty && p(elem)) Some(elem) else acc
+    
+    Fold(None, accumulate, identity)
   }
   
   def matchFirst(r: Regex): Fold[String, Seq[String], Seq[String]] = {
     def accumulate(acc: Seq[String], e: String): Seq[String] = {
-      if(acc.nonEmpty) { acc }
-      else { r.unapplySeq(e).getOrElse(Nil) }
+      if(acc.isEmpty) { r.unapplySeq(e).getOrElse(Nil) }
+      else { acc }
     }
     
     Fold(Nil, accumulate, identity)
@@ -80,8 +86,8 @@ object Fold {
   
   def matchFirst1(r: Regex): Fold[String, Option[String], Option[String]] = {
     def accumulate(acc: Option[String], e: String): Option[String] = {
-      if(acc.nonEmpty) { acc }
-      else { r.unapplySeq(e).flatMap(_.headOption) }
+      if(acc.isEmpty) { r.unapplySeq(e).flatMap(_.headOption) }
+      else { acc }
     }
     
     Fold(None, accumulate, identity)

@@ -33,33 +33,14 @@ object CommandInvoker extends Loggable {
 
   trait Async[A] extends (AsyncInvocationFn[A])
 
-  private def toAttemptedSuccess(rr: RunResults): Try[RunResults.Successful] = rr match {
-    //Coerce invocations producing non-zero exit codes to Failures
-    case r: RunResults.Unsuccessful => {
-      val msg = s"Error invoking '${r.commandLine}' (exit code ${r.exitCode})"
-
-      r.logStdOutAndStdErr(s"$msg; output streams follow:", Loggable.Level.Warn)
-
-      Tries.failure(msg)
-    }
-    case r: RunResults.CouldNotStart => {
-      val msg = s"Couldn't run '${r.commandLine}': No exit code, caught "
-
-      warn(msg, r.cause)
-      
-      r.logStdOutAndStdErr(s"$msg; output streams follow:", Loggable.Level.Warn)
-      
-      Failure(r.cause)
-    }
-    case r: RunResults.Successful => Success(r)
-  }
+  
   
   object Sync {
     final class JustOnce[A](
       val binaryName: String,
       delegateFn: InvocationFn[A]) extends CommandInvoker.Sync[A] with Loggable {
 
-      override def apply(param: A): Try[RunResults.Successful] = delegateFn(param).flatMap(toAttemptedSuccess)
+      override def apply(param: A): Try[RunResults.Successful] = delegateFn(param).flatMap(_.tryAsSuccess)
     }
 
     final class Retrying[A](
@@ -137,7 +118,7 @@ object CommandInvoker extends Loggable {
       }
 
       private[CommandInvoker] def invokeBinary(param: A): Observable[Try[RunResults.Successful]] = Observable.just {
-        delegateFn(param).flatMap(toAttemptedSuccess)
+        delegateFn(param).flatMap(_.tryAsSuccess)
       }
     }
 

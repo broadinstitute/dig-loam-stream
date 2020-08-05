@@ -24,10 +24,12 @@ import rx.lang.scala.Observable
  */
 object CommandInvoker extends Loggable {
   type InvocationFn[A] = A => Try[RunResults]
+  
+  type SuccessfulInvocationFn[A] = A => Try[RunResults.Successful]
 
   type AsyncInvocationFn[A] = A => Future[RunResults.Successful]
 
-  trait Sync[A] extends (InvocationFn[A])
+  trait Sync[A] extends (SuccessfulInvocationFn[A])
 
   trait Async[A] extends (AsyncInvocationFn[A])
 
@@ -135,20 +137,7 @@ object CommandInvoker extends Loggable {
       }
 
       private[CommandInvoker] def invokeBinary(param: A): Observable[Try[RunResults.Successful]] = Observable.just {
-        delegateFn(param) match {
-          //Coerce invocations producing non-zero exit codes to Failures
-          case Success(r: RunResults.Unsuccessful) => {
-            val msg = s"Error invoking '${r.commandLine}' (exit code ${r.exitCode})"
-
-            r.logStdOutAndStdErr(s"$msg; output streams follow:", Loggable.Level.Warn)
-
-            Tries.failure(msg)
-          }
-          case Success(r: RunResults.Successful) => Success(r)
-          case Success(r: RunResults.CouldNotStart) => r.toFailure
-          //pass failure-failures and successful (0 exit code) invocations through
-          case Failure(e) => Failure(e)
-        }
+        delegateFn(param).flatMap(toAttemptedSuccess)
       }
     }
 

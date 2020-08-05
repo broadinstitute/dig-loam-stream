@@ -1,5 +1,7 @@
 package loamstream.util
 
+import scala.util.Failure
+
 /**
  * @author clint
  * May 15, 2018
@@ -11,8 +13,6 @@ sealed trait RunResults {
   def stdout: Seq[String]
   
   def stderr: Seq[String]
-  
-  def exitCode: Int
 
   final def logStdOutAndStdErr(
       headerMessage: String, 
@@ -27,18 +27,33 @@ sealed trait RunResults {
 }
 
 object RunResults {
-  def apply(executable: String, exitCode: Int, stdout: Seq[String], stderr: Seq[String]): RunResults = {
-    if(ExitCodes.isSuccess(exitCode)) { Successful(executable, stdout, stderr) }
+  def apply(
+      executable: String, 
+      exitCode: Int, 
+      stdout: Seq[String], 
+      stderr: Seq[String],
+      isSuccess: Int => Boolean = ExitCodes.isSuccess): RunResults = {
+    
+    if(isSuccess(exitCode)) { Successful(executable, stdout, stderr) }
     else { Unsuccessful(executable, exitCode, stdout, stderr) }
   }
   
-  final case class Successful(commandLine: String, stdout: Seq[String], stderr: Seq[String]) extends RunResults {
-    override def exitCode: Int = 0
-  }
+  final case class Successful(commandLine: String, stdout: Seq[String], stderr: Seq[String]) extends RunResults
   
   final case class Unsuccessful(
       commandLine: String, 
       exitCode: Int, 
       stdout: Seq[String], 
       stderr: Seq[String]) extends RunResults
+      
+  final case class CouldNotStart(
+      commandLine: String,
+      cause: Throwable) extends RunResults {
+    
+    override def stdout: Seq[String] = Nil
+  
+    override def stderr: Seq[String] = Nil
+    
+    def toFailure[A]: Failure[A] = Failure(cause)
+  }
 }

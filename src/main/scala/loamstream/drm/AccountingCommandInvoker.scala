@@ -26,7 +26,7 @@ object AccountingCommandInvoker {
         
         debug(s"Invoking '$binaryName': '${tokens.mkString(" ")}'")
         
-        Processes.runSync(binaryName, tokens)
+        Processes.runSync(tokens)()
       }
       
       val notRetrying = maxRetries == 0

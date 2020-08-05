@@ -28,7 +28,8 @@ object JobKiller extends Loggable {
         sessionSource: SessionSource,
         config: DrmConfig,
         actualExecutable: String = defaultExecutable,
-        username: String = Users.currentUser): A = {
+        username: String = Users.currentUser,
+        isSuccess: Int => Boolean): A = {
         
       val killJobs: Unit => Try[RunResults] = { _ =>
         val tokens = makeTokens(sessionSource, actualExecutable, username)
@@ -37,8 +38,10 @@ object JobKiller extends Loggable {
         
         import RunResults._
         
-        Processes.runSync(tokens).flatMap { 
-          case r @ Unsuccessful(_, 1, _, _) => Success(RunResults.Successful(r.commandLine, r.stdout, r.stderr))
+        Processes.runSync(tokens)(isSuccess = isSuccess).flatMap { 
+          case r @ Unsuccessful(_, ec, _, _) if isSuccess(ec) => {
+            Success(RunResults.Successful(r.commandLine, r.stdout, r.stderr))
+          }
           case other => Success(other)
         }
       }

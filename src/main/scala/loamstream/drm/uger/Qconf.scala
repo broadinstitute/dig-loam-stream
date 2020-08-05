@@ -35,7 +35,7 @@ object Qconf extends Loggable {
       
       debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
       
-      val result = Processes.runSync(actualExecutable, tokens)
+      val result = Processes.runSync(tokens)()
       
       debug(s"Invoked '${tokens.mkString(" ")}', got $result")
       
@@ -58,7 +58,7 @@ object Qconf extends Loggable {
       
       debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
       
-      val result = Processes.runSync(actualExecutable, tokens)
+      val result = Processes.runSync(tokens)()
       
       debug(s"Invoked '${tokens.mkString(" ")}', got $result")
       

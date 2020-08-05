@@ -28,7 +28,7 @@ object Qstat extends Loggable {
       
       debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
       
-      Processes.runSync(actualExecutable, tokens)
+      Processes.runSync(tokens)()
     }
     
     new CommandInvoker.Async.JustOnce[Unit](actualExecutable, invocationFn)

@@ -22,7 +22,7 @@ import rx.lang.scala.Observable
  * and greater periods after each failure, starting at delayStart and doubling after each failure, up to a max of
  * delayCap.  See Loops.Backoff.delaySequence and Loops.retryUntilSuccessWithBackoff .
  */
-object CommandInvoker {
+object CommandInvoker extends Loggable {
   type InvocationFn[A] = A => Try[RunResults]
 
   type AsyncInvocationFn[A] = A => Future[RunResults.Successful]
@@ -31,24 +31,33 @@ object CommandInvoker {
 
   trait Async[A] extends (AsyncInvocationFn[A])
 
+  private def toAttemptedSuccess(rr: RunResults): Try[RunResults.Successful] = rr match {
+    //Coerce invocations producing non-zero exit codes to Failures
+    case r: RunResults.Unsuccessful => {
+      val msg = s"Error invoking '${r.commandLine}' (exit code ${r.exitCode})"
+
+      r.logStdOutAndStdErr(s"$msg; output streams follow:", Loggable.Level.Warn)
+
+      Tries.failure(msg)
+    }
+    case r: RunResults.CouldNotStart => {
+      val msg = s"Couldn't run '${r.commandLine}': No exit code, caught "
+
+      warn(msg, r.cause)
+      
+      r.logStdOutAndStdErr(s"$msg; output streams follow:", Loggable.Level.Warn)
+      
+      Failure(r.cause)
+    }
+    case r: RunResults.Successful => Success(r)
+  }
+  
   object Sync {
     final class JustOnce[A](
       val binaryName: String,
       delegateFn: InvocationFn[A]) extends CommandInvoker.Sync[A] with Loggable {
 
-      override def apply(param: A): Try[RunResults.Successful] = delegateFn(param) match {
-        //Coerce invocations producing non-zero exit codes to Failures
-        case Success(r: RunResults.Unsuccessful) => {
-          val msg = s"Error invoking '${r.commandLine}' (exit code ${r.exitCode})"
-
-          r.logStdOutAndStdErr(s"$msg; output streams follow:", Loggable.Level.Warn)
-
-          Tries.failure(msg)
-        }
-        case Success(r: RunResults.Successful) => Success(r)
-        //pass failure-failures and successful (0 exit code) invocations through
-        case Failure(e) => Failure(e)
-      }
+      override def apply(param: A): Try[RunResults.Successful] = delegateFn(param).flatMap(toAttemptedSuccess)
     }
 
     final class Retrying[A](
@@ -136,6 +145,7 @@ object CommandInvoker {
             Tries.failure(msg)
           }
           case Success(r: RunResults.Successful) => Success(r)
+          case Success(r: RunResults.CouldNotStart) => r.toFailure
           //pass failure-failures and successful (0 exit code) invocations through
           case Failure(e) => Failure(e)
         }

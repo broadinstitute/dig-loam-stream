@@ -23,7 +23,7 @@ object InvokesBjobs {
         
         trace(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
         
-        Processes.runSync(actualExecutable, tokens)
+        Processes.runSync(tokens)()
       }
       
       constructor(invocationFn)

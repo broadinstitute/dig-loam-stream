@@ -91,6 +91,7 @@ import loamstream.drm.uger.Qsub
 import loamstream.drm.uger.QsubJobSubmitter
 import loamstream.drm.uger.QconfSessionSource
 import loamstream.drm.uger.QconfSessionSource
+import loamstream.util.ExitCodes
 
 
 /**
@@ -398,6 +399,8 @@ object AppWiring extends Loggable {
       
       val accountingClient = QacctAccountingClient.useActualBinary(ugerConfig, scheduler)
       
+      val jobKiller = QdelJobKiller.fromExecutable(sessionSource, ugerConfig, isSuccess = Set(0,1).contains)
+      
       val ugerRunner = DrmChunkRunner(
           environmentType = EnvironmentType.Uger,
           pathBuilder = new UgerPathBuilder(UgerScriptBuilderParams(ugerConfig)),
@@ -406,7 +409,7 @@ object AppWiring extends Loggable {
           jobSubmitter = jobSubmitter, 
           jobMonitor = jobMonitor,
           accountingClient = accountingClient,
-          jobKiller = QdelJobKiller.fromExecutable(sessionSource, ugerConfig))
+          jobKiller = jobKiller)
 
       val handles = Seq(sessionSource, ugerRunner, schedulerHandle)
 
@@ -438,6 +441,8 @@ object AppWiring extends Loggable {
 
       val accountingClient = BacctAccountingClient.useActualBinary(lsfConfig, scheduler)
       
+      val jobKiller = BkillJobKiller.fromExecutable(SessionSource.Noop, lsfConfig, isSuccess = ExitCodes.isSuccess)
+      
       val lsfRunner = DrmChunkRunner(
           environmentType = EnvironmentType.Lsf,
           pathBuilder = LsfPathBuilder,
@@ -446,7 +451,7 @@ object AppWiring extends Loggable {
           jobSubmitter = jobSubmitter, 
           jobMonitor = jobMonitor,
           accountingClient = accountingClient,
-          jobKiller = BkillJobKiller.fromExecutable(SessionSource.Noop, lsfConfig))
+          jobKiller = jobKiller)
 
       val handles = Seq(schedulerHandle, lsfRunner)
 

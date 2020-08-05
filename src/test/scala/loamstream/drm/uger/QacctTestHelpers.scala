@@ -11,6 +11,7 @@ import loamstream.model.execute.Resources.UgerResources
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Memory
 import loamstream.util.RunResults
+import loamstream.util.ExitCodes
 
 /**
  * @author clint
@@ -22,7 +23,8 @@ object QacctTestHelpers {
       stderr: Seq[String] = Nil, 
       fakeBinaryName: String = "MOCK"): Try[RunResults] = {
     
-    Success(RunResults(fakeBinaryName, exitCode = 0, stdout = stdout, stderr = stderr))
+    Success(
+        RunResults(fakeBinaryName, exitCode = 0, stdout = stdout, stderr = stderr, isSuccess = ExitCodes.isSuccess))
   }
   
   def failedRun(
@@ -31,7 +33,8 @@ object QacctTestHelpers {
       stderr: Seq[String] = Nil, 
       fakeBinaryName: String = "MOCK"): Try[RunResults] = {
 
-    Success(RunResults(fakeBinaryName, exitCode = exitCode, stdout = stdout, stderr = stderr))
+    Success(RunResults(
+        fakeBinaryName, exitCode = exitCode, stdout = stdout, stderr = stderr, isSuccess = ExitCodes.isSuccess))
   }
   
   def expectedResources(

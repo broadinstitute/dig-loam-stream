@@ -63,6 +63,15 @@ final class BsubJobSubmitter private[lsf] (
           s"LSF Job submission failure: `${r.commandLine}` failed with status code ${r.exitCode}"
         }
       }
+      case r: RunResults.CouldNotStart => {
+        logAndMakeFailure(r) { r =>
+          val msg = s"LSF Job submission failure: `${r.commandLine}` couldn't start: ${r.cause.getMessage}"
+          
+          error(msg, r.cause)
+          
+          msg
+        }
+      }
     }
   }
   
@@ -109,10 +118,14 @@ object BsubJobSubmitter extends Loggable {
     
     import scala.sys.process._
     
-    //NB: script contents are piped to bsub
-    val processBuilder: ProcessBuilder = tokens #< taskArray.drmScriptFile.toFile
+    val scriptFile = taskArray.drmScriptFile.toFile
     
-    Processes.runSync(actualExecutable, processBuilder)
+    //NB: script contents are piped to bsub
+    val processBuilder: ProcessBuilder = tokens #< scriptFile
+    
+    val tokensForLogging = tokens ++ Seq("<", scriptFile.toString)
+    
+    Processes.runSync(tokensForLogging)(processBuilder = processBuilder)
   }
   
   import DrmSubmissionResult.SubmissionFailure

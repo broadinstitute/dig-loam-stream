@@ -101,7 +101,7 @@ object Qsub extends Loggable {
       
       debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
       
-      Processes.runSync(actualExecutable, tokens)
+      Processes.runSync(tokens)()
     }
     
     val justOnce = new CommandInvoker.Async.JustOnce[Params](actualExecutable, invocationFn)

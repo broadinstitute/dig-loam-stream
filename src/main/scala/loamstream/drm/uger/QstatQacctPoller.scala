@@ -49,7 +49,9 @@ final class QstatQacctPoller private[uger] (
     pollingResultsFromQstatObs.flatMap { byTaskId =>
       val notFoundByQstat = jobIdSet -- byTaskId.keys
       
-      debug(s"${notFoundByQstat.size} finished jobs not found by qstat, ${notFoundByQstat.groupBy(_.jobId).size} job IDs")
+      def numJobIds = notFoundByQstat.map(_.jobId).size
+      
+      debug(s"${notFoundByQstat.size} finished jobs not found by qstat, ${numJobIds} job IDs")
       
       val jobIdsNotFoundByQstat = notFoundByQstat.iterator.map(_.jobId).toSet
       
@@ -334,9 +336,11 @@ object QstatQacctPoller extends Loggable {
         case _ => None
       }
       
-      val fields: Fold[String, _, (Option[String], Option[Int], Option[Int])] = (jobNumber |+| taskIndex |+| exitStatus).map {
-        case ((jn, ti), es) => (jn, ti, es)
-        case _ => (None, None, None)
+      val fields: Fold[String, _, (Option[String], Option[Int], Option[Int])] = {
+        (jobNumber |+| taskIndex |+| exitStatus).map {
+          case ((jn, ti), es) => (jn, ti, es)
+          case _ => (None, None, None)
+        }
       }
     }
   }

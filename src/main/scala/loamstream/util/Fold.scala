@@ -14,7 +14,9 @@ abstract class Fold[E, A, R] {
     Fold(this.zero, this.add, acc => f(this.summarize(acc)))
   }
   
+  //scalastyle:off method.name
   def |+|[A1, R1](other: Fold[E, A1, R1]): Fold[E, (A, A1), (R, R1)] = Fold.combine(this, other)
+  //scalastyle:on method.name
   
   def process(es: TraversableOnce[E]): R = Fold.fold(es)(this)
 }

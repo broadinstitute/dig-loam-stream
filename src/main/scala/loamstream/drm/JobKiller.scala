@@ -38,12 +38,7 @@ object JobKiller extends Loggable {
         
         import RunResults._
         
-        Processes.runSync(tokens)(isSuccess = isSuccess).flatMap { 
-          case r @ Unsuccessful(_, ec, _, _) if isSuccess(ec) => {
-            Success(RunResults.Successful(r.commandLine, r.stdout, r.stderr))
-          }
-          case other => Success(other)
-        }
+        Processes.runSync(tokens)(isSuccess = isSuccess)
       }
       
       val justOnce = new CommandInvoker.Sync.JustOnce[Unit](actualExecutable, killJobs)

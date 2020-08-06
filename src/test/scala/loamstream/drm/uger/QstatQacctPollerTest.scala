@@ -250,58 +250,93 @@ final class QstatQacctPollerTest extends FunSuite {
     assert(toDrmStatus("12345").isFailure)
   }
   
-  test("getExitStatus - happy path") {
-    def outputWithExitCode(ec: Int) = {
-      QacctTestHelpers.actualQacctOutput(None, None, LocalDateTime.now, LocalDateTime.now, ec)
-    }
-    
-    assert(QacctSupport.getExitStatus(outputWithExitCode(0)) === Success(0))
-    assert(QacctSupport.getExitStatus(outputWithExitCode(42)) === Success(42))
-  }
-  
-  test("getExitStatus - bad input") {
-    val lines = QacctTestHelpers.actualQacctOutput(None, None, LocalDateTime.now, LocalDateTime.now, 42)
-    
-    val missingField = lines.filterNot(_.startsWith("exit_status"))
-    
-    val brokenField = lines.map(_.replaceAll("exit_status", "blerg"))
-    
-    assert(QacctSupport.getExitStatus(missingField).isFailure)
-    assert(QacctSupport.getExitStatus(brokenField).isFailure)
+  private def outputForTasks(idsToExitCodes: (DrmTaskId, Int)*): Seq[String] = {
+    idsToExitCodes.map { case (tid, ec) =>
+      "============" +: QacctTestHelpers.actualQacctOutput(
+          None, 
+          None, 
+          LocalDateTime.now, 
+          LocalDateTime.now,
+          jobNumber = tid.jobId,
+          taskIndex = tid.taskIndex,
+          exitCode = ec)
+    }.flatten
   }
   
   test("parseQacctResults - happy path") {
-    def outputWithExitCode(ec: Int) = {
-      QacctTestHelpers.actualQacctOutput(None, None, LocalDateTime.now, LocalDateTime.now, ec)
-    }
+    val jobId = "foo"
     
-    val tid = DrmTaskId("foo", 99)
+    val tid0 = DrmTaskId(jobId, 99)
+    val tid1 = DrmTaskId(jobId, 0)
+    val tid2 = DrmTaskId(jobId, 42)
     
-    assert(QacctSupport.parseQacctResults(tid -> outputWithExitCode(0)) === (tid -> DrmStatus.CommandResult(0)))
-    assert(QacctSupport.parseQacctResults(tid -> outputWithExitCode(42)) === (tid -> DrmStatus.CommandResult(42)))
+    import QacctSupport.parseMultiTaskQacctResults
+    
+    val output = outputForTasks(tid0 -> 4, tid1 -> 0, tid2 -> 0)
+    
+    val expected = Map(
+        tid0 -> DrmStatus.CommandResult(4),
+        tid1 -> DrmStatus.CommandResult(0),
+        tid2 -> DrmStatus.CommandResult(0))
+    
+    assert(parseMultiTaskQacctResults(Set(tid0, tid1, tid2))(jobId -> output) === expected)
   }
   
+  test("parseQacctResults - more results than we're looking for") {
+    val jobId = "foo"
+    
+    val tid0 = DrmTaskId(jobId, 99)
+    val tid1 = DrmTaskId(jobId, 0)
+    val tid2 = DrmTaskId(jobId, 42)
+    
+    import QacctSupport.parseMultiTaskQacctResults
+    
+    val output = outputForTasks(tid0 -> 4, tid1 -> 0, tid2 -> 0)
+    
+    val expected = Map(
+        tid0 -> DrmStatus.CommandResult(4),
+        tid1 -> DrmStatus.CommandResult(0))
+    
+    assert(parseMultiTaskQacctResults(Set(tid0, tid1))(jobId -> output) === expected)
+  }
+
   test("parseQacctResults - bad input") {
-    val lines = QacctTestHelpers.actualQacctOutput(None, None, LocalDateTime.now, LocalDateTime.now, 42)
+    val jobId = "foo"
+    
+    val tid0 = DrmTaskId(jobId, 99)
+    val tid1 = DrmTaskId(jobId, 0)
+    val tid2 = DrmTaskId(jobId, 42)
+    
+    import QacctSupport.parseMultiTaskQacctResults
+    
+    val lines = outputForTasks(tid0 -> 4, tid1 -> 0, tid2 -> 0)
     
     val missingField = lines.filterNot(_.startsWith("exit_status"))
     
     val brokenField = lines.map(_.replaceAll("exit_status", "blerg"))
     
-    val tid = DrmTaskId("foo", 99)
+    assert(parseMultiTaskQacctResults(Set(tid0, tid1))(jobId -> missingField) === Map.empty) 
+  
+    assert(parseMultiTaskQacctResults(Set(tid0, tid1))(jobId -> brokenField) === Map.empty)
+  }
+  
+  test("parseQacctResults - some good input, some bad") {
+    val jobId = "foo"
     
-    {
-      val (actualTid, actualStatus) = QacctSupport.parseQacctResults(tid -> missingField) 
-      
-      assert(actualTid === tid)
-      assert(actualStatus === DrmStatus.Undetermined)
-    }
+    val tid0 = DrmTaskId(jobId, 99)
+    val tid1 = DrmTaskId(jobId, 0)
+    val tid2 = DrmTaskId(jobId, 42)
     
-    {
-      val (actualTid, actualStatus) = QacctSupport.parseQacctResults(tid -> brokenField) 
-      
-      assert(actualTid === tid)
-      assert(actualStatus === DrmStatus.Undetermined)
-    }
+    import QacctSupport.parseMultiTaskQacctResults
+    
+    val goodLines = outputForTasks(tid0 -> 4, tid2 -> 0)
+    
+    val badLines = outputForTasks(tid1 -> 0).map(_.replaceAll("exit_status", "blerg"))
+    
+    val lines = goodLines ++ badLines
+    
+    val expected = Map(tid0 -> DrmStatus.CommandResult(4), tid2 -> DrmStatus.CommandResult(0))
+    
+    assert(parseMultiTaskQacctResults(Set(tid0, tid1, tid2))(jobId -> lines) === expected) 
   }
 }

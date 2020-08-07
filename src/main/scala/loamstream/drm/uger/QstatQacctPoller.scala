@@ -198,31 +198,25 @@ object QstatQacctPoller extends Loggable {
       
       val (jobNumberToLookFor, qacctLines) = jobNumberAndQacctLines
       
-      def toTry(t: (Option[String], Option[Int], Option[Int])): Try[(String, Int, Int)] = t match {
-        case (Some(jn), Some(ti), Some(es)) => Success((jn, ti, es))
-        case (None, _, _) => Tries.failure(s"Missing jobnumber field")
-        case (_, None, _) => Tries.failure(s"Missing taskid field")
-        case (_, _, None) => Tries.failure(s"Missing exit_status field")
-      }
-      
-      val tupleAttempts = qacctLines.splitOn(isDivider).map { linesForOneTask =>
-        toTry(Folds.fields.process(linesForOneTask)).map { case (jobNumber, taskIndex, exitStatus) =>
-          val drmTaskId = DrmTaskId(jobNumber, taskIndex)
-          
-          if(idsToLookFor.contains(drmTaskId)) {
-            Iterator(drmTaskId -> DrmStatus.CommandResult(exitStatus))
-          } else {
+      val tuples = qacctLines.splitOn(isDivider).flatMap { linesForOneTask =>
+        def toTry(t: (Option[String], Option[Int], Option[Int])): Try[(String, Int, Int)] = t match {
+          case (Some(jn), Some(ti), Some(es)) => Success((jn, ti, es))
+          case (None, _, _) => Tries.failure(s"Missing jobnumber field in ${linesForOneTask}")
+          case (_, None, _) => Tries.failure(s"Missing taskid field in ${linesForOneTask}")
+          case (_, _, None) => Tries.failure(s"Missing exit_status field in ${linesForOneTask}")
+        }
+        
+        toTry(Folds.fields.process(linesForOneTask)) match {
+          case Success((jobNumber, taskIndex, exitStatus)) => {
+            Iterator(DrmTaskId(jobNumber, taskIndex) -> DrmStatus.CommandResult(exitStatus)).filter {
+              case (drmTaskId, _) => idsToLookFor.contains(drmTaskId)
+            }
+          }
+          case Failure(e) => {
+            warn(s"Couldn't parse qacct results: ", e)
+            
             Iterator.empty
           }
-        }
-      }
-      
-      val tuples = tupleAttempts.flatMap { 
-        case Success(ts) => ts
-        case Failure(e) => {
-          warn(s"Couldn't parse qacct results: ", e)
-          
-          Iterator.empty
         }
       }
       
@@ -233,11 +227,6 @@ object QstatQacctPoller extends Loggable {
       val taskIndex = Fold.matchFirst1(Regexes.taskId).map(_.flatMap(s => Try(s.toInt).toOption))
       val jobNumber = Fold.matchFirst1(Regexes.jobNumber)
       val exitStatus = Fold.matchFirst1(Regexes.exitStatus).map(_.flatMap(s => Try(s.toInt).toOption))
-      
-      val drmTaskId = (jobNumber |+| taskIndex).map { 
-        case (Some(jn), Some(ti)) => Some(DrmTaskId(jn, ti))
-        case _ => None
-      }
       
       val fields: Fold[String, _, (Option[String], Option[Int], Option[Int])] = {
         (jobNumber |+| taskIndex |+| exitStatus).map {

@@ -26,12 +26,12 @@ object tenK extends loamstream.LoamFile {
   val in = store("${workDir}/a.txt").asInput
   
   drm {
-    (1 to N).foreach { i =>
+    (1 to $N).foreach { i =>
       val out = store(s"${workDir}/outs/$${i}/$${i}.out")
   
       cmd"cp $$in $$out".in(in).out(out)
   
-      (1 to M).foreach { j =>
+      (1 to $M).foreach { j =>
         val out2 = store(s"${workDir}/outs/$${i}/$${i}-$${j}.out")
   
         cmd"cp $$out $$out2".in(out).out(out2)

@@ -198,7 +198,7 @@ object QstatQacctPoller extends Loggable {
       
       val (jobNumberToLookFor, qacctLines) = jobNumberAndQacctLines
       
-      val tuples = qacctLines.splitOn(isDivider).flatMap { linesForOneTask =>
+      val tuples = qacctLines.splitOn(isDivider).map(_.iterator.map(_.trim)).flatMap { linesForOneTask =>
         def toTry(t: (Option[String], Option[Int], Option[Int])): Try[(String, Int, Int)] = t match {
           case (Some(jn), Some(ti), Some(es)) => Success((jn, ti, es))
           case (None, _, _) => Tries.failure(s"Missing jobnumber field in ${linesForOneTask}")

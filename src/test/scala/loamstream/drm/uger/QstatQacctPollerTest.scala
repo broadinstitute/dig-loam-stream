@@ -10,6 +10,7 @@ import loamstream.util.RunResults
 import loamstream.util.Observables
 import loamstream.TestHelpers
 import loamstream.drm.DrmStatus.CommandResult
+import loamstream.util.Traversables
 
 /**
  * @author clint
@@ -32,7 +33,7 @@ final class QstatQacctPollerTest extends FunSuite {
     "19115592 0.56956 test.sh    cgilbert     lala     07/24/2020 11:51:18 broad@uger-c104.broadinstitute                                    1 2")
   // scalastyle:on line.size.limit
   
-  val lines = headerLines ++ dataLines
+  private val qstatLines = headerLines ++ dataLines
     
   test("parseMultiTaskQacctResults") {
     val jobNumber = "2314325"
@@ -78,11 +79,27 @@ final class QstatQacctPollerTest extends FunSuite {
     assert(actual === expected)
   }
   
+  test("parseMultiTaskQacctResults - problematic qacct output") {
+    val jobNumber = "19290502"
+    
+    val lines = problematicQacctOutput.trim.split("[\\r\\n]+")
+    
+    val tid = DrmTaskId(jobNumber, 1)
+    
+    val idsToLookFor = Set(tid)
+    
+    val actual = QstatQacctPoller.QacctSupport.parseMultiTaskQacctResults(idsToLookFor)(jobNumber -> lines)
+    
+    val expected = Map(tid -> CommandResult(0))
+    
+    assert(actual === expected)
+  }
+  
   test("poll - happy path") {
     import scala.concurrent.ExecutionContext.Implicits.global
     
     val qstatInvocationFn: CommandInvoker.InvocationFn[Unit] = { _ => 
-      Success(RunResults.Successful("MOCK_QSTAT", lines, Nil))
+      Success(RunResults.Successful("MOCK_QSTAT", qstatLines, Nil))
     }
     
     val qstatInvoker: CommandInvoker.Async[Unit] = new CommandInvoker.Async.JustOnce("MOCK_QSTAT", qstatInvocationFn)
@@ -155,7 +172,7 @@ final class QstatQacctPollerTest extends FunSuite {
       Success(DrmTaskId("19115592", 2) -> DrmStatus.Running),
       Success(DrmTaskId("19115592", 1) -> DrmStatus.Running))
         
-    assert(QstatSupport.parseQstatOutput(lines).toList === expected)
+    assert(QstatSupport.parseQstatOutput(qstatLines).toList === expected)
     
     assert(QstatSupport.parseQstatOutput(dataLines).toList === expected)
     
@@ -191,7 +208,7 @@ final class QstatQacctPollerTest extends FunSuite {
       DrmTaskId("19115592", 2) -> Success(DrmStatus.Running),
       DrmTaskId("19115592", 1) -> Success(DrmStatus.Running))
         
-    assert(QstatSupport.getByTaskId(lines) === expected)
+    assert(QstatSupport.getByTaskId(qstatLines) === expected)
     
     assert(QstatSupport.getByTaskId(dataLines) === expected)
     
@@ -338,5 +355,59 @@ final class QstatQacctPollerTest extends FunSuite {
     val expected = Map(tid0 -> DrmStatus.CommandResult(4), tid2 -> DrmStatus.CommandResult(0))
     
     assert(parseMultiTaskQacctResults(Set(tid0, tid1, tid2))(jobId -> lines) === expected) 
+  }
+  
+  private val problematicQacctOutput: String = {
+    """qname        broad               
+hostname     uger-c024.broadinstitute.org
+group        broad               
+owner        diguser             
+project      broad               
+department   defaultdepartment   
+jobname      loamstream1841233964035718821.sh
+jobnumber    19290502            
+taskid       1                   
+account      sge                 
+priority     0                   
+cwd          /humgen/diabetes2/users/dig/loamstream/ci/jenkins/home/workspace/ls-integration-tests-branch
+submit_host  dig-ae-dev-01.broadinstitute.org
+submit_cmd   qsub -cwd -shell y -b n -si 78 -t 1-1 -binding linear:1 -pe smp 1 -q broad -l h_rt=2:0:0,h_vmem=1G -o .loamstream/uger/LoamStream-948ff2b7-bef7-4496-8b7e-0441d60a83e3.$JOB_ID.$TASK_ID.stdout -e .loamstream/uger/LoamStream-948ff2b7-bef7-4496-8b7e-0441d60a83e3.$JOB_ID.$TASK_ID.stderr /humgen/diabetes2/users/dig/loamstream/ci/jenkins/home/workspace/ls-integration-tests-branch/.loamstream/uger/loamstream1841233964035718821.sh
+qsub_time    08/06/2020 20:38:52.994
+start_time   08/06/2020 20:39:06.612
+end_time     08/06/2020 20:39:14.776
+granted_pe   smp                 
+slots        1                   
+failed       0    
+deleted_by   NONE
+exit_status  0                   
+ru_wallclock 8.164        
+ru_utime     1.312        
+ru_stime     0.607        
+ru_maxrss    32524               
+ru_ixrss     0                   
+ru_ismrss    0                   
+ru_idrss     0                   
+ru_isrss     0                   
+ru_minflt    101211              
+ru_majflt    35                  
+ru_nswap     0                   
+ru_inblock   42016               
+ru_oublock   72                  
+ru_msgsnd    0                   
+ru_msgrcv    0                   
+ru_nsignals  0                   
+ru_nvcsw     8221                
+ru_nivcsw    10                  
+wallclock    9.182        
+cpu          1.919        
+mem          0.082             
+io           0.009             
+iow          3.070             
+ioops        4014                
+maxvmem      320.895M
+maxrss       0.000
+maxpss       0.000
+arid         undefined
+jc_name      NONE"""
   }
 }

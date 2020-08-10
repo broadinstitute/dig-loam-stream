@@ -21,9 +21,9 @@ final class TenKUgerJobsTest extends FunSuite {
 
     val M = 10
 
-    def loamCode(workDir: Path) = s"""
+    def loamCode(workDir: Path, fileToCopy: Path) = s"""
 object tenK extends loamstream.LoamFile {
-  val in = store("${workDir}/a.txt").asInput
+  val in = store("${fileToCopy}").asInput
   
   drm {
     (1 to $N).foreach { i =>
@@ -45,11 +45,22 @@ object tenK extends loamstream.LoamFile {
       
       val fileToCopy = path("src/test/resources/a.txt")
       
-      Files.writeTo(loamFile)(loamCode(workDir))
+      assert(exists(fileToCopy))
+      
+      Files.writeTo(loamFile)(loamCode(workDir, fileToCopy))
       
       val outputDir = workDir.resolve("outs")
       
-      assert(outputDir.toFile.mkdirs())
+      assert(outputDir.toFile.mkdirs(), s"Couldn't create '$outputDir'")
+      
+      import Paths.Implicits.PathHelpers
+      
+      for {
+        i <- 1 to N
+        j <- 1 to M
+      } {
+        assert((outputDir / i.toString).toFile.mkdirs(), s"Couldn't create '${outputDir}/${i}'")
+      }
       
       loamstream.apps.Main.main(Array("--backend", "uger", "--loams", loamFile.toString))
       
@@ -57,8 +68,6 @@ object tenK extends loamstream.LoamFile {
         i <- 1 to N
         j <- 1 to M
       } {
-        import Paths.Implicits.PathHelpers
-        
         assert(
             exists(outputDir / i.toString / s"${i}-${j}.out"), 
             s"Couldn't find '${outputDir}/${i}/${i}-${j}.out'")

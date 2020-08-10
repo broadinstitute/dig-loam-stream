@@ -43,6 +43,8 @@ object tenK extends loamstream.LoamFile {
     IntegrationTestHelpers.withWorkDirUnderTarget() { workDir =>
       val loamFile = workDir.resolve("tenK.scala")
       
+      workDir.toFile.mkdirs()
+      
       val fileToCopy = path("src/test/resources/a.txt")
       
       assert(exists(fileToCopy))

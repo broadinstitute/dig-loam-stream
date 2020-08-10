@@ -29,13 +29,15 @@ object IntegrationTestHelpers {
     DbDescriptor.inMemoryHsqldb(s"integrationtest-${discriminator}")
   }
   
-  def withWorkDirUnderTarget[A](subDir: Option[String] = None)(body: Path => A): A = {
+  def withWorkDirUnderTarget[A](subDir: Option[String] = None, deleteWhenDone: Boolean = true)(body: Path => A): A = {
     val workDir = getWorkDirUnderTarget(subDir)
     
     try {
       body(workDir)
     } finally {
-      FileUtils.deleteQuietly(workDir.toFile)
+      if(deleteWhenDone) {
+        FileUtils.deleteQuietly(workDir.toFile)
+      }
     }
   }
   

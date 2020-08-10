@@ -40,7 +40,7 @@ object tenK extends loamstream.LoamFile {
   }
 }
 """
-    IntegrationTestHelpers.withWorkDirUnderTarget() { workDir =>
+    IntegrationTestHelpers.withWorkDirUnderTarget(deleteWhenDone = false) { workDir =>
       val loamFile = workDir.resolve("tenK.scala")
       
       workDir.toFile.mkdirs()

@@ -53,26 +53,29 @@ object tenK extends loamstream.LoamFile {
       
       val outputDir = workDir.resolve("outs")
       
-      assert(outputDir.toFile.mkdirs(), s"Couldn't create '$outputDir'")
+      //assert(outputDir.toFile.mkdirs(), s"Couldn't create '$outputDir'")
       
       import Paths.Implicits.PathHelpers
+
+      val numberedOutputDirs = (1 to N).map(i => outputDir.resolve(i.toString))
       
       for {
-        i <- 1 to N
-        j <- 1 to M
+        numberedOutputDir <- numberedOutputDirs
       } {
-        assert(outputDir.resolve(i.toString).toFile.mkdirs(), s"Couldn't create '${outputDir.resolve(i.toString)}'")
+        assert(numberedOutputDir.toFile.mkdirs(), s"Couldn't create '${numberedOutputDir}'")
       }
+      
+      Thread.sleep(30 * 1000)
       
       loamstream.apps.Main.main(Array("--backend", "uger", "--loams", loamFile.toString))
       
       for {
-        i <- 1 to N
+        (numberedOutputDir, i) <- numberedOutputDirs.zip(1 to N)
         j <- 1 to M
       } {
         assert(
-            exists(outputDir.resolve(i.toString).resolve(s"${i}-${j}.out")), 
-            s"Couldn't find '${outputDir.resolve(i.toString).resolve(s"${i}-${j}.out")}'")
+            exists(numberedOutputDir.resolve(s"${i}-${j}.out")), 
+            s"Couldn't find '${numberedOutputDir.resolve(s"${i}-${j}.out")}'")
       }
     }
   }

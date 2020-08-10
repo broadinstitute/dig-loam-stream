@@ -43,11 +43,9 @@ object tenK extends loamstream.LoamFile {
     IntegrationTestHelpers.withWorkDirUnderTarget() { workDir =>
       val loamFile = workDir.resolve("tenK.scala")
       
-      val fileToCopy = workDir.resolve("a.txt")
+      val fileToCopy = path("src/test/resources/a.txt")
       
       Files.writeTo(loamFile)(loamCode(workDir))
-      
-      Files.writeTo(fileToCopy)("ASDF")
       
       val outputDir = workDir.resolve("outs")
       
@@ -61,7 +59,9 @@ object tenK extends loamstream.LoamFile {
       } {
         import Paths.Implicits.PathHelpers
         
-        assert(exists(outputDir / i.toString / s"${i}-${j}.out"))
+        assert(
+            exists(outputDir / i.toString / s"${i}-${j}.out"), 
+            s"Couldn't find '${outputDir}/${i}/${i}-${j}.out'")
       }
     }
   }

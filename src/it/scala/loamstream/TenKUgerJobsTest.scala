@@ -61,7 +61,7 @@ object tenK extends loamstream.LoamFile {
         i <- 1 to N
         j <- 1 to M
       } {
-        assert((outputDir / i.toString).toFile.mkdirs(), s"Couldn't create '${outputDir}/${i}'")
+        assert(outputDir.resolve(i.toString).toFile.mkdirs(), s"Couldn't create '${outputDir.resolve(i.toString)}'")
       }
       
       loamstream.apps.Main.main(Array("--backend", "uger", "--loams", loamFile.toString))
@@ -71,8 +71,8 @@ object tenK extends loamstream.LoamFile {
         j <- 1 to M
       } {
         assert(
-            exists(outputDir / i.toString / s"${i}-${j}.out"), 
-            s"Couldn't find '${outputDir}/${i}/${i}-${j}.out'")
+            exists(outputDir.resolve(i.toString).resolve(s"${i}-${j}.out")), 
+            s"Couldn't find '${outputDir.resolve(i.toString).resolve(s"${i}-${j}.out")}'")
       }
     }
   }

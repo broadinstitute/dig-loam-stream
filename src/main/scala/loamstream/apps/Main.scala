@@ -95,7 +95,9 @@ object Main extends Loggable {
     }
     
     def doCompileOnly(intent: Intent.CompileOnly): Unit = {
-      val config = AppWiring.loamConfigFrom(intent.confFile, intent.drmSystemOpt, intent.shouldValidate)
+      val config = {
+        AppWiring.loamConfigFrom(intent.confFile, intent.drmSystemOpt, intent.shouldValidate, intent.cliConfig)
+      }
       
       val loamEngine = LoamEngine.default(config)
       
@@ -105,7 +107,9 @@ object Main extends Loggable {
     }
     
     def doDryRun(intent: Intent.DryRun, makeDao: => LoamDao = AppWiring.makeDefaultDb): Unit = {
-      val config = AppWiring.loamConfigFrom(intent.confFile, intent.drmSystemOpt, intent.shouldValidate) 
+      val config = {
+        AppWiring.loamConfigFrom(intent.confFile, intent.drmSystemOpt, intent.shouldValidate, intent.cliConfig) 
+      }
       
       val loamEngine = LoamEngine.default(config)
       

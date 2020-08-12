@@ -124,7 +124,8 @@ object AppWiring extends Loggable {
   def loamConfigFrom(
       confFile: Option[Path], 
       drmSystemOpt: Option[DrmSystem], 
-      shouldValidateGraph: Boolean): LoamConfig = {
+      shouldValidateGraph: Boolean,
+      cliConfig: Option[Conf]): LoamConfig = {
     
     val typesafeConfig: Config = loadConfig(confFile)
       
@@ -135,7 +136,7 @@ object AppWiring extends Loggable {
     
     val newCompilationConfig = withDrmSystem.compilationConfig.copy(shouldValidateGraph = shouldValidateGraph)
     
-    withDrmSystem.copy(compilationConfig = newCompilationConfig)
+    withDrmSystem.copy(compilationConfig = newCompilationConfig).copy(cliConfig = cliConfig)
   }
   
   def jobFilterForDryRun(intent: Intent.DryRun, makeDao: => LoamDao): JobFilter = {
@@ -169,7 +170,13 @@ object AppWiring extends Loggable {
     
     override lazy val dao: LoamDao = makeDao
     
-    override lazy val config: LoamConfig = loamConfigFrom(intent.confFile, intent.drmSystemOpt, intent.shouldValidate)
+    override lazy val config: LoamConfig = {
+      loamConfigFrom(
+          confFile = intent.confFile, 
+          drmSystemOpt = intent.drmSystemOpt, 
+          shouldValidateGraph = intent.shouldValidate,
+          cliConfig = intent.cliConfig)
+    }
     
     override def executer: Executer = terminableExecuter
 
@@ -495,7 +502,7 @@ object AppWiring extends Loggable {
       import Throwables.quietly
       
       for {
-        terminable <- toStop
+        terminable <- toStop :+ delegate
         e <- quietly("Error shutting down: ")(terminable.stop()) 
       } yield e
     }

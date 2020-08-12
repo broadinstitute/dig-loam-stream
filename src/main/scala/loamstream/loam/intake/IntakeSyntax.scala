@@ -9,6 +9,8 @@ import loamstream.util.Hashes
 import loamstream.util.TimeUtils
 import loamstream.util.Loggable
 import loamstream.loam.GraphFunctions
+import loamstream.model.execute.LocalSettings
+import loamstream.model.execute.DrmSettings
 
 
 /**
@@ -100,7 +102,7 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
   }
   
   final class HashFileTarget(dest: Store) {
-    def from(fileToBeHashed: Store)(implicit scriptContext: LoamScriptContext): NativeTool = {
+    def from(fileToBeHashed: Store)(implicit scriptContext: LoamScriptContext): Tool = {
       //TODO: How to wire up inputs (if any)?
       val tool = NativeTool {
         val hash = Hashes.md5(fileToBeHashed.path).valueAsBase64String 
@@ -115,10 +117,22 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
   }
   
   final class AggregatorIntakeConfigFileTarget(dest: Store) {
-    def from(configData: aggregator.ConfigData)(implicit scriptContext: LoamScriptContext): NativeTool = {
+    def from(configData: aggregator.ConfigData)(implicit scriptContext: LoamScriptContext): Tool = {
       //TODO: How to wire up inputs (if any)?
-      val tool = NativeTool {
-        Files.writeTo(dest.path)(configData.asConfigFileContents)
+      val tool: Tool = {
+        scriptContext.settings match {
+          case LocalSettings => {
+            NativeTool {
+              Files.writeTo(dest.path)(configData.asConfigFileContents)
+            }
+          }
+          case drmSettings: DrmSettings => {
+            ???
+          }
+          case settings => {
+            sys.error(s"Intake jobs can only run locally or on a DRM system, but settings were $settings")
+          }
+        }
       }
       
       addToGraph(tool)

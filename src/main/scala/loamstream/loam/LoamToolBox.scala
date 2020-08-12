@@ -14,6 +14,9 @@ import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.model.execute.LocalSettings
 import loamstream.model.execute.Settings
 import loamstream.model.jobs.NativeJob
+import loamstream.util.Loggable
+import loamstream.util.jvm.JvmArgs
+import loamstream.cli.Conf
 
 /**
  * LoamStream
@@ -22,7 +25,7 @@ import loamstream.model.jobs.NativeJob
  * 
  * Turns a LoamGraph into an Executable (a collection of jobs)
  */
-final class LoamToolBox(client: Option[CloudStorageClient] = None) {
+final class LoamToolBox(client: Option[CloudStorageClient] = None) extends Loggable {
 
   @volatile private[this] var loamJobs: Map[Tool, JobNode] = Map.empty
 
@@ -58,17 +61,25 @@ final class LoamToolBox(client: Option[CloudStorageClient] = None) {
 
     val toolNameOpt = graph.nameOf(tool)
 
+    def commandLineJob(commandLine: String) = CommandLineJob(
+      commandLineString = commandLine, 
+      workDir = workDir, 
+      initialSettings = settings, 
+      dependencies = dependencyJobs,
+      successorsFn = () => successorJobs, 
+      inputs = inputs,
+      outputs = outputs, 
+      nameOpt = toolNameOpt)
+    
     tool match {
-      case cmdTool: LoamCmdTool => {
-        Some(CommandLineJob(
-            commandLineString = cmdTool.commandLine, 
-            workDir = workDir, 
-            initialSettings = settings, 
-            dependencies = dependencyJobs,
-            successorsFn = () => successorJobs, 
-            inputs = inputs,
-            outputs = outputs, 
-            nameOpt = toolNameOpt))
+      case cmdTool: LoamCmdTool => Some(commandLineJob(cmdTool.commandLine))
+      case invokesLs: InvokesLsTool => {
+        val conf: Conf = ???
+        import invokesLs.tagNameToRun
+        
+        val commandLine = JvmArgs.rerunCommandTokens(conf) ++ Seq("--run", "allOf", s"^${tagNameToRun}$$")
+        
+        Some(commandLineJob(commandLine.mkString(" ")))
       }
       case nativeTool: NativeTool => {
         Some(NativeJob(
@@ -80,7 +91,11 @@ final class LoamToolBox(client: Option[CloudStorageClient] = None) {
             outputs = outputs, 
             nameOpt = toolNameOpt))
       }
-      case _ => None
+      case t => {
+        warn(s"Not mapping tool with unknown type: $t")
+        
+        None
+      }
     }
   }
 

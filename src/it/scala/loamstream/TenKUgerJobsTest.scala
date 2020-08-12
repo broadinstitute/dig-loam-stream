@@ -53,8 +53,6 @@ object tenK extends loamstream.LoamFile {
       
       val outputDir = workDir.resolve("outs")
       
-      //assert(outputDir.toFile.mkdirs(), s"Couldn't create '$outputDir'")
-      
       import Paths.Implicits.PathHelpers
 
       val numberedOutputDirs = (1 to N).map(i => outputDir.resolve(i.toString))

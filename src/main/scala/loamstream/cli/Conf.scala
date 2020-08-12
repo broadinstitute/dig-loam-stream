@@ -23,7 +23,7 @@ import loamstream.util.Loggable
  * to false is useful for tests, so that a validation failure doesn't make SBT exit.  If this is false, a 
  * CliException is thrown instead of invoking 'sys.exit()'.
  */
-final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) with Loggable {
+final case class Conf private (arguments: Seq[String]) extends ScallopConf(arguments) with Loggable {
   
   def printHelp(message: String): Unit = {
     printHelp()
@@ -65,6 +65,9 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) wit
   
   /** Whether to show usage info and quit */
   val help: ScallopOption[Boolean] = opt[Boolean](descr = "Show help and exit")
+  
+  /** Whether we're running in worker mode (running on a DRM system on behalf of another LS instance) */
+  val worker: ScallopOption[Boolean] = opt[Boolean](descr = "Run in worker mode (run on a DRM system on behalf of another LS instance)")
   
   /** Whether to clear the DB */
   val cleanDb: ScallopOption[Boolean] = opt[Boolean](descr = "Clean db")
@@ -156,11 +159,14 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) wit
       disableHashingSupplied = disableHashing.isSupplied,
       backend = backend.toOption,
       run = getRun,
+      workerSupplied = worker.isSupplied,
       this)
   }
 }
 
 object Conf {
+  
+  def apply(args: Iterable[String]): Conf = new Conf(args.toVector)
   
   object RunStrategies {
     val Everything = "everything"
@@ -183,8 +189,52 @@ object Conf {
       disableHashingSupplied: Boolean,
       backend: Option[String],
       run: Option[(String, Seq[String])],
+      workerSupplied: Boolean,
       derivedFrom: Conf) {
     
     def confSupplied: Boolean = conf.isDefined
+    
+    def toArguments: Seq[String] = {
+      def toString(flag: Boolean, sOpt: ScallopOption[Boolean]): String = if(flag) sOpt.name else ""
+        
+      val conf = derivedFrom
+        
+      val cleanParts: Seq[String] = {
+        val cleanEverything = cleanDbSupplied && cleanLogsSupplied && cleanScriptsSupplied
+        
+        def cleanSomething = cleanDbSupplied || cleanLogsSupplied || cleanScriptsSupplied
+        
+        if(cleanEverything) { 
+          Seq(conf.clean.name) 
+        } else if (cleanSomething) {
+          Seq(
+            toString(cleanDbSupplied, conf.cleanDb),
+            toString(cleanLogsSupplied, conf.cleanLogs),
+            toString(cleanScriptsSupplied, conf.cleanScripts)).filter(_.nonEmpty)
+        } else {
+          Nil
+        }
+      }
+      
+      val confPart: Seq[String] = {
+        conf.conf.toOption.toSeq.flatMap(confFilePath => Seq("--conf", confFilePath.toString))
+      }
+      
+      val noValidationPart: Seq[String] = Seq(toString(noValidationSupplied, conf.noValidation))
+      val compileOnlyPart: Seq[String] = Seq(toString(compileOnlySupplied, conf.compileOnly))
+      val dryRunPart: Seq[String] = Seq(toString(dryRunSupplied, conf.dryRun))
+      val disableHashingPart: Seq[String] = Seq(toString(disableHashingSupplied, conf.disableHashing)) 
+      
+      val backendPart: Seq[String] = {
+        conf.backend.toOption.toSeq.flatMap(backend => Seq(conf.backend.name, backend.toLowerCase))
+      } 
+      
+      val runPart: Seq[String] = run.toSeq.flatMap { case (what, hows) => conf.run.name +: what +: hows }
+      
+      val loamsPart: Seq[String] = conf.loams.name +: loams.map(_.toString)
+      
+      cleanParts ++ confPart ++ noValidationPart ++ compileOnlyPart ++ dryRunPart ++ 
+      disableHashingPart ++ backendPart ++ runPart ++ loamsPart 
+    }
   }
 }

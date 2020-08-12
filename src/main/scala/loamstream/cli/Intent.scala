@@ -16,23 +16,30 @@ import loamstream.util.Loggable
  */
 sealed trait Intent {
   def confFile: Option[Path]
+  
+  def cliConfig: Option[Conf]
 }
 
 object Intent extends Loggable {
 
   final case object ShowVersionAndQuit extends Intent {
     override def confFile: Option[Path] = None
+    
+    override def cliConfig: Option[Conf] = None
   }
   
   final case object ShowHelpAndQuit extends Intent {
     override def confFile: Option[Path] = None
+    
+    override def cliConfig: Option[Conf] = None
   }
   
   final case class CompileOnly(
       confFile: Option[Path], 
       shouldValidate: Boolean,
       drmSystemOpt: Option[DrmSystem], 
-      loams: Seq[Path]) extends Intent
+      loams: Seq[Path],
+      cliConfig: Option[Conf]) extends Intent
 
   final case class DryRun(
       confFile: Option[Path],
@@ -40,7 +47,8 @@ object Intent extends Loggable {
       hashingStrategy: HashingStrategy,
       jobFilterIntent: JobFilterIntent,
       drmSystemOpt: Option[DrmSystem],
-      loams: Seq[Path]) extends Intent {
+      loams: Seq[Path],
+      cliConfig: Option[Conf]) extends Intent {
     
     def shouldRunEverything: Boolean = jobFilterIntent == JobFilterIntent.RunEverything 
   }
@@ -51,7 +59,8 @@ object Intent extends Loggable {
       hashingStrategy: HashingStrategy,
       jobFilterIntent: JobFilterIntent,
       drmSystemOpt: Option[DrmSystem],
-      loams: Seq[Path]) extends Intent {
+      loams: Seq[Path],
+      cliConfig: Option[Conf]) extends Intent {
     
     def shouldRunEverything: Boolean = jobFilterIntent == JobFilterIntent.RunEverything
   }
@@ -108,7 +117,12 @@ object Intent extends Loggable {
   
   private def asCompileOnly(values: Conf.Values): Option[Intent] = {
     if(confExistsOrOmitted(values) && compileOnly(values)) {
-      Some(CompileOnly(values.conf, !values.noValidationSupplied, getDrmSystem(values), values.loams))
+      Some(CompileOnly(
+          values.conf, 
+          !values.noValidationSupplied, 
+          getDrmSystem(values), 
+          values.loams, 
+          Option(values.derivedFrom)))
     } else {
       None
     }
@@ -129,7 +143,8 @@ object Intent extends Loggable {
       hashingStrategy = determineHashingStrategy(values),
       jobFilterIntent = determineJobFilterIntent(values),
       drmSystemOpt = getDrmSystem(values),
-      loams = values.loams)
+      loams = values.loams,
+      cliConfig = Option(values.derivedFrom))
   }
   
   private def makeRealRun(values: Conf.Values): RealRun = {
@@ -139,7 +154,8 @@ object Intent extends Loggable {
       hashingStrategy = determineHashingStrategy(values),
       jobFilterIntent = determineJobFilterIntent(values),
       drmSystemOpt = getDrmSystem(values),
-      loams = values.loams)
+      loams = values.loams,
+      cliConfig = Option(values.derivedFrom))
   }
 
   private def getDrmSystem(values: Conf.Values): Option[DrmSystem] = for {

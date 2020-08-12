@@ -23,7 +23,8 @@ final case class LoamConfig(
     rConfig: Option[RConfig],
     executionConfig: ExecutionConfig,
     compilationConfig: CompilationConfig,
-    drmSystem: Option[DrmSystem] = None)
+    drmSystem: Option[DrmSystem] = None,
+    cliConfig: Option[loamstream.cli.Conf] = None)
     
 object LoamConfig extends ConfigParser[LoamConfig] with Loggable {
   override def fromConfig(config: Config): Try[LoamConfig] = {

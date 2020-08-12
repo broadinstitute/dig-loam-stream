@@ -29,27 +29,7 @@ final class DrmStatusTest extends FunSuite {
       Some(broadQueue),
       LocalDateTime.now,
       LocalDateTime.now)
-      
-  test("fromUgerStatusCode") {
-    import org.ggf.drmaa.Session._
-    
-    assert(fromDrmStatusCode(QUEUED_ACTIVE) === Queued)
-    assert(fromDrmStatusCode(SYSTEM_ON_HOLD) === QueuedHeld)
-    assert(fromDrmStatusCode(USER_ON_HOLD) === QueuedHeld)
-    assert(fromDrmStatusCode(USER_SYSTEM_ON_HOLD) === QueuedHeld)
-    assert(fromDrmStatusCode(RUNNING) === Running)
-    assert(fromDrmStatusCode(SYSTEM_SUSPENDED) === Suspended)
-    assert(fromDrmStatusCode(USER_SUSPENDED) === Suspended)
-    assert(fromDrmStatusCode(USER_SYSTEM_SUSPENDED) === Suspended)
-    assert(fromDrmStatusCode(DONE) === Done)
-    assert(fromDrmStatusCode(FAILED) === Failed)
-    assert(fromDrmStatusCode(UNDETERMINED) === Undetermined)
-    assert(fromDrmStatusCode(-123456) === Undetermined)
-    assert(fromDrmStatusCode(123456) === Undetermined)
-    assert(fromDrmStatusCode(Int.MinValue) === Undetermined)
-    assert(fromDrmStatusCode(Int.MaxValue) === Undetermined)
-  }
-
+  
   test("toJobStatus") {
     assert(toJobStatus(Done) === JobStatus.WaitingForOutputs)
     

@@ -2,9 +2,9 @@ package loamstream.drm
 
 import scala.concurrent.ExecutionContext
 
+import loamstream.util.CommandInvoker
 import loamstream.util.Loggable
 import loamstream.util.Processes
-import loamstream.util.RetryingCommandInvoker
 import rx.lang.scala.Scheduler
 
 /**
@@ -12,26 +12,34 @@ import rx.lang.scala.Scheduler
  * Apr 25, 2019
  */
 object AccountingCommandInvoker {
-  abstract class Companion extends Loggable {
+  abstract class Companion[P] extends Loggable {
     /**
-     * Make a RetryingCommandInvoker that will retrieve job metadata by running some executable.
+     * Make a CommandInvoker that will retrieve job metadata by running some executable.
      */
     def useActualBinary(
         maxRetries: Int, 
         binaryName: String,
-        scheduler: Scheduler)(implicit ec: ExecutionContext): RetryingCommandInvoker[DrmTaskId] = {
+        scheduler: Scheduler)(implicit ec: ExecutionContext): CommandInvoker.Async[P] = {
       
-      def invokeBinaryFor(taskId: DrmTaskId) = {
-        val tokens = makeTokens(binaryName, taskId)
+      def invokeBinaryFor(param: P) = {
+        val tokens = makeTokens(binaryName, param)
         
         debug(s"Invoking '$binaryName': '${tokens.mkString(" ")}'")
         
-        Processes.runSync(binaryName, tokens)
+        Processes.runSync(tokens)()
       }
       
-      new RetryingCommandInvoker[DrmTaskId](maxRetries, binaryName, invokeBinaryFor, scheduler = scheduler)
+      val notRetrying = maxRetries == 0
+      
+      val invokeOnce = new CommandInvoker.Async.JustOnce[P](binaryName, invokeBinaryFor)
+      
+      if(notRetrying) {
+        invokeOnce
+      } else {
+        new CommandInvoker.Async.Retrying[P](delegate = invokeOnce, maxRetries = maxRetries, scheduler = scheduler)
+      }
     }
   
-    def makeTokens(actualBinary: String, taskId: DrmTaskId): Seq[String]
+    def makeTokens(actualBinary: String, param: P): Seq[String]
   }
 }

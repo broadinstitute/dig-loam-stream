@@ -1,7 +1,6 @@
 package loamstream.drm.uger
 
 import java.time.LocalDateTime
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeFormatterBuilder
 
@@ -14,16 +13,16 @@ import scala.util.matching.Regex
 
 import loamstream.conf.UgerConfig
 import loamstream.drm.AccountingClient
+import loamstream.drm.DrmTaskId
 import loamstream.drm.Queue
 import loamstream.model.execute.Resources.UgerResources
 import loamstream.model.jobs.TerminationReason
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Memory
+import loamstream.util.CommandInvoker
 import loamstream.util.Loggable
 import loamstream.util.Options
-import loamstream.util.RetryingCommandInvoker
 import loamstream.util.Tries
-import loamstream.drm.DrmTaskId
 import rx.lang.scala.Scheduler
 
 
@@ -36,7 +35,7 @@ import rx.lang.scala.Scheduler
  * job id, to facilitate unit testing.
  */
 final class QacctAccountingClient(
-    qacctInvoker: RetryingCommandInvoker[DrmTaskId])
+    qacctInvoker: CommandInvoker.Async[DrmTaskId])
     (implicit ec: ExecutionContext) extends AccountingClient with Loggable {
 
   import QacctAccountingClient._

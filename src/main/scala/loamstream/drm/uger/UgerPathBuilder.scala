@@ -19,5 +19,5 @@ final case class UgerPathBuilder(override val scriptBuilderParams: UgerScriptBui
   }
   
   //NB: Need to build this differently by environment (':' for Uger, '' for LSF)
-  override def pathTemplatePrefix: String = ":"
+  override def pathTemplatePrefix: String = ""//":"
 }

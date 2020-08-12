@@ -1,18 +1,17 @@
 package loamstream.drm.uger
 
-import loamstream.drm.AccountingClient
-import loamstream.drm.Queue
-import loamstream.util.ValueBox
-import loamstream.conf.UgerConfig
-import scala.util.Try
-import scala.concurrent.duration.Duration
-import loamstream.util.RunResults
-import scala.util.Success
-import loamstream.model.execute.Resources.DrmResources
-import loamstream.util.RetryingCommandInvoker
-import loamstream.model.jobs.TerminationReason
 import scala.concurrent.Future
+import scala.concurrent.duration.Duration
+import scala.util.Try
+
+import loamstream.conf.UgerConfig
+import loamstream.drm.AccountingClient
 import loamstream.drm.DrmTaskId
+import loamstream.model.execute.Resources.DrmResources
+import loamstream.model.jobs.TerminationReason
+import loamstream.util.CommandInvoker
+import loamstream.util.RunResults
+import loamstream.util.ValueBox
 import rx.lang.scala.schedulers.ComputationScheduler
 
 /**
@@ -22,8 +21,8 @@ import rx.lang.scala.schedulers.ComputationScheduler
 final class MockQacctAccountingClient(
     delegateFn: DrmTaskId => Try[RunResults],
     ugerConfig: UgerConfig = UgerConfig(),
-    delayStart: Duration = RetryingCommandInvoker.defaultDelayStart,
-    delayCap: Duration = RetryingCommandInvoker.defaultDelayCap) extends AccountingClient {
+    delayStart: Duration = CommandInvoker.Async.Retrying.defaultDelayStart,
+    delayCap: Duration = CommandInvoker.Async.Retrying.defaultDelayCap) extends AccountingClient {
   
   private val timesGetQacctOutputForInvokedBox: ValueBox[Int] = ValueBox(0)
 
@@ -49,7 +48,7 @@ final class MockQacctAccountingClient(
     import scala.concurrent.ExecutionContext.Implicits.global
     
     val invoker = {
-      new RetryingCommandInvoker[DrmTaskId](
+      CommandInvoker.Async.Retrying[DrmTaskId](
           ugerConfig.maxQacctRetries, 
           "MOCK", 
           wrappedDelegateFn, 

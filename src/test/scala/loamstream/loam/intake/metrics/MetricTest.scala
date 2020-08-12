@@ -3,6 +3,8 @@ package loamstream.loam.intake.metrics
 import org.scalatest.FunSuite
 import loamstream.loam.intake.IntakeSyntax
 import loamstream.loam.intake.flip.FlipDetector
+import loamstream.util.Fold
+
 
 /**
  * @author clint

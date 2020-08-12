@@ -3,8 +3,6 @@ package loamstream.apps
 import scala.util.Failure
 import scala.util.Success
 
-import org.ggf.drmaa.DrmaaException
-
 import loamstream.cli.Conf
 import loamstream.compiler.LoamCompiler
 import loamstream.compiler.LoamEngine
@@ -172,8 +170,8 @@ object Main extends Loggable {
         }
         
         describeRunResults(loamEngine.config, runResults)
-      } catch {
-        case e: DrmaaException => warn(s"Unexpected DRMAA exception: ${e.getClass.getName}", e)
+      } finally {
+        shutdown(wiring)
       }
     }
     

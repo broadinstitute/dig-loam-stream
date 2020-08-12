@@ -5,8 +5,6 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-import org.ggf.drmaa.InvalidJobException
-
 import loamstream.util.Loggable
 import loamstream.util.Terminable
 import loamstream.util.Tries
@@ -131,19 +129,6 @@ object JobMonitor extends Loggable {
     import loamstream.util.Observables.Implicits._
     
     val statuses: Observable[DrmStatus] = statusAttempts.distinctUntilChanged.zipWithIndex.collect {
-      //NB: DRMAA might not report when jobs are done, say if it hasn't cached the final status of a job, so we 
-      //assume that an 'unknown job' failure for a job we've previously inquired about successfully means the job 
-      //is done, though we can't determine how such a job ended. :(
-      case (Failure(e: InvalidJobException), i) if i > 0 => {
-        //Appease scalastyle
-        val msg = {
-          s"Got InvalidJobException for job we've previously inquired about successfully; mapping to $DoneUndetermined"
-        }
-        
-        warn(s"Job '$jobId': $msg")
-        
-        DoneUndetermined
-      }
       //Any other polling failure leaves us unable to know the job's status
       case (Failure(e), _) => {
         warn(s"Job '$jobId': polling failed with a(n) ${e.getClass.getName}; mapping to $Undetermined", e)

@@ -22,8 +22,6 @@ import loamstream.db.slick.DbType
 import loamstream.db.slick.SlickLoamDao
 
 import loamstream.drm.AccountingClient
-import loamstream.drm.Drmaa1Client
-import loamstream.drm.DrmaaPoller
 import loamstream.drm.DrmChunkRunner
 import loamstream.drm.DrmSystem
 import loamstream.drm.JobMonitor
@@ -36,7 +34,6 @@ import loamstream.drm.lsf.BsubJobSubmitter
 import loamstream.drm.lsf.LsfPathBuilder
 
 import loamstream.drm.uger.QacctAccountingClient
-import loamstream.drm.uger.UgerNativeSpecBuilder
 import loamstream.drm.uger.UgerPathBuilder
 
 import loamstream.googlecloud.CloudSdkDataProcWrapper
@@ -82,12 +79,19 @@ import loamstream.model.execute.RequiresPresentInputsJobCanceler
 import loamstream.model.execute.JobCanceler
 import loamstream.conf.Locations
 import loamstream.drm.lsf.BacctAccountingClient
-import loamstream.drm.DrmaaClient
 import loamstream.model.execute.FileSystemExecutionRecorder
 import loamstream.googlecloud.HailCtlDataProcClient
 import loamstream.googlecloud.HailConfig
 import loamstream.model.jobs.JobOracle
 import scala.concurrent.ExecutionContext
+import loamstream.drm.SessionSource
+import loamstream.drm.uger.QdelJobKiller
+import loamstream.drm.uger.QstatQacctPoller
+import loamstream.drm.uger.Qsub
+import loamstream.drm.uger.QsubJobSubmitter
+import loamstream.drm.uger.QconfSessionSource
+import loamstream.drm.uger.QconfSessionSource
+import loamstream.util.ExitCodes
 
 
 /**
@@ -327,10 +331,6 @@ object AppWiring extends Loggable {
     
     val (lsfRunnerOption, terminables) = unpack(makeLsfChunkRunner(loamConfig, threadPoolSize))
     
-    val jobKillerTerminable = Terminable {
-      BkillJobKiller.fromExecutable().killAllJobs()
-    }
-
     //TODO: A better way to enable or disable Uger support; for now, this is purely expedient
     if(lsfRunnerOption.isEmpty) {
       val msg = s"""LSF support is NOT enabled. It can be enabled by defining loamstream.lsf section
@@ -339,7 +339,7 @@ object AppWiring extends Loggable {
       debug(msg)
     }
     
-    (lsfRunnerOption, terminables :+ jobKillerTerminable)
+    (lsfRunnerOption, terminables)
   }
   
   private def unpack[A,B](o: Option[(A, Seq[B])]): (Option[A], Seq[B]) = o match {
@@ -382,35 +382,36 @@ object AppWiring extends Loggable {
     } yield {
       debug("Creating Uger ChunkRunner...")
 
-      val drmaaClient = new Drmaa1Client(UgerNativeSpecBuilder(ugerConfig))
-
       import loamstream.model.execute.ExecuterHelpers._
 
-      val poller = new DrmaaPoller(drmaaClient)
+      val sessionSource = QconfSessionSource.fromExecutable(ugerConfig)
+      
+      val poller = QstatQacctPoller.fromExecutables(sessionSource)
 
       val (scheduler, schedulerHandle) = RxSchedulers.backedByThreadPool(threadPoolSize)
 
-      val ugerRunner = {
-        //TODO: Make configurable?
-        val pollingFrequencyInHz = 0.1
-        
-        val jobMonitor = new JobMonitor(scheduler, poller, pollingFrequencyInHz)
+      //TODO: Make configurable?
+      val pollingFrequencyInHz = 0.1
+      
+      val jobMonitor = new JobMonitor(scheduler, poller, pollingFrequencyInHz)
 
-        val jobSubmitter = JobSubmitter.Drmaa(drmaaClient, ugerConfig)
-        
-        val accountingClient = QacctAccountingClient.useActualBinary(ugerConfig, scheduler)
-        
-        DrmChunkRunner(
-            environmentType = EnvironmentType.Uger,
-            pathBuilder = new UgerPathBuilder(UgerScriptBuilderParams(ugerConfig)),
-            executionConfig = loamConfig.executionConfig, 
-            drmConfig = ugerConfig, 
-            jobSubmitter = jobSubmitter, 
-            jobMonitor = jobMonitor,
-            accountingClient = accountingClient)
-      }
+      val jobSubmitter = QsubJobSubmitter.fromExecutable(sessionSource, ugerConfig)
+      
+      val accountingClient = QacctAccountingClient.useActualBinary(ugerConfig, scheduler)
+      
+      val jobKiller = QdelJobKiller.fromExecutable(sessionSource, ugerConfig, isSuccess = Set(0,1).contains)
+      
+      val ugerRunner = DrmChunkRunner(
+          environmentType = EnvironmentType.Uger,
+          pathBuilder = new UgerPathBuilder(UgerScriptBuilderParams(ugerConfig)),
+          executionConfig = loamConfig.executionConfig, 
+          drmConfig = ugerConfig, 
+          jobSubmitter = jobSubmitter, 
+          jobMonitor = jobMonitor,
+          accountingClient = accountingClient,
+          jobKiller = jobKiller)
 
-      val handles = Seq(schedulerHandle, ugerRunner)
+      val handles = Seq(sessionSource, ugerRunner, schedulerHandle)
 
       (ugerRunner, handles)
     }
@@ -429,27 +430,28 @@ object AppWiring extends Loggable {
 
       val (scheduler, schedulerHandle) = RxSchedulers.backedByThreadPool(threadPoolSize)
 
-      val lsfRunner = {
-        //TODO: Make configurable?
-        val pollingFrequencyInHz = 0.1
+      //TODO: Make configurable?
+      val pollingFrequencyInHz = 0.1
 
-        val poller = BjobsPoller.fromExecutable()
-        
-        val jobMonitor = new JobMonitor(scheduler, poller, pollingFrequencyInHz)
+      val poller = BjobsPoller.fromExecutable()
+      
+      val jobMonitor = new JobMonitor(scheduler, poller, pollingFrequencyInHz)
 
-        val jobSubmitter = BsubJobSubmitter.fromExecutable(lsfConfig)
+      val jobSubmitter = BsubJobSubmitter.fromExecutable(lsfConfig)
 
-        val accountingClient = BacctAccountingClient.useActualBinary(lsfConfig, scheduler)
-        
-        DrmChunkRunner(
-            environmentType = EnvironmentType.Lsf,
-            pathBuilder = LsfPathBuilder,
-            executionConfig = loamConfig.executionConfig, 
-            drmConfig = lsfConfig, 
-            jobSubmitter = jobSubmitter, 
-            jobMonitor = jobMonitor,
-            accountingClient = accountingClient)
-      }
+      val accountingClient = BacctAccountingClient.useActualBinary(lsfConfig, scheduler)
+      
+      val jobKiller = BkillJobKiller.fromExecutable(SessionSource.Noop, lsfConfig, isSuccess = ExitCodes.isSuccess)
+      
+      val lsfRunner = DrmChunkRunner(
+          environmentType = EnvironmentType.Lsf,
+          pathBuilder = LsfPathBuilder,
+          executionConfig = loamConfig.executionConfig, 
+          drmConfig = lsfConfig, 
+          jobSubmitter = jobSubmitter, 
+          jobMonitor = jobMonitor,
+          accountingClient = accountingClient,
+          jobKiller = jobKiller)
 
       val handles = Seq(schedulerHandle, lsfRunner)
 

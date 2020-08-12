@@ -63,18 +63,18 @@ final class ExecutionState private (
    * repeatedly to get new lists of jobs to run.
    */
   def updateJobs(): ExecutionState.JobStatuses = jobStatesBox.get { _ =>
-    TimeUtils.time(s"updateJobs()", debug(_)) {
+    TimeUtils.time(s"updateJobs()", trace(_)) {
       val currentJobStatuses = jobStatuses
       
       val eligible = currentJobStatuses.readyToRun.iterator.map(_.job)
       
-      TimeUtils.time(s"startRunning()", debug(_)) {
+      TimeUtils.time(s"startRunning()", trace(_)) {
         startRunning(eligible)
       }
       
       val toCancel = currentJobStatuses.cannotRun.iterator.map(_.job)
       
-      TimeUtils.time(s"markAs(CouldNotStart)", debug(_)) { 
+      TimeUtils.time(s"markAs(CouldNotStart)", trace(_)) { 
         markAs(toCancel, JobStatus.CouldNotStart)
       }
       
@@ -90,7 +90,7 @@ final class ExecutionState private (
   def jobStatuses: ExecutionState.JobStatuses = { 
     val jobStates = snapshot()
   
-    TimeUtils.time("Computing JobStatuses", debug(_)) {
+    TimeUtils.time("Computing JobStatuses", trace(_)) {
       val numRunning = jobStates.count(_.isRunning)
       val numFinished = jobStates.count(_.isFinished)
       

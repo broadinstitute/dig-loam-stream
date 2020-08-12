@@ -48,6 +48,7 @@ import java.time.LocalDateTime
 import loamstream.model.execute.Resources.DrmResources
 import loamstream.model.jobs.TerminationReason
 import loamstream.model.execute.Resources.UgerResources
+import loamstream.drm.uger.QdelJobKiller
 
 
 /**
@@ -99,16 +100,17 @@ final class DrmChunkRunnerTest extends FunSuite {
   private val ugerPathBuilder = new UgerPathBuilder(UgerScriptBuilderParams(ugerConfig))
   
   test("No failures when empty set of jobs is presented - Uger") {
-    val mockDrmClient = new MockDrmaaClient(Map.empty)
+    val mockDrmClient = new MockPoller(Map.empty)
     val runner = DrmChunkRunner(
         environmentType = EnvironmentType.Uger,
         pathBuilder = ugerPathBuilder,
         executionConfig = executionConfig,
         drmConfig = ugerConfig,
-        jobSubmitter = JobSubmitter.Drmaa(mockDrmClient, ugerConfig),
+        jobSubmitter = new MockJobSubmitter,
         //NB: The poller can always fail, since it should never be invoked
         jobMonitor = new JobMonitor(scheduler, JustFailsMockPoller),
-        accountingClient = MockAccountingClient.NeverWorks)
+        accountingClient = MockAccountingClient.NeverWorks,
+        jobKiller = MockJobKiller.DoesNothing)
     
     val result = waitFor(runner.run(Set.empty, TestHelpers.DummyJobOracle).firstAsFuture)
     
@@ -125,7 +127,8 @@ final class DrmChunkRunnerTest extends FunSuite {
         jobSubmitter = new MockJobSubmitter,
         //NB: The poller can always fail, since it should never be invoked
         jobMonitor = new JobMonitor(scheduler, JustFailsMockPoller),
-        accountingClient = MockAccountingClient.NeverWorks)
+        accountingClient = MockAccountingClient.NeverWorks,
+        jobKiller = MockJobKiller.DoesNothing)
     
     val result = waitFor(runner.run(Set.empty, TestHelpers.DummyJobOracle).firstAsFuture)
     
@@ -326,7 +329,8 @@ final class DrmChunkRunnerTest extends FunSuite {
             drmConfig = ugerConfig,
             jobSubmitter = mockJobSubmitter,
             jobMonitor = new JobMonitor(poller = JustFailsMockPoller),
-            accountingClient = MockAccountingClient.NeverWorks)
+            accountingClient = MockAccountingClient.NeverWorks,
+            jobKiller = MockJobKiller.DoesNothing)
       }
       case DrmSystem.Lsf => {
         DrmChunkRunner(
@@ -336,7 +340,8 @@ final class DrmChunkRunnerTest extends FunSuite {
             drmConfig = lsfConfig,
             jobSubmitter = mockJobSubmitter,
             jobMonitor = new JobMonitor(poller = JustFailsMockPoller),
-            accountingClient = MockAccountingClient.NeverWorks)
+            accountingClient = MockAccountingClient.NeverWorks,
+            jobKiller = MockJobKiller.DoesNothing)
       }
     }
     
@@ -404,16 +409,15 @@ final class DrmChunkRunnerTest extends FunSuite {
     
     def makeChunkRunner(drmSystem: DrmSystem, mockJobSubmitter: MockJobSubmitter): DrmChunkRunner = drmSystem match {
       case DrmSystem.Uger => { 
-        val mockDrmaaClient = MockDrmaaClient(Map.empty)
-
         DrmChunkRunner(
             environmentType = EnvironmentType.Uger,
             pathBuilder = ugerPathBuilder,
             executionConfig = executionConfig,
             drmConfig = ugerConfig,
             jobSubmitter = mockJobSubmitter,
-            jobMonitor = new JobMonitor(poller = new DrmaaPoller(mockDrmaaClient)),
-            accountingClient = MockAccountingClient.NeverWorks)
+            jobMonitor = new JobMonitor(poller = MockPoller(Map.empty)),
+            accountingClient = MockAccountingClient.NeverWorks,
+            jobKiller = MockJobKiller.DoesNothing)
       }
       case DrmSystem.Lsf => {
         DrmChunkRunner(
@@ -424,7 +428,8 @@ final class DrmChunkRunnerTest extends FunSuite {
             jobSubmitter = mockJobSubmitter,
             //NB: The poller can fail, since we're not checking execution results, just config-propagation
             jobMonitor = new JobMonitor(poller = JustFailsMockPoller),
-            accountingClient = MockAccountingClient.NeverWorks)
+            accountingClient = MockAccountingClient.NeverWorks,
+            jobKiller = MockJobKiller.DoesNothing)
       }
     }
     
@@ -513,10 +518,10 @@ object DrmChunkRunnerTest {
   final class MockJobSubmitter extends JobSubmitter {
     @volatile var params: Seq[(DrmSettings, DrmTaskArray)] = Vector.empty
     
-    override def submitJobs(drmSettings: DrmSettings, taskArray: DrmTaskArray): DrmSubmissionResult = {
+    override def submitJobs(drmSettings: DrmSettings, taskArray: DrmTaskArray): Observable[DrmSubmissionResult] = {
       params :+= (drmSettings -> taskArray)
       
-      DrmSubmissionResult.SubmissionSuccess(Map.empty)
+      Observable.just(DrmSubmissionResult.SubmissionSuccess(Map.empty))
     }
     
     override def stop(): Unit = ()

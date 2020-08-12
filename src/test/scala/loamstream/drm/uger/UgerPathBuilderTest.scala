@@ -1,6 +1,5 @@
 package loamstream.drm.uger
 
-import org.ggf.drmaa.JobTemplate
 import org.scalatest.FunSuite
 
 import loamstream.TestHelpers
@@ -43,7 +42,7 @@ final class UgerPathBuilderTest extends FunSuite {
     
     val pathBuilder = new UgerPathBuilder(params)
     
-    assert(pathBuilder.pathTemplatePrefix === ":")
+    assert(pathBuilder.pathTemplatePrefix === "")
   }
   
   test("ugerStdOutPathTemplate") {
@@ -51,9 +50,9 @@ final class UgerPathBuilderTest extends FunSuite {
     
     val pathBuilder = new UgerPathBuilder(params)
     
-    val expected = workDir.resolve(s"blarg-blahblah.${JobTemplate.PARAMETRIC_INDEX}.stdout")
+    val expected = workDir.resolve("blarg-blahblah.$JOB_ID.$TASK_ID.stdout")
     
-    doPathTemplateTest(pathBuilder.stdOutPathTemplate, s":${expected.render}")
+    doPathTemplateTest(pathBuilder.stdOutPathTemplate, expected.render)
   }
 
   test("ugerStdErrPathTemplate") {
@@ -61,9 +60,9 @@ final class UgerPathBuilderTest extends FunSuite {
     
     val pathBuilder = new UgerPathBuilder(params)
     
-    val expected = workDir.resolve(s"blarg-blahblah.${JobTemplate.PARAMETRIC_INDEX}.stderr")
+    val expected = workDir.resolve("blarg-blahblah.$JOB_ID.$TASK_ID.stderr")
     
-    doPathTemplateTest(pathBuilder.stdErrPathTemplate, s":${expected.render}")
+    doPathTemplateTest(pathBuilder.stdErrPathTemplate, expected.render)
   }
 
   private def doPathTemplateTest(makeTemplate: (DrmConfig, String) => String, expected: String): Unit = {

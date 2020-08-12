@@ -6,12 +6,13 @@ import loamstream.conf.DrmConfig
 import loamstream.model.execute.DrmSettings
 import loamstream.util.ValueBox
 import loamstream.model.execute.Resources.DrmResources
+import rx.lang.scala.Observable
 
 /**
  * @author clint
  * date: Jul 6, 2016
  */
-final case class MockDrmaaClient(private val toReturn: Map[DrmTaskId, Seq[Try[DrmStatus]]]) extends DrmaaClient {
+final case class MockPoller(private val toReturn: Map[DrmTaskId, Seq[Try[DrmStatus]]]) extends Poller {
   import loamstream.util.Maps.Implicits._
   
   private val remaining: ValueBox[Map[DrmTaskId, Seq[Try[DrmStatus]]]] = {
@@ -22,14 +23,22 @@ final case class MockDrmaaClient(private val toReturn: Map[DrmTaskId, Seq[Try[Dr
   
   val params: ValueBox[Seq[(DrmTaskId, Duration)]] = ValueBox(Vector.empty)
   
-  override def submitJob(
-      drmSettings: DrmSettings,
-      drmConfig: DrmConfig,
-      taskArray: DrmTaskArray): DrmSubmissionResult = ???
+  override def poll(jobIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, Try[DrmStatus])] = {
+    val jobIdsToPoll = jobIds.toSet
+    
+    val resultsByTaskId = toReturn.filterKeys(jobIdsToPoll.contains)
+    
+    val pollingResults = for {
+      (tid, attempts) <- resultsByTaskId.toSeq
+      attempt <- attempts
+    } yield (tid, attempt)
+    
+    Observable.from(pollingResults)
+  }
+  
+  /*def statusOf(taskId: DrmTaskId): Try[DrmStatus] = waitFor(taskId, Duration.Zero)
 
-  override def statusOf(taskId: DrmTaskId): Try[DrmStatus] = waitFor(taskId, Duration.Zero)
-
-  override def waitFor(taskId: DrmTaskId, timeout: Duration): Try[DrmStatus] = {
+  def waitFor(taskId: DrmTaskId, timeout: Duration): Try[DrmStatus] = {
     params.mutate(_ :+ (taskId -> timeout))
     
     remaining.getAndUpdate { leftToReturn => 
@@ -44,9 +53,7 @@ final case class MockDrmaaClient(private val toReturn: Map[DrmTaskId, Seq[Try[Dr
       
       nextMap -> nextStatus
     }
-  }
+  }*/
 
   override def stop(): Unit = ()
-  
-  override def killAllJobs(): Unit = ???
 }

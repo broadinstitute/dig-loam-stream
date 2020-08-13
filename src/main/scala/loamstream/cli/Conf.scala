@@ -13,6 +13,8 @@ import org.rogach.scallop.exceptions.ScallopException
 import loamstream.drm.DrmSystem
 import loamstream.util.IoUtils
 import loamstream.util.Loggable
+import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.Buffer
 
 /**
  * Provides a command line interface for LoamStream apps
@@ -192,6 +194,12 @@ object Conf {
       workerSupplied: Boolean,
       derivedFrom: Conf) {
     
+    def withIsWorker(isWorker: Boolean): Values = copy(workerSupplied = true)
+    
+    def onlyRun(jobName: String): Values = copy(run = Some((RunStrategies.AllOf, Seq(jobName))))
+    
+    def withBackend(drmSystem: DrmSystem): Values = copy(backend = Some(drmSystem.name.toLowerCase))
+    
     def confSupplied: Boolean = conf.isDefined
     
     def toArguments: Seq[String] = {
@@ -217,7 +225,7 @@ object Conf {
       }
       
       val confPart: Seq[String] = {
-        conf.conf.toOption.toSeq.flatMap(confFilePath => Seq("--conf", confFilePath.toString))
+        conf.conf.toOption.toSeq.flatMap(confFilePath => Seq(conf.conf.name, confFilePath.toString))
       }
       
       val noValidationPart: Seq[String] = Seq(toString(noValidationSupplied, conf.noValidation))
@@ -231,10 +239,16 @@ object Conf {
       
       val runPart: Seq[String] = run.toSeq.flatMap { case (what, hows) => conf.run.name +: what +: hows }
       
+      val workerPart: Seq[String] = Seq(toString(workerSupplied, conf.worker))
+      
       val loamsPart: Seq[String] = conf.loams.name +: loams.map(_.toString)
       
-      cleanParts ++ confPart ++ noValidationPart ++ compileOnlyPart ++ dryRunPart ++ 
-      disableHashingPart ++ backendPart ++ runPart ++ loamsPart 
+      val result: Buffer[String] = new ListBuffer
+      
+      result ++= workerPart ++= cleanParts ++= confPart ++= noValidationPart ++= compileOnlyPart ++= dryRunPart ++= 
+      disableHashingPart ++= backendPart ++= runPart ++= loamsPart
+      
+      result.toList
     }
   }
 }

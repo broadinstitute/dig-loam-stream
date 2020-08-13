@@ -31,6 +31,7 @@ import loamstream.conf.ExecutionConfig
 import loamstream.conf.Locations
 import loamstream.util.Files
 import loamstream.cli.JobFilterIntent
+import loamstream.conf.LsSettings
 
 
 /**
@@ -99,7 +100,9 @@ object Main extends Loggable {
         AppWiring.loamConfigFrom(intent.confFile, intent.drmSystemOpt, intent.shouldValidate, intent.cliConfig)
       }
       
-      val loamEngine = LoamEngine.default(config)
+      val lsSettings = LsSettings(intent.cliConfig.map(_.toValues))
+      
+      val loamEngine = LoamEngine.default(config, lsSettings)
       
       val compilationResult = compile(loamEngine, intent.loams)
   
@@ -111,7 +114,9 @@ object Main extends Loggable {
         AppWiring.loamConfigFrom(intent.confFile, intent.drmSystemOpt, intent.shouldValidate, intent.cliConfig) 
       }
       
-      val loamEngine = LoamEngine.default(config)
+      val lsSettings = LsSettings(intent.cliConfig.map(_.toValues))
+      
+      val loamEngine = LoamEngine.default(config, lsSettings)
       
       val compilationResult = compile(loamEngine, intent.loams)
   
@@ -165,7 +170,7 @@ object Main extends Loggable {
       }
       
       try {
-        val project = LoamProject(loamEngine.config, loamScripts)
+        val project = LoamProject(loamEngine.config, wiring.settings, loamScripts)
   
         //NB: Shut down before logging anything about jobs, so that potentially-noisy shutdown info is logged
         //before final job statuses.

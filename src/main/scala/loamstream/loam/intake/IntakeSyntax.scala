@@ -11,6 +11,7 @@ import loamstream.util.Loggable
 import loamstream.loam.GraphFunctions
 import loamstream.model.execute.LocalSettings
 import loamstream.model.execute.DrmSettings
+import loamstream.loam.InvokesLsTool
 
 
 /**
@@ -78,9 +79,9 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
       varIdColumnDef: SourcedColumnDef, 
       otherColumnDefs: SourcedColumnDef*) extends Loggable {
     
-    def using(flipDetector: => FlipDetector)(implicit scriptContext: LoamScriptContext): NativeTool = {
+    def using(flipDetector: => FlipDetector)(implicit scriptContext: LoamScriptContext): Tool = {
       //TODO: How to wire up inputs (if any)?
-      val tool = NativeTool {
+      def doIt: NativeTool = NativeTool {
         TimeUtils.time(s"Producing ${dest.path}", info(_)) {
           val (headerRow, dataRows) = process(flipDetector)(RowDef(varIdColumnDef, otherColumnDefs))
           
@@ -92,6 +93,17 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
           val rowsToWrite: Iterator[Row] = Iterator(headerRow) ++ dataRows
           
           Files.writeLinesTo(dest.path)(rowsToWrite.map(renderer.render))
+        }
+      }
+      
+      val tool: Tool = {
+        scriptContext.settings match {
+          case LocalSettings if scriptContext.lsSettings.thisInstanceIsAWorker => doIt
+          case drmSettings: DrmSettings => InvokesLsTool("fake-stub-tag-name")
+          case settings => {
+            sys.error(
+                s"Intake jobs can only run locally with --worker or on a DRM system, but settings were $settings")
+          }
         }
       }
       
@@ -121,16 +133,17 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
       //TODO: How to wire up inputs (if any)?
       val tool: Tool = {
         scriptContext.settings match {
-          case LocalSettings => {
+          case LocalSettings if scriptContext.lsSettings.thisInstanceIsAWorker => {
             NativeTool {
               Files.writeTo(dest.path)(configData.asConfigFileContents)
             }
           }
           case drmSettings: DrmSettings => {
-            ???
+            InvokesLsTool("fake-stub-tag-name")
           }
           case settings => {
-            sys.error(s"Intake jobs can only run locally or on a DRM system, but settings were $settings")
+            sys.error(
+                s"Intake jobs can only run locally with --worker or on a DRM system, but settings were $settings")
           }
         }
       }

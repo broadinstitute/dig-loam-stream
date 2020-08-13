@@ -74,10 +74,26 @@ final class LoamToolBox(client: Option[CloudStorageClient] = None) extends Logga
     tool match {
       case cmdTool: LoamCmdTool => Some(commandLineJob(cmdTool.commandLine))
       case invokesLs: InvokesLsTool => {
-        val conf: Conf = ???
         import invokesLs.tagNameToRun
         
-        val commandLine = JvmArgs.rerunCommandTokens(conf) ++ Seq("--run", "allOf", s"^${tagNameToRun}$$")
+        val commandLine = {
+          val jvmArgs = invokesLs.scriptContext.lsSettings.jvmArgs
+          val cliConfig = invokesLs.scriptContext.lsSettings.cliConfig
+          
+          cliConfig match {
+            case Some(conf) => {
+              val newConf = {
+                conf.
+                  withBackend(invokesLs.scriptContext.config.drmSystem.get).
+                  withIsWorker(true).
+                  onlyRun("fake-stub-tag-name")
+              }
+              
+              jvmArgs.rerunCommandTokens(newConf)
+            }
+            case None => ??? //TODO
+          }
+        }
         
         Some(commandLineJob(commandLine.mkString(" ")))
       }

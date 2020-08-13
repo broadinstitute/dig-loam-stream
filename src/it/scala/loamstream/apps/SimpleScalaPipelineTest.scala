@@ -10,6 +10,7 @@ import loamstream.loam.LoamScript
 import loamstream.compiler.LoamEngine
 import loamstream.compiler.LoamCompiler
 import loamstream.model.execute.RxExecuter
+import loamstream.conf.LsSettings
 
 /**
  * @author clint
@@ -51,7 +52,7 @@ final class SimpleScalaPipelineTest extends FunSuite {
       
       val scripts = Seq(valuesFile, commandsFile).flatMap(LoamScript.read(_).toOption)
       
-      val project = LoamProject(config, scripts)
+      val project = LoamProject(config, LsSettings.noCliConfig, scripts)
       
       val compilationResult = LoamCompiler.default.compile(project)
       

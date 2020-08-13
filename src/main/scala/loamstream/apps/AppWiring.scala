@@ -92,6 +92,7 @@ import loamstream.drm.uger.QsubJobSubmitter
 import loamstream.drm.uger.QconfSessionSource
 import loamstream.drm.uger.QconfSessionSource
 import loamstream.util.ExitCodes
+import loamstream.conf.LsSettings
 
 
 /**
@@ -101,6 +102,8 @@ import loamstream.util.ExitCodes
  */
 trait AppWiring {
   def config: LoamConfig
+  
+  def settings: LsSettings
   
   def dao: LoamDao
 
@@ -114,7 +117,7 @@ trait AppWiring {
   
   def shutdown(): Seq[Throwable]
   
-  lazy val loamEngine: LoamEngine = LoamEngine(config, LoamCompiler.default, executer, cloudStorageClient)
+  lazy val loamEngine: LoamEngine = LoamEngine(config, settings, LoamCompiler.default, executer, cloudStorageClient)
   
   lazy val loamRunner: LoamRunner = LoamRunner(loamEngine)
 }
@@ -176,6 +179,12 @@ object AppWiring extends Loggable {
           drmSystemOpt = intent.drmSystemOpt, 
           shouldValidateGraph = intent.shouldValidate,
           cliConfig = intent.cliConfig)
+    }
+    
+    val settings: LsSettings = {
+      require(intent.cliConfig.isDefined, "Expected LS to be run from the command line")
+      
+      LsSettings(intent.cliConfig.map(_.toValues))
     }
     
     override def executer: Executer = terminableExecuter

@@ -67,7 +67,7 @@ object IntegrationTestHelpers {
   }
   
   def withScriptContext[A](config: LoamConfig = minimalConfig)(f: LoamScriptContext => A): A = {
-    f(new LoamScriptContext(LoamProjectContext.empty(config)))
+    f(new LoamScriptContext(LoamProjectContext.empty(config, ???))) //TODO
   }
   
   val minimalConfig: LoamConfig = LoamConfig(

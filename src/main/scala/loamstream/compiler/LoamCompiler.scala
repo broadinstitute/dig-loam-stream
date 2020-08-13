@@ -35,6 +35,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import scala.concurrent.Promise
 import scala.util.Try
+import loamstream.conf.LsSettings
 
 /** The compiler compiling Loam scripts into execution plans */
 object LoamCompiler extends Loggable {
@@ -302,7 +303,7 @@ final class LoamCompiler(
    * LoamProjectContext when compiling and evaluating Loam code.
    */
   private def setProjectContextAndThen[A](project: LoamProject)(f: LoamProjectContext => A): A = {
-    val projectContext = LoamProjectContext.empty(project.config)
+    val projectContext = LoamProjectContext.empty(project.config, project.settings)
   
     LoamFile.ContextHolder.withContext(projectContext) {
       f(LoamFile.ContextHolder.projectContext)
@@ -310,7 +311,9 @@ final class LoamCompiler(
   }
 
   /** Compiles Loam script into execution plan */
-  def compile(config: LoamConfig, script: LoamScript): LoamCompiler.Result = compile(LoamProject(config, script))
+  def compile(config: LoamConfig, settings: LsSettings, script: LoamScript): LoamCompiler.Result = {
+    compile(LoamProject(config, settings, script))
+  }
 
   private def failureDueToException(e: Throwable): LoamCompiler.Result = {
     error(s"${e.getClass.getName} while trying to compile: ${e.getMessage}", e)

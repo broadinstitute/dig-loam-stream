@@ -18,6 +18,8 @@ final class SimpleIntakeOnUgerTest extends FunSuite with Loggable {
     IntegrationTestHelpers.withWorkDirUnderTarget(deleteWhenDone = false) { workDir =>
       val loamCode = """
 object IntakeOnUger extends loamstream.LoamFile {
+  import loamstream.loam.intake.IntakeSyntax._
+
   val tab = "\t"
     
   val inputTsv = s\"\"\"|VARID${tab}X${tab}Y

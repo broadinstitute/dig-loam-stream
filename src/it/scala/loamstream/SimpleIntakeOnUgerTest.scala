@@ -6,12 +6,14 @@ import loamstream.loam.LoamSyntax
 import loamstream.util.Files
 import java.nio.file.Path
 import loamstream.util.jvm.JvmArgs
+import loamstream.util.ProcessLoggers
+import loamstream.util.Loggable
 
 /**
  * @author clint
  * Aug 13, 2020
  */
-final class SimpleIntakeOnUgerTest extends FunSuite {
+final class SimpleIntakeOnUgerTest extends FunSuite with Loggable {
   test("run one intake job on Uger") {
     IntegrationTestHelpers.withWorkDirUnderTarget(deleteWhenDone = false) { workDir =>
       val loamCode = """
@@ -59,9 +61,11 @@ object IntakeOnUger extends loamstream.LoamFile {
       {
         import scala.sys.process._
         
+        val processLogger = new ProcessLoggers.PassThrough("master-ls-for-intake-job")
+        
         val process: ProcessBuilder = Process(commandToRun, workDir.toFile)
         
-        println(s"Ran LS, exit code ${process.!}")
+        println(s"Ran LS, exit code ${process.!(processLogger)}")
       }
     }
   }

@@ -16,15 +16,15 @@ import loamstream.util.Loggable
 final class SimpleIntakeOnUgerTest extends FunSuite with Loggable {
   test("run one intake job on Uger") {
     IntegrationTestHelpers.withWorkDirUnderTarget(deleteWhenDone = false) { workDir =>
-      val loamCode = """
+      val loamCode = s"""
 object IntakeOnUger extends loamstream.LoamFile {
   import loamstream.loam.intake.IntakeSyntax._
 
   val tab = "\t"
     
-  val inputTsv = s\"\"\"|VARID${tab}X${tab}Y
-                     |1_1_A_T${tab}abc${tab}42
-                     |1_2_G_C${tab}xyz${tab}99\"\"\".trim.stripMargin
+  val inputTsv = s\"\"\"|VARID$${tab}X$${tab}Y
+                     |1_1_A_T$${tab}abc$${tab}42
+                     |1_2_G_C$${tab}xyz$${tab}99\"\"\".trim.stripMargin
   
   val dest = store(s"${workDir}/out.tsv")
   

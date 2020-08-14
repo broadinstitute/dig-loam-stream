@@ -56,7 +56,9 @@ object IntakeOnUger extends loamstream.LoamFile {
       
       val jvmArgs = JvmArgs()
       
-      val commandToRun: Seq[String] = (jvmArgs.javaBinary.toString +: jvmArgs.jvmArgs) ++ Seq("-jar", jvmArgs.classpath) ++ Seq("--backend", "uger", "--loams", loamFile.toString)
+      val lsJar = "target/scala-2.12/loamstream-assembly-1.4-SNAPSHOT.jar"
+      
+      val commandToRun: Seq[String] = (jvmArgs.javaBinary.toString +: jvmArgs.jvmArgs) ++ Seq("-jar", lsJar) ++ Seq("--backend", "uger", "--loams", loamFile.toString)
       
       info(s"Running LS: '${commandToRun.mkString(" ")}'") 
       

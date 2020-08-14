@@ -58,6 +58,8 @@ object IntakeOnUger extends loamstream.LoamFile {
       
       val commandToRun: Seq[String] = (jvmArgs.javaBinary.toString +: jvmArgs.jvmArgs) ++ Seq("-jar", jvmArgs.classpath) ++ Seq("--backend", "uger", "--loams", loamFile.toString)
       
+      info(s"Running LS: '${commandToRun.mkString(" ")}'") 
+      
       {
         import scala.sys.process._
         
@@ -65,7 +67,7 @@ object IntakeOnUger extends loamstream.LoamFile {
         
         val process: ProcessBuilder = Process(commandToRun, workDir.toFile)
         
-        println(s"Ran LS, exit code ${process.!(processLogger)}")
+        info(s"Ran LS, exit code ${process.!(processLogger)}")
       }
     }
   }

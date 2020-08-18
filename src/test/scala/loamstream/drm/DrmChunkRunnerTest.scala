@@ -317,7 +317,7 @@ final class DrmChunkRunnerTest extends FunSuite {
         JobStatus.Failed)
   }
   
-  test("DRM config is propagated to DRMAA client - 2 jobs, same settings") {
+  test("DRM config is propagated to JobSubmitter - 2 jobs, same settings") {
     
     def makeGraph(drmSystem: DrmSystem): LoamGraph = {
       TestHelpers.makeGraph(drmSystem) { implicit context =>
@@ -397,7 +397,7 @@ final class DrmChunkRunnerTest extends FunSuite {
     doTest(DrmSystem.Lsf)
   }
   
-  test("Uger config is propagated to DRMAA client - 2 pairs of jobs with different settings") {
+  test("Uger config is propagated to JobSubmitter - 2 pairs of jobs with different settings") {
     
     def makeGraphAndTools(drmSystem: DrmSystem): (LoamGraph, LoamCmdTool, LoamCmdTool, LoamCmdTool, LoamCmdTool) = {
       implicit val sc = new LoamScriptContext(TestHelpers.emptyProjectContext(drmSystem))

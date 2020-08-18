@@ -707,7 +707,7 @@ object RxExecuterTest {
 
     override def run(
         jobs: Set[LJob], 
-        jobOracle: JobOracle): Observable[Map[LJob, RunData]] = {
+        jobOracle: JobOracle): Observable[(LJob, RunData)] = {
       
       chunks.mutate(_ :+ jobs)
 

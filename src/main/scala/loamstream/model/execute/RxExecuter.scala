@@ -301,21 +301,21 @@ object RxExecuter extends Loggable {
    */
   private[execute] def toExecutionMap(
       fileMonitor: FileMonitor)
-      (runDataMap: Map[LJob, RunData])
+      (runDataTuple: (LJob, RunData))
       (implicit context: ExecutionContext): Observable[(LJob, Execution)] = {
   
     def waitForOutputs(runData: RunData): Future[Execution] = {
       ExecuterHelpers.waitForOutputsAndMakeExecution(runData, fileMonitor)
     }
     
-    val jobToExecutionFutures = for {
-      (job, runData) <- runDataMap.toSeq
-    } yield {
+    val jobToExecutionFuture = {
+      val (job, runData) = runDataTuple
+    
       import Futures.Implicits._
       
       waitForOutputs(runData).map(execution => job -> execution)
     }
     
-    Observable.from(jobToExecutionFutures).flatMap(Observable.from(_))
+    Observable.from(jobToExecutionFuture)
   }
 }

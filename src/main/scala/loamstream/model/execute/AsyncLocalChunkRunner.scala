@@ -28,9 +28,9 @@ final case class AsyncLocalChunkRunner(
   
   override def run(
       jobs: Set[LJob], 
-      jobOracle: JobOracle): Observable[Map[LJob, RunData]] = {
+      jobOracle: JobOracle): Observable[(LJob, RunData)] = {
     
-    if(jobs.isEmpty) { Observable.just(Map.empty) }
+    if(jobs.isEmpty) { Observable.empty }
     else {
       import LocalJobStrategy.canBeRun
       
@@ -44,11 +44,7 @@ final case class AsyncLocalChunkRunner(
 
       val executionObservables: Seq[Observable[RunData]] = jobs.toSeq.map(exec)
         
-      val z: Map[LJob, RunData] = Map.empty
-      
-      //NB: Note the use of scan() here.  It ensures that an item is emitted for a job as soon as that job finishes,
-      //instead of only once when all the jobs in a chunk finish.
-      Observables.merge(executionObservables).scan(z) { (acc, runData) => acc + (runData.job -> runData) }
+      Observables.merge(executionObservables).map(runData => (runData.job -> runData))
     }
   }
 }

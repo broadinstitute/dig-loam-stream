@@ -18,7 +18,7 @@ final case class CompositeChunkRunner(components: Seq[ChunkRunner]) extends Chun
   
   override def run(
       jobs: Set[LJob], 
-      jobOracle: JobOracle): Observable[Map[LJob, RunData]] = {
+      jobOracle: JobOracle): Observable[(LJob, RunData)] = {
     
     require(jobs.forall(canRun), s"Don't know how to run ${jobs.filterNot(canRun)}")
     
@@ -32,11 +32,9 @@ final case class CompositeChunkRunner(components: Seq[ChunkRunner]) extends Chun
       runner.run(jobsForRunner, jobOracle)
     }
     
-    val z: Map[LJob, RunData] = Map.empty
-    
     //NB: Note the use of scan() here.  It ensures that an item is emitted for a job as soon as that job finishes,     
     //instead of only once when all the jobs in a chunk finish.
-    Observables.merge(resultObservables).scan(z)(_ ++ _).distinct
+    Observables.merge(resultObservables).distinct
   }
   
   override def stop(): Unit = {

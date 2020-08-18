@@ -66,7 +66,7 @@ final case class DrmChunkRunner(
    */
   override def run(
       jobs: Set[LJob], 
-      jobOracle: JobOracle): Observable[Map[LJob, RunData]] = {
+      jobOracle: JobOracle): Observable[(LJob, RunData)] = {
 
     debug(s"${getClass.getSimpleName}: Running ${jobs.size} jobs: ")
     jobs.foreach(job => debug(s"  $job"))
@@ -80,7 +80,7 @@ final case class DrmChunkRunner(
 
     //Group Jobs by their uger settings, and run each group.  This is necessary because the jobs in a group will
     //be run as 1 Uger task array, and Uger params are per-task-array.
-    val resultsForSubChunks: Iterable[Observable[Map[LJob, RunData]]] = {
+    val resultsForSubChunks: Iterable[Observable[(LJob, RunData)]] = {
       import DrmTaskArray.fromCommandLineJobs
       
       val maxJobsPerTaskArray = drmConfig.maxNumJobsPerTaskArray
@@ -97,7 +97,7 @@ final case class DrmChunkRunner(
       }
     }
 
-    if (resultsForSubChunks.isEmpty) { Observable.just(Map.empty) }
+    if (resultsForSubChunks.isEmpty) { Observable.empty }
     else { Observables.merge(resultsForSubChunks) }
   }
 
@@ -107,17 +107,17 @@ final case class DrmChunkRunner(
    */
   private def runJobs(
     drmSettings: DrmSettings,
-    drmTaskArray: DrmTaskArray): Observable[Map[LJob, RunData]] = {
+    drmTaskArray: DrmTaskArray): Observable[(LJob, RunData)] = {
 
     drmTaskArray.drmJobs match {
-      case Nil => Observable.just(Map.empty)
+      case Nil => Observable.empty
       case drmJobs => jobSubmitter.submitJobs(drmSettings, drmTaskArray).flatMap(toRunDataStream(drmJobs, _))
     }
   }
 
   private def toRunDataStream(
     drmJobs: Seq[DrmJobWrapper],
-    submissionResult: DrmSubmissionResult)(implicit ec: ExecutionContext): Observable[Map[LJob, RunData]] = {
+    submissionResult: DrmSubmissionResult)(implicit ec: ExecutionContext): Observable[(LJob, RunData)] = {
     
     val commandLineJobs = drmJobs.map(_.commandLineJob)
     
@@ -130,15 +130,17 @@ final case class DrmChunkRunner(
   }
   
   private[drm] def jobsToRunDatas(
-    jobsById: Map[DrmTaskId, DrmJobWrapper])(implicit ec: ExecutionContext): Observable[Map[LJob, RunData]] = {
+    jobsById: Map[DrmTaskId, DrmJobWrapper])(implicit ec: ExecutionContext): Observable[(LJob, RunData)] = {
 
     import jobMonitor.monitor
 
     //val jobsAndDrmStatusesById: Map[DrmTaskId, (DrmJobWrapper, Observable[DrmStatus])] = combine(jobsById, monitor(jobsById.keys))
     
     val jobsAndDrmStatuses: Observable[(DrmTaskId, DrmJobWrapper, DrmStatus)] = {
+      val taskIds = jobsById.keys
+      
       for {
-        (tid, status) <- monitor(jobsById.keys)
+        (tid, status) <- monitor(taskIds)
         //wrapper <- Observable.from(jobsById.get(tid))
         wrapper <- jobsById.get(tid).map(Observable.just(_)).getOrElse(Observable.empty)
       } yield {
@@ -194,12 +196,14 @@ object DrmChunkRunner extends Loggable {
       taskId: DrmTaskId)(s: DrmStatus)(implicit ec: ExecutionContext): Observable[RunData] = {
     
     val infoOptFuture: Future[Option[AccountingInfo]] = {
+      val statusClass = simpleNameOf[DrmStatus]
+      
       if(s.isFinished && notSuccess(s)) {
-        debug(s"${simpleNameOf[DrmStatus]} is finished, determining execution node and queue: $s")
+        debug(s"${statusClass} is finished and NOT a success, determining execution node and queue: $s")
         
         getAccountingInfoFor(accountingClient)(taskId)
       } else {
-        debug(s"${simpleNameOf[DrmStatus]} is NOT finished, NOT determining execution node and queue: $s")
+        debug(s"${statusClass} is NOT finished or is a success, NOT determining execution node and queue: $s")
         
         Future.successful(None)
       }
@@ -225,7 +229,7 @@ object DrmChunkRunner extends Loggable {
     accountingClient: AccountingClient, 
     //jobsAndDrmStatusesById: Map[DrmTaskId, JobAndStatuses])
     jobsAndDrmStatusesById: Observable[(DrmTaskId, DrmJobWrapper, DrmStatus)])
-    (implicit ec: ExecutionContext): Observable[Map[LJob, RunData]] = {
+    (implicit ec: ExecutionContext): Observable[(LJob, RunData)] = {
 
     val drmJobsToExecutionObservables: Observable[(DrmJobWrapper, RunData)] = for {
       (taskId, wrapper, status) <- jobsAndDrmStatusesById
@@ -241,14 +245,12 @@ object DrmChunkRunner extends Loggable {
 
     //Observables.toMap(jobsToExecutionObservables)
     
-    val z: Map[LJob, RunData] = Map.empty
-    
-    jobsToExecutionObservables.scan(z)(_ + _).dropWhile(_.isEmpty).distinctUntilChanged
+    jobsToExecutionObservables.distinctUntilChanged
   }
 
   private[drm] def makeAllFailureMap(
       jobs: Seq[DrmJobWrapper], 
-      cause: Option[Throwable]): Observable[Map[LJob, RunData]] = {
+      cause: Option[Throwable]): Observable[(LJob, RunData)] = {
     
     cause.foreach(e => error(s"Couldn't submit jobs to DRM system: ${e.getMessage}", e))
 
@@ -268,10 +270,7 @@ object DrmChunkRunner extends Loggable {
           terminationReasonOpt = None)
     }
 
-    import loamstream.util.Maps.Implicits._
-    import loamstream.util.Traversables.Implicits._
-    
-    Observable.just(jobs.mapTo(execution).mapKeys(_.commandLineJob))
+    Observable.from(jobs.map(wrapper => wrapper.commandLineJob -> execution(wrapper)))
   }
 
   /**

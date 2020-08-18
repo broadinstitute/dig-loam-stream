@@ -19,7 +19,7 @@ final case class MockChunkRunner(delegate: ChunkRunner) extends ChunkRunner {
 
   override def run(
       chunk: Set[LJob], 
-      jobOracle: JobOracle): Observable[Map[LJob, RunData]] = {
+      jobOracle: JobOracle): Observable[(LJob, RunData)] = {
     
     chunks.mutate(_ :+ chunk)
     

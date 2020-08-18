@@ -13,7 +13,7 @@ import rx.lang.scala.Observable
 trait ChunkRunner extends Terminable {
   def canRun(job: LJob): Boolean
   
-  def run(jobs: Set[LJob], jobOracle: JobOracle): Observable[Map[LJob, RunData]]
+  def run(jobs: Set[LJob], jobOracle: JobOracle): Observable[(LJob, RunData)]
   
   override def stop(): Unit = ()
 }

@@ -112,9 +112,9 @@ final class DrmChunkRunnerTest extends FunSuite {
         accountingClient = MockAccountingClient.NeverWorks,
         jobKiller = MockJobKiller.DoesNothing)
     
-    val result = waitFor(runner.run(Set.empty, TestHelpers.DummyJobOracle).firstAsFuture)
+    val result = waitFor(runner.run(Set.empty, TestHelpers.DummyJobOracle).to[Seq].firstAsFuture)
     
-    assert(result === Map.empty)
+    assert(result === Nil)
   }
   
   test("No failures when empty set of jobs is presented - Lsf") {
@@ -130,9 +130,9 @@ final class DrmChunkRunnerTest extends FunSuite {
         accountingClient = MockAccountingClient.NeverWorks,
         jobKiller = MockJobKiller.DoesNothing)
     
-    val result = waitFor(runner.run(Set.empty, TestHelpers.DummyJobOracle).firstAsFuture)
+    val result = waitFor(runner.run(Set.empty, TestHelpers.DummyJobOracle).to[Seq].firstAsFuture)
     
-    assert(result === Map.empty)
+    assert(result === Nil)
   }
   
   test("combine") {
@@ -188,7 +188,7 @@ final class DrmChunkRunnerTest extends FunSuite {
       
       val result = waitFor(toRunDatas(accountingClient, jobsAndDrmStatusesById).firstAsFuture)
       
-      val Seq((actualJob, runData)) = result.toSeq
+      val (actualJob, runData) = result
       
       assert(actualJob === job)    
       assert(runData.jobStatus === JobStatus.Failed)
@@ -230,7 +230,7 @@ final class DrmChunkRunnerTest extends FunSuite {
       
       val result = waitFor(toRunDatas(accountingClient, jobsAndDrmStatusesById).firstAsFuture)
       
-      val Seq((actualJob, runData)) = result.toSeq
+      val (actualJob, runData) = result
       
       assert(actualJob === job)
       assert(runData.jobStatus === JobStatus.WaitingForOutputs)
@@ -277,7 +277,7 @@ final class DrmChunkRunnerTest extends FunSuite {
       val accountingClient = new DrmChunkRunnerTest.MockAccountingClient(
           Map.empty[DrmTaskId, AccountingInfo].withDefault(_ => bogusAccountingInfo))
       
-      val result = waitFor(toRunDatas(accountingClient, input).lastAsFuture)
+      val result = waitFor(toRunDatas(accountingClient, input).to[Seq].map(_.toMap).firstAsFuture)
       
       val goodExecution = result(workedJob)
       val badExecution = result(failedJob)

@@ -382,7 +382,7 @@ final class DrmChunkRunnerTest extends FunSuite {
           
       
       val results = {
-        waitFor(chunkRunner.run(jobs.map(_.job).toSet, TestHelpers.DummyJobOracle).firstAsFuture)
+        waitFor(chunkRunner.run(jobs.map(_.job).toSet, TestHelpers.DummyJobOracle).to[Seq].map(_.toMap).firstAsFuture)
       }
       
       val actualSubmissionParams = mockJobSubmitter.params
@@ -478,10 +478,10 @@ final class DrmChunkRunnerTest extends FunSuite {
       val chunkRunner = makeChunkRunner(drmSystem, mockJobSubmitter)
           
       val results = {
-        waitFor(chunkRunner.run(jobs.map(_.job).toSet, TestHelpers.DummyJobOracle).firstAsFuture)
+        waitFor(chunkRunner.run(jobs.map(_.job).toSet, TestHelpers.DummyJobOracle).to[Seq].map(_.toMap).firstAsFuture)
       }
       
-      /*val actualSubmissionParams = mockJobSubmitter.params
+      val actualSubmissionParams = mockJobSubmitter.params
       
       val actualParamsUnordered: Set[(DrmSettings, Set[LJob])] = {
         actualSubmissionParams.map { case (settings, taskArray) => 
@@ -493,7 +493,7 @@ final class DrmChunkRunnerTest extends FunSuite {
           expectedSettings0 -> Set(findJob(tool0), findJob(tool1)),
           expectedSettings1 -> Set(findJob(tool2), findJob(tool3)))
       
-      assert(actualParamsUnordered === expectedParamsUnordered)*/
+      assert(actualParamsUnordered === expectedParamsUnordered)
     }
     
     doTest(DrmSystem.Uger)

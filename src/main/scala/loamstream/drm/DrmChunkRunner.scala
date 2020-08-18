@@ -196,14 +196,14 @@ object DrmChunkRunner extends Loggable {
       taskId: DrmTaskId)(s: DrmStatus)(implicit ec: ExecutionContext): Observable[RunData] = {
     
     val infoOptFuture: Future[Option[AccountingInfo]] = {
-      val statusClass = simpleNameOf[DrmStatus]
+      val statusDescription = s"${simpleNameOf[DrmStatus]} ${s}"
       
       if(s.isFinished && notSuccess(s)) {
-        debug(s"${statusClass} is finished and NOT a success, determining execution node and queue: $s")
+        debug(s"${statusDescription} is finished and NOT a success, determining execution node and queue: $s")
         
         getAccountingInfoFor(accountingClient)(taskId)
       } else {
-        debug(s"${statusClass} is NOT finished or is a success, NOT determining execution node and queue: $s")
+        debug(s"${statusDescription} is NOT finished or is a success, NOT determining execution node and queue: $s")
         
         Future.successful(None)
       }

@@ -22,28 +22,6 @@ final class JobMonitorTest extends FunSuite {
   import loamstream.TestHelpers.waitFor 
   import Observables.Implicits._ 
 
-  test("getDrmStatusFor") {
-    import JobMonitor.getDrmStatusFor
-    
-    val taskIdFoo = DrmTaskId("foo", 42)
-    val taskIdBar = DrmTaskId("bar", 42)
-    val taskIdBaz = DrmTaskId("baz", 42)
-    
-    assert(waitFor(getDrmStatusFor(taskIdFoo)(Map.empty).isEmpty.firstAsFuture) === true)
-    
-    import DrmStatus.Done
-    import DrmStatus.Running
-    
-    val failure: Try[DrmStatus] = Tries.failure("blerg")
-    
-    val attempts = Map(taskIdFoo -> Success(Done), taskIdBar -> Success(Running), taskIdBaz -> failure)
-    
-    assert(waitFor(getDrmStatusFor(taskIdFoo)(attempts).firstAsFuture) === Success(Done))
-    assert(waitFor(getDrmStatusFor(taskIdBar)(attempts).firstAsFuture) === Success(Running))
-    assert(waitFor(getDrmStatusFor(taskIdBaz)(attempts).firstAsFuture) === failure)
-    assert(waitFor(getDrmStatusFor(DrmTaskId("asdgasdf", 42))(attempts).isEmpty.firstAsFuture) === true)
-  }
-  
   test("monitor() - happy path") {
     import DrmStatus._
     

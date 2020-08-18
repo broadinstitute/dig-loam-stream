@@ -27,24 +27,24 @@ final class JobMonitor(
     poller: Poller, 
     pollingFrequencyInHz: Double = 1.0) extends Terminable with Loggable {
   
-  import JobMonitor.allFinished
+  //import JobMonitor.allFinished
   import JobMonitor.demultiplex
   import JobMonitor.getDrmStatusFor
   import JobMonitor.unpackThenFilterThenLimit
   
-  private[this] val _isStopped: ValueBox[Boolean] = ValueBox(false)
+  /*private[this] val _isStopped: ValueBox[Boolean] = ValueBox(false)
   
-  private[drm] def isStopped: Boolean = _isStopped.value
+  private[drm] def isStopped: Boolean = _isStopped.value*/
   
-  private[this] val stopSignal: Subject[Any] = PublishSubject()
+  //private[this] val stopSignal: Subject[Any] = PublishSubject()
   
   /**
    * Stop all polling and prevent further polling by this JobMonitor.  Useful at app-shutdown-time. 
    */
   override def stop(): Unit = {
-    _isStopped.update(true)
+    //_isStopped.update(true)
     
-    stopSignal.onNext(())
+    //stopSignal.onNext(())
     
     poller.stop()
   }
@@ -60,9 +60,57 @@ final class JobMonitor(
    * @return a map of job ids to Observable streams of statuses for each job. The statuses are the result of polling 
    * the DRM system *synchronously* via the supplied poller at the supplied rate.
    */
-  def monitor(jobIds: Iterable[DrmTaskId]): Map[DrmTaskId, Observable[DrmStatus]] = {
-    
+  def monitor(jobIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, DrmStatus)] = {
     import scala.concurrent.duration._
+    
+    require(pollingFrequencyInHz != 0.0)
+    require(pollingFrequencyInHz > 0.0 && pollingFrequencyInHz < 10.0)
+    
+    val period = (1 / pollingFrequencyInHz).seconds
+    
+    val distinctIdsBeingPolledFor = jobIds.toSet
+    
+    val stopSignal: Subject[Any] = PublishSubject()
+    
+    def poll: Observable[(DrmTaskId, Try[DrmStatus])] = poller.poll(jobIds)
+    
+    import loamstream.util.Observables.Implicits._
+    import JobMonitor.unpack
+    
+    def allFinished(t: (Set[DrmTaskId], Option[(DrmTaskId, DrmStatus)])): Boolean = {
+      
+      val (stillWaitingFor, _) = t
+      
+      val result = stillWaitingFor.isEmpty 
+      
+      if(result) {
+        val idsString = stillWaitingFor.toSeq.sorted.mkString(",")
+        
+        debug(s"Jobs are all finished: $idsString")
+        
+        //Note side effect :(
+        stopSignal.onNext(())
+      }
+        
+      result
+    }
+    
+    val z: (Set[DrmTaskId], Option[(DrmTaskId, DrmStatus)]) = (distinctIdsBeingPolledFor, None)
+    
+    val ticks = Observable.interval(period, scheduler).takeUntil(stopSignal).onBackpressureDrop
+    
+    val x = ticks.flatMap(_ => poll).map(JobMonitor.unpack).scan(z) { (acc, idAndStatus) =>
+      val (stillWaitingFor, lastOpt) = acc
+      
+      val (taskId, status) = idAndStatus
+      
+      val newWaitingFor = if(status.isFinished) stillWaitingFor - taskId else stillWaitingFor
+      
+      (newWaitingFor, Some(idAndStatus))
+    }.takeUntil(allFinished(_)).collect { case (_, Some(taskIdAndStatus)) => taskIdAndStatus }
+    
+    x
+    /*import scala.concurrent.duration._
     
     require(pollingFrequencyInHz != 0.0)
     require(pollingFrequencyInHz > 0.0 && pollingFrequencyInHz < 10.0)
@@ -107,6 +155,7 @@ final class JobMonitor(
     //values emitted by pollResults will be missed by downstream subscribers.
     try { result }
     finally { pollResults.connect }
+  */
   }
 }
 
@@ -180,7 +229,7 @@ object JobMonitor extends Loggable {
     case (taskId, attempt) => (taskId, attempt.getOrElse(DrmStatus.Undetermined))
   }
   
-  private def allFinished(
+  /*private def allFinished(
       keepPollingFlag: ValueBox[Boolean],
       taskIds: Iterable[DrmTaskId])
      (pollResults: Map[DrmTaskId, Try[DrmStatus]]): Boolean = {
@@ -207,5 +256,5 @@ object JobMonitor extends Loggable {
     }
       
     result
-  }
+  }*/
 }

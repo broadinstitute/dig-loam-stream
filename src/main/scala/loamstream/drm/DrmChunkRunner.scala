@@ -132,11 +132,21 @@ final case class DrmChunkRunner(
   private[drm] def jobsToRunDatas(
     jobsById: Map[DrmTaskId, DrmJobWrapper])(implicit ec: ExecutionContext): Observable[Map[LJob, RunData]] = {
 
-    def statuses(taskIds: Iterable[DrmTaskId]): Map[DrmTaskId, Observable[DrmStatus]] = jobMonitor.monitor(taskIds)
+    import jobMonitor.monitor
 
-    val jobsAndDrmStatusesById = combine(jobsById, statuses(jobsById.keys))
-
-    toRunDatas(accountingClient, jobsAndDrmStatusesById)
+    //val jobsAndDrmStatusesById: Map[DrmTaskId, (DrmJobWrapper, Observable[DrmStatus])] = combine(jobsById, monitor(jobsById.keys))
+    
+    val jobsAndDrmStatuses: Observable[(DrmTaskId, DrmJobWrapper, DrmStatus)] = {
+      for {
+        (tid, status) <- monitor(jobsById.keys)
+        //wrapper <- Observable.from(jobsById.get(tid))
+        wrapper <- jobsById.get(tid).map(Observable.just(_)).getOrElse(Observable.empty)
+      } yield {
+        (tid, wrapper, status)
+      }
+    }
+    
+    toRunDatas(accountingClient, jobsAndDrmStatuses)
   }
   
   /**
@@ -213,22 +223,27 @@ object DrmChunkRunner extends Loggable {
   
   private[drm] def toRunDatas(
     accountingClient: AccountingClient, 
-    jobsAndDrmStatusesById: Map[DrmTaskId, JobAndStatuses])
+    //jobsAndDrmStatusesById: Map[DrmTaskId, JobAndStatuses])
+    jobsAndDrmStatusesById: Observable[(DrmTaskId, DrmJobWrapper, DrmStatus)])
     (implicit ec: ExecutionContext): Observable[Map[LJob, RunData]] = {
 
-    val drmJobsToExecutionObservables: Iterable[(DrmJobWrapper, Observable[RunData])] = for {
-      (taskId, (wrapper, drmJobStatuses)) <- jobsAndDrmStatusesById
+    val drmJobsToExecutionObservables: Observable[(DrmJobWrapper, RunData)] = for {
+      (taskId, wrapper, status) <- jobsAndDrmStatusesById
+      if status.isFinished
+      runData <- toRunData(accountingClient, wrapper, taskId)(status)
     } yield {
-      val runDataObs = drmJobStatuses.last.flatMap(toRunData(accountingClient, wrapper, taskId))
-
-      wrapper -> runDataObs
+      wrapper -> runData
     }
 
-    val jobsToExecutionObservables = drmJobsToExecutionObservables.map { case (jobWrapper, obs) => 
-      (jobWrapper.commandLineJob, obs) 
+    val jobsToExecutionObservables = drmJobsToExecutionObservables.map { case (jobWrapper, runData) => 
+      (jobWrapper.commandLineJob, runData) 
     }
+
+    //Observables.toMap(jobsToExecutionObservables)
     
-    Observables.toMap(jobsToExecutionObservables)
+    val z: Map[LJob, RunData] = Map.empty
+    
+    jobsToExecutionObservables.scan(z)(_ + _).dropWhile(_.isEmpty).distinctUntilChanged
   }
 
   private[drm] def makeAllFailureMap(

@@ -44,22 +44,6 @@ final class JobMonitorTest extends FunSuite {
     assert(waitFor(getDrmStatusFor(DrmTaskId("asdgasdf", 42))(attempts).isEmpty.firstAsFuture) === true)
   }
   
-  test("stop()") {
-    withThreadPoolScheduler(1) { scheduler =>
-      val jobMonitor = new JobMonitor(scheduler, MockPoller(Map.empty))
-      
-      assert(jobMonitor.isStopped === false)
-      
-      jobMonitor.stop()
-      
-      assert(jobMonitor.isStopped)
-      
-      jobMonitor.stop()
-      
-      assert(jobMonitor.isStopped)
-    }
-  }
-  
   test("monitor() - happy path") {
     import DrmStatus._
     
@@ -81,15 +65,17 @@ final class JobMonitorTest extends FunSuite {
     withThreadPoolScheduler(3) { scheduler =>
       val statuses = (new JobMonitor(scheduler, poller, 9.99)).monitor(jobIds)
     
-      def futureStatuses(taskId: DrmTaskId): Future[Seq[DrmStatus]] = statuses(taskId).to[Seq].firstAsFuture
+      def futureStatuses(taskId: DrmTaskId): Future[Seq[DrmStatus]] = {
+        statuses.collect { case (tid, status) if tid == taskId => status }.to[Seq].firstAsFuture
+      }
     
       val fut1 = futureStatuses(taskId1)
       val fut2 = futureStatuses(taskId2)
       val fut3 = futureStatuses(taskId3)
 
-      assert(waitFor(fut1) == Seq(Queued, Running, Done))
+      assert(waitFor(fut1) == Seq(Queued, Running, Running, Done))
       assert(waitFor(fut2) == Seq(Running, Done))
-      assert(waitFor(fut3) == Seq(Running, Done))
+      assert(waitFor(fut3) == Seq(Running, Running, Done))
     }
   }
   

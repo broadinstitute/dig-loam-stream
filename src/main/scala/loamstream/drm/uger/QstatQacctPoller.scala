@@ -40,7 +40,7 @@ final class QstatQacctPoller private[uger] (
     //Parse out DrmTaskIds and DrmStatuses from raw qstat output (one line per task)
     val pollingResultsFromQstatObs = qstatResultObs.map { qstatResults => 
       QstatSupport.getByTaskId(qstatResults.stdout)
-    }
+    }.onBackpressureDrop
     
     //The Set of distinct DrmTaskIds (jobId/task index coords) that we're polling for
     val drmTaskIdSet = drmTaskIds.toSet
@@ -57,16 +57,17 @@ final class QstatQacctPoller private[uger] (
       //For all the DrmTaskIds we're looking for but that weren't mentioned by qstat, 
       //determine the set of distinct job ids. Or, the ids of task arrays with finished jobs 
       //from the DrmTaskIds that we're polling for.
-      val jobIdsNotFoundByQstat = notFoundByQstat.iterator.map(_.jobId).toSet
+      val taskArrayIdsNotFoundByQstat = notFoundByQstat.iterator.map(_.jobId).toSet
       
       //Invoke qacct once per task-array-with-unfinished-jobs; discard info about jobs we're not polling for;
       //parse out statuses by looking at the jobs' exit codes.
-      val qacctResultsObs = Observables.merge(jobIdsNotFoundByQstat.iterator.map(invokeQacctFor(drmTaskIdSet)).toIterable)
+      //val qacctResultsObs = Observable.from(taskArrayIdsNotFoundByQstat).flatMap(invokeQacctFor(drmTaskIdSet))
+      val qacctResultsObs = Observables.merge(taskArrayIdsNotFoundByQstat.iterator.map(invokeQacctFor(drmTaskIdSet)).toIterable)
       
       //Concatentate results from qstat with those from qacct, wrapping in Trys as needed.
       Observable.from(byTaskId) ++ {
-        qacctResultsObs.map { case (tid, status) => (tid, Success(status)) }.onBackpressureDrop
-      }
+        qacctResultsObs.map { case (tid, status) => (tid, Success(status)) }
+      }.onBackpressureDrop
     }
   }
   
@@ -81,7 +82,7 @@ final class QstatQacctPoller private[uger] (
     
     tuplesObs.onErrorResumeNext {
       case NonFatal(e) => {
-        warn(s"Error invoking qacct for task array with job id '${jobNumber}'", e)
+        warn(s"Error invoking qacct for task array with job id '${jobNumber}'")
         
         Observable.empty
       }
@@ -164,10 +165,10 @@ object QstatQacctPoller extends Loggable {
       val parseMappedCodes: PartialFunction[String, DrmStatus] = {
         case "E" => DrmStatus.Failed //TODO ???
         case "h" => DrmStatus.QueuedHeld //TODO: ???
-        case "r" | "R" => DrmStatus.Running
+        case "r" | "R" | "t" => DrmStatus.Running
         case "s" | "S" | "N" => DrmStatus.Suspended
         case "w" | "qw" => DrmStatus.Queued //TODO: ???
-        case u @ ("d" | "P" | "t" | "T") => {
+        case u @ ("d" | "P" | "T") => {
           warn(s"Unmapped Uger status code '${u}' mapped to '${DrmStatus.Undetermined}'")
           
           DrmStatus.Undetermined

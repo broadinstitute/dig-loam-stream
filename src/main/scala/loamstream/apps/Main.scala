@@ -166,7 +166,9 @@ object Main extends Loggable {
         //NB: Shut down before logging anything about jobs, so that potentially-noisy shutdown info is logged
         //before final job statuses.
         val runResults = shutdownAfter(wiring) {
-          wiring.loamRunner.run(project)
+          TimeUtils.time(s"Running project with ${project.scripts.size} scripts", info(_)) {
+            wiring.loamRunner.run(project)
+          }
         }
         
         describeRunResults(loamEngine.config, runResults)

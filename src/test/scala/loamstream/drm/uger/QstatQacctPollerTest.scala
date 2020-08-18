@@ -253,7 +253,7 @@ final class QstatQacctPollerTest extends FunSuite {
     assert(toDrmStatus("qw") === Success(Queued))
     assert(toDrmStatus("d") === Success(Undetermined))
     assert(toDrmStatus("P") === Success(Undetermined))
-    assert(toDrmStatus("t") === Success(Undetermined))
+    assert(toDrmStatus("t") === Success(Running))
     assert(toDrmStatus("T") === Success(Undetermined))
     
     //unmapped strings

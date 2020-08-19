@@ -76,7 +76,7 @@ final class QstatQacctPollerTest extends FunSuite {
     
     val expected = Map(tid3 -> CommandResult(42), tid4 -> CommandResult(0))
     
-    assert(actual === expected)
+    assert(actual.toMap === expected)
   }
   
   test("parseMultiTaskQacctResults - problematic qacct output") {
@@ -92,7 +92,7 @@ final class QstatQacctPollerTest extends FunSuite {
     
     val expected = Map(tid -> CommandResult(0))
     
-    assert(actual === expected)
+    assert(actual.toMap === expected)
   }
   
   test("poll - happy path") {
@@ -296,7 +296,7 @@ final class QstatQacctPollerTest extends FunSuite {
         tid1 -> DrmStatus.CommandResult(0),
         tid2 -> DrmStatus.CommandResult(0))
     
-    assert(parseMultiTaskQacctResults(Set(tid0, tid1, tid2))(jobId -> output) === expected)
+    assert(parseMultiTaskQacctResults(Set(tid0, tid1, tid2))(jobId -> output).toMap === expected)
   }
   
   test("parseQacctResults - more results than we're looking for") {
@@ -314,7 +314,7 @@ final class QstatQacctPollerTest extends FunSuite {
         tid0 -> DrmStatus.CommandResult(4),
         tid1 -> DrmStatus.CommandResult(0))
     
-    assert(parseMultiTaskQacctResults(Set(tid0, tid1))(jobId -> output) === expected)
+    assert(parseMultiTaskQacctResults(Set(tid0, tid1))(jobId -> output).toMap === expected)
   }
 
   test("parseQacctResults - bad input") {
@@ -332,9 +332,9 @@ final class QstatQacctPollerTest extends FunSuite {
     
     val brokenField = lines.map(_.replaceAll("exit_status", "blerg"))
     
-    assert(parseMultiTaskQacctResults(Set(tid0, tid1))(jobId -> missingField) === Map.empty) 
+    assert(parseMultiTaskQacctResults(Set(tid0, tid1))(jobId -> missingField).toMap === Map.empty) 
   
-    assert(parseMultiTaskQacctResults(Set(tid0, tid1))(jobId -> brokenField) === Map.empty)
+    assert(parseMultiTaskQacctResults(Set(tid0, tid1))(jobId -> brokenField).toMap === Map.empty)
   }
   
   test("parseQacctResults - some good input, some bad") {
@@ -354,7 +354,7 @@ final class QstatQacctPollerTest extends FunSuite {
     
     val expected = Map(tid0 -> DrmStatus.CommandResult(4), tid2 -> DrmStatus.CommandResult(0))
     
-    assert(parseMultiTaskQacctResults(Set(tid0, tid1, tid2))(jobId -> lines) === expected) 
+    assert(parseMultiTaskQacctResults(Set(tid0, tid1, tid2))(jobId -> lines).toMap === expected) 
   }
   
   private val problematicQacctOutput: String = {

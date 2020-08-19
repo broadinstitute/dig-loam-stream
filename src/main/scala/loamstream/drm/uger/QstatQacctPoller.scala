@@ -193,7 +193,7 @@ object QstatQacctPoller extends Loggable {
     //
     def parseMultiTaskQacctResults(
         idsToLookFor: Set[DrmTaskId])
-       (jobNumberAndQacctLines: (String, Seq[String])): Map[DrmTaskId, DrmStatus] = {
+       (jobNumberAndQacctLines: (String, Seq[String])): Iterable[(DrmTaskId, DrmStatus)] = {
       
       import Traversables.Implicits._
       
@@ -223,7 +223,7 @@ object QstatQacctPoller extends Loggable {
         }
       }
       
-      tuples.toMap
+      tuples.toIterable
     }
     
     object Folds {

@@ -32,7 +32,7 @@ import loamstream.util.Tuples
  * @param pollingFrequencyInHz the rate at which to poll
  */
 final class JobMonitor(
-    scheduler: Scheduler = IOScheduler(),
+    scheduler: Scheduler,
     poller: Poller, 
     pollingFrequencyInHz: Double = 1.0) extends Terminable with Loggable {
   

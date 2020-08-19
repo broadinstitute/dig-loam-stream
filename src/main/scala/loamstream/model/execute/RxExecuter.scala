@@ -47,6 +47,7 @@ final case class RxExecuter(
     jobFilter: JobFilter,
     executionRecorder: ExecutionRecorder,
     maxRunsPerJob: Int,
+    scheduler: Scheduler,
     override protected val terminableComponents: Iterable[Terminable] = Nil)
     (implicit val executionContext: ExecutionContext) extends Executer with Terminable.StopsComponents with Loggable {
   
@@ -77,12 +78,10 @@ final case class RxExecuter(
     val executionState = TimeUtils.time(s"Initializing execution state with ${numJobs} jobs", debug(_)) {
       ExecutionState.initialFor(executable, maxRunsPerJob)
     }
-
-    val ioScheduler: Scheduler = IOScheduler()
     
     val chunkResults: Observable[Map[LJob, Execution]] = {
       //Note onBackpressureDrop(), in case runEligibleJobs takes too long (or the polling window is too short)
-      val ticks = Observable.interval(windowLength, ioScheduler).onBackpressureDrop
+      val ticks = Observable.interval(windowLength, scheduler).onBackpressureDrop
       
       def runJobs(jobsAndCells: ExecutionState.JobStatuses) = runEligibleJobs(executionState, jobOracle, jobsAndCells)
       
@@ -253,6 +252,8 @@ object RxExecuter extends Loggable {
     
     lazy val fileMonitor: FileMonitor = new FileMonitor(outputExistencePollingFrequencyInHz, maxWaitTimeForOutputs)
     
+    def scheduler: Scheduler = IOScheduler()
+    
     private[RxExecuter] lazy val (executionContext, ecHandle) = {
       ExecutionContexts.threadPool(Defaults.maxNumConcurrentJobs)
     }
@@ -271,6 +272,7 @@ object RxExecuter extends Loggable {
     jobFilter: JobFilter = Defaults.jobFilter,
     executionRecorder: ExecutionRecorder = Defaults.executionRecorder,
     maxRunsPerJob: Int = Defaults.maxRunsPerJob,
+    scheduler: Scheduler = Defaults.scheduler,
     terminableComponents: Iterable[Terminable] = Seq(Defaults.ecHandle))
     (implicit executionContext: ExecutionContext = Defaults.executionContext): RxExecuter = {
       
@@ -283,6 +285,7 @@ object RxExecuter extends Loggable {
       jobFilter, 
       executionRecorder,
       maxRunsPerJob, 
+      scheduler,
       terminableComponents)(executionContext)
   }
 

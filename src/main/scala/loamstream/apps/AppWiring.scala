@@ -92,6 +92,8 @@ import loamstream.drm.uger.QsubJobSubmitter
 import loamstream.drm.uger.QconfSessionSource
 import loamstream.drm.uger.QconfSessionSource
 import loamstream.util.ExitCodes
+import rx.lang.scala.Scheduler
+import rx.lang.scala.schedulers.ExecutionContextScheduler
 
 
 /**
@@ -193,6 +195,8 @@ object AppWiring extends Loggable {
       import ExecutionContexts.threadPool
 
       val (executionContextWithThreadPool, threadPoolHandle) = threadPool(threadPoolSize)
+      
+      val scheduler: Scheduler = ExecutionContextScheduler(executionContextWithThreadPool)
 
       import scala.concurrent.duration._
       
@@ -209,7 +213,8 @@ object AppWiring extends Loggable {
             defaultJobCanceller,
             jobFilter, 
             executionRecorder,
-            maxRunsPerJob)(executionContextWithThreadPool)
+            maxRunsPerJob,
+            scheduler = scheduler)(executionContextWithThreadPool)
       }
 
       val handles: Seq[Terminable] = threadPoolHandle +: runnerHandles 
@@ -386,16 +391,16 @@ object AppWiring extends Loggable {
 
       val sessionSource = QconfSessionSource.fromExecutable(ugerConfig)
       
-      val poller = QstatQacctPoller.fromExecutables(sessionSource)
-
       val (scheduler, schedulerHandle) = RxSchedulers.backedByThreadPool(threadPoolSize)
 
+      val poller = QstatQacctPoller.fromExecutables(sessionSource, scheduler = scheduler)
+      
       //TODO: Make configurable?
       val pollingFrequencyInHz = 0.1
       
       val jobMonitor = new JobMonitor(scheduler, poller, pollingFrequencyInHz)
 
-      val jobSubmitter = QsubJobSubmitter.fromExecutable(sessionSource, ugerConfig)
+      val jobSubmitter = QsubJobSubmitter.fromExecutable(sessionSource, ugerConfig, scheduler = scheduler)
       
       val accountingClient = QacctAccountingClient.useActualBinary(ugerConfig, scheduler)
       
@@ -411,7 +416,7 @@ object AppWiring extends Loggable {
           accountingClient = accountingClient,
           jobKiller = jobKiller)
 
-      val handles = Seq(sessionSource, ugerRunner, schedulerHandle)
+      val handles = Seq(ugerRunner, sessionSource, schedulerHandle)
 
       (ugerRunner, handles)
     }

@@ -342,7 +342,7 @@ final class DrmChunkRunnerTest extends FunSuite {
             executionConfig = executionConfig,
             drmConfig = ugerConfig,
             jobSubmitter = mockJobSubmitter,
-            jobMonitor = new JobMonitor(poller = JustFailsMockPoller),
+            jobMonitor = new JobMonitor(poller = JustFailsMockPoller, scheduler = IOScheduler()),
             accountingClient = MockAccountingClient.NeverWorks,
             jobKiller = MockJobKiller.DoesNothing)
       }
@@ -353,7 +353,7 @@ final class DrmChunkRunnerTest extends FunSuite {
             executionConfig = executionConfig,
             drmConfig = lsfConfig,
             jobSubmitter = mockJobSubmitter,
-            jobMonitor = new JobMonitor(poller = JustFailsMockPoller),
+            jobMonitor = new JobMonitor(poller = JustFailsMockPoller, scheduler = IOScheduler()),
             accountingClient = MockAccountingClient.NeverWorks,
             jobKiller = MockJobKiller.DoesNothing)
       }
@@ -429,7 +429,7 @@ final class DrmChunkRunnerTest extends FunSuite {
             executionConfig = executionConfig,
             drmConfig = ugerConfig,
             jobSubmitter = mockJobSubmitter,
-            jobMonitor = new JobMonitor(poller = MockPoller(Map.empty)),
+            jobMonitor = new JobMonitor(poller = MockPoller(Map.empty), scheduler = IOScheduler()),
             accountingClient = MockAccountingClient.NeverWorks,
             jobKiller = MockJobKiller.DoesNothing)
       }
@@ -441,7 +441,7 @@ final class DrmChunkRunnerTest extends FunSuite {
             drmConfig = lsfConfig,
             jobSubmitter = mockJobSubmitter,
             //NB: The poller can fail, since we're not checking execution results, just config-propagation
-            jobMonitor = new JobMonitor(poller = JustFailsMockPoller),
+            jobMonitor = new JobMonitor(poller = JustFailsMockPoller, scheduler = IOScheduler()),
             accountingClient = MockAccountingClient.NeverWorks,
             jobKiller = MockJobKiller.DoesNothing)
       }

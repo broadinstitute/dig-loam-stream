@@ -22,6 +22,7 @@ import scala.util.matching.Regex
 import scala.util.Failure
 import scala.annotation.tailrec
 import loamstream.util.Fold
+import rx.lang.scala.Scheduler
 
 /**
  * @author clint
@@ -97,12 +98,13 @@ object QstatQacctPoller extends Loggable {
   def fromExecutables(
       sessionSource: SessionSource,
       actualQstatExecutable: String = "qstat",
-      actualQacctExecutable: String = "qacct")(implicit ec: ExecutionContext): QstatQacctPoller = {
+      actualQacctExecutable: String = "qacct",
+      scheduler: Scheduler)(implicit ec: ExecutionContext): QstatQacctPoller = {
     
     import QacctInvoker.ByTaskArray.{ useActualBinary => qacctCommandInvoker }
     import Qstat.{ commandInvoker => qstatCommandInvoker }
     
-    val qacct = qacctCommandInvoker(0, "qacct", IOScheduler())
+    val qacct = qacctCommandInvoker(0, "qacct", scheduler)
     val qstat = qstatCommandInvoker(sessionSource, actualQstatExecutable)
     
     new QstatQacctPoller(qstat, qacct)

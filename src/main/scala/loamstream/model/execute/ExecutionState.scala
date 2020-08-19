@@ -106,7 +106,8 @@ final class ExecutionState private (
         import jobState.job
         
         def anyDepsStopExecution: Boolean = {
-          def depStates = statesFor(jobStates)(job.dependencies.map(_.job)) 
+          //Profiler-guided optimization: mapping over a Set is slow enough that we convert to a Seq first here.
+          def depStates = statesFor(jobStates)(job.dependencies.toSeq.map(_.job)) 
           
           jobState.notStarted && depStates.exists(_.canStopExecution)
         }
@@ -124,7 +125,7 @@ final class ExecutionState private (
    * Obtains the JobExecutionState for a given bunch of jobs, given the states of all jobs.
    * (Returns an array for fast iteration (profiling turned this up). 
    */
-  private def statesFor(jobStates: Array[JobExecutionState])(jobs: Set[JobNode]): Array[JobExecutionState] = {
+  private def statesFor(jobStates: Array[JobExecutionState])(jobs: Iterable[JobNode]): Array[JobExecutionState] = {
     val indexes = jobs.iterator.map(_.job).map(index.get(_))
     
     val cells: Array[JobExecutionState] = Array.ofDim[JobExecutionState](jobs.size)

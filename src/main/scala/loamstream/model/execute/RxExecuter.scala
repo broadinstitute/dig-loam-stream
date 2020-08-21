@@ -32,7 +32,6 @@ import loamstream.util.Futures
 import jdk.nashorn.internal.runtime.FinalScriptFunctionData
 import loamstream.model.jobs.JobOracle
 import loamstream.util.TimeUtils
-import loamstream.util.Iterators
 
 /**
  * @author kaan
@@ -80,29 +79,27 @@ final case class RxExecuter(
       ExecutionState.initialFor(executable, maxRunsPerJob)
     }
     
-    val chunkResults: Observable[(LJob, Execution)] = {
+    val chunkResults: Observable[Map[LJob, Execution]] = {
       //Note onBackpressureDrop(), in case runEligibleJobs takes too long (or the polling window is too short)
       val ticks = Observable.interval(windowLength, scheduler).onBackpressureDrop
       
       def runJobs(jobsAndCells: ExecutionState.JobStatuses) = runEligibleJobs(executionState, jobOracle, jobsAndCells)
       
       def isFinished = executionState.isFinished
-
+      
       ticks.map(_ => executionState.updateJobs()).distinctUntilChanged.flatMap(runJobs).takeUntil(_ => isFinished)
     }
     
-    val futureMergedResults = chunkResults.foldLeft(emptyExecutionMap)(_ + _).firstAsFuture
+    val futureMergedResults = chunkResults.foldLeft(emptyExecutionMap)(_ ++ _).firstAsFuture
 
     Await.result(futureMergedResults, timeout)
   }
   
-  private def finish(executionState: ExecutionState)(results: Iterable[(LJob, Execution)]): Iterable[(LJob, Execution)] = {
+  private def finish(executionState: ExecutionState)(results: Map[LJob, Execution]): Map[LJob, Execution] = {
     def msg = {
       val howMany: Int = 50 //scalastyle:ignore magic.number
       
-      val firstHoManyIds = results.iterator.map(_._1).take(howMany).map(_.id)
-      
-      s"Finishing ${results.size} jobs; first $howMany ids: ${firstHoManyIds.mkString(",")}"
+      s"Finishing ${results.size} jobs; first $howMany ids: ${results.keys.take(howMany).map(_.id).mkString(",")}"
     }
     
     TimeUtils.time(msg, debug(_)) {
@@ -115,13 +112,13 @@ final case class RxExecuter(
   private def runEligibleJobs(
       executionState: ExecutionState, 
       jobOracle: JobOracle,
-      jobsAndCells: ExecutionState.JobStatuses): Observable[(LJob, Execution)] = {
+      jobsAndCells: ExecutionState.JobStatuses): Observable[Map[LJob, Execution]] = {
     
     val (numReadyToRun, numCannotRun) = (jobsAndCells.readyToRun.size, jobsAndCells.cannotRun.size)
     import jobsAndCells.{ numRunning, numFinished }
     val numRemaining = executionState.size - numReadyToRun - numCannotRun - numRunning - numFinished
     
-    info(s"RxExecuter.runEligibleJobs(${Thread.currentThread.getName}): Ready to run: $numReadyToRun; Cannot run: $numCannotRun; " +
+    info(s"RxExecuter.runEligibleJobs(): Ready to run: $numReadyToRun; Cannot run: $numCannotRun; " +
          s"Running: $numRunning; Finished: $numFinished; Other: $numRemaining.")
     
     val (finishedJobStates, notFinishedJobStates) = {
@@ -133,14 +130,14 @@ final case class RxExecuter(
     if(notFinishedJobs.nonEmpty) {
       runNotFinishedJobs(notFinishedJobs, executionState, jobOracle)
     } else {
-      Observable.empty
+      Observable.just(Map.empty)
     }
   }
   
   private def runNotFinishedJobs(
       notFinishedJobs: Iterable[LJob],
       executionState: ExecutionState, 
-      jobOracle: JobOracle): Observable[(LJob, Execution)] = {
+      jobOracle: JobOracle): Observable[Map[LJob, Execution]] = {
     
     val (jobsToMaybeRun, skippedJobs) = notFinishedJobs.map(_.job).partition(jobFilter.shouldRun)
       
@@ -154,7 +151,9 @@ final case class RxExecuter(
     
     val skippedResultMap = toSkippedResultMap(skippedJobs)
     
-    def handleTuple(executionTupleOpt: Option[(LJob, Execution)]): Observable[(LJob, Execution)] = {
+    for {
+      executionTupleOpt <- runJobs(jobsToRun, jobOracle)
+    } yield {
       record(jobOracle, executionTupleOpt)
       
       val executionMap = cancelledJobsMap ++ executionTupleOpt
@@ -163,10 +162,8 @@ final case class RxExecuter(
       
       val results = executionMap ++ skippedResultMap
       
-      Observable.from(finish(executionState)(results))
+      finish(executionState)(results)
     }
-    
-    runJobs(jobsToRun, jobOracle).flatMap(handleTuple)
   }
 
   private val emptyExecutionMap: Map[LJob, Execution] = Map.empty

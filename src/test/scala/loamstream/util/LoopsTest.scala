@@ -112,8 +112,8 @@ final class LoopsTest extends FunSuite {
       
       val willWorkEventually = worksAfterObs(2, "foo")
       
-      assert(waitForFirst(
-          retryUntilSuccessWithBackoffAsync(3, 0.01.seconds, 0.05.seconds, scheduler)(willWorkEventually())) === Some("foo"))
+      assert(waitForFirst(retryUntilSuccessWithBackoffAsync(
+          3, 0.01.seconds, 0.05.seconds, scheduler)(willWorkEventually())) === Some("foo"))
     }
   }
   

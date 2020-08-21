@@ -135,37 +135,12 @@ final class DrmChunkRunnerTest extends FunSuite {
     assert(result === Nil)
   }
   
-  test("combine") {
-    import DrmChunkRunner.combine
-    
-    assert(combine(Map.empty, Map.empty) == Map.empty)
-    
-    val m1 = Map("a" -> 1, "b" -> 2, "c" -> 3)
-    
-    assert(combine(Map.empty, m1) == Map.empty)
-    
-    assert(combine(m1, Map.empty) == Map.empty)
-    
-    val m2 = Map("a" -> 42.0, "c" -> 99.0, "x" -> 123.456)
-    
-    assert(combine(m1, m2) == Map("a" -> (1, 42.0), "c" -> (3, 99.0)))
-    
-    assert(combine(m2, m1) == Map("a" -> (42.0, 1), "c" -> (99.0, 3)))
-  }
-  
   private def toTupleObs(jobWrapper: DrmJobWrapper): Observable[(DrmJobWrapper, DrmStatus)] = {
     
     val mockJob = jobWrapper.commandLineJob.asInstanceOf[MockDrmJob]
     
     Observable.from(mockJob.statusesToReturn).map(status => jobWrapper -> status)
   }
-  
-  /*private def toTuple(jobWrapper: DrmJobWrapper): (DrmJobWrapper, Observable[DrmStatus]) = {
-    
-    val mockJob = jobWrapper.commandLineJob.asInstanceOf[MockDrmJob]
-    
-    jobWrapper -> Observable.from(mockJob.statusesToReturn)
-  }*/
   
   test("toRunDatas - one failed job") {
     import DrmChunkRunner.toRunDatas

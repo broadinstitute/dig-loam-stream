@@ -134,14 +134,11 @@ final case class DrmChunkRunner(
 
     import jobMonitor.monitor
 
-    //val jobsAndDrmStatusesById: Map[DrmTaskId, (DrmJobWrapper, Observable[DrmStatus])] = combine(jobsById, monitor(jobsById.keys))
-    
     val jobsAndDrmStatuses: Observable[(DrmTaskId, DrmJobWrapper, DrmStatus)] = {
       val taskIds = jobsById.keys
       
       for {
         (tid, status) <- monitor(taskIds)
-        //wrapper <- Observable.from(jobsById.get(tid))
         wrapper <- jobsById.get(tid).map(Observable.just(_)).getOrElse(Observable.empty)
       } yield {
         (tid, wrapper, status)
@@ -243,8 +240,6 @@ object DrmChunkRunner extends Loggable {
       (jobWrapper.commandLineJob, runData) 
     }
 
-    //Observables.toMap(jobsToExecutionObservables)
-    
     jobsToExecutionObservables.distinctUntilChanged
   }
 
@@ -271,38 +266,5 @@ object DrmChunkRunner extends Loggable {
     }
 
     Observable.from(jobs.map(wrapper => wrapper.commandLineJob -> execution(wrapper)))
-  }
-
-  /**
-   * Takes two maps, and produces a new map containing keys that exist in both input maps, each mapped to
-   * a tuple of the keys mapped to by that key in the input maps.  For example:
-   * 
-   * given: 
-   * Map(
-   *   jobId0 -> job0,
-   *   jobId1 -> job1)
-   *   
-   * and
-   * 
-   * Map(
-   *   jobId0 -> streamOfStatuses0
-   *   jobId1 -> streamOfStatuses1)
-   *   
-   * return 
-   * 
-   * Map(
-   *   jobId0 -> (job0, streamOfStatuses0)
-   *   jobId1 -> (job1, streamOfStatuses1))
-   *   
-   * This is used to combine a map of jobs keyed on job ids with a map of job status streams keyed by id,
-   * but is generic since it makes this implementation shorter, easier to test, and (IMO) easier to read. (-Clint)
-   */
-  private[drm] def combine[A, U, V](m1: Map[A, U], m2: Map[A, V]): Map[A, (U, V)] = {
-    for {
-      (a, u) <- m1
-      v <- m2.get(a)
-    } yield {
-      a -> (u -> v)
-    }
   }
 }

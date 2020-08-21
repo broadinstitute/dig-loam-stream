@@ -95,7 +95,7 @@ final class ExecutionState private (
    */
   def jobStatuses: ExecutionState.JobStatuses = { 
     val jobStates = snapshot()
-  
+ 
     TimeUtils.time("Computing JobStatuses", trace(_)) {
       val numRunning = jobStates.count(_.isRunning)
       val numFinished = jobStates.count(_.isFinished)
@@ -224,7 +224,7 @@ final class ExecutionState private (
       
       jobStates(jobIndex) = transition(jobState)
       
-      if(isTerminalFailure) {
+      if(isTerminalFailure || status.isCanceled) {
         cancelSuccessors(job)
       }
     }

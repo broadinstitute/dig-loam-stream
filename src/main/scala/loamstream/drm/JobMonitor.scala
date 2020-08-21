@@ -16,6 +16,7 @@ import rx.lang.scala.observables.ConnectableObservable
 import rx.lang.scala.schedulers.IOScheduler
 import rx.lang.scala.subjects.PublishSubject
 import loamstream.util.Tuples
+import scala.concurrent.duration.Duration
 
 /**
  * @author clint
@@ -36,12 +37,33 @@ final class JobMonitor(
     poller: Poller, 
     pollingFrequencyInHz: Double = 1.0) extends Terminable with Loggable {
   
+  require(pollingFrequencyInHz != 0.0)
+  require(pollingFrequencyInHz > 0.0 && pollingFrequencyInHz < 10.0)
+  
   import JobMonitor.PollingState
+  
+  private[this] val globalStopSignal: Subject[Any] = PublishSubject()
+  
+  private val period: Duration = {
+    import scala.concurrent.duration._
+    
+    (1 / pollingFrequencyInHz).seconds
+  }
+  
+  private lazy val ticks: Observable[Long] = {
+    Observable.interval(period, scheduler).takeUntil(globalStopSignal).onBackpressureDrop
+  }
   
   /**
    * Stop all polling and prevent further polling by this JobMonitor.  Useful at app-shutdown-time. 
    */
-  override def stop(): Unit = poller.stop()
+  override def stop(): Unit = {
+    globalStopSignal.onNext(())
+    
+    globalStopSignal.onCompleted()
+    
+    poller.stop()
+  }
   
   /**
    * Produce an Observable stream of statuses for each task id in a bunch of task Ids.
@@ -51,24 +73,16 @@ final class JobMonitor(
    * the DRM system *synchronously* via the supplied poller at the supplied rate.
    */
   def monitor(taskIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, DrmStatus)] = {
-    import scala.concurrent.duration._
-    
-    require(pollingFrequencyInHz != 0.0)
-    require(pollingFrequencyInHz > 0.0 && pollingFrequencyInHz < 10.0)
-    
-    val period = (1 / pollingFrequencyInHz).seconds
     
     val distinctIdsBeingPolledFor = taskIds.toSet
     
     val stopSignal: Subject[Any] = PublishSubject()
     
-    def poll: Observable[(DrmTaskId, Try[DrmStatus])] = poller.poll(taskIds)
-    
     import JobMonitor.unpack
     
-    val ticks = Observable.interval(period, scheduler).takeUntil(stopSignal).onBackpressureDrop
+    def poll: Observable[(DrmTaskId, DrmStatus)] = poller.poll(taskIds).map(unpack)
     
-    val pollingResults = ticks.flatMap(_ => poll).map(JobMonitor.unpack)
+    val pollingResults = ticks.takeUntil(stopSignal).onBackpressureDrop.flatMap(_ => poll)
 
     val z: PollingState = PollingState.initial(distinctIdsBeingPolledFor)
     
@@ -91,6 +105,8 @@ object JobMonitor extends Loggable {
         
         //Note side effect :(
         stopSignal.onNext(())
+        
+        stopSignal.onCompleted()
       }
         
       result

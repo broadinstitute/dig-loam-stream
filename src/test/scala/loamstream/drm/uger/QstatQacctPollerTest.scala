@@ -356,7 +356,8 @@ final class QstatQacctPollerTest extends FunSuite {
     
     assert(parseMultiTaskQacctResults(Set(tid0, tid1, tid2))(jobId -> lines).toMap === expected) 
   }
-  
+
+  // scalastyle:off line.size.limit
   private val problematicQacctOutput: String = {
     """qname        broad               
 hostname     uger-c024.broadinstitute.org
@@ -410,4 +411,5 @@ maxpss       0.000
 arid         undefined
 jc_name      NONE"""
   }
+  // scalastyle:on line.size.limit
 }

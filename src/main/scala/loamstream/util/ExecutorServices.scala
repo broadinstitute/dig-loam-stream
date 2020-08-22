@@ -13,12 +13,16 @@ import scala.concurrent.duration.DurationInt
  * Oct 21, 2016
  */
 object ExecutorServices {
-  def threadPool(numThreads: Int, daemonFlag: DaemonFlag = ExecutorServices.OnlyDaemonThreads): ExecutorService = {
-    if(daemonFlag.onlyDaemonThreads) {
-      Executors.newFixedThreadPool(numThreads, factoryWithDaemonThreads)
-    } else {
-      Executors.newFixedThreadPool(numThreads)
+  def threadPool(
+      numThreads: Int, 
+      daemonFlag: DaemonFlag = ExecutorServices.OnlyDaemonThreads): (ExecutorService, Terminable) = {
+    
+    val executor = {
+      if(daemonFlag.onlyDaemonThreads) { Executors.newFixedThreadPool(numThreads, factoryWithDaemonThreads) }
+      else { Executors.newFixedThreadPool(numThreads) }
     }
+    
+    (executor, Terminable { shutdown(executor) }) 
   }
   
   def shutdown(es: ExecutorService, howLongToWaitForWorkToFinish: Duration = 5.seconds): Unit = {

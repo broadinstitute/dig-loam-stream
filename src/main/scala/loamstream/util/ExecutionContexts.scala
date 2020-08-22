@@ -16,11 +16,11 @@ object ExecutionContexts {
    * or Failure if the job id isn't known.  (Lamely, this can occur if the job is finished.)
    */
   def threadPool(numThreads: Int): (ExecutionContext, Terminable) = {
-    val es = ExecutorServices.threadPool(numThreads, ExecutorServices.OnlyDaemonThreads)
+    val (es, terminable) = {
+      ExecutorServices.threadPool(numThreads, ExecutorServices.OnlyDaemonThreads)
+    }
     
-    val ec = ExecutionContext.fromExecutorService(es)
-    
-    (ec, Terminable { ExecutorServices.shutdown(es) })
+    (ExecutionContext.fromExecutorService(es), terminable)
   }
   
   val defaultThreadPoolSize: Int = 40 //scalastyle:ignore magic.number

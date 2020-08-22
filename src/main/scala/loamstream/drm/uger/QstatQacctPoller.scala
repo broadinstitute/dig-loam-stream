@@ -23,6 +23,11 @@ import scala.util.Failure
 import scala.annotation.tailrec
 import loamstream.util.Fold
 import rx.lang.scala.Scheduler
+import rx.lang.scala.Scheduler
+import loamstream.util.Terminable
+import loamstream.util.RxSchedulers
+import rx.lang.scala.schedulers.ExecutionContextScheduler
+import loamstream.util.Throwables
 
 /**
  * @author clint
@@ -30,13 +35,18 @@ import rx.lang.scala.Scheduler
  */
 final class QstatQacctPoller private[uger] (
     qstatInvoker: CommandInvoker.Async[Unit],
-    qacctInvoker: CommandInvoker.Async[String])(implicit ec: ExecutionContext) extends Poller with Loggable {
+    qacctInvoker: CommandInvoker.Async[String]) extends Poller with Loggable {
   
   import QstatQacctPoller._
   
+  
   override def poll(drmTaskIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, Try[DrmStatus])] = {
     //Invoke qstat, to get the status of all submitted-but-not-finished jobs in this session
-    val qstatResultObs = Observable.from(qstatInvoker.apply(()))
+    val qstatResultObs = {
+      implicit val ec = ExecutionContexts.forQstat
+      
+      Observable.from(qstatInvoker.apply(())).observeOn(Schedulers.forQstat)
+    }
 
     //Parse out DrmTaskIds and DrmStatuses from raw qstat output (one line per task)
     val pollingResultsFromQstatObs = qstatResultObs.map { qstatResults => 
@@ -51,19 +61,25 @@ final class QstatQacctPoller private[uger] (
     pollingResultsFromQstatObs.flatMap { byTaskId =>
       val notFoundByQstat = drmTaskIdSet -- byTaskId.keys
       
-      def numJobIds = notFoundByQstat.map(_.jobId).size
-      
-      debug(s"${notFoundByQstat.size} finished jobs not found by qstat, ${numJobIds} job IDs")
-      
       //For all the DrmTaskIds we're looking for but that weren't mentioned by qstat, 
       //determine the set of distinct job ids. Or, the ids of task arrays with finished jobs 
       //from the DrmTaskIds that we're polling for.
-      val taskArrayIdsNotFoundByQstat = notFoundByQstat.iterator.map(_.jobId).toSet
+      val taskArrayIdsNotFoundByQstat = notFoundByQstat.map(_.jobId) 
+      
+      def numJobIds = taskArrayIdsNotFoundByQstat.size
+      
+      debug(s"${notFoundByQstat.size} finished jobs not found by qstat, ${numJobIds} job IDs")
       
       //Invoke qacct once per task-array-with-unfinished-jobs; discard info about jobs we're not polling for;
       //parse out statuses by looking at the jobs' exit codes.
       //val qacctResultsObs = Observable.from(taskArrayIdsNotFoundByQstat).flatMap(invokeQacctFor(drmTaskIdSet))
-      val qacctResultsObs = Observables.merge(taskArrayIdsNotFoundByQstat.iterator.map(invokeQacctFor(drmTaskIdSet)).toIterable)
+      val qacctInvocationObses = taskArrayIdsNotFoundByQstat.iterator.take(10).map {
+        implicit val ec = ExecutionContexts.forQacct
+        
+        invokeQacctFor(drmTaskIdSet)(_).observeOn(Schedulers.forQacct)
+      }.toSeq
+      
+      val qacctResultsObs = Observables.merge(qacctInvocationObses)
       
       //Concatentate results from qstat with those from qacct, wrapping in Trys as needed.
       Observable.from(byTaskId) ++ {
@@ -77,9 +93,13 @@ final class QstatQacctPoller private[uger] (
      (jobNumber: String)
      (implicit ec: ExecutionContext): Observable[(DrmTaskId, DrmStatus)] = {
     
-    val tuplesObs = Observable.from(qacctInvoker(jobNumber).map(jobNumber -> _.stdout).map {
-      QacctSupport.parseMultiTaskQacctResults(drmTaskIds)
-    }).flatMap(Observable.from(_))
+    val tuplesObs = {
+      Observable.from(qacctInvoker(jobNumber))
+                .observeOn(Schedulers.forQacct)
+                .map(jobNumber -> _.stdout)
+                .map(QacctSupport.parseMultiTaskQacctResults(drmTaskIds))
+                .flatMap(Observable.from(_))
+    }
     
     tuplesObs.onErrorResumeNext {
       case NonFatal(e) => {
@@ -90,7 +110,15 @@ final class QstatQacctPoller private[uger] (
     }
   }
   
-  override def stop(): Unit = ()
+  override def stop(): Unit = {
+    Throwables.quietly("Shutting down Qstat ExecutionContext") {
+      ExecutionContexts.forQstatHandle.stop()
+    }
+    
+    Throwables.quietly("Shutting down Qacct ExecutionContext") {
+      ExecutionContexts.forQacctHandle.stop()
+    }
+  }
 }
 
 object QstatQacctPoller extends Loggable {
@@ -108,6 +136,22 @@ object QstatQacctPoller extends Loggable {
     val qstat = qstatCommandInvoker(sessionSource, actualQstatExecutable)
     
     new QstatQacctPoller(qstat, qacct)
+  }
+  
+  object ExecutionContexts {
+    lazy val (forQstat: ExecutionContext, forQstatHandle: Terminable) = {
+      loamstream.util.ExecutionContexts.threadPool(1)
+    }
+    
+    lazy val (forQacct: ExecutionContext, forQacctHandle: Terminable) = {
+      loamstream.util.ExecutionContexts.threadPool(Runtime.getRuntime.availableProcessors)
+    }
+  }
+    
+  object Schedulers {
+    lazy val forQstat: Scheduler = ExecutionContextScheduler(ExecutionContexts.forQstat)
+    
+    lazy val forQacct: Scheduler = ExecutionContextScheduler(ExecutionContexts.forQacct)
   }
   
   private[uger] object QstatSupport {

@@ -80,13 +80,23 @@ final class JobMonitor(
     
     import JobMonitor.unpack
     
-    def poll: Observable[(DrmTaskId, DrmStatus)] = poller.poll(taskIds).map(unpack)
+    val stillWaitingFor: ValueBox[Iterable[DrmTaskId]] = ValueBox(taskIds)
     
-    val pollingResults = ticks.takeUntil(stopSignal).onBackpressureDrop.flatMap(_ => poll)
-
+    def poll: Observable[(DrmTaskId, DrmStatus)] = poller.poll(stillWaitingFor.value).map(unpack)
+    
+    val localTicks = ticks.takeUntil(stopSignal).onBackpressureDrop
+    
+    val pollingResults = localTicks.flatMap(_ => poll)
+    
     val z: PollingState = PollingState.initial(distinctIdsBeingPolledFor)
     
-    val pollingStates = pollingResults.scan(z) { _.handle(_) }.takeUntil(_.allFinished(stopSignal))
+    val pollingStates = pollingResults.scan(z) { (state, idAndStatus) => 
+      val s = state.handle(idAndStatus)
+      
+      stillWaitingFor := s.stillWaitingFor
+      
+      s
+    }.takeUntil(_.allFinished(stopSignal))
     
     pollingStates.collect { case PollingState(_, Some(lastIdAndStatus)) => lastIdAndStatus }
   }

@@ -11,13 +11,11 @@ import rx.lang.scala.schedulers.ExecutionContextScheduler
  */
 object RxSchedulers {
   def backedByThreadPool(numThreads: Int): (Scheduler, Terminable) = {
-    val executor = ExecutorServices.threadPool(numThreads)
+    val (executor, handle) = ExecutorServices.threadPool(numThreads)
     
     val executionContext = ExecutionContext.fromExecutorService(executor)
     
     val scheduler: Scheduler = ExecutionContextScheduler(executionContext)
-    
-    val handle = Terminable { ExecutorServices.shutdown(executor) }
     
     scheduler -> handle
   }

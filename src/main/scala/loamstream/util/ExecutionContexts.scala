@@ -23,6 +23,10 @@ object ExecutionContexts {
     (ExecutionContext.fromExecutorService(es), terminable)
   }
   
+  def singleThread: (ExecutionContext, Terminable) = threadPool(1)
+  
+  def oneThreadPerCpu: (ExecutionContext, Terminable) = threadPool(ThisMachine.numCpus)
+  
   val defaultThreadPoolSize: Int = 40 //scalastyle:ignore magic.number
   
   def withThreadPool[A](numThreads: Int = defaultThreadPoolSize)(f: ExecutionContext => A): A = {

@@ -28,6 +28,7 @@ import loamstream.util.Terminable
 import loamstream.util.RxSchedulers
 import rx.lang.scala.schedulers.ExecutionContextScheduler
 import loamstream.util.Throwables
+import loamstream.util.ThisMachine
 
 /**
  * @author clint
@@ -72,8 +73,7 @@ final class QstatQacctPoller private[uger] (
       
       //Invoke qacct once per task-array-with-unfinished-jobs; discard info about jobs we're not polling for;
       //parse out statuses by looking at the jobs' exit codes.
-      //val qacctResultsObs = Observable.from(taskArrayIdsNotFoundByQstat).flatMap(invokeQacctFor(drmTaskIdSet))
-      val qacctInvocationObses = taskArrayIdsNotFoundByQstat.iterator.take(10).map {
+      val qacctInvocationObses = taskArrayIdsNotFoundByQstat.iterator.take(ThisMachine.numCpus).map {
         implicit val ec = ExecutionContexts.forQacct
         
         invokeQacctFor(drmTaskIdSet)(_).observeOn(Schedulers.forQacct)
@@ -119,6 +119,22 @@ final class QstatQacctPoller private[uger] (
       ExecutionContexts.forQacctHandle.stop()
     }
   }
+  
+  private[uger] object ExecutionContexts {
+    lazy val (forQstat: ExecutionContext, forQstatHandle: Terminable) = {
+      loamstream.util.ExecutionContexts.singleThread
+    }
+    
+    lazy val (forQacct: ExecutionContext, forQacctHandle: Terminable) = {
+      loamstream.util.ExecutionContexts.oneThreadPerCpu
+    }
+  }
+    
+  private[uger] object Schedulers {
+    val forQstat: Scheduler = ExecutionContextScheduler(ExecutionContexts.forQstat)
+    
+    val forQacct: Scheduler = ExecutionContextScheduler(ExecutionContexts.forQacct)
+  }
 }
 
 object QstatQacctPoller extends Loggable {
@@ -136,22 +152,6 @@ object QstatQacctPoller extends Loggable {
     val qstat = qstatCommandInvoker(sessionSource, actualQstatExecutable)
     
     new QstatQacctPoller(qstat, qacct)
-  }
-  
-  object ExecutionContexts {
-    lazy val (forQstat: ExecutionContext, forQstatHandle: Terminable) = {
-      loamstream.util.ExecutionContexts.threadPool(1)
-    }
-    
-    lazy val (forQacct: ExecutionContext, forQacctHandle: Terminable) = {
-      loamstream.util.ExecutionContexts.threadPool(Runtime.getRuntime.availableProcessors)
-    }
-  }
-    
-  object Schedulers {
-    lazy val forQstat: Scheduler = ExecutionContextScheduler(ExecutionContexts.forQstat)
-    
-    lazy val forQacct: Scheduler = ExecutionContextScheduler(ExecutionContexts.forQacct)
   }
   
   private[uger] object QstatSupport {

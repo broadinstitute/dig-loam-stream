@@ -14,6 +14,7 @@ import loamstream.util.Loggable
 import loamstream.util.Observables
 import loamstream.util.Throwables
 import rx.lang.scala.Observable
+import loamstream.util.ThisMachine
 
 /**
  * @author clint
@@ -50,7 +51,7 @@ final case class AsyncLocalChunkRunner(
 }
 
 object AsyncLocalChunkRunner extends Loggable {
-  def defaultMaxNumJobs: Int = Runtime.getRuntime.availableProcessors
+  def defaultMaxNumJobs: Int = ThisMachine.numCpus
   
   def executeSingle(
       executionConfig: ExecutionConfig,

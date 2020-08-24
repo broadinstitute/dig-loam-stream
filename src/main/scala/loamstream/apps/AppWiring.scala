@@ -94,6 +94,7 @@ import loamstream.drm.uger.QconfSessionSource
 import loamstream.util.ExitCodes
 import rx.lang.scala.Scheduler
 import rx.lang.scala.schedulers.ExecutionContextScheduler
+import loamstream.util.ThisMachine
 
 
 /**
@@ -187,7 +188,7 @@ object AppWiring extends Loggable {
       trace("Creating executer...")
 
       //TODO: Make this configurable?
-      val threadPoolSize = 50
+      val threadPoolSize = 40
 
       val (compositeRunner: ChunkRunner, runnerHandles: Seq[Terminable]) = makeChunkRunner(threadPoolSize)
 
@@ -225,7 +226,7 @@ object AppWiring extends Loggable {
     private def makeChunkRunner(threadPoolSize: Int): (ChunkRunner, Seq[Terminable]) = {
       
       //TODO: Make the number of threads this uses configurable
-      val numberOfCPUs = Runtime.getRuntime.availableProcessors
+      val numberOfCPUs = ThisMachine.numCpus
 
       val (localEC, localEcHandle) = ExecutionContexts.threadPool(numberOfCPUs * 2)
 

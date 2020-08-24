@@ -57,6 +57,21 @@ final class JobMonitorTest extends FunSuite {
     }
   }
   
+  test("stop") {
+    val poller = MockPoller(Map.empty)
+    
+    //Doesn't matter which one, we won't run anything on it.
+    val scheduler = rx.lang.scala.schedulers.ComputationScheduler()
+    
+    val jobMonitor = new JobMonitor(scheduler, poller, 9.99)
+
+    assert(poller.isStopped === false)
+      
+    jobMonitor.stop()
+      
+    assert(poller.isStopped === true)
+  }
+  
   private def withThreadPoolScheduler[A](numThreads: Int)(f: Scheduler => A): A = {
     val (scheduler, handle) = RxSchedulers.backedByThreadPool(numThreads)
     

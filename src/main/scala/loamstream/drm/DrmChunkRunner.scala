@@ -254,7 +254,7 @@ object DrmChunkRunner extends Loggable {
       case None    => (JobResult.Failure, JobStatus.Failed)
     }
 
-    val execution: DrmJobWrapper => RunData = { jobWrapper =>
+    def execution(jobWrapper: DrmJobWrapper): RunData = {
       RunData(
           job = jobWrapper.commandLineJob, 
           settings = jobWrapper.drmSettings,

@@ -80,6 +80,7 @@ final class JobMonitor(
     
     import JobMonitor.unpack
     
+    //NB: Mutability is lame, but it makes for much simpler code than making poll() recursive.
     val stillWaitingFor: ValueBox[Iterable[DrmTaskId]] = ValueBox(taskIds)
     
     def poll: Observable[(DrmTaskId, DrmStatus)] = poller.poll(stillWaitingFor.value).map(unpack)

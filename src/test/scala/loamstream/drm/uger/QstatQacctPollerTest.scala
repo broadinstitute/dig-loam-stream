@@ -198,7 +198,10 @@ final class QstatQacctPollerTest extends FunSuite {
     
     val actual = QstatSupport.parseQstatOutput(lines).toList
     
-    assert(actual.forall(_.isFailure))
+    assert(actual.forall { 
+      case Success((drmTaskId, drmStatus)) => drmStatus.isUndetermined
+      case _ => false
+    })
     
     assert(actual.size === 2)
   }
@@ -241,30 +244,56 @@ final class QstatQacctPollerTest extends FunSuite {
     import QstatSupport.toDrmStatus
     import DrmStatus._
     
-    //happy paths
-    assert(toDrmStatus("E") === Success(Failed))
-    assert(toDrmStatus("h") === Success(QueuedHeld))
-    assert(toDrmStatus("r") === Success(Running))
-    assert(toDrmStatus("R") === Success(Running))
-    assert(toDrmStatus("s") === Success(Suspended))
-    assert(toDrmStatus("S") === Success(Suspended))
-    assert(toDrmStatus("N") === Success(Suspended))
-    assert(toDrmStatus("w") === Success(Queued))
-    assert(toDrmStatus("qw") === Success(Queued))
-    assert(toDrmStatus("d") === Success(Undetermined))
-    assert(toDrmStatus("P") === Success(Undetermined))
-    assert(toDrmStatus("t") === Success(Running))
-    assert(toDrmStatus("T") === Success(Undetermined))
+    assert(toDrmStatus("qw") === Queued)
+    assert(toDrmStatus("hqw") === Queued)
+    assert(toDrmStatus("hRwq") === Queued)
+
+    assert(toDrmStatus("r") === Running)
+    assert(toDrmStatus("R") === Running)
+    assert(toDrmStatus("t") === Running)
+    assert(toDrmStatus("Rr") === Running)
+    assert(toDrmStatus("Rt") === Running)
+
+    assert(toDrmStatus("N") === Suspended)
+    assert(toDrmStatus("s") === Suspended)
+    assert(toDrmStatus("ts") === Suspended)
+    assert(toDrmStatus("S") === Suspended)
+    assert(toDrmStatus("tS") === Suspended)
+    assert(toDrmStatus("T") === Suspended)
+    assert(toDrmStatus("tT") === Suspended)
+    assert(toDrmStatus("Rs") === Suspended)
+    assert(toDrmStatus("Rts") === Suspended)
+    assert(toDrmStatus("RS") === Suspended)
+    assert(toDrmStatus("RtS") === Suspended)
+    assert(toDrmStatus("RT") === Suspended)
+    assert(toDrmStatus("RtT") === Suspended)
+
+    assert(toDrmStatus("E") === Failed)
+    assert(toDrmStatus("Eqw") === Failed)
+    assert(toDrmStatus("Ehqw") === Failed)
+    assert(toDrmStatus("EhRqw") === Failed)
+
+    assert(toDrmStatus("d") === Failed)
+    assert(toDrmStatus("dr") === Failed)
+    assert(toDrmStatus("dt") === Failed)
+    assert(toDrmStatus("dRr") === Failed)
+    assert(toDrmStatus("dRt") === Failed)
+    assert(toDrmStatus("ds") === Failed)
+    assert(toDrmStatus("dS") === Failed)
+    assert(toDrmStatus("dT") === Failed)
+    assert(toDrmStatus("dRs") === Failed)
+    assert(toDrmStatus("dRS") === Failed)
+    assert(toDrmStatus("dRT") === Failed)
     
     //unmapped strings
-    assert(toDrmStatus("X").isFailure)
-    assert(toDrmStatus("b").isFailure)
-    assert(toDrmStatus("Q").isFailure)
+    assert(toDrmStatus("X") === Undetermined)
+    assert(toDrmStatus("b") === Undetermined)
+    assert(toDrmStatus("Q") === Undetermined)
     
-    assert(toDrmStatus("").isFailure)
-    assert(toDrmStatus("    ").isFailure)
-    assert(toDrmStatus("asdf").isFailure)
-    assert(toDrmStatus("12345").isFailure)
+    assert(toDrmStatus("") === Undetermined)
+    assert(toDrmStatus("    ") === Undetermined)
+    assert(toDrmStatus("asdf") === Undetermined)
+    assert(toDrmStatus("12345") === Undetermined)
   }
   
   private def outputForTasks(idsToExitCodes: (DrmTaskId, Int)*): Seq[String] = {

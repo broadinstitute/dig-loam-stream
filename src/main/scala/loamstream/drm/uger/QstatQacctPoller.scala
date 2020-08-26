@@ -161,7 +161,7 @@ object QstatQacctPoller extends Loggable {
     
     def getByTaskId(qstatOutput: Seq[String]): Map[DrmTaskId, Try[DrmStatus]] = {
       parseQstatOutput(qstatOutput).collect { 
-        case Success((drmTaskId, drmStatus)) => drmTaskId -> Success(drmStatus) 
+        case Success((drmTaskId, drmStatus)) if !drmStatus.isUndetermined => drmTaskId -> Success(drmStatus) 
       }.toMap 
     }
     
@@ -179,50 +179,87 @@ object QstatQacctPoller extends Loggable {
     def parseQstatOutput(lines: Seq[String]): Iterator[Try[(DrmTaskId, DrmStatus)]] = {
       lines.iterator.map(_.trim).collect {
         case QstatRegexes.jobIdStatusAndTaskIndex(jobId, ugerStatusCode, taskIndexString) => {
-          for {
-            drmTaskId <- Try(DrmTaskId(jobId, taskIndexString.toInt))
-            drmStatus <- toDrmStatus(ugerStatusCode.trim)
-          } yield drmTaskId -> drmStatus
+          Try(DrmTaskId(jobId, taskIndexString.toInt)).map { drmTaskId =>
+            val drmStatus = toDrmStatus(ugerStatusCode.trim)
+            
+            drmTaskId -> drmStatus
+          }
         }
       }
     }
 
     /**
      * Map a Uger status code (as reported by qstat) to a DrmStatus
+     * 
+     * Parse a Uger status string into a Try[DrmStatus], based on the encoding from 
+     * https://gist.github.com/cmaureir/4fa2d34bc9a1bd194af1
+     * 
+     * (Note that the qstat man page, which this method's implementation was based on previously, 
+     * is incomplete and sometimes wrong :\ )   
      */
-    def toDrmStatus(ugerStatusCode: String): Try[DrmStatus] = {
+    def toDrmStatus(ugerStatusCode: String): DrmStatus = {
       /*
-       * From the qstat man page:
-       * 
-       * the  status  of  the  job  - one of:
-       *   d(eletion), 
-       *   E(rror), 
-       *   h(old), 
-       *   r(unning), 
-       *   R(estarted), 
-       *   s(uspended), 
-       *   S(uspended), 
-       *   e(N)hanced suspended, 
-       *   (P)reempted, 
-       *   t(ransfering), 
-       *   T(hreshold) or
-       *   w(aiting).
+       * Pending 	pending 	qw
+       * Pending 	pending, user hold 	qw
+       * Pending 	pending, system hold 	hqw
+       * Pending 	pending, user and system hold 	hqw
+       * Pending 	pending, user hold, re-queue 	hRwq
+       * Pending 	pending, system hold, re-queue 	hRwq
+       * Pending 	pending, user and system hold, re-queue 	hRwq
+       * Pending 	pending, user hold 	qw
+       * Pending 	pending, user hold 	qw
+       * Running 	running 	r
+       * Running 	transferring 	t
+       * Running 	running, re-submit 	Rr
+       * Running 	transferring, re-submit 	Rt
+       * Suspended 	obsuspended 	s, ts
+       * Suspended 	queue suspended 	S, tS
+       * Suspended 	queue suspended by alarm 	T, tT
+       * Suspended 	allsuspended withre-submit 	Rs,Rts,RS, RtS, RT, RtT
+       * Error 	allpending states with error 	Eqw, Ehqw, EhRqw
+       * Deleted 	all running and suspended states with deletion 	dr,dt,dRr,dRt,ds, dS, dT,dRs, dRS, dRT
        */
-      val parseMappedCodes: PartialFunction[String, DrmStatus] = {
-        case "E" => DrmStatus.Failed //TODO ???
-        case "h" => DrmStatus.QueuedHeld //TODO: ???
-        case "r" | "R" | "t" => DrmStatus.Running
-        case "s" | "S" | "N" => DrmStatus.Suspended
-        case "w" | "qw" => DrmStatus.Queued //TODO: ???
-        case u @ ("d" | "P" | "T") => {
+      ugerStatusCode match {
+        case UgerStatusCodes.IsError() | UgerStatusCodes.IsDeleted() => DrmStatus.Failed
+        case UgerStatusCodes.IsQueued() => DrmStatus.Queued
+        case UgerStatusCodes.IsRunning() => DrmStatus.Running
+        case UgerStatusCodes.IsSuspended() => DrmStatus.Suspended
+        case u => {
           warn(s"Unmapped Uger status code '${u}' mapped to '${DrmStatus.Undetermined}'")
           
           DrmStatus.Undetermined
         }
       }
+    }
+    
+    object UgerStatusCodes {
+      object IsError {
+        def unapply(s: String): Boolean = s.startsWith("E") 
+      }
       
-      Success(ugerStatusCode).collect(parseMappedCodes).recoverWith {
-        case _ => Tries.failure(s"Unknown Uger status code '$ugerStatusCode' encountered")
+      object IsDeleted {
+        def unapply(s: String): Boolean = s.startsWith("d")
+      }
+      
+      object IsQueued {
+        def unapply(s: String): Boolean = s match {
+          case "h" | "w" | "qw" | "hRwq" | "hqw" => true
+          case _ => false
+        }
+      }
+      
+      object IsRunning {
+        def unapply(s: String): Boolean = s match {
+          case "r" | "R" | "t" | "Rr" | "Rt" => true
+          case _ => false
+        }
+      }
+      
+      object IsSuspended {
+        def unapply(s: String): Boolean = s match {
+          case "s" | "S" | "N" | "ts" | "tS" | "T" | "tT" | "Rs" | "Rts" | "RS" | "RtS" | "RT" | "RtT" => true
+          case _ => false
+        }
       }
     }
   }

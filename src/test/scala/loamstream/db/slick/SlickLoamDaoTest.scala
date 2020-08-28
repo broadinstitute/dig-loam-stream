@@ -70,20 +70,6 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
   private val run: Run = Run.create()
   
-  private lazy val init: Unit = {
-    
-  }
-
-  private def doInit() = init
-  
-  private def registerRunAndThen[A](f: => A) {
-    createTablesAndThen {
-      dao.registerNewRun(run)
-      
-      f
-    }
-  }
-  
   private def store(cmd: String, paths: Path*): Execution = {
     val outputs = paths.map { path =>
       val hash = Hashes.sha1(path)
@@ -186,7 +172,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   }
 
   test("insert/allExecutions") {
-    registerRunAndThen {
+    registerRunAndThen(run) {
       val stored = store(path0)
 
       assert(stored.outputs.nonEmpty)
@@ -200,7 +186,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   }
 
   test("insert/Read Outputs") {
-    registerRunAndThen {
+    registerRunAndThen(run) {
       assert(noOutputs)
 
       store(path0)
@@ -212,7 +198,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   }
 
   test("insert/allOutputs") {
-    registerRunAndThen {
+    registerRunAndThen(run) {
 
       assert(noOutputs)
 
@@ -226,7 +212,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   }
 
   test("insert/allOutputs - only failures") {
-    registerRunAndThen {
+    registerRunAndThen(run) {
 
       assert(noOutputs)
 
@@ -241,7 +227,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   }
 
   test("insert/allOutputs - some failures") {
-    registerRunAndThen {
+    registerRunAndThen(run) {
 
       assert(noOutputs)
 
@@ -260,7 +246,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   }
 
   test("delete all Outputs") {
-    registerRunAndThen {
+    registerRunAndThen(run) {
 
       assert(noOutputs)
 
@@ -275,7 +261,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   }
 
   test("delete some Outputs") {
-    registerRunAndThen {
+    registerRunAndThen(run) {
 
       assert(noOutputs)
 
@@ -296,7 +282,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   test("insertExecutionRow - no termination reason") {
     import DbHelpers.dummyId
 
-    registerRunAndThen {
+    registerRunAndThen(run) {
       assert(noOutputs)
       assert(noExecutions)
 
@@ -335,7 +321,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   test("insertExecutionRow - with termination reason") {
     import DbHelpers.dummyId
 
-    registerRunAndThen {
+    registerRunAndThen(run) {
       assert(noOutputs)
       assert(noExecutions)
 
@@ -372,7 +358,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   }
 
   test("insertExecutions/allExecutionRows") {
-    registerRunAndThen {
+    registerRunAndThen(run) {
       import TestHelpers.path
       
       val output0 = cachedOutput(path0, hash0)
@@ -467,7 +453,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
   test("insertExecutions - CommandInvocationFailure") {
     def doTest(path: Path): Unit = {
-      registerRunAndThen {
+      registerRunAndThen(run) {
         val output0 = PathHandle(path)
   
         val failed = Execution(
@@ -502,7 +488,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   test("insertExecutions - should throw") {
     def doTestWithLocations(path: Path): Unit = {
       def doTest(command: Option[String], jobResult: JobResult): Unit = {
-        registerRunAndThen {
+        registerRunAndThen(run) {
           val output0 = PathHandle(path)
   
           val failed = Execution(
@@ -544,7 +530,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
     val ugerSettings = mockUgerSettings
     
     def doTest(resources: Resources): Unit = {
-      registerRunAndThen {
+      registerRunAndThen(run) {
         val output0 = cachedOutput(path0, hash0)
         val output1 = cachedOutput(path1, hash1)
         val output2 = cachedOutput(path2, hash2)
@@ -597,7 +583,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   }
 
   test("findOutput") {
-    registerRunAndThen {
+    registerRunAndThen(run) {
       assert(noOutputs)
 
       store(path0)
@@ -617,7 +603,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   }
 
   test("findCommand") {
-    registerRunAndThen {
+    registerRunAndThen(run) {
       assert(noOutputs)
 
       store(cmd0, path0)
@@ -684,7 +670,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
     val output0 = cachedOutput(path0, hash0)
         
     def doTest(settings: Settings, resources: Resources): Unit = {
-      registerRunAndThen {
+      registerRunAndThen(run) {
         assert(noExecutions)
         
         val result = CommandResult(0)

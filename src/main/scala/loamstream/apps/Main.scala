@@ -31,6 +31,7 @@ import loamstream.conf.ExecutionConfig
 import loamstream.conf.Locations
 import loamstream.util.Files
 import loamstream.cli.JobFilterIntent
+import loamstream.model.execute.Run
 
 
 /**
@@ -166,6 +167,8 @@ object Main extends Loggable {
         //NB: Shut down before logging anything about jobs, so that potentially-noisy shutdown info is logged
         //before final job statuses.
         val runResults = shutdownAfter(wiring) {
+          wiring.dao.registerNewRun(Run.create())
+          
           wiring.loamRunner.run(project)
         }
         

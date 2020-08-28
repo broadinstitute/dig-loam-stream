@@ -15,7 +15,7 @@ import loamstream.model.execute.Run
  * date: Aug 4, 2016
  */
 trait LoamDao {
-  def findLastRunId: Option[Int]
+
   def findLastRun: Option[Run]
   def registerNewRun(run: Run): Unit
   

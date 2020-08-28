@@ -11,24 +11,18 @@ import java.sql.Timestamp
 trait RunDaoOps extends LoamDao { self: CommonDaoOps =>
   import driver.api._
   
-  //TODO: a bad idea
-  override def findLastRunId: Option[Int] = {
-    val action = RunQueries.newestRun.result.headOption
-    
-    log(action)
-    
-    runBlocking(action.transactionally).map(_.id)
-  }
+  protected[slick] def findLastRunId: Option[Int] = findLastRunRow.map(_.id)
   
-  override def findLastRun: Option[Run] = {
-    assertAtMostTwoRuns()
-    
+  override def findLastRun: Option[Run] = findLastRunRow.map(_.toRun)
+  
+  private def findLastRunRow: Option[RunRow] = {
     val action = RunQueries.newestRun.result.headOption
     
     log(action)
     
-    runBlocking(action.transactionally).map(_.toRun)
+    runBlocking(action.transactionally)
   }
+    
   
   override def registerNewRun(run: Run): Unit = {
     assertAtMostTwoRuns()

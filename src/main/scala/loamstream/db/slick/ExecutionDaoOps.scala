@@ -49,8 +49,7 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps wit
   private def insert(executionAndResult: (Execution, JobResult.CommandResult)): DBIO[Iterable[Int]] = {
     val runIdOpt = findLastRunId
     
-    //TODO
-    require(runIdOpt.isDefined, s"TODO")
+    require(runIdOpt.isDefined, s"No current Run registered")
     
     val (execution, commandResult) = executionAndResult
 

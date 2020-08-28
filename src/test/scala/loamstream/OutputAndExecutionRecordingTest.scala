@@ -20,6 +20,7 @@ import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.model.jobs.Execution
 import loamstream.model.execute.DbBackedExecutionRecorder
 import loamstream.util.Paths
+import loamstream.model.execute.Run
 
 
 /**
@@ -27,6 +28,8 @@ import loamstream.util.Paths
  * Dec 19, 2017
  */
 final class OutputAndExecutionRecordingTest extends FunSuite with ProvidesSlickLoamDao {
+  private val run: Run = Run.create()
+  
   test("Data about outputs and job executions should be recorded properly") {
     val workDir = TestHelpers.getWorkDir(getClass.getSimpleName)
     
@@ -55,7 +58,7 @@ final class OutputAndExecutionRecordingTest extends FunSuite with ProvidesSlickL
     
     import Files.exists
     
-    createTablesAndThen {
+    registerRunAndThen(run) {
       val jobFilter = new DbBackedJobFilter(dao, HashingStrategy.HashOutputs)
       val executionRecorder = new DbBackedExecutionRecorder(dao)
       

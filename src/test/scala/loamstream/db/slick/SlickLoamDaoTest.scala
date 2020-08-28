@@ -36,6 +36,7 @@ import loamstream.model.jobs.TerminationReason
 import loamstream.model.execute.Settings
 import loamstream.googlecloud.ClusterConfig
 import java.time.LocalDateTime
+import loamstream.model.execute.Run
 
 /**
  * @author clint
@@ -67,6 +68,22 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
   import loamstream.TestHelpers.dummyJobDir
 
+  private val run: Run = Run.create()
+  
+  private lazy val init: Unit = {
+    
+  }
+
+  private def doInit() = init
+  
+  private def registerRunAndThen[A](f: => A) {
+    createTablesAndThen {
+      dao.registerNewRun(run)
+      
+      f
+    }
+  }
+  
   private def store(cmd: String, paths: Path*): Execution = {
     val outputs = paths.map { path =>
       val hash = Hashes.sha1(path)
@@ -125,9 +142,51 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
     dao.insertExecutions(execution)
   }
+  
+  test("findLastRun - empty DB") {
+    createTablesAndThen {
+      assert(dao.findLastRun === None)
+    }
+  }
+  
+  private def allRunsByDate: Seq[Run] = {
+    import dao.driver.api._
+    
+    dao.runBlocking(dao.tables.runs.sortBy(_.timeStamp).result).map(_.toRun)
+  }
+  
+  test("findLastRun / registerNewRun") {
+    createTablesAndThen {
+      assert(dao.findLastRun === None)
+      
+      val r0 = Run.create()
+      
+      dao.registerNewRun(r0)
+      
+      assert(allRunsByDate === Seq(r0))
+      
+      val r1 = Run.create()
+      
+      dao.registerNewRun(r1)
+      
+      assert(allRunsByDate === Seq(r0, r1))
+      
+      val r2 = Run.create()
+      
+      dao.registerNewRun(r2)
+      
+      assert(allRunsByDate === Seq(r1, r2))
+      
+      val r3 = Run.create()
+      
+      dao.registerNewRun(r3)
+      
+      assert(allRunsByDate === Seq(r2, r3))
+    }
+  }
 
   test("insert/allExecutions") {
-    createTablesAndThen {
+    registerRunAndThen {
       val stored = store(path0)
 
       assert(stored.outputs.nonEmpty)
@@ -141,7 +200,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   }
 
   test("insert/Read Outputs") {
-    createTablesAndThen {
+    registerRunAndThen {
       assert(noOutputs)
 
       store(path0)
@@ -153,7 +212,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   }
 
   test("insert/allOutputs") {
-    createTablesAndThen {
+    registerRunAndThen {
 
       assert(noOutputs)
 
@@ -167,7 +226,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   }
 
   test("insert/allOutputs - only failures") {
-    createTablesAndThen {
+    registerRunAndThen {
 
       assert(noOutputs)
 
@@ -182,7 +241,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   }
 
   test("insert/allOutputs - some failures") {
-    createTablesAndThen {
+    registerRunAndThen {
 
       assert(noOutputs)
 
@@ -201,7 +260,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   }
 
   test("delete all Outputs") {
-    createTablesAndThen {
+    registerRunAndThen {
 
       assert(noOutputs)
 
@@ -216,7 +275,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   }
 
   test("delete some Outputs") {
-    createTablesAndThen {
+    registerRunAndThen {
 
       assert(noOutputs)
 
@@ -235,9 +294,9 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   }
 
   test("insertExecutionRow - no termination reason") {
-    import Helpers.dummyId
+    import DbHelpers.dummyId
 
-    createTablesAndThen {
+    registerRunAndThen {
       assert(noOutputs)
       assert(noExecutions)
 
@@ -250,7 +309,9 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           mockStatus,
           mockExitCode,
           Some(jobDir.toString),
-          None)
+          None,
+          //TODO: mega hack
+          runId = dao.findLastRunId)
       
       assert(allExecutionRows.isEmpty)
 
@@ -272,9 +333,9 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   }
   
   test("insertExecutionRow - with termination reason") {
-    import Helpers.dummyId
+    import DbHelpers.dummyId
 
-    createTablesAndThen {
+    registerRunAndThen {
       assert(noOutputs)
       assert(noExecutions)
 
@@ -287,7 +348,9 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           mockStatus,
           mockExitCode,
           Some(jobDir.toString),
-          Some(TerminationReason.Memory.name))
+          Some(TerminationReason.Memory.name),
+          //TODO: mega hack
+          runId = dao.findLastRunId)
       
       assert(allExecutionRows.isEmpty)
 
@@ -309,7 +372,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   }
 
   test("insertExecutions/allExecutionRows") {
-    createTablesAndThen {
+    registerRunAndThen {
       import TestHelpers.path
       
       val output0 = cachedOutput(path0, hash0)
@@ -404,7 +467,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
   test("insertExecutions - CommandInvocationFailure") {
     def doTest(path: Path): Unit = {
-      createTablesAndThen {
+      registerRunAndThen {
         val output0 = PathHandle(path)
   
         val failed = Execution(
@@ -439,7 +502,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   test("insertExecutions - should throw") {
     def doTestWithLocations(path: Path): Unit = {
       def doTest(command: Option[String], jobResult: JobResult): Unit = {
-        createTablesAndThen {
+        registerRunAndThen {
           val output0 = PathHandle(path)
   
           val failed = Execution(
@@ -481,7 +544,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
     val ugerSettings = mockUgerSettings
     
     def doTest(resources: Resources): Unit = {
-      createTablesAndThen {
+      registerRunAndThen {
         val output0 = cachedOutput(path0, hash0)
         val output1 = cachedOutput(path1, hash1)
         val output2 = cachedOutput(path2, hash2)
@@ -534,7 +597,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   }
 
   test("findOutput") {
-    createTablesAndThen {
+    registerRunAndThen {
       assert(noOutputs)
 
       store(path0)
@@ -554,7 +617,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   }
 
   test("findCommand") {
-    createTablesAndThen {
+    registerRunAndThen {
       assert(noOutputs)
 
       store(cmd0, path0)
@@ -621,7 +684,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
     val output0 = cachedOutput(path0, hash0)
         
     def doTest(settings: Settings, resources: Resources): Unit = {
-      createTablesAndThen {
+      registerRunAndThen {
         assert(noExecutions)
         
         val result = CommandResult(0)

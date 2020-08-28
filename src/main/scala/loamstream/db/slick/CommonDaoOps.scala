@@ -7,6 +7,7 @@ import scala.concurrent.duration.Duration
 
 import loamstream.util.Loggable
 import slick.jdbc.JdbcProfile
+import slick.sql.SqlAction
 
 /**
  * @author clint
@@ -37,7 +38,7 @@ trait CommonDaoOps extends DbHelpers with Loggable {
   
   protected[slick] def runBlocking[A](action: DBIO[A]): A = runBlocking(db)(action)
   
-  protected def log(sqlAction: driver.ProfileAction[_, _, _]): Unit = {
+  protected def log(sqlAction: SqlAction[_, _, _]): Unit = {
     sqlAction.statements.foreach(s => trace(s"SQL: $s"))
   }
   

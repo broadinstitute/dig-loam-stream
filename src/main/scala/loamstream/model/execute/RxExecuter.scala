@@ -271,7 +271,7 @@ object RxExecuter extends Loggable {
     jobFilter: JobFilter = Defaults.jobFilter,
     executionRecorder: ExecutionRecorder = Defaults.executionRecorder,
     maxRunsPerJob: Int = Defaults.maxRunsPerJob,
-    terminableComponents: Iterable[Terminable] = Seq(Defaults.ecHandle))
+    terminableComponents: Iterable[Terminable] = Nil)
     (implicit executionContext: ExecutionContext = Defaults.executionContext): RxExecuter = {
       
     new RxExecuter(

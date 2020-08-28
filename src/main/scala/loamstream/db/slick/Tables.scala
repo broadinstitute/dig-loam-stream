@@ -49,60 +49,79 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
     MappedColumnType.base[JobStatus, String](_.toString, jobStatusfromString _)
   }
 
-  trait HasExecutionId { self: Table[_] =>
-    def executionId: Rep[Int]
+  trait HasIntId { self: Table[_] =>
+    def id: Rep[Int] = column[Int]("ID", O.AutoInc, O.PrimaryKey)
   }
 
-  abstract class BelongsToExecution[R](tag: Tag, name: String) extends Table[R](tag, name) with HasExecutionId {
-    final def execution: ForeignKeyQuery[Executions, ExecutionRow] = {
-      val foreignKeyName = s"${executionForeignKeyPrefix}${name}"
+  //Use Int.MaxValue as an approximation of maximum String length, since Strings are represented as
+  //char arrays indexed by integers on the JVM, and String.length() returns an int.
+  private[this] val maxStringColumnLength = Int.MaxValue
+  
+  final class Runs(tag: Tag) extends Table[RunRow](tag, Names.runs) with HasIntId {
+    def name: Rep[String] = column[String]("NAME")
+    def timeStamp: Rep[Timestamp] = column[Timestamp]("RUN_TIME")
+    
+    //NB: Required by Slick to define the mapping between DB columns and case class fields.
+    //It's unlikely devs will need to call it directly.
+    override def * = {
+      (id, name, timeStamp) <> ((RunRow.apply _).tupled, RunRow.unapply)
+    }
+  }
+  
+  final class Executions(tag: Tag) extends Table[ExecutionRow](tag, Names.executions) with HasIntId {
+    def env: Rep[String] = column[String]("ENV")
+    //NB: Specify the length of this column so that we hopefully don't get a too-small VARCHAR,
+    //and instead some DB-specific column type appropriate for strings thousands of chars long.
+    def cmd: Rep[Option[String]] = column[Option[String]]("CMD", O.Length(maxStringColumnLength))
+    def jobDir: Rep[Option[String]] = column[Option[String]]("JOB_DIR", O.Length(maxStringColumnLength))
+    def exitCode: Rep[Int] = column[Int]("EXIT_CODE")
+    def status: Rep[JobStatus] = column[JobStatus]("STATUS")
+    def terminationReason: Rep[Option[String]] = column[Option[String]]("TERM_REASON")
+    
+    def runId: Rep[Int] = column[Int]("RUN_ID")
+    
+    //NB: Required by Slick to define the mapping between DB columns and case class fields.
+    //It's unlikely devs will need to call it directly.
+    override def * = {
+      (id, env, cmd, status, exitCode, jobDir, terminationReason, runId.?) <> (ExecutionRow.tupled, ExecutionRow.unapply)
+    }
+    
+    def run: ForeignKeyQuery[Runs, RunRow] = {
+      val foreignKeyName = s"${runForeignKeyPrefix}${Names.executions}"
+      
+      foreignKey(foreignKeyName, runId, runs)(_.id, onUpdate = Restrict, onDelete = Cascade)
+    }
+  }
+
+  final class Outputs(tag: Tag) extends Table[OutputRow](tag, Names.outputs) {
+    def locator: Rep[String] = column[String]("LOCATOR", O.PrimaryKey)
+    def lastModified: Rep[Option[Timestamp]] = column[Option[Timestamp]]("LAST_MODIFIED")
+    def hash: Rep[Option[String]] = column[Option[String]]("HASH")
+    def hashType: Rep[Option[String]] = column[Option[String]]("HASH_TYPE")
+    
+    def executionId: Rep[Int] = column[Int]("EXECUTION_ID")
+    //NB: Required by Slick to define the mapping between DB columns and case class fields.
+    //It's unlikely devs will need to call it directly.
+    override def * = (locator, lastModified, hash, hashType, executionId.?) <> (OutputRow.tupled, OutputRow.unapply)
+    
+    def execution: ForeignKeyQuery[Executions, ExecutionRow] = {
+      val foreignKeyName = s"${executionForeignKeyPrefix}${Names.outputs}"
       
       foreignKey(foreignKeyName, executionId, executions)(_.id, onUpdate = Restrict, onDelete = Cascade)
     }
   }
   
-  //Use Int.MaxValue as an approximation of maximum String length, since Strings are represented as
-  //char arrays indexed by integers on the JVM, and String.length() returns an int.
-  private[this] val maxStringColumnLength = Int.MaxValue
-  
-  final class Executions(tag: Tag) extends Table[ExecutionRow](tag, Names.executions) {
-    def id = column[Int]("ID", O.AutoInc, O.PrimaryKey)
-    def env = column[String]("ENV")
-    //NB: Specify the length of this column so that we hopefully don't get a too-small VARCHAR,
-    //and instead some DB-specific column type appropriate for strings thousands of chars long.
-    def cmd = column[Option[String]]("CMD", O.Length(maxStringColumnLength))
-    def jobDir = column[Option[String]]("JOB_DIR", O.Length(maxStringColumnLength))
-    def exitCode = column[Int]("EXIT_CODE")
-    def status = column[JobStatus]("STATUS")
-    def terminationReason = column[Option[String]]("TERM_REASON")
-    
-    //NB: Required by Slick to define the mapping between DB columns and case class fields.
-    //It's unlikely devs will need to call it directly.
-    override def * = {
-      (id, env, cmd, status, exitCode, jobDir, terminationReason) <> (ExecutionRow.tupled, ExecutionRow.unapply)
-    }
-  }
-
-  final class Outputs(tag: Tag) extends BelongsToExecution[OutputRow](tag, Names.outputs) {
-    def locator = column[String]("LOCATOR", O.PrimaryKey)
-    def lastModified = column[Option[Timestamp]]("LAST_MODIFIED")
-    def hash = column[Option[String]]("HASH")
-    def hashType = column[Option[String]]("HASH_TYPE")
-    override def executionId = column[Int]("EXECUTION_ID")
-    //NB: Required by Slick to define the mapping between DB columns and case class fields.
-    //It's unlikely devs will need to call it directly.
-    override def * = (locator, lastModified, hash, hashType, executionId.?) <> (OutputRow.tupled, OutputRow.unapply)
-  }
+  private val runForeignKeyPrefix = s"FK_ID_RUNS_"
   
   private val executionForeignKeyPrefix = s"FK_ID_EXECUTIONS_"
   
-  private val drmSettingsForeignKeyPrefix = s"FK_ID_DRM_SETTINGS_"
-
+  lazy val runs = TableQuery[Runs]
   lazy val executions = TableQuery[Executions]
   lazy val outputs = TableQuery[Outputs]
 
   //NB: Now a Seq so we can guarantee ordering
   private lazy val allTables: Seq[(String, SchemaDescription)] = Seq(
+    Names.runs -> runs.schema,
     Names.executions -> executions.schema,
     Names.outputs -> outputs.schema
   )
@@ -125,7 +144,7 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
         MTable.getTables(Some("PUBLIC"), Some("PUBLIC"), Some(tableName), Some(Seq("TABLE"))).headOption
       }
       
-      allTables.toMap.keySet.flatMap { tableName =>
+      allTableNames.toSet[String].flatMap { tableName =>
         val queryForTable = for {
           tableMetadataOpt <- queryForTableMetadata(tableName)
         } yield tableMetadataOpt.map(_.name.name)
@@ -165,6 +184,7 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
 
 object Tables {
   object Names {
+    val runs = "RUNS"
     val executions = "EXECUTIONS"
     val outputs = "OUTPUTS"
   }

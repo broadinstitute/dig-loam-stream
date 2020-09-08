@@ -29,6 +29,7 @@ import loamstream.util.RxSchedulers
 import rx.lang.scala.schedulers.ExecutionContextScheduler
 import loamstream.util.Throwables
 import loamstream.util.ThisMachine
+import loamstream.util.ExecutorServices.QueueStrategy
 
 /**
  * @author clint
@@ -122,11 +123,19 @@ final class QstatQacctPoller private[uger] (
   
   private[uger] object ExecutionContexts {
     lazy val (forQstat: ExecutionContext, forQstatHandle: Terminable) = {
-      loamstream.util.ExecutionContexts.singleThread
+      val queueSize = 5 //TODO: ???
+      
+      loamstream.util.ExecutionContexts.singleThread(
+          baseName = "LS-QstatQAcctPoller-forQstatPool", 
+          queueStrategy = QueueStrategy.Bounded(queueSize)) //TODO: ???
     }
-    
+     
     lazy val (forQacct: ExecutionContext, forQacctHandle: Terminable) = {
-      loamstream.util.ExecutionContexts.oneThreadPerCpu
+      val queueSize = ThisMachine.numCpus //TODO: ???
+      
+      loamstream.util.ExecutionContexts.oneThreadPerCpu(
+          baseName = "LS-QstatQAcctPoller-forQacctPool", 
+          queueStrategy = QueueStrategy.Bounded(queueSize)) //TODO: ???
     }
   }
     

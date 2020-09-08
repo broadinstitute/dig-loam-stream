@@ -24,8 +24,10 @@ object Processes extends Loggable {
     def commandLine = tokens.mkString(" ")
     
     Try {
-      val exitCode = processBuilder.!(processLogger)
-    
+      val process = processBuilder.run(processLogger)
+      
+      val exitCode = try { process.exitValue } finally { process.destroy() }
+      
       RunResults(commandLine, exitCode, processLogger.stdOut, processLogger.stdErr, isSuccess)
     }
   }

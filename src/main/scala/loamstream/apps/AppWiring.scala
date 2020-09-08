@@ -188,14 +188,13 @@ object AppWiring extends Loggable {
       trace("Creating executer...")
 
       //TODO: Make this configurable?
-      val threadPoolSize = 40
+      val threadPoolSize = 80
 
-      val (compositeRunner: ChunkRunner, runnerHandles: Seq[Terminable]) = makeChunkRunner(threadPoolSize)
+      val (executionContextWithThreadPool, threadPoolHandle) = ExecutionContexts.threadPool(threadPoolSize, s"LS-mainWorkerPool")
+      
+      val (compositeRunner: ChunkRunner, runnerHandles: Seq[Terminable]) = makeChunkRunner(executionContextWithThreadPool)
 
       import loamstream.model.execute.ExecuterHelpers._
-      import ExecutionContexts.threadPool
-
-      val (executionContextWithThreadPool, threadPoolHandle) = threadPool(threadPoolSize)
       
       val scheduler: Scheduler = ExecutionContextScheduler(executionContextWithThreadPool)
 
@@ -223,16 +222,16 @@ object AppWiring extends Loggable {
       new TerminableExecuter(rxExecuter, handles: _*)
     }
     
-    private def makeChunkRunner(threadPoolSize: Int): (ChunkRunner, Seq[Terminable]) = {
+    private def makeChunkRunner(executionContext: ExecutionContext): (ChunkRunner, Seq[Terminable]) = {
       
       //TODO: Make the number of threads this uses configurable
       val numberOfCPUs = ThisMachine.numCpus
 
-      val (localEC, localEcHandle) = ExecutionContexts.threadPool(numberOfCPUs * 2)
+      val (localEC, localEcHandle) = ExecutionContexts.threadPool(numberOfCPUs * 2, "LS-localJobsPool")
 
       val localRunner = AsyncLocalChunkRunner(config.executionConfig)(localEC)
 
-      val (drmRunner, drmRunnerHandles) = drmChunkRunner(intent.confFile, config, threadPoolSize)(localEC)
+      val (drmRunner, drmRunnerHandles) = drmChunkRunner(intent.confFile, config, executionContext)
       
       val googleRunner = googleChunkRunner(intent.confFile, config.googleConfig, config.hailConfig, localRunner)
 
@@ -303,11 +302,11 @@ object AppWiring extends Loggable {
   private def drmChunkRunner(
       confFile: Option[Path], 
       loamConfig: LoamConfig, 
-      threadPoolSize: Int)(implicit ec: ExecutionContext): (Option[DrmChunkRunner], Seq[Terminable]) = {
+      executionContext: ExecutionContext): (Option[DrmChunkRunner], Seq[Terminable]) = {
 
     loamConfig.drmSystem match {
-      case Some(DrmSystem.Uger) => ugerChunkRunner(confFile, loamConfig, threadPoolSize)
-      case Some(DrmSystem.Lsf) => lsfChunkRunner(confFile, loamConfig, threadPoolSize)
+      case Some(DrmSystem.Uger) => ugerChunkRunner(confFile, loamConfig, executionContext)
+      case Some(DrmSystem.Lsf) => lsfChunkRunner(confFile, loamConfig, executionContext)
       case None => (None, Nil)
     }
   }
@@ -315,9 +314,9 @@ object AppWiring extends Loggable {
   private def ugerChunkRunner(
       confFile: Option[Path], 
       loamConfig: LoamConfig, 
-      threadPoolSize: Int)(implicit ec: ExecutionContext): (Option[DrmChunkRunner], Seq[Terminable]) = {
+      executionContext: ExecutionContext): (Option[DrmChunkRunner], Seq[Terminable]) = {
     
-    val result @ (ugerRunnerOption, _) = unpack(makeUgerChunkRunner(loamConfig, threadPoolSize))
+    val result @ (ugerRunnerOption, _) = unpack(makeUgerChunkRunner(loamConfig, executionContext))
 
     //TODO: A better way to enable or disable Uger support; for now, this is purely expedient
     if(ugerRunnerOption.isEmpty) {
@@ -333,9 +332,9 @@ object AppWiring extends Loggable {
   private def lsfChunkRunner(
       confFile: Option[Path], 
       loamConfig: LoamConfig, 
-      threadPoolSize: Int)(implicit ec: ExecutionContext): (Option[DrmChunkRunner], Seq[Terminable]) = {
+      executionContext: ExecutionContext): (Option[DrmChunkRunner], Seq[Terminable]) = {
     
-    val (lsfRunnerOption, terminables) = unpack(makeLsfChunkRunner(loamConfig, threadPoolSize))
+    val (lsfRunnerOption, terminables) = unpack(makeLsfChunkRunner(loamConfig, executionContext))
     
     //TODO: A better way to enable or disable Uger support; for now, this is purely expedient
     if(lsfRunnerOption.isEmpty) {
@@ -381,7 +380,7 @@ object AppWiring extends Loggable {
 
   private def makeUgerChunkRunner(
       loamConfig: LoamConfig, 
-      threadPoolSize: Int)(implicit ec: ExecutionContext): Option[(DrmChunkRunner, Seq[Terminable])] = {
+      executionContext: ExecutionContext): Option[(DrmChunkRunner, Seq[Terminable])] = {
     
     for {
       ugerConfig <- loamConfig.ugerConfig
@@ -392,7 +391,9 @@ object AppWiring extends Loggable {
 
       val sessionSource = QconfSessionSource.fromExecutable(ugerConfig)
       
-      val (scheduler, schedulerHandle) = RxSchedulers.backedByThreadPool(threadPoolSize)
+      implicit val ec = executionContext
+      
+      val scheduler = ExecutionContextScheduler(executionContext)
 
       val poller = QstatQacctPoller.fromExecutables(sessionSource, scheduler = scheduler)
       
@@ -417,7 +418,7 @@ object AppWiring extends Loggable {
           accountingClient = accountingClient,
           jobKiller = jobKiller)
 
-      val handles = Seq(ugerRunner, sessionSource, schedulerHandle)
+      val handles = Seq(ugerRunner, sessionSource)
 
       (ugerRunner, handles)
     }
@@ -425,7 +426,7 @@ object AppWiring extends Loggable {
   
   private def makeLsfChunkRunner(
       loamConfig: LoamConfig, 
-      threadPoolSize: Int)(implicit ec: ExecutionContext): Option[(DrmChunkRunner, Seq[Terminable])] = {
+      executionContext: ExecutionContext): Option[(DrmChunkRunner, Seq[Terminable])] = {
     
     for {
       lsfConfig <- loamConfig.lsfConfig
@@ -434,7 +435,9 @@ object AppWiring extends Loggable {
 
       import loamstream.model.execute.ExecuterHelpers._
 
-      val (scheduler, schedulerHandle) = RxSchedulers.backedByThreadPool(threadPoolSize)
+      val scheduler = ExecutionContextScheduler(executionContext)
+      
+      implicit val ec = executionContext
 
       //TODO: Make configurable?
       val pollingFrequencyInHz = 0.1
@@ -459,7 +462,7 @@ object AppWiring extends Loggable {
           accountingClient = accountingClient,
           jobKiller = jobKiller)
 
-      val handles = Seq(schedulerHandle, lsfRunner)
+      val handles = Seq(lsfRunner)
 
       (lsfRunner, handles)
     }

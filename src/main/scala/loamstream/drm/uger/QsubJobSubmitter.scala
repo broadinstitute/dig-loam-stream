@@ -58,9 +58,7 @@ object QsubJobSubmitter extends Loggable {
       sessionSource: SessionSource, 
       ugerConfig: UgerConfig, 
       actualExecutable: String = "qsub",
-      scheduler: Scheduler): QsubJobSubmitter = {
-    
-    import scala.concurrent.ExecutionContext.Implicits._
+      scheduler: Scheduler)(implicit ec: ExecutionContext): QsubJobSubmitter = {
     
     new QsubJobSubmitter(
         Qsub.commandInvoker(sessionSource, ugerConfig, actualExecutable, scheduler), 

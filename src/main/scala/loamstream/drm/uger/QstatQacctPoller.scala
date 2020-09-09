@@ -30,6 +30,7 @@ import rx.lang.scala.schedulers.ExecutionContextScheduler
 import loamstream.util.Throwables
 import loamstream.util.ThisMachine
 import loamstream.util.ExecutorServices.QueueStrategy
+import loamstream.util.ExecutorServices.RejectedExecutionStrategy
 
 /**
  * @author clint
@@ -50,13 +51,13 @@ final class QstatQacctPoller private[uger] (
       Observable.from(qstatInvoker.apply(())).observeOn(Schedulers.forQstat)
     }
 
-    //Parse out DrmTaskIds and DrmStatuses from raw qstat output (one line per task)
-    val pollingResultsFromQstatObs = qstatResultObs.map { qstatResults => 
-      QstatSupport.getByTaskId(qstatResults.stdout)
-    }.onBackpressureDrop
-    
     //The Set of distinct DrmTaskIds (jobId/task index coords) that we're polling for
     val drmTaskIdSet = drmTaskIds.toSet
+    
+    //Parse out DrmTaskIds and DrmStatuses from raw qstat output (one line per task)
+    val pollingResultsFromQstatObs = qstatResultObs.map { qstatResults => 
+      QstatSupport.getByTaskId(drmTaskIdSet, qstatResults.stdout)
+    }.onBackpressureDrop
     
     //For all the jobs that we're polling for that were not mentioned by qstat, assume they've finished 
     //(qstat only returns info about running jobs) and invoke qacct to determine their final status.
@@ -68,9 +69,11 @@ final class QstatQacctPoller private[uger] (
       //from the DrmTaskIds that we're polling for.
       val taskArrayIdsNotFoundByQstat = notFoundByQstat.map(_.jobId) 
       
-      def numJobIds = taskArrayIdsNotFoundByQstat.size
-      
-      debug(s"${notFoundByQstat.size} finished jobs not found by qstat, ${numJobIds} job IDs")
+      if(notFoundByQstat.nonEmpty) {
+        val numJobIds = taskArrayIdsNotFoundByQstat.size
+        
+        debug(s"${notFoundByQstat.size} finished jobs not found by qstat, ${numJobIds} job IDs")
+      }
       
       //Invoke qacct once per task-array-with-unfinished-jobs; discard info about jobs we're not polling for;
       //parse out statuses by looking at the jobs' exit codes.
@@ -127,7 +130,8 @@ final class QstatQacctPoller private[uger] (
       
       loamstream.util.ExecutionContexts.singleThread(
           baseName = "LS-QstatQAcctPoller-forQstatPool", 
-          queueStrategy = QueueStrategy.Bounded(queueSize)) //TODO: ???
+          queueStrategy = QueueStrategy.Bounded(queueSize),//TODO: ???
+          rejectedStrategy = RejectedExecutionStrategy.Drop) //TODO: ???
     }
      
     lazy val (forQacct: ExecutionContext, forQacctHandle: Terminable) = {
@@ -135,7 +139,8 @@ final class QstatQacctPoller private[uger] (
       
       loamstream.util.ExecutionContexts.oneThreadPerCpu(
           baseName = "LS-QstatQAcctPoller-forQacctPool", 
-          queueStrategy = QueueStrategy.Bounded(queueSize)) //TODO: ???
+          queueStrategy = QueueStrategy.Bounded(queueSize),//TODO: ???
+          rejectedStrategy = RejectedExecutionStrategy.Drop) //TODO: ???
     }
   }
     
@@ -150,6 +155,7 @@ object QstatQacctPoller extends Loggable {
     
   def fromExecutables(
       sessionSource: SessionSource,
+      qstatPollingFrequencyInHz: Double,
       actualQstatExecutable: String = "qstat",
       actualQacctExecutable: String = "qacct",
       scheduler: Scheduler)(implicit ec: ExecutionContext): QstatQacctPoller = {
@@ -158,18 +164,22 @@ object QstatQacctPoller extends Loggable {
     import Qstat.{ commandInvoker => qstatCommandInvoker }
     
     val qacct = qacctCommandInvoker(0, "qacct", scheduler)
-    val qstat = qstatCommandInvoker(sessionSource, actualQstatExecutable)
+    val qstat = qstatCommandInvoker(sessionSource, qstatPollingFrequencyInHz, actualQstatExecutable)
     
     new QstatQacctPoller(qstat, qacct)
   }
   
   private[uger] object QstatSupport {
     object QstatRegexes {
-      val jobIdStatusAndTaskIndex = """^(\w+)\s+.+?\s+.+?\s+.+?\s+(\w+)\s+.+?(\d+)$""".r
+      val jobIdStatusAndTaskIndex = """^(\w+)\s+\S+\s+\S+\s+\S+\s+(\w+)\s+.+\d+\s+(\d+)$""".r
+      val jobIdStatusForWholeTaskArray = """^(\w+)\s+\S+\s+\S+\s+\S+\s+(\w+)\s+.+(\d+)\-(\d+)\:(\d+)$""".r
     }
     
-    def getByTaskId(qstatOutput: Seq[String]): Map[DrmTaskId, Try[DrmStatus]] = {
-      parseQstatOutput(qstatOutput).collect { 
+    def getByTaskId(
+        idsWereLookingFor: Iterable[DrmTaskId], 
+        qstatOutput: Seq[String]): Map[DrmTaskId, Try[DrmStatus]] = {
+      
+      parseQstatOutput(idsWereLookingFor, qstatOutput).collect { 
         case Success((drmTaskId, drmStatus)) if !drmStatus.isUndetermined => drmTaskId -> Success(drmStatus) 
       }.toMap 
     }
@@ -185,15 +195,42 @@ object QstatQacctPoller extends Loggable {
      *         
      */
     // scalastyle:on line.size.limit
-    def parseQstatOutput(lines: Seq[String]): Iterator[Try[(DrmTaskId, DrmStatus)]] = {
-      lines.iterator.map(_.trim).collect {
+    def parseQstatOutput(
+        idsWereLookingFor: Iterable[DrmTaskId], 
+        lines: Seq[String]): Iterator[Try[(DrmTaskId, DrmStatus)]] = {
+      
+      val idsWereLookingForSet = idsWereLookingFor.toSet
+      
+      val isIdWeCareAbout: ((DrmTaskId, DrmStatus)) => Boolean = { 
+        case (taskId, _) => idsWereLookingForSet.contains(taskId)
+      }
+      
+      val lineResults: Iterator[Try[Iterator[(DrmTaskId, DrmStatus)]]] = lines.iterator.map(_.trim).collect {
         case QstatRegexes.jobIdStatusAndTaskIndex(jobId, ugerStatusCode, taskIndexString) => {
           Try(DrmTaskId(jobId, taskIndexString.toInt)).map { drmTaskId =>
             val drmStatus = toDrmStatus(ugerStatusCode.trim)
             
-            drmTaskId -> drmStatus
+            Iterator(drmTaskId -> drmStatus).filter(isIdWeCareAbout)
           }
         }
+        case QstatRegexes.jobIdStatusForWholeTaskArray(jobId, ugerStatusCode, idxStart, idxEnd, idxIncrement) => {
+          for {
+            start <- Try(idxStart.trim.toInt)
+            end <- Try(idxEnd.trim.toInt)
+            increment <- Try(idxIncrement.trim.toInt)
+          } yield {
+            val drmStatus = toDrmStatus(ugerStatusCode.trim)
+            
+            (start to end by increment).iterator.map { taskIndex => 
+              DrmTaskId(jobId.trim, taskIndex) -> drmStatus
+            }.filter(isIdWeCareAbout)
+          }
+        }
+      }
+      
+      lineResults.flatMap {
+        case Success(tuples) => tuples.map(Success(_))
+        case Failure(e) => Iterator(Failure(e))
       }
     }
 

@@ -11,6 +11,8 @@ import loamstream.util.Observables
 import loamstream.TestHelpers
 import loamstream.drm.DrmStatus.CommandResult
 import loamstream.util.Traversables
+import scala.util.Try
+import scala.util.Failure
 
 /**
  * @author clint
@@ -168,17 +170,68 @@ final class QstatQacctPollerTest extends FunSuite {
   }
   
   test("parseQstatOutput - happy path") {
+    val id1 = DrmTaskId("19115592", 1)
+    val id2 = DrmTaskId("19115592", 2)
+    val id3 = DrmTaskId("19115592", 3)
+    
+    val ids = Set(id1, id2, id3)
+    
     val expected = Iterable(
-      Success(DrmTaskId("19115592", 2) -> DrmStatus.Running),
-      Success(DrmTaskId("19115592", 1) -> DrmStatus.Running))
+      Success(id2 -> DrmStatus.Running),
+      Success(id1 -> DrmStatus.Running))
         
-    assert(QstatSupport.parseQstatOutput(qstatLines).toList === expected)
+    assert(QstatSupport.parseQstatOutput(ids, qstatLines).toList === expected)
     
-    assert(QstatSupport.parseQstatOutput(dataLines).toList === expected)
+    assert(QstatSupport.parseQstatOutput(ids, dataLines).toList === expected)
     
-    assert(QstatSupport.parseQstatOutput(headerLines).isEmpty)
+    assert(QstatSupport.parseQstatOutput(ids, headerLines).isEmpty)
     
-    assert(QstatSupport.parseQstatOutput(Nil).isEmpty)
+    assert(QstatSupport.parseQstatOutput(ids, Nil).isEmpty)
+  }
+  
+  test("parseQstatOutput - happy path, some listings for whole task array") {
+    val id1 = DrmTaskId("19115592", 1)
+    val id2 = DrmTaskId("19115592", 2)
+    val id3 = DrmTaskId("19115592", 3)
+    
+    val taskArrayId1 = "19115593"
+    val taskArrayId2 = "19115594"
+    
+    val id11 = DrmTaskId(taskArrayId1,1)
+    val id12 = DrmTaskId(taskArrayId1,2)
+    
+    val id22 = DrmTaskId(taskArrayId2,2)
+    val id24 = DrmTaskId(taskArrayId2,4)
+    val id26 = DrmTaskId(taskArrayId2,6)
+    
+    val ids = Set(id1, id2, id3, id11, id12, id22, id24, id26)
+    
+    //NB: convert to a map to ignore ordering
+    val expected: Iterable[Try[(DrmTaskId, DrmStatus)]] = Seq(
+      id1 -> DrmStatus.Running,
+      id2 -> DrmStatus.Running,
+      id11 -> DrmStatus.Queued,
+      id12 -> DrmStatus.Queued,
+      id22 -> DrmStatus.Running,
+      id24 -> DrmStatus.Running,
+      id26 -> DrmStatus.Running).map(Success(_))
+    
+    // scalastyle:off line.size.limit
+    val lines = qstatLines ++ Seq(
+        s"$taskArrayId2 0.56956 test.sh    cgilbert     r     07/24/2020 11:51:17 broad@uger-c104.broadinstitute                                   1 2-6:2",
+        s"$taskArrayId1 0.56956 test.sh    cgilbert     qw     07/24/2020 11:51:18 broad@uger-c104.broadinstitute                                  1 1-2:1")
+    // scalastyle:on line.size.limit
+      
+    def sort(s: Iterable[Try[(DrmTaskId, DrmStatus)]]): Iterable[Try[(DrmTaskId, DrmStatus)]] = {
+      val ordering: Ordering[Try[(DrmTaskId, DrmStatus)]] = DrmTaskId.ordering.on {
+        case Success((taskId, _)) => taskId
+        case Failure(_) => ???
+      }
+      
+      s.toSeq.sorted(ordering)
+    }
+        
+    assert(sort(QstatSupport.parseQstatOutput(ids, lines).toList) === sort(expected))
   }
   
   test("parseQstatOutput - bad lines should be ignored") {
@@ -186,17 +239,29 @@ final class QstatQacctPollerTest extends FunSuite {
     
     val lines = headerLines ++ Seq(d0, "some bogus line lalala", d1)
     
+    val id1 = DrmTaskId("19115592", 1)
+    val id2 = DrmTaskId("19115592", 2)
+    val id3 = DrmTaskId("19115592", 3)
+    
+    val ids = Set(id1, id2, id3)
+    
     val expected = Iterable(
-      Success(DrmTaskId("19115592", 2) -> DrmStatus.Running),
-      Success(DrmTaskId("19115592", 1) -> DrmStatus.Running))
+      Success(id2 -> DrmStatus.Running),
+      Success(id1 -> DrmStatus.Running))
         
-    assert(QstatSupport.parseQstatOutput(lines).toList === expected)
+    assert(QstatSupport.parseQstatOutput(ids, lines).toList === expected)
   }
   
   test("parseQstatOutput - bad statuses should be failures") {
     val lines = headerLines ++ dataLinesWithBadStatuses
     
-    val actual = QstatSupport.parseQstatOutput(lines).toList
+    val id1 = DrmTaskId("19115592", 1)
+    val id2 = DrmTaskId("19115592", 2)
+    val id3 = DrmTaskId("19115592", 3)
+    
+    val ids = Set(id1, id2, id3)
+    
+    val actual = QstatSupport.parseQstatOutput(ids, lines).toList
     
     assert(actual.forall { 
       case Success((drmTaskId, drmStatus)) => drmStatus.isUndetermined
@@ -207,17 +272,23 @@ final class QstatQacctPollerTest extends FunSuite {
   }
   
   test("getByTaskId - happy path") {
+    val id1 = DrmTaskId("19115592", 1)
+    val id2 = DrmTaskId("19115592", 2)
+    val id3 = DrmTaskId("19115592", 3)
+    
+    val ids = Set(id1, id2, id3)
+    
     val expected = Map(
-      DrmTaskId("19115592", 2) -> Success(DrmStatus.Running),
-      DrmTaskId("19115592", 1) -> Success(DrmStatus.Running))
+      id2 -> Success(DrmStatus.Running),
+      id1 -> Success(DrmStatus.Running))
         
-    assert(QstatSupport.getByTaskId(qstatLines) === expected)
+    assert(QstatSupport.getByTaskId(ids, qstatLines) === expected)
     
-    assert(QstatSupport.getByTaskId(dataLines) === expected)
+    assert(QstatSupport.getByTaskId(ids, dataLines) === expected)
     
-    assert(QstatSupport.getByTaskId(headerLines) === Map.empty)
+    assert(QstatSupport.getByTaskId(ids, headerLines) === Map.empty)
     
-    assert(QstatSupport.getByTaskId(Nil) === Map.empty)
+    assert(QstatSupport.getByTaskId(ids, Nil) === Map.empty)
   }
   
   test("getByTaskId - bad lines should be ignored") {
@@ -225,17 +296,29 @@ final class QstatQacctPollerTest extends FunSuite {
     
     val lines = headerLines ++ Seq(d0, "some bogus line lalala", d1)
     
+    val id1 = DrmTaskId("19115592", 1)
+    val id2 = DrmTaskId("19115592", 2)
+    val id3 = DrmTaskId("19115592", 3)
+    
+    val ids = Set(id1, id2, id3)
+    
     val expected = Map(
-      DrmTaskId("19115592", 1) -> Success(DrmStatus.Running),
-      DrmTaskId("19115592", 2) -> Success(DrmStatus.Running))
+      id1 -> Success(DrmStatus.Running),
+      id2 -> Success(DrmStatus.Running))
         
-    assert(QstatSupport.getByTaskId(lines) === expected)
+    assert(QstatSupport.getByTaskId(ids, lines) === expected)
   }
   
   test("getByTaskId - bad statuses should be failures") {
+    val id1 = DrmTaskId("19115592", 1)
+    val id2 = DrmTaskId("19115592", 2)
+    val id3 = DrmTaskId("19115592", 3)
+    
+    val ids = Set(id1, id2, id3)
+    
     val lines = headerLines ++ dataLinesWithBadStatuses
     
-    val actual = QstatSupport.getByTaskId(lines)
+    val actual = QstatSupport.getByTaskId(ids, lines)
     
     assert(actual === Map.empty)
   }

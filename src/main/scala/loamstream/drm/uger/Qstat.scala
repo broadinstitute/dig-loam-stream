@@ -7,6 +7,7 @@ import loamstream.util.Loggable
 import loamstream.util.Processes
 import scala.concurrent.ExecutionContext
 import loamstream.drm.SessionSource
+import loamstream.util.RateLimitedCache
 
 /**
  * @author clint
@@ -21,7 +22,9 @@ object Qstat extends Loggable {
     
   final def commandInvoker(
       sessionSource: SessionSource,
+      pollingFrequencyInHz: Double,
       actualExecutable: String = "qstat")(implicit ec: ExecutionContext): CommandInvoker.Async[Unit] = {
+    
     //Unit and ignored args are obviously a smell, but a more principled refactoring will have to wait.
     def invocationFn(ignored: Unit): Try[RunResults] = {
       val tokens = makeTokens(actualExecutable, sessionSource)
@@ -31,6 +34,14 @@ object Qstat extends Loggable {
       Processes.runSync(tokens)()
     }
     
-    new CommandInvoker.Async.JustOnce[Unit](actualExecutable, invocationFn)
+    import scala.concurrent.duration._
+    
+    val waitTime = (1.0 / pollingFrequencyInHz).seconds
+    
+    val cache = new RateLimitedCache(() => invocationFn(()), waitTime) 
+    
+    def cachedInvocationFn(ignored: Unit): Try[RunResults] = cache()
+    
+    new CommandInvoker.Async.JustOnce[Unit](actualExecutable, cachedInvocationFn)
   }
 }

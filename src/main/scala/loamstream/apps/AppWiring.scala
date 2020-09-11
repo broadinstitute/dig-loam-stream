@@ -189,9 +189,13 @@ object AppWiring extends Loggable {
 
       val threadPoolSize = config.executionConfig.numWorkerThreads
 
-      val (executionContextWithThreadPool, threadPoolHandle) = ExecutionContexts.threadPool(threadPoolSize, s"LS-mainWorkerPool")
+      val (executionContextWithThreadPool, threadPoolHandle) = {
+        ExecutionContexts.threadPool(threadPoolSize, s"LS-mainWorkerPool")
+      }
       
-      val (compositeRunner: ChunkRunner, runnerHandles: Seq[Terminable]) = makeChunkRunner(executionContextWithThreadPool)
+      val (compositeRunner: ChunkRunner, runnerHandles: Seq[Terminable]) = {
+        makeChunkRunner(executionContextWithThreadPool)
+      }
 
       import loamstream.model.execute.ExecuterHelpers._
       

@@ -24,7 +24,7 @@ object ExecutionContexts {
       numThreads: Int,
       baseName: String = defaultPoolName,
       queueStrategy: QueueStrategy = Defaults.queueStrategy,
-      rejectedStrategy: RejectedExecutionStrategy = Defaults.rejectedExecutionStrategy): (ExecutionContext, Terminable) = {
+      rejectedStrategy: RejectedExecutionStrategy = Defaults.rejectedStrategy): (ExecutionContext, Terminable) = {
     
     val (es, terminable) = ExecutorServices.threadPool(
       numThreads, 
@@ -39,7 +39,7 @@ object ExecutionContexts {
   def singleThread(
       baseName: String = s"${defaultPoolName}-single",
       queueStrategy: QueueStrategy = Defaults.queueStrategy,
-      rejectedStrategy: RejectedExecutionStrategy = Defaults.rejectedExecutionStrategy): (ExecutionContext, Terminable) = {
+      rejectedStrategy: RejectedExecutionStrategy = Defaults.rejectedStrategy): (ExecutionContext, Terminable) = {
     
     threadPool(1, baseName, queueStrategy, rejectedStrategy)
   }
@@ -47,7 +47,7 @@ object ExecutionContexts {
   def oneThreadPerCpu(
       baseName: String = s"${defaultPoolName}-onePerCpu",
       queueStrategy: QueueStrategy = Defaults.queueStrategy,
-      rejectedStrategy: RejectedExecutionStrategy = Defaults.rejectedExecutionStrategy): (ExecutionContext, Terminable) = {
+      rejectedStrategy: RejectedExecutionStrategy = Defaults.rejectedStrategy): (ExecutionContext, Terminable) = {
     
     threadPool(ThisMachine.numCpus, baseName, queueStrategy, rejectedStrategy)
   }

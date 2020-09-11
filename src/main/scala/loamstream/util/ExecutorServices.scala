@@ -24,7 +24,7 @@ object ExecutorServices {
       baseName: String,
       daemonFlag: DaemonFlag = ExecutorServices.DaemonFlag.OnlyDaemonThreads,
       queueStrategy: QueueStrategy = Defaults.queueStrategy,
-      rejectedStrategy: RejectedExecutionStrategy = Defaults.rejectedExecutionStrategy): (ExecutorService, Terminable) = {
+      rejectedStrategy: RejectedExecutionStrategy = Defaults.rejectedStrategy): (ExecutorService, Terminable) = {
     
     val threadFactory = {
       if(daemonFlag.onlyDaemonThreads) { ThreadFactories.factoryWithDaemonThreads(baseName) }
@@ -114,6 +114,6 @@ object ExecutorServices {
   object Defaults {
     def queueStrategy: QueueStrategy = QueueStrategy.Unbounded
     
-    def rejectedExecutionStrategy: RejectedExecutionStrategy = RejectedExecutionStrategy.Abort
+    def rejectedStrategy: RejectedExecutionStrategy = RejectedExecutionStrategy.Abort
   }
 }

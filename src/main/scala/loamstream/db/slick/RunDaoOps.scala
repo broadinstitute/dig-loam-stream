@@ -22,12 +22,9 @@ trait RunDaoOps extends LoamDao { self: CommonDaoOps =>
     
     runBlocking(action.transactionally)
   }
-    
   
   override def registerNewRun(run: Run): Unit = {
-    assertAtMostTwoRuns()
-
-    val deleteActions: Seq[DBIO[Int]] = numRuns match {
+    def deleteAction(numRuns: Int): Seq[DBIO[Int]] = numRuns match {
       case 0 | 1 => Nil
       case _ => {
         //Oh Slick... :\
@@ -39,30 +36,25 @@ trait RunDaoOps extends LoamDao { self: CommonDaoOps =>
       }
     }
     
-    val insertAction: DBIO[_] = RunQueries.insertRun += toRunRow(run)
+    import Implicits._
     
-    val allActions: Seq[DBIO[_]] = deleteActions :+ insertAction
+    val actions = for {
+      numRuns <- numRunsIO
+      _ = require(numRuns <= 2, s"Expected at most two Runs, but found $numRuns")
+      deleteActions = deleteAction(numRuns)
+      insertAction = RunQueries.insertRun += toRunRow(run)
+      allActions = deleteActions :+ insertAction
+      result <- DBIO.seq(allActions: _*).transactionally
+    } yield {
+      result
+    }
     
-    runBlocking(DBIO.seq(allActions: _*).transactionally)
+    runBlocking(actions)
   }
   
   private def toRunRow(run: Run): RunRow = RunRow(DbHelpers.dummyId, run.name, Timestamp.valueOf(run.time))
   
-  private def deleteOldestRun(): Unit = runBlocking(RunQueries.oldestRun.delete)
-  
-  private def deleteAllRuns(): Unit = runBlocking(RunQueries.allRuns.delete)
-  
-  private def numRuns: Int = runBlocking(RunQueries.countRuns.result.transactionally)
-  
-  private def assertAtMostTwoRuns(): Unit = {
-    require(numRuns <= 2, s"Expected at most two Runs, but found $numRuns")
-  }
-  
-  protected def findRunRow(runId: Int): Option[RunRow] = runBlocking(findRunAction(runId))
-  
-  private def findRunAction(runId: Int): DBIO[Option[RunRow]] = {
-    RunQueries.runById(runId).result.headOption.transactionally
-  }
+  private def numRunsIO: DBIO[Int] = RunQueries.countRuns.result.transactionally
   
   protected object RunQueries {
     val insertRun: driver.IntoInsertActionComposer[RunRow, RunRow] = {
@@ -78,9 +70,5 @@ trait RunDaoOps extends LoamDao { self: CommonDaoOps =>
     def oldestRun: Query[tables.Runs, RunRow, Seq] = allRuns.sortBy(_.timeStamp).take(1)
     
     val countRuns: Rep[Int] = tables.runs.length
-    
-    def runById(runId: Int): Query[tables.Runs, RunRow, Seq] = {
-      tables.runs.filter(_.id === runId).take(1)
-    }
   }
 }

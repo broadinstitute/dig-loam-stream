@@ -14,10 +14,6 @@ import slick.jdbc.JdbcProfile
  * NB: Factored out of SlickLoamDao, which had gotten huge
  */
 trait OutputDaoOps extends LoamDao { self: CommonDaoOps =>
-  def descriptor: DbDescriptor
-  
-  val driver: JdbcProfile
-
   import driver.api._
   
   override def findStoreRecord(loc: String): Option[StoreRecord] = findOutputRow(loc).map(toOutputRecord)

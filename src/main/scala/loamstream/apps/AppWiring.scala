@@ -8,10 +8,12 @@ import java.nio.file.Path
 import loamstream.cli.Conf
 import loamstream.cli.Intent
 import loamstream.cli.Intent.RealRun
+import loamstream.cli.JobFilterIntent
 import loamstream.compiler.LoamCompiler
 import loamstream.compiler.LoamEngine
 import loamstream.conf.ExecutionConfig
 import loamstream.conf.LoamConfig
+import loamstream.conf.Locations
 import loamstream.conf.PythonConfig
 import loamstream.conf.RConfig
 import loamstream.conf.UgerConfig
@@ -27,13 +29,22 @@ import loamstream.drm.DrmSystem
 import loamstream.drm.JobMonitor
 import loamstream.drm.JobSubmitter
 import loamstream.drm.Poller
+import loamstream.drm.SessionSource
 
+import loamstream.drm.lsf.BacctAccountingClient
 import loamstream.drm.lsf.BjobsPoller
 import loamstream.drm.lsf.BkillJobKiller
 import loamstream.drm.lsf.BsubJobSubmitter
 import loamstream.drm.lsf.LsfPathBuilder
 
+import loamstream.drm.uger.UgerScriptBuilderParams
 import loamstream.drm.uger.QacctAccountingClient
+import loamstream.drm.uger.QdelJobKiller
+import loamstream.drm.uger.QstatQacctPoller
+import loamstream.drm.uger.Qsub
+import loamstream.drm.uger.QsubJobSubmitter
+import loamstream.drm.uger.QconfSessionSource
+import loamstream.drm.uger.QconfSessionSource
 import loamstream.drm.uger.UgerPathBuilder
 
 import loamstream.googlecloud.CloudSdkDataProcWrapper
@@ -42,6 +53,8 @@ import loamstream.googlecloud.GcsCloudStorageClient
 import loamstream.googlecloud.GcsCloudStorageDriver
 import loamstream.googlecloud.GoogleCloudConfig
 import loamstream.googlecloud.GoogleCloudChunkRunner
+import loamstream.googlecloud.HailConfig
+import loamstream.googlecloud.HailCtlDataProcClient
 
 import loamstream.model.execute.AsyncLocalChunkRunner
 import loamstream.model.execute.ChunkRunner
@@ -53,48 +66,36 @@ import loamstream.model.execute.Executer
 import loamstream.model.execute.HashingStrategy
 import loamstream.model.execute.JobFilter
 import loamstream.model.execute.RxExecuter
+import loamstream.model.execute.ByNameJobFilter
+import loamstream.model.execute.DbBackedExecutionRecorder
+import loamstream.model.execute.ExecutionRecorder
+import loamstream.model.execute.FileSystemExecutionRecorder
+import loamstream.model.execute.JobCanceler
+import loamstream.model.execute.RequiresPresentInputsJobCanceler
+import loamstream.model.execute.RunsIfNoOutputsJobFilter
 
 import loamstream.model.jobs.Execution
+import loamstream.model.jobs.JobOracle
 import loamstream.model.jobs.LJob
 
 import loamstream.util.ConfigUtils
 import loamstream.util.ExecutionContexts
+import loamstream.util.ExitCodes
 import loamstream.util.FileMonitor
 import loamstream.util.Loggable
 import loamstream.util.RxSchedulers
 import loamstream.util.Terminable
+import loamstream.util.ThisMachine
 import loamstream.util.Throwables
 import loamstream.util.Tries
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Duration
 import scala.util.Try
 import scala.util.Success
-import loamstream.model.execute.ExecutionRecorder
-import loamstream.model.execute.DbBackedExecutionRecorder
-import loamstream.cli.JobFilterIntent
-import loamstream.model.execute.ByNameJobFilter
-import loamstream.drm.uger.UgerScriptBuilderParams
-import loamstream.model.execute.RunsIfNoOutputsJobFilter
-import loamstream.model.execute.RequiresPresentInputsJobCanceler
-import loamstream.model.execute.JobCanceler
-import loamstream.conf.Locations
-import loamstream.drm.lsf.BacctAccountingClient
-import loamstream.model.execute.FileSystemExecutionRecorder
-import loamstream.googlecloud.HailCtlDataProcClient
-import loamstream.googlecloud.HailConfig
-import loamstream.model.jobs.JobOracle
-import scala.concurrent.ExecutionContext
-import loamstream.drm.SessionSource
-import loamstream.drm.uger.QdelJobKiller
-import loamstream.drm.uger.QstatQacctPoller
-import loamstream.drm.uger.Qsub
-import loamstream.drm.uger.QsubJobSubmitter
-import loamstream.drm.uger.QconfSessionSource
-import loamstream.drm.uger.QconfSessionSource
-import loamstream.util.ExitCodes
-import rx.lang.scala.Scheduler
+
 import rx.lang.scala.schedulers.ExecutionContextScheduler
-import loamstream.util.ThisMachine
+import rx.lang.scala.Scheduler
 
 
 /**

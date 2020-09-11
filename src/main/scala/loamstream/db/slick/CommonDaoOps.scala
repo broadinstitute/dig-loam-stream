@@ -7,6 +7,8 @@ import scala.concurrent.duration.Duration
 
 import loamstream.util.Loggable
 import slick.jdbc.JdbcProfile
+import slick.sql.SqlAction
+import loamstream.db.LoamDao
 
 /**
  * @author clint
@@ -14,7 +16,7 @@ import slick.jdbc.JdbcProfile
  * 
  * NB: Factored out of SlickLoamDao, which had gotten huge
  */
-trait CommonDaoOps extends DbHelpers with Loggable {
+trait CommonDaoOps extends DbHelpers with Loggable { self: LoamDao =>
   def descriptor: DbDescriptor
   
   override val driver: JdbcProfile = descriptor.dbType.driver
@@ -29,15 +31,15 @@ trait CommonDaoOps extends DbHelpers with Loggable {
 
   protected[slick] lazy val tables: Tables = new Tables(driver)
 
-  def createTables(): Unit = tables.create(db)
+  override def createTables(): Unit = tables.create(db)
 
-  def dropTables(): Unit = tables.drop(db)
+  override def dropTables(): Unit = tables.drop(db)
 
-  def shutdown(): Unit = blockOn(db.shutdown)
+  override def shutdown(): Unit = blockOn(db.shutdown)
   
   protected[slick] def runBlocking[A](action: DBIO[A]): A = runBlocking(db)(action)
   
-  protected def log(sqlAction: driver.ProfileAction[_, _, _]): Unit = {
+  protected def log(sqlAction: SqlAction[_, _, _]): Unit = {
     sqlAction.statements.foreach(s => trace(s"SQL: $s"))
   }
   

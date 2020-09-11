@@ -24,11 +24,7 @@ import loamstream.model.jobs.JobStatus
  * 
  * NB: Factored out of SlickLoamDao, which had gotten huge
  */
-trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
-  def descriptor: DbDescriptor
-  
-  val driver: JdbcProfile
-
+trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps with RunDaoOps =>
   import driver.api._
   
   /**
@@ -51,9 +47,13 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
   
   // TODO Input no longer needs to be a (Execution, JobResult) since Execution contains JobResult now
   private def insert(executionAndResult: (Execution, JobResult.CommandResult)): DBIO[Iterable[Int]] = {
+    val runIdOpt = findLastRunId
+    
+    require(runIdOpt.isDefined, s"No current Run registered")
+    
     val (execution, commandResult) = executionAndResult
 
-    import Helpers.dummyId
+    import DbHelpers.dummyId
 
     require(execution.cmd.isDefined, s"An Execution with a command line defined is required, but got $execution")
 
@@ -68,7 +68,8 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
         status = execution.status, 
         exitCode = commandResult.exitCode,
         jobDir = execution.jobDir.map(_.toString),
-        terminationReason = execution.terminationReason.map(_.name))
+        terminationReason = execution.terminationReason.map(_.name),
+        runId = runIdOpt)
     }
 
     import Implicits._

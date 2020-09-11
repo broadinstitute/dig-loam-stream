@@ -49,7 +49,7 @@ final class MockQacctAccountingClient(
     
     val invoker = {
       CommandInvoker.Async.Retrying[DrmTaskId](
-          ugerConfig.maxQacctRetries, 
+          ugerConfig.maxRetries, 
           "MOCK", 
           wrappedDelegateFn, 
           delayStart, 

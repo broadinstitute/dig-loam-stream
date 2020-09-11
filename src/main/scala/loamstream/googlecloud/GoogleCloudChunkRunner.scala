@@ -54,11 +54,9 @@ final case class GoogleCloudChunkRunner(
   
   override def run(
       jobs: Set[LJob], 
-      jobOracle: JobOracle): Observable[Map[LJob, RunData]] = {
+      jobOracle: JobOracle): Observable[(LJob, RunData)] = {
     
-    def emptyResults: Observable[Map[LJob, RunData]] = Observable.just(Map.empty)
-  
-    if(jobs.isEmpty) { emptyResults }
+    if(jobs.isEmpty) { Observable.empty }
     else { runJobsSequentially(jobs, jobOracle) }
   }
   
@@ -116,9 +114,9 @@ final case class GoogleCloudChunkRunner(
   
   private[googlecloud] def runJobsSequentially(
       jobs: Set[LJob], 
-      jobOracle: JobOracle): Observable[Map[LJob, RunData]] = {
+      jobOracle: JobOracle): Observable[(LJob, RunData)] = {
     
-    def doRunSingle(j: LJob): Map[LJob, RunData] = {
+    def doRunSingle(j: LJob): (LJob, RunData) = {
       def runDataForNonGoogleJob = RunData(
           job = j, 
           settings = j.initialSettings, 
@@ -130,7 +128,7 @@ final case class GoogleCloudChunkRunner(
         case GoogleSettings(_, clusterConfig) => withCluster(clusterConfig) {
           runSingle(delegate, jobOracle)(j)
         }
-        case settings => Map(j -> runDataForNonGoogleJob)
+        case settings => j -> runDataForNonGoogleJob
       }
     }
     
@@ -139,7 +137,7 @@ final case class GoogleCloudChunkRunner(
 
   private[googlecloud] def runSingle(
       delegate: ChunkRunner, 
-      jobOracle: JobOracle)(job: LJob): Map[LJob, RunData] = {
+      jobOracle: JobOracle)(job: LJob): (LJob, RunData) = {
     
     //NB: Enforce single-threaded execution, since we don't want multiple jobs running 
     import GoogleCloudChunkRunner.addCluster
@@ -186,8 +184,8 @@ object GoogleCloudChunkRunner extends Loggable {
   }
   
   private[googlecloud] def addCluster(cluster: String)
-                                     (jobsAndExecutions: Map[LJob, RunData]): Map[LJob, RunData] = {
-    jobsAndExecutions.map {
+                                     (jobAndExecution: (LJob, RunData)): (LJob, RunData) = {
+    jobAndExecution match {
       case (job, runData @ RunData.WithLocalResources(localResources: LocalResources)) => {
         val googleResources = GoogleResources.fromClusterAndLocalResources(cluster, localResources)
 

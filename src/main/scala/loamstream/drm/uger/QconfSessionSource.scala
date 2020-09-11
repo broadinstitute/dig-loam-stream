@@ -23,7 +23,7 @@ import scala.util.Failure
  */
 final class QconfSessionSource(
     createInvoker: CommandInvoker.Sync[Unit],
-    deleteInvoker: CommandInvoker.Sync[String])(implicit ec: ExecutionContext) extends SessionSource with Loggable {
+    deleteInvoker: CommandInvoker.Sync[String]) extends SessionSource with Loggable {
   
   private[this] val sessionBox: ValueBox[Option[String]] = ValueBox(None)
   
@@ -74,13 +74,11 @@ final class QconfSessionSource(
 object QconfSessionSource {
   def fromExecutable(
       ugerConfig: UgerConfig, 
-      actualExecutable: String = "qconf",
-      //TODO
-      scheduler: Scheduler = IOScheduler())(implicit ec: ExecutionContext): QconfSessionSource = {
+      actualExecutable: String = "qconf"): QconfSessionSource = {
     
-    val createInvoker= Qconf.createCommandInvoker(ugerConfig.maxRetries, actualExecutable, scheduler)
+    val createInvoker= Qconf.createCommandInvoker(ugerConfig.maxRetries, actualExecutable)
     
-    val deleteInvoker = Qconf.deleteCommandInvoker(ugerConfig.maxRetries, actualExecutable, scheduler)
+    val deleteInvoker = Qconf.deleteCommandInvoker(ugerConfig.maxRetries, actualExecutable)
     
     new QconfSessionSource(createInvoker, deleteInvoker)
   }

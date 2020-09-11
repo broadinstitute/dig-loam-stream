@@ -17,6 +17,7 @@ import loamstream.model.quantities.Memory
 import loamstream.util.Loggable
 import loamstream.util.Tries
 import java.nio.file.Paths
+import scala.concurrent.duration.Duration
 
 /**
  * @author clint
@@ -56,8 +57,8 @@ final case class UgerConfig(
     extraPathDir: Path = UgerDefaults.extraPathDir,
     condaEnvName: String = UgerDefaults.condaEnvName,
     staticJobSubmissionParams: String = UgerDefaults.staticJobSubmissionParams,
-    maxQacctRetries: Int =  UgerDefaults.maxQacctRetries,
-    maxRetries: Int = UgerDefaults.maxRetries) extends DrmConfig {
+    maxRetries: Int = UgerDefaults.maxRetries,
+    maxQacctCacheSize: Int = UgerDefaults.maxQacctCacheSize) extends DrmConfig {
   
   override def scriptBuilderParams: ScriptBuilderParams = new UgerScriptBuilderParams(extraPathDir, condaEnvName)
 }
@@ -72,8 +73,8 @@ object UgerConfig extends ConfigParser[UgerConfig] with Loggable {
     extraPathDir: Path = UgerDefaults.extraPathDir,
     condaEnvName: String = UgerDefaults.condaEnvName,
     staticJobSubmissionParams: String = UgerDefaults.staticJobSubmissionParams,
-    maxQacctRetries: Int =  UgerDefaults.maxQacctRetries,
-    maxRetries: Int = UgerDefaults.maxRetries) {
+    maxRetries: Int = UgerDefaults.maxRetries,
+    maxQacctCacheSize: Int = UgerDefaults.maxQacctCacheSize) {
     
     def toUgerConfig: UgerConfig = UgerConfig(
       maxNumJobsPerTaskArray = maxNumJobsPerTaskArray,
@@ -83,8 +84,8 @@ object UgerConfig extends ConfigParser[UgerConfig] with Loggable {
       extraPathDir = extraPathDir,
       condaEnvName = condaEnvName,
       staticJobSubmissionParams = staticJobSubmissionParams,
-      maxQacctRetries = maxQacctRetries,
-      maxRetries = maxRetries)
+      maxRetries = maxRetries,
+      maxQacctCacheSize = maxQacctCacheSize)
   }
   
   override def fromConfig(config: Config): Try[UgerConfig] = {

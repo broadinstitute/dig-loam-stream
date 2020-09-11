@@ -94,7 +94,7 @@ object Qsub extends Loggable {
       sessionSource: SessionSource,
       ugerConfig: UgerConfig,
       actualExecutable: String = "qsub",
-      scheduler: Scheduler = IOScheduler())(implicit ec: ExecutionContext): CommandInvoker.Async[Params] = {
+      scheduler: Scheduler)(implicit ec: ExecutionContext): CommandInvoker.Async[Params] = {
 
     def invocationFn(params: Params): Try[RunResults] = {
       val tokens = makeTokens(sessionSource, actualExecutable, params)

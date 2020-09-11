@@ -67,7 +67,7 @@ object Loops {
       maxRuns: Int, 
       delayStart: Duration, 
       delayCap: Duration,
-      scheduler: Scheduler = IOScheduler())(op: => Observable[Try[A]]): Observable[Option[A]] = {
+      scheduler: Scheduler)(op: => Observable[Try[A]]): Observable[Option[A]] = {
     
     val delays = Backoff.delaySequence(delayStart, delayCap)
     

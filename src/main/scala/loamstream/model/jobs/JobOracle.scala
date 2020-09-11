@@ -28,7 +28,9 @@ object JobOracle {
   final class ForJobs(executionConfig: ExecutionConfig, jobs: Iterable[LJob]) extends JobOracle {
     private lazy val dirNode: JobDirs.DirNode = JobDirs.allocate(jobs, executionConfig.maxJobLogFilesPerDir)
     
-    private lazy val dirsByJob: Map[LJob, Path] = dirNode.pathsByJob(executionConfig.jobDataDir)
+    private lazy val dirsByJob: Map[LJob, Path] = {
+      dirNode.pathsByJob(executionConfig.jobDataDir)
+    }
     
     private lazy val init: Unit = dirNode.makeDirsUnder(executionConfig.jobDataDir)
 

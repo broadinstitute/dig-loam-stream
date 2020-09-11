@@ -26,9 +26,7 @@ object Qconf extends Loggable {
   
   private[uger] def createCommandInvoker(
       maxRetries: Int, 
-      actualExecutable: String = "qconf",
-      //TODO
-      scheduler: Scheduler = IOScheduler())(implicit ec: ExecutionContext): CommandInvoker.Sync[Unit] = {
+      actualExecutable: String = "qconf"): CommandInvoker.Sync[Unit] = {
     
     def invocationFn(ignored: Unit): Try[RunResults] = {
       val tokens = makeCreateTokens(actualExecutable)
@@ -49,9 +47,7 @@ object Qconf extends Loggable {
   
   private[uger] def deleteCommandInvoker(
       maxRetries: Int, 
-      actualExecutable: String = "qconf",
-      //TODO
-      scheduler: Scheduler = IOScheduler())(implicit ec: ExecutionContext): CommandInvoker.Sync[String] = {
+      actualExecutable: String = "qconf"): CommandInvoker.Sync[String] = {
     
     def invocationFn(sessionId: String): Try[RunResults] = {
       val tokens = makeDeleteTokens(actualExecutable, sessionId)

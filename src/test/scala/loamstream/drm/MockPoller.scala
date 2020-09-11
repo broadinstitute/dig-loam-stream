@@ -23,6 +23,10 @@ final case class MockPoller(private val toReturn: Map[DrmTaskId, Seq[Try[DrmStat
   
   val params: ValueBox[Seq[(DrmTaskId, Duration)]] = ValueBox(Vector.empty)
   
+  private val isStoppedBox: ValueBox[Boolean] = ValueBox(false)
+  
+  def isStopped: Boolean = isStoppedBox.value
+  
   override def poll(jobIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, Try[DrmStatus])] = {
     val jobIdsToPoll = jobIds.toSet
     
@@ -36,24 +40,5 @@ final case class MockPoller(private val toReturn: Map[DrmTaskId, Seq[Try[DrmStat
     Observable.from(pollingResults)
   }
   
-  /*def statusOf(taskId: DrmTaskId): Try[DrmStatus] = waitFor(taskId, Duration.Zero)
-
-  def waitFor(taskId: DrmTaskId, timeout: Duration): Try[DrmStatus] = {
-    params.mutate(_ :+ (taskId -> timeout))
-    
-    remaining.getAndUpdate { leftToReturn => 
-      val statuses = leftToReturn.get(taskId).filter(_.nonEmpty)
-      
-      val (nextStatus, remainingStatuses) = statuses match {
-        case Some(sts) => (sts.head, sts.tail)
-        case None => (terminalStates(taskId), Nil)
-      }
-      
-      val nextMap = leftToReturn.updated(taskId, remainingStatuses)
-      
-      nextMap -> nextStatus
-    }
-  }*/
-
-  override def stop(): Unit = ()
+  override def stop(): Unit = isStoppedBox := true
 }

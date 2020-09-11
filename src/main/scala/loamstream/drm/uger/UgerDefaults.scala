@@ -30,5 +30,5 @@ object UgerDefaults {
   
   val maxRetries: Int = 9
   
-  val maxQacctRetries: Int = maxRetries
+  val maxQacctCacheSize: Int = 100
 }

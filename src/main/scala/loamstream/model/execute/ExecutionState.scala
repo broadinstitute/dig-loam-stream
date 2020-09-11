@@ -34,11 +34,17 @@ import loamstream.util.Sequence
 final class ExecutionState private (
     val maxRunsPerJob: Int,
     private[this] val jobStatesBox: ValueBox[Array[JobExecutionState]],
-    index: Map[LJob, Int]) extends Loggable {
+    //NB: Profiler-guided optimization: Use a java.util.Map for slightly faster performance.  
+    //The index field will be used /a lot/.
+    index: java.util.Map[LJob, Int]) extends Loggable {
   
   def size: Int = jobStatesBox.get(_.size)
   
-  private[execute] def allJobs: Iterable[LJob] = index.keys
+  private[execute] def allJobs: Iterable[LJob] = {
+    import scala.collection.JavaConverters._
+    
+    index.keySet.iterator.asScala.toIterable
+  }
   
   /**
    * Are all jobs "done"?  (Ie, finished or deliberately never started) 
@@ -48,7 +54,7 @@ final class ExecutionState private (
   }
   
   private[execute] def statusOf(job: LJob): JobStatus = {
-    def cellFor(job: LJob)(jobStates: Array[JobExecutionState]): JobExecutionState = jobStates.apply(index(job))
+    def cellFor(job: LJob)(jobStates: Array[JobExecutionState]): JobExecutionState = jobStates.apply(index.get(job))
     
     jobStatesBox.get(cellFor(job)).status
   }
@@ -89,7 +95,7 @@ final class ExecutionState private (
    */
   def jobStatuses: ExecutionState.JobStatuses = { 
     val jobStates = snapshot()
-  
+ 
     TimeUtils.time("Computing JobStatuses", trace(_)) {
       val numRunning = jobStates.count(_.isRunning)
       val numFinished = jobStates.count(_.isFinished)
@@ -100,7 +106,8 @@ final class ExecutionState private (
         import jobState.job
         
         def anyDepsStopExecution: Boolean = {
-          def depStates = statesFor(jobStates)(job.dependencies.map(_.job)) 
+          //Profiler-guided optimization: mapping over a Set is slow enough that we convert to a Seq first here.
+          def depStates = statesFor(jobStates)(job.dependencies.toSeq.map(_.job)) 
           
           jobState.notStarted && depStates.exists(_.canStopExecution)
         }
@@ -118,8 +125,8 @@ final class ExecutionState private (
    * Obtains the JobExecutionState for a given bunch of jobs, given the states of all jobs.
    * (Returns an array for fast iteration (profiling turned this up). 
    */
-  private def statesFor(jobStates: Array[JobExecutionState])(jobs: Set[JobNode]): Array[JobExecutionState] = {
-    val indexes = jobs.iterator.map(_.job).map(index(_))
+  private def statesFor(jobStates: Array[JobExecutionState])(jobs: Iterable[JobNode]): Array[JobExecutionState] = {
+    val indexes = jobs.iterator.map(_.job).map(index.get(_))
     
     val cells: Array[JobExecutionState] = Array.ofDim[JobExecutionState](jobs.size)
     
@@ -160,7 +167,7 @@ final class ExecutionState private (
       val jobSet = jobs.toSet
       
       jobStatesBox.foreach { jobStates =>
-        val jobIndices: Iterator[Int] = jobSet.iterator.map(index(_))
+        val jobIndices: Iterator[Int] = jobSet.iterator.map(index.get(_))
         
         jobIndices.foreach { jobIndex => 
           val jobState = jobStates(jobIndex)
@@ -192,7 +199,7 @@ final class ExecutionState private (
       jobStates <- jobStatesBox
       (job, status) <- results
     } {
-      val jobIndex = index(job)
+      val jobIndex = index.get(job)
         
       val jobState = jobStates(jobIndex)
       
@@ -217,7 +224,7 @@ final class ExecutionState private (
       
       jobStates(jobIndex) = transition(jobState)
       
-      if(isTerminalFailure) {
+      if(isTerminalFailure || status.isCanceled) {
         cancelSuccessors(job)
       }
     }
@@ -248,8 +255,16 @@ object ExecutionState {
   def initialFor(executable: Executable, maxRunsPerJob: Int): ExecutionState = {
     val jobStates: Array[JobExecutionState] = executable.allJobs.iterator.map(JobExecutionState.initialFor).toArray
     
-    val indicesByJob: Map[LJob, Int] = {
-      Map.empty ++ jobStates.iterator.zipWithIndex.map { case (jobState, i) => (jobState.job -> i) } 
+    val indicesByJob: java.util.Map[LJob, Int] = {
+      val result: java.util.Map[LJob, Int] = new java.util.HashMap 
+      
+      val values = Map.empty ++ jobStates.iterator.zipWithIndex.map { case (jobState, i) => (jobState.job -> i) }
+      
+      import scala.collection.JavaConverters._
+      
+      result.putAll(values.asJava)
+      
+      result
     }
     
     new ExecutionState(maxRunsPerJob, ValueBox(jobStates), indicesByJob)

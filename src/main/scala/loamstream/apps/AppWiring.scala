@@ -187,8 +187,7 @@ object AppWiring extends Loggable {
     private lazy val terminableExecuter: TerminableExecuter = {
       trace("Creating executer...")
 
-      //TODO: Make this configurable?
-      val threadPoolSize = 80
+      val threadPoolSize = config.executionConfig.numWorkerThreads
 
       val (executionContextWithThreadPool, threadPoolHandle) = ExecutionContexts.threadPool(threadPoolSize, s"LS-mainWorkerPool")
       
@@ -398,7 +397,9 @@ object AppWiring extends Loggable {
       //TODO: Make configurable?
       val pollingFrequencyInHz = 0.1
       
-      val poller = QstatQacctPoller.fromExecutables(sessionSource, pollingFrequencyInHz, scheduler = scheduler)
+      val poller = {
+        QstatQacctPoller.fromExecutables(sessionSource, pollingFrequencyInHz, ugerConfig, scheduler = scheduler)
+      }
       
       val jobMonitor = new JobMonitor(scheduler, poller, pollingFrequencyInHz)
 

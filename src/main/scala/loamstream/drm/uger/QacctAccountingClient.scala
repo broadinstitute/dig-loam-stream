@@ -90,7 +90,7 @@ object QacctAccountingClient extends Loggable {
       ugerConfig: UgerConfig, 
       scheduler: Scheduler,
       binaryName: String = "qacct")(implicit ec: ExecutionContext): QacctAccountingClient = {
-    new QacctAccountingClient(QacctInvoker.useActualBinary(ugerConfig.maxQacctRetries, binaryName, scheduler))
+    new QacctAccountingClient(QacctInvoker.useActualBinary(ugerConfig.maxRetries, binaryName, scheduler))
   }
   
   private def orElseErrorMessage[A](msg: String)(a: => A): Try[A] = {

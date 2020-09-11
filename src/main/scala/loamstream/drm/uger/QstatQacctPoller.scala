@@ -156,6 +156,7 @@ object QstatQacctPoller extends Loggable {
   def fromExecutables(
       sessionSource: SessionSource,
       qstatPollingFrequencyInHz: Double,
+      ugerConfig: UgerConfig,
       actualQstatExecutable: String = "qstat",
       actualQacctExecutable: String = "qacct",
       scheduler: Scheduler)(implicit ec: ExecutionContext): QstatQacctPoller = {
@@ -163,7 +164,12 @@ object QstatQacctPoller extends Loggable {
     import QacctInvoker.ByTaskArray.{ useActualBinary => qacctCommandInvoker }
     import Qstat.{ commandInvoker => qstatCommandInvoker }
     
-    val qacct = qacctCommandInvoker(0, "qacct", scheduler)
+    import scala.concurrent.duration._
+    
+    //TODO: Appropriate?
+    val maxQacctCacheAge = (1.0 / qstatPollingFrequencyInHz).seconds
+    
+    val qacct = qacctCommandInvoker(actualQacctExecutable, ugerConfig, maxQacctCacheAge, scheduler)
     val qstat = qstatCommandInvoker(sessionSource, qstatPollingFrequencyInHz, actualQstatExecutable)
     
     new QstatQacctPoller(qstat, qacct)

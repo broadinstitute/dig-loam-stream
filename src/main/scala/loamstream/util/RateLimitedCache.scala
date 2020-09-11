@@ -8,67 +8,69 @@ import scala.util.Try
 /**
  * @author clint
  * Sep 8, 2020
+ * 
+ * A wrapper around a function that caches the result produced by that function.  When apply() is called,
+ * the wrapped function is called only if it's never been called, or if more than `maxAge` has elapsed
+ * since it was last invoked.  Otherwise, the cached value is returned.    
  */
-final class RateLimitedCache[B](delegate: () => Try[B], maxAge: Duration) extends (() => Try[B]) {
-  private val stateBox: ValueBox[State[B]] = ValueBox(State.Initial)
+final class RateLimitedCache[A](delegate: () => Try[A], maxAge: Duration) extends (() => Try[A]) {
+  private val stateBox: ValueBox[State[A]] = ValueBox(State.Initial)
   
-  def lastAccessed: Long = stateBox.get {
-    case State.Initial => Long.MinValue
-    case s @ State.WithValue(_, _, _) => s.lastAccessed 
-  }
+  def lastAccessed: Long = stateBox.get(_.lastAccessed)
   
-  def lastModified: Long = stateBox.get {
-    case State.Initial => Long.MinValue
-    case s @ State.WithValue(_, _, _) => s.lastModified 
-  }
+  def lastModified: Long = stateBox.get(_.lastModified)
   
-  override def apply(): Try[B] = stateBox.getAndUpdate { state =>
+  override def apply(): Try[A] = stateBox.getAndUpdate { state =>
     val shouldRun: Boolean = state match {
       case State.Initial => true
       case s @ State.WithValue(_, _, _) => s.hasBeenLongerThan(maxAge)
     }
     
     if(shouldRun) {
-      val valueAttempt: Try[B] = delegate()
+      val valueAttempt: Try[A] = delegate()
       
       (State(valueAttempt), valueAttempt)
     } else {
-      (state, state.lastValue)
+      (state.updateLastAccessed, state.lastValue)
     }
   }
 }
 
 object RateLimitedCache {
+  def withMaxAge[A](maxAge: Duration)(op: => Try[A]): RateLimitedCache[A] = new RateLimitedCache(() => op, maxAge)
+  
   sealed trait State[+A] {
     def lastModified: Long
     
     def lastAccessed: Long
+    
+    def updateLastAccessed: State[A]
     
     def lastValue: Try[A]
   }
   
   object State {
     case object Initial extends State[Nothing] {
-      override def lastModified: Long = sys.error("No last modified time")
+      override def lastModified: Long = Long.MinValue
     
-      override def lastAccessed: Nothing = sys.error("No last accessed time")
+      override def lastAccessed: Long = Long.MinValue
+      
+      override def updateLastAccessed: State[Nothing] = sys.error("Can't access Initial state")
       
       override def lastValue: Nothing = sys.error("No last value")
     }
 
     final case class WithValue[A](lastModified: Long, lastAccessed: Long, lastValue: Try[A]) extends State[A] {
-      def hasBeenLongerThan(duration: Duration): Boolean = {
-        val now = System.currentTimeMillis
-        
+      def hasBeenLongerThan(duration: Duration, now: Long = System.currentTimeMillis): Boolean = {
         val maxWaitTime = lastModified + duration.toMillis
                 
         now >= maxWaitTime 
       }
+      
+      override def updateLastAccessed: State[A] = copy(lastAccessed = System.currentTimeMillis)
     }
     
-    def apply[A](valueAttempt: Try[A]): WithValue[A] = {
-      val now = System.currentTimeMillis
-      
+    def apply[A](valueAttempt: Try[A], now: Long = System.currentTimeMillis): WithValue[A] = {
       WithValue(now, now, valueAttempt)
     }
   }

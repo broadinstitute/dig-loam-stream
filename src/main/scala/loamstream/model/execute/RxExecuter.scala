@@ -102,7 +102,7 @@ final case class RxExecuter(
       s"Finishing ${results.size} jobs; first $howMany ids: ${results.keys.take(howMany).map(_.id).mkString(",")}"
     }
     
-    TimeUtils.time(msg, debug(_)) {
+    TimeUtils.time(msg, trace(_)) {
       executionState.finish(results)
     }
     

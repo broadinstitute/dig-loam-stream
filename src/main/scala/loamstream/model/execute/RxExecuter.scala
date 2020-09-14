@@ -158,7 +158,7 @@ final case class RxExecuter(
       
     val (jobsToCancel, jobsToRun) = jobsToMaybeRun.partition(jobCanceler.shouldCancel)
     
-    handleSkippedJobs(skippedJobs)
+    handleSkipped(skippedJobs)
     
     val cancelledJobTuples = cancelJobs(jobsToCancel)
     
@@ -166,15 +166,15 @@ final case class RxExecuter(
     
     val skippedResultTuples = toSkippedResultTuples(skippedJobs)
     
-    logFinishedJobs(cancelledJobTuples)
-    logFinishedJobs(skippedResultTuples)
+    logFinished(cancelledJobTuples)
+    logFinished(skippedResultTuples)
     
     val cancelledOrSkippedJobsObs = finish(executionState)(cancelledJobTuples ++ skippedResultTuples)
     
     val actuallyRunJobsObs = runJobs(jobsToRun, jobOracle).flatMap { executionTupleOpt =>
       record(jobOracle, executionTupleOpt)
       
-      logFinishedJobs(executionTupleOpt)
+      logFinished(executionTupleOpt)
       
       finish(executionState)(executionTupleOpt)
     }
@@ -184,7 +184,7 @@ final case class RxExecuter(
 
   private def emptyExecutionMap: Map[LJob, Execution] = Map.empty
   
-  private def logFinishedJobs(jobs: Iterable[(LJob, Execution)]): Unit = {
+  private def logFinished(jobs: Iterable[(LJob, Execution)]): Unit = {
     for {
       (job, execution) <- jobs
     } {
@@ -216,8 +216,8 @@ final case class RxExecuter(
     jobsToCancel.map(job => job -> Execution.from(job, Canceled, terminationReason = None))
   }
   
-  private def handleSkippedJobs(skippedJobs: Iterable[LJob]): Unit = {
-    logSkippedJobs(skippedJobs)
+  private def handleSkipped(skippedJobs: Iterable[LJob]): Unit = {
+    logSkipped(skippedJobs)
   }
   
   private def logJobsToBeRun(jobsToRun: Iterable[LJob]): Unit = {
@@ -226,7 +226,7 @@ final case class RxExecuter(
     jobsToRun.foreach(job => debug(s"Dispatching job to ChunkRunner: $job"))
   }
   
-  private def logSkippedJobs(skippedJobs: Iterable[LJob]): Unit = skippedJobs.size match {
+  private def logSkipped(skippedJobs: Iterable[LJob]): Unit = skippedJobs.size match {
     case 0 => debug("Skipped 0 jobs")
     case numSkipped => {
       info(s"Skipped ($numSkipped) jobs:")

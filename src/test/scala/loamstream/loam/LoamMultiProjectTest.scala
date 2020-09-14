@@ -39,11 +39,11 @@ final class LoamMultiProjectTest extends FunSuite {
   private def createScripts(projectName: String, filePaths: FilePathsLocal): Seq[LoamScript] = {
     import SourceUtils.toStringLiteral
     
-    val projectScript = LoamScript("project",
+    val projectScript = LoamLoamScript("project",
       s"""
          |val name = ${toStringLiteral(projectName)}
       """.stripMargin)
-    val pipelineScript = LoamScript("pipeline",
+    val pipelineScript = LoamLoamScript("pipeline",
       s"""
          |import project.name
          |

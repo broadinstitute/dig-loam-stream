@@ -28,7 +28,7 @@ final class UgerConfigTest extends FunSuite {
     assert(config.extraPathDir === UgerDefaults.extraPathDir)
     assert(config.condaEnvName === UgerDefaults.condaEnvName)
     assert(config.staticJobSubmissionParams === UgerDefaults.staticJobSubmissionParams)
-    assert(config.maxQacctRetries === UgerDefaults.maxQacctRetries)
+    assert(config.maxRetries === UgerDefaults.maxRetries)
   }
   
   test("Parsing a UgerConfig with all values provided should work") {
@@ -42,7 +42,8 @@ final class UgerConfigTest extends FunSuite {
           extraPathDir = /blah/baz
           condaEnvName = fooEnv
           staticJobSubmissionParams = "foo bar baz"
-          maxQacctRetries = 123
+          maxRetries = 999
+          maxQacctCacheSize = 123
         }
       }
       """)
@@ -57,7 +58,8 @@ final class UgerConfigTest extends FunSuite {
     assert(config.extraPathDir === path("/blah/baz"))
     assert(config.condaEnvName === "fooEnv")
     assert(config.staticJobSubmissionParams === "foo bar baz")
-    assert(config.maxQacctRetries === 123)
+    assert(config.maxQacctCacheSize === 123)
+    assert(config.maxRetries === 999)
   }
   
   test("Parsing a UgerConfig with optional values omitted should work") {
@@ -79,6 +81,7 @@ final class UgerConfigTest extends FunSuite {
     assert(config.extraPathDir === UgerDefaults.extraPathDir)
     assert(config.condaEnvName === UgerDefaults.condaEnvName)
     assert(config.staticJobSubmissionParams === UgerDefaults.staticJobSubmissionParams)
-    assert(config.maxQacctRetries === UgerDefaults.maxQacctRetries)
+    assert(config.maxQacctCacheSize === UgerDefaults.maxQacctCacheSize)
+    assert(config.maxRetries === UgerDefaults.maxRetries)
   }
 }

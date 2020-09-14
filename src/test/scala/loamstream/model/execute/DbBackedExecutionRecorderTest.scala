@@ -38,6 +38,8 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
   private val failedOutput1 = failedOutput(p1)
   private val failedOutput2 = failedOutput(p2)
   
+  private val run: Run = Run.create()
+  
   test("record() - no Executions") {
     createTablesAndThen {
       val recorder = new DbBackedExecutionRecorder(dao)
@@ -88,7 +90,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
   }
 
   test("record() - successful command-Execution, no outputs") {
-    createTablesAndThen {
+    registerRunAndThen(run) {
       val recorder = new DbBackedExecutionRecorder(dao)
 
       assert(executions === Nil)
@@ -116,7 +118,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
   }
 
   test("record() - failed command-Execution, no outputs") {
-    createTablesAndThen {
+    registerRunAndThen(run) {
       val recorder = new DbBackedExecutionRecorder(dao)
 
       assert(executions === Nil)
@@ -144,7 +146,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
   }
 
   test("record() - successful command-Execution, some outputs") {
-    createTablesAndThen {
+    registerRunAndThen(run) {
       val recorder = new DbBackedExecutionRecorder(dao)
 
       assert(executions === Nil)
@@ -166,7 +168,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
   }
 
   test("record() - failed command-Execution, some outputs") {
-    createTablesAndThen {
+    registerRunAndThen(run) {
       val recorder = new DbBackedExecutionRecorder(dao)
 
       assert(executions === Nil)

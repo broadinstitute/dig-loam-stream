@@ -10,6 +10,7 @@ import java.nio.file.Paths
 import loamstream.model.execute.EnvironmentType
 import loamstream.model.jobs.TerminationReason
 import loamstream.model.jobs.PseudoExecution
+import loamstream.model.execute.Run
 
 /**
  * @author clint
@@ -95,5 +96,13 @@ trait TestDbOps {
     dao.createTables()
       
     f
+  }
+  
+  protected def registerRunAndThen[A](run: Run)(f: => A) {
+    createTablesAndThen {
+      dao.registerNewRun(run)
+      
+      f
+    }
   }
 }

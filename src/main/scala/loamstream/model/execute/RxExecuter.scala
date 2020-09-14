@@ -47,6 +47,7 @@ final case class RxExecuter(
     jobFilter: JobFilter,
     executionRecorder: ExecutionRecorder,
     maxRunsPerJob: Int,
+    scheduler: Scheduler,
     override protected val terminableComponents: Iterable[Terminable] = Nil)
     (implicit val executionContext: ExecutionContext) extends Executer with Terminable.StopsComponents with Loggable {
   
@@ -77,18 +78,16 @@ final case class RxExecuter(
     val executionState = TimeUtils.time(s"Initializing execution state with ${numJobs} jobs", debug(_)) {
       ExecutionState.initialFor(executable, maxRunsPerJob)
     }
-
-    val ioScheduler: Scheduler = IOScheduler()
     
     val chunkResults: Observable[Map[LJob, Execution]] = {
       //Note onBackpressureDrop(), in case runEligibleJobs takes too long (or the polling window is too short)
-      val ticks = Observable.interval(windowLength, ioScheduler).onBackpressureDrop
+      val ticks = Observable.interval(windowLength, scheduler).onBackpressureDrop
       
-      def runJobs() = runEligibleJobs(executionState, jobOracle)
+      def runJobs(jobsAndCells: ExecutionState.JobStatuses) = runEligibleJobs(executionState, jobOracle, jobsAndCells)
       
       def isFinished = executionState.isFinished
       
-      ticks.flatMap(_ => runJobs).takeUntil(_ => isFinished)
+      ticks.map(_ => executionState.updateJobs()).distinctUntilChanged.flatMap(runJobs).takeUntil(_ => isFinished)
     }
     
     val futureMergedResults = chunkResults.foldLeft(emptyExecutionMap)(_ ++ _).firstAsFuture
@@ -103,7 +102,7 @@ final case class RxExecuter(
       s"Finishing ${results.size} jobs; first $howMany ids: ${results.keys.take(howMany).map(_.id).mkString(",")}"
     }
     
-    TimeUtils.time(msg, debug(_)) {
+    TimeUtils.time(msg, trace(_)) {
       executionState.finish(results)
     }
     
@@ -112,9 +111,8 @@ final case class RxExecuter(
   
   private def runEligibleJobs(
       executionState: ExecutionState, 
-      jobOracle: JobOracle): Observable[Map[LJob, Execution]] = {
-      
-    val jobsAndCells = executionState.updateJobs()
+      jobOracle: JobOracle,
+      jobsAndCells: ExecutionState.JobStatuses): Observable[Map[LJob, Execution]] = {
     
     val (numReadyToRun, numCannotRun) = (jobsAndCells.readyToRun.size, jobsAndCells.cannotRun.size)
     import jobsAndCells.{ numRunning, numFinished }
@@ -254,6 +252,8 @@ object RxExecuter extends Loggable {
     
     lazy val fileMonitor: FileMonitor = new FileMonitor(outputExistencePollingFrequencyInHz, maxWaitTimeForOutputs)
     
+    def scheduler: Scheduler = IOScheduler()
+    
     private[RxExecuter] lazy val (executionContext, ecHandle) = {
       ExecutionContexts.threadPool(Defaults.maxNumConcurrentJobs)
     }
@@ -272,7 +272,8 @@ object RxExecuter extends Loggable {
     jobFilter: JobFilter = Defaults.jobFilter,
     executionRecorder: ExecutionRecorder = Defaults.executionRecorder,
     maxRunsPerJob: Int = Defaults.maxRunsPerJob,
-    terminableComponents: Iterable[Terminable] = Seq(Defaults.ecHandle))
+    scheduler: Scheduler = Defaults.scheduler,
+    terminableComponents: Iterable[Terminable] = Nil)
     (implicit executionContext: ExecutionContext = Defaults.executionContext): RxExecuter = {
       
     new RxExecuter(
@@ -284,6 +285,7 @@ object RxExecuter extends Loggable {
       jobFilter, 
       executionRecorder,
       maxRunsPerJob, 
+      scheduler,
       terminableComponents)(executionContext)
   }
 
@@ -302,21 +304,21 @@ object RxExecuter extends Loggable {
    */
   private[execute] def toExecutionMap(
       fileMonitor: FileMonitor)
-      (runDataMap: Map[LJob, RunData])
+      (runDataTuple: (LJob, RunData))
       (implicit context: ExecutionContext): Observable[(LJob, Execution)] = {
   
     def waitForOutputs(runData: RunData): Future[Execution] = {
       ExecuterHelpers.waitForOutputsAndMakeExecution(runData, fileMonitor)
     }
     
-    val jobToExecutionFutures = for {
-      (job, runData) <- runDataMap.toSeq
-    } yield {
+    val jobToExecutionFuture = {
+      val (job, runData) = runDataTuple
+    
       import Futures.Implicits._
       
       waitForOutputs(runData).map(execution => job -> execution)
     }
     
-    Observable.from(jobToExecutionFutures).flatMap(Observable.from(_))
+    Observable.from(jobToExecutionFuture)
   }
 }

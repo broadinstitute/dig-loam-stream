@@ -14,10 +14,10 @@ import org.scalactic.source.Position.apply
  * Apr 1, 2020
  */
 final class ReferenceFileHandleTest extends FunSuite {
-  import Helpers.withZippedAndUnzippedTestFiles
+  import Helpers.withTestFile
   
   test("readAt(i)") {
-    withZippedAndUnzippedTestFiles("0123456789") { testFile =>
+    withTestFile("0123456789") { testFile =>
       val handle = ReferenceFileHandle(testFile.toFile)
       
       intercept[Exception] {
@@ -40,7 +40,7 @@ final class ReferenceFileHandleTest extends FunSuite {
   }
   
   test("readAt(i, length)") {
-    withZippedAndUnzippedTestFiles("0123456789") { testFile =>
+    withTestFile("0123456789") { testFile =>
       val handle = ReferenceFileHandle(testFile.toFile)
       
       intercept[Exception] {

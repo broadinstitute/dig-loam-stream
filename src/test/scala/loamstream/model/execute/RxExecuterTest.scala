@@ -79,9 +79,9 @@ final class RxExecuterTest extends FunSuite {
     def doTest(maxRestartsAllowed: Int): Unit = {
       implicit val executionsBox: ValueBox[Vector[RxMockJob]] = ValueBox(Vector.empty)
       
-      val job1 = RxMockJob("Job_1")
-      val job2 = RxMockJob("Job_2")
-      val job3 = RxMockJob("Job_3", Set(job1, job2))
+      lazy val job1: RxMockJob = RxMockJob(s"Job_1", successors = () => Set(job3))
+      lazy val job2: RxMockJob = RxMockJob(s"Job_2", successors = () => Set(job3))
+      lazy val job3: RxMockJob = RxMockJob(s"Job_3", Set(job1, job2))
   
       assert(job1.executionCount === 0)
       assert(job2.executionCount === 0)
@@ -95,13 +95,13 @@ final class RxExecuterTest extends FunSuite {
       
       val mungedExecutor = executer.copy(jobCanceler = willCancelJob2)
       
-      val ExecutionResults(result, chunks) = doExec(mungedExecutor, runner, Set(job3))
+      val ExecutionResults(result, _) = doExec(mungedExecutor, runner, Set(job3))
   
       assert(job1.executionCount === 1)
       assert(job2.executionCount === 0)
       assert(job3.executionCount === 0)
   
-      assert(result(job1).isSuccess)
+      assert(result(job1).isSuccess === true)
       assert(result(job2).isFailure === false)
       assert(result(job2).isSuccess === false)
       assert(result.get(job3) === None)
@@ -337,9 +337,11 @@ final class RxExecuterTest extends FunSuite {
     def doTest(maxRestartsAllowed: Int, expectedRuns: Seq[Int]): Unit = {
       implicit val executionsBox: ValueBox[Vector[RxMockJob]] = ValueBox(Vector.empty)
       
-      val job1 = RxMockJob("Job_1")
-      val job2 = RxMockJob("Job_2", Set(job1), toReturn = () => JobResult.CommandResult(2))
-      val job3 = RxMockJob("Job_3", Set(job2))
+      lazy val job1: RxMockJob = RxMockJob("Job_1", successors = () => Set(job2))
+      lazy val job2: RxMockJob = {
+        RxMockJob("Job_2", Set(job1), toReturn = () => JobResult.CommandResult(2), successors = () => Set(job3))
+      }
+      lazy val job3: RxMockJob = RxMockJob("Job_3", Set(job2))
   
       assert(job1.executionCount === 0)
       assert(job2.executionCount === 0)
@@ -377,12 +379,13 @@ final class RxExecuterTest extends FunSuite {
      *
      */
     def doTest(maxRestartsAllowed: Int, expectedRuns: Seq[Int]): Unit = {
-      
       implicit val executionsBox: ValueBox[Vector[RxMockJob]] = ValueBox(Vector.empty)
       
-      val job1 = RxMockJob("Job_1")
-      val job2 = RxMockJob("Job_2", Set(job1), toReturn = RxExecuterTest.succeedsAfterNRuns(3))
-      val job3 = RxMockJob("Job_3", Set(job2))
+      lazy val job1: RxMockJob = RxMockJob("Job_1", successors = () => Set(job2))
+      lazy val job2: RxMockJob = {
+        RxMockJob("Job_2", Set(job1), toReturn = RxExecuterTest.succeedsAfterNRuns(3), successors = () => Set(job3))
+      }
+      lazy val job3: RxMockJob = RxMockJob("Job_3", Set(job2))
   
       assert(job1.executionCount === 0)
       assert(job2.executionCount === 0)
@@ -416,7 +419,6 @@ final class RxExecuterTest extends FunSuite {
       
       val expectedChunks = {
         val expectedChunksForJob2 = (0 until expectedRuns2).toSeq.map(_ => Set(job2))
-      
         val expectedChunksForJobs1And2 = Set(job1) +: expectedChunksForJob2
         
         if(job3ShouldFail) { expectedChunksForJobs1And2 } 
@@ -563,77 +565,6 @@ final class RxExecuterTest extends FunSuite {
     doTest(2)
   }
   
-  test("New leaves are executed as soon as possible when there is no delay") {
-    /* A four-step pipeline:
-     *
-     *           Job21
-     *          /      \
-     * Job11 --          -- Job31
-     *          \      /         \
-     *           Job22            \
-     *                              -- Job4
-     *           Job23            /
-     *          /      \         /
-     * Job12 --          -- Job32
-     *          \      /
-     *           Job24
-     */
-    def doTest(maxRestartsAllowed: Int): Unit = {
-      implicit val executionsBox: ValueBox[Vector[RxMockJob]] = ValueBox(Vector.empty)
-      
-      val job11 = RxMockJob("Job_1_1")
-      val job12 = RxMockJob("Job_1_2")
-      val job21 = RxMockJob("Job_2_1", Set(job11))
-      val job22 = RxMockJob("Job_2_2", Set(job11))
-      val job23 = RxMockJob("Job_2_3", Set(job12))
-      val job24 = RxMockJob("Job_2_4", Set(job12))
-      val job31 = RxMockJob("Job_3_1", Set(job21, job22))
-      val job32 = RxMockJob("Job_3_2", Set(job23, job24))
-      val job4 = RxMockJob("Job_4", Set(job31, job32))
-  
-      def assertExecutionCounts(expected: Int): Unit = {
-        assert(job11.executionCount === expected)
-        assert(job12.executionCount === expected)
-        assert(job21.executionCount === expected)
-        assert(job22.executionCount === expected)
-        assert(job23.executionCount === expected)
-        assert(job24.executionCount === expected)
-        assert(job31.executionCount === expected)
-        assert(job32.executionCount === expected)
-        assert(job4.executionCount === expected)
-      }
-      
-      assertExecutionCounts(0)
-  
-      val ExecutionResults(result, _) = exec(Set(job4), maxRestartsAllowed)
-      
-      assertExecutionCounts(1)
-  
-      assert(result.size === 9)
-  
-      // Check if jobs were correctly chunked
-      // Only check that relationships are maintained, 
-      // not for a literal sequence of chunks, since the latter is non-deterministic.
-      job11 assertRanBefore job21
-      job11 assertRanBefore job22
-      
-      job12 assertRanBefore job23
-      job12 assertRanBefore job24
-      
-      job21 assertRanBefore job31
-      job22 assertRanBefore job31
-      
-      job23 assertRanBefore job32
-      job24 assertRanBefore job32
-  
-      job31 assertRanBefore job4
-      job32 assertRanBefore job4
-    }
-    
-    doTest(0)
-    doTest(2)
-  }
-  
   private def executeWithMockRunner(
       maxSimultaneousJobs: Int, 
       maxRestartsAllowed: Int,
@@ -707,7 +638,7 @@ object RxExecuterTest {
 
     override def run(
         jobs: Set[LJob], 
-        jobOracle: JobOracle): Observable[Map[LJob, RunData]] = {
+        jobOracle: JobOracle): Observable[(LJob, RunData)] = {
       
       chunks.mutate(_ :+ jobs)
 

@@ -13,6 +13,7 @@ import loamstream.loam.LoamGraph
 import loamstream.loam.LoamSyntax
 import loamstream.model.execute.RxExecuter
 import loamstream.util.Files
+import loamstream.loam.intake.aggregator.Metadata.Quantitative
 
 
 /**
@@ -34,10 +35,8 @@ final class CsvTransformationTest extends AggregatorIntakeTest {
           ancestry = "some-ancestry",
           author = Some("some-author"),
           tech = "some-tech",
-          quantitative = aggregator.Metadata.Quantitative.CasesAndControls(
-            cases = 42,
-            controls = 21),
-          varIdFormat = "{chrom}_{pos}_{ref}_{alt}")
+          quantitative = Quantitative.CasesAndControls(cases = 42, controls = 21),
+          varIdFormat = "{chrom}_{pos}_{ref}_{alt}")  
         
         val graph = Loam.code(this, paths, s3Bucket, metadata)
         
@@ -141,6 +140,10 @@ final class CsvTransformationTest extends AggregatorIntakeTest {
         override def getFieldByName(name: String): String = stripQuotes(write(jobject \ name))
     
         override def getFieldByIndex(i: Int): String = ???
+        
+        override def size: Int = ???
+        
+        override def recordNumber: Long = ???
       }
     }
     
@@ -323,8 +326,8 @@ object CsvTransformationTest {
       
       val sourceColumns = aggregator.SourceColumns(
           marker = Loam.ColumnNames.VARID,
-          pValue = Loam.ColumnNames.PValue,
-          zScore = Some(Loam.ColumnNames.OddsRatio),
+          pvalue = Loam.ColumnNames.PValue,
+          zscore = Some(Loam.ColumnNames.OddsRatio),
           stderr = Some(Loam.ColumnNames.SE),
           beta = Some(Loam.ColumnNames.OddsRatio),
           oddsRatio = Some(Loam.ColumnNames.OddsRatio),

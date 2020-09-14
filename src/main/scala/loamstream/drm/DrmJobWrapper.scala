@@ -3,8 +3,6 @@ package loamstream.drm
 import java.nio.file.Path
 import java.nio.file.Paths
 
-import org.ggf.drmaa.JobTemplate
-
 import loamstream.conf.ExecutionConfig
 import loamstream.util.LogFileNames
 import loamstream.model.jobs.OutputStreams

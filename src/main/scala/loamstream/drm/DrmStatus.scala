@@ -1,8 +1,10 @@
 package loamstream.drm
 
-import loamstream.model.jobs.{JobResult, JobStatus}
-import org.ggf.drmaa.Session
 import loamstream.model.execute.Resources.DrmResources
+import loamstream.model.jobs.JobResult
+import loamstream.model.jobs.JobStatus
+import loamstream.util.ExitCodes
+
 
 /**
  * @author clint
@@ -46,18 +48,6 @@ object DrmStatus {
   case object DoneUndetermined extends DrmStatus
   case object Suspended extends DrmStatus
   case object Undetermined extends DrmStatus
-
-  import Session._
-
-  def fromDrmStatusCode(status: Int): DrmStatus = status match {
-    case QUEUED_ACTIVE                                              => Queued
-    case SYSTEM_ON_HOLD | USER_ON_HOLD | USER_SYSTEM_ON_HOLD        => QueuedHeld
-    case RUNNING                                                    => Running
-    case SYSTEM_SUSPENDED | USER_SUSPENDED | USER_SYSTEM_SUSPENDED  => Suspended
-    case DONE                                                       => Done
-    case FAILED                                                     => Failed
-    case UNDETERMINED | _                                           => Undetermined
-  }
 
   def toJobStatus(status: DrmStatus): JobStatus = status match {
     case Done                                          => JobStatus.WaitingForOutputs

@@ -59,7 +59,7 @@ final class CompositeChunkRunnerTest extends FunSuite {
     
     import Observables.Implicits._
     
-    val futureResults = runner.run(Set(job1, job2), TestHelpers.DummyJobOracle).lastAsFuture
+    val futureResults = runner.run(Set(job1, job2), TestHelpers.DummyJobOracle).to[Seq].map(_.toMap).firstAsFuture
     
     val expected = Map(job1 -> JobStatus.Succeeded, job2 -> JobStatus.Failed)
 
@@ -79,6 +79,6 @@ object CompositeChunkRunnerTest {
     
     override def run(
         jobs: Set[LJob], 
-        jobOracle: JobOracle): Observable[Map[LJob, RunData]] = delegate.run(jobs, jobOracle)
+        jobOracle: JobOracle): Observable[(LJob, RunData)] = delegate.run(jobs, jobOracle)
   }
 }

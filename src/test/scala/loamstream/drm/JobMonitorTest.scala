@@ -21,46 +21,6 @@ final class JobMonitorTest extends FunSuite {
   import loamstream.TestHelpers.waitFor 
   import Observables.Implicits._ 
 
-  test("getDrmStatusFor") {
-    import JobMonitor.getDrmStatusFor
-    
-    val taskIdFoo = DrmTaskId("foo", 42)
-    val taskIdBar = DrmTaskId("bar", 42)
-    val taskIdBaz = DrmTaskId("baz", 42)
-    
-    assert(waitFor(getDrmStatusFor(taskIdFoo)(Map.empty).isEmpty.firstAsFuture) === true)
-    
-    import DrmStatus.Done
-    import DrmStatus.Running
-    
-    val failure: Try[DrmStatus] = Tries.failure("blerg")
-    
-    val attempts = Map(taskIdFoo -> Success(Done), taskIdBar -> Success(Running), taskIdBaz -> failure)
-    
-    assert(waitFor(getDrmStatusFor(taskIdFoo)(attempts).firstAsFuture) === Success(Done))
-    assert(waitFor(getDrmStatusFor(taskIdBar)(attempts).firstAsFuture) === Success(Running))
-    assert(waitFor(getDrmStatusFor(taskIdBaz)(attempts).firstAsFuture) === failure)
-    assert(waitFor(getDrmStatusFor(DrmTaskId("asdgasdf", 42))(attempts).isEmpty.firstAsFuture) === true)
-  }
-  
-  test("stop()") {
-    withThreadPoolScheduler(1) { scheduler =>
-      val client = MockDrmaaClient(Map.empty)
-      
-      val jobMonitor = new JobMonitor(scheduler, new DrmaaPoller(client))
-      
-      assert(jobMonitor.isStopped === false)
-      
-      jobMonitor.stop()
-      
-      assert(jobMonitor.isStopped)
-      
-      jobMonitor.stop()
-      
-      assert(jobMonitor.isStopped)
-    }
-  }
-  
   test("monitor() - happy path") {
     import DrmStatus._
     
@@ -70,7 +30,7 @@ final class JobMonitorTest extends FunSuite {
     
     val jobIds = Seq(taskId1, taskId2, taskId3)
     
-    val client = MockDrmaaClient(
+    val poller = MockPoller(
       Map(
         taskId1 -> Seq(Success(Queued), Success(Running), Success(Running), Success(Done)),
         taskId2 -> Seq(Success(Running), Success(Done)),
@@ -79,21 +39,36 @@ final class JobMonitorTest extends FunSuite {
     import scala.concurrent.ExecutionContext.Implicits.global
     import Observables.Implicits._
     
-    val poller = new DrmaaPoller(client)
-    
     withThreadPoolScheduler(3) { scheduler =>
       val statuses = (new JobMonitor(scheduler, poller, 9.99)).monitor(jobIds)
     
-      def futureStatuses(taskId: DrmTaskId): Future[Seq[DrmStatus]] = statuses(taskId).to[Seq].firstAsFuture
+      def futureStatuses(taskId: DrmTaskId): Future[Seq[DrmStatus]] = {
+        statuses.collect { case (tid, status) if tid == taskId => status }.to[Seq].firstAsFuture
+      }
     
       val fut1 = futureStatuses(taskId1)
       val fut2 = futureStatuses(taskId2)
       val fut3 = futureStatuses(taskId3)
 
-      assert(waitFor(fut1) == Seq(Queued, Running, Done))
+      assert(waitFor(fut1) == Seq(Queued, Running, Running, Done))
       assert(waitFor(fut2) == Seq(Running, Done))
-      assert(waitFor(fut3) == Seq(Running, Done))
+      assert(waitFor(fut3) == Seq(Running, Running, Done))
     }
+  }
+  
+  test("stop") {
+    val poller = MockPoller(Map.empty)
+    
+    //Doesn't matter which one, we won't run anything on it.
+    val scheduler = rx.lang.scala.schedulers.ComputationScheduler()
+    
+    val jobMonitor = new JobMonitor(scheduler, poller, 9.99)
+
+    assert(poller.isStopped === false)
+      
+    jobMonitor.stop()
+      
+    assert(poller.isStopped === true)
   }
   
   private def withThreadPoolScheduler[A](numThreads: Int)(f: Scheduler => A): A = {

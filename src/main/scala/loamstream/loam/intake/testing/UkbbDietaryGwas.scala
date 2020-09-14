@@ -1,12 +1,12 @@
 package loamstream.loam.intake.testing
 
-import loamstream.loam.LoamSyntax
-import loamstream.loam.intake.IntakeSyntax
+import com.typesafe.config.Config
+import com.typesafe.config.ConfigFactory
+
+import loamstream.conf.LoamConfig
+import loamstream.loam.LoamProjectContext
 import loamstream.loam.LoamScriptContext
-import loamstream.util.Maps
 import loamstream.loam.intake.aggregator
-import loamstream.loam.LoamCmdSyntax
-import loamstream.loam.intake.aggregator.Metadata
 import loamstream.loam.intake.aggregator.AggregatorIntakeConfig
 import loamstream.util.Iterables
 import com.typesafe.config.Config
@@ -15,18 +15,16 @@ import loamstream.loam.intake.aggregator.AggregatorCommands
 import loamstream.loam.LoamProjectContext
 import loamstream.conf.LoamConfig
 import com.typesafe.config.ConfigFactory
+import loamstream.loam.intake.aggregator.Metadata
+import loamstream.loam.intake.aggregator.SourceColumns
+import loamstream.loam.intake.aggregator.ColumnDefs
 
 /**
  * @author clint
  * Feb 28, 2020
  */
-object UkbbDietaryGwas extends App {
-  import LoamSyntax._
-  import IntakeSyntax._
-
-  private implicit val scriptContext: LoamScriptContext = {
-    new LoamScriptContext(LoamProjectContext.empty(LoamConfig.fromConfig(ConfigFactory.load()).get))
-  }
+object UkbbDietaryGwas extends loamstream.LoamFile {
+  import loamstream.loam.intake.IntakeSyntax._
   
   object ColumnNames {
     val CHR = "CHR".asColumnName
@@ -42,28 +40,20 @@ object UkbbDietaryGwas extends App {
     val VARID = "VARID".asColumnName
   }
   
-  def rowDef(source: CsvSource): RowDef = {
+  val rowDef = {
     import ColumnNames._
+    import ColumnDefs._
     
-    val varId = ColumnDef(
-      aggregator.ColumnNames.marker, 
-      //"{chrom}_{pos}_{ref}_{alt}"
-      strexpr"${CHR}_${BP}_${ALLELE1}_${ALLELE0}",
-      //"{chrom}_{pos}_{alt}_{ref}"
-      strexpr"${CHR}_${BP}_${ALLELE0}_${ALLELE1}")
+    val varId = marker(chromColumn = CHR, posColumn = BP, refColumn = ALLELE1, altColumn = ALLELE0)
         
-    val a1Freq = A1FREQ.asDouble
-    val beta = BETA.asDouble
-    val zscore = BETA.asDouble / SE.asDouble
-      
     val otherColumns = Seq(
-      ColumnDef(aggregator.ColumnNames.pvalue, P_BOLT_LMM),
-      ColumnDef(aggregator.ColumnNames.stderr, SE),
-      ColumnDef(aggregator.ColumnNames.beta, beta, beta.negate),
-      ColumnDef(aggregator.ColumnNames.eaf, a1Freq, 1.0 - a1Freq),
-      ColumnDef(aggregator.ColumnNames.zscore, zscore, zscore.negate))
-      
-    UnsourcedRowDef(varId, otherColumns).from(source)
+        pvalue(P_BOLT_LMM),
+        stderr(SE),
+        beta(BETA),
+        eaf(A1FREQ),
+        zscore(BETA, SE))
+        
+    RowDef(varId, otherColumns)
   }
   
   object Paths {
@@ -81,7 +71,7 @@ object UkbbDietaryGwas extends App {
   }
   
   def sourceStores(phenotypesToFileFragments: Map[String, PhenotypeConfig]): Map[String, Store] = {
-    import Maps.Implicits._
+    import loamstream.util.Maps.Implicits._
     
     phenotypesToFileFragments.strictMapValues(sourceStore(_).asInput)
   }
@@ -101,7 +91,7 @@ object UkbbDietaryGwas extends App {
     
     val source = CsvSource.fromCommandLine(s"zcat ${sourceStore.path}", csvFormat)
     
-    val columns = rowDef(source)
+    val columns = rowDef.from(source)
         
     produceCsv(dest).
         from(columns).
@@ -135,7 +125,7 @@ object UkbbDietaryGwas extends App {
     intakeTypesafeConfig.as[Map[String, PhenotypeConfig]](key)
   }
   
-  import AggregatorCommands.upload
+  import loamstream.loam.intake.aggregator.AggregatorCommands.upload
   
   def toMetadata(phenotypeConfigTuple: (String, PhenotypeConfig)): Metadata = {
     val (phenotype, PhenotypeConfig(_, subjects)) = phenotypeConfigTuple
@@ -158,8 +148,18 @@ object UkbbDietaryGwas extends App {
     if(intakeTypesafeConfig.getBoolean("AGGREGATOR_INTAKE_DO_UPLOAD")) {
       val metadata = toMetadata(phenotype -> phenotypeConfig)
       
-      upload(aggregatorIntakePipelineConfig, metadata, dataInAggregatorFormat, workDir = Paths.workDir, yes = false).
-        tag(s"upload-to-s3-${phenotype}")
+      val sourceColumnMapping = SourceColumns.defaultMarkerAndPvalueOnly
+        .withDefaultZscore
+        .withDefaultStderr
+        .withDefaultBeta
+        .withDefaultEaf
+      
+      upload(
+          aggregatorIntakePipelineConfig, 
+          metadata, dataInAggregatorFormat, 
+          sourceColumnMapping, 
+          workDir = Paths.workDir, 
+          yes = false).tag(s"upload-to-s3-${phenotype}")
     }
   }
 }

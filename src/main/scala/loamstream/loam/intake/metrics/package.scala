@@ -2,6 +2,7 @@ package loamstream.loam.intake
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext
+import loamstream.util.Fold
 
 
 /**
@@ -11,7 +12,7 @@ import scala.concurrent.ExecutionContext
 package object metrics {
   type Metric[A] = Fold[CsvRow, _, A]
   
-  implicit final class FoldOps[A](val f: Metric[A]) extends AnyVal {
+  implicit final class MetricOps[A](val f: Metric[A]) extends AnyVal {
     def process(rows: CsvSource): A = Fold.fold(rows.records)(f)
   
     def processSampled(howMany: Int)(rows: CsvSource): A = Fold.fold(Sample.random(howMany)(rows).records)(f)

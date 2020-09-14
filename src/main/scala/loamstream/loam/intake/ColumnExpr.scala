@@ -3,13 +3,25 @@ package loamstream.loam.intake
 import scala.reflect.runtime.universe.TypeTag
 import scala.reflect.runtime.universe.typeTag
 import scala.util.matching.Regex
+import scala.util.control.NonFatal
 
 /**
  * @author clint
  * Dec 17, 2019
  */
 sealed abstract class ColumnExpr[A : TypeTag] extends ColumnExpr.ArithmeticOps[A] with RowParser[A] {
-  def eval(row: CsvRow): A
+  
+  final override def apply(row: CsvRow): A = {
+    try { eval(row) }
+    catch {
+      case e: CsvProcessingException => throw e
+      case NonFatal(e) => {
+        throw new CsvProcessingException(s"Error processing record number ${row.recordNumber}; row is '$row':", row, e)
+      }
+    }
+  }
+  
+  protected def eval(row: CsvRow): A
   
   def isDefinedAt(row: CsvRow): Boolean = true
   
@@ -21,8 +33,6 @@ sealed abstract class ColumnExpr[A : TypeTag] extends ColumnExpr.ArithmeticOps[A
   final def |>[B: TypeTag](f: A => B): ColumnExpr[B] = this.map(f) //scalastyle:ignore method.name
   
   final def flatMap[B: TypeTag](f: A => ColumnExpr[B]): ColumnExpr[B] = FlatMappedColumnExpr(f, this)
-  
-  final override def apply(row: CsvRow): A = eval(row)
   
   import ColumnExpr._
   
@@ -66,6 +76,12 @@ sealed abstract class ColumnExpr[A : TypeTag] extends ColumnExpr.ArithmeticOps[A
   
   final def ===(rhs: A): RowPredicate = this.map(_ == rhs)
   final def !==(rhs: A): RowPredicate = this.map(_ != rhs) //scalastyle:ignore method.name
+  
+  final def trim(implicit ev: A =:= String): ColumnExpr[String] = this.map(_.trim)
+  
+  final def isEmpty(implicit ev: A =:= String): RowPredicate = this.map(_.isEmpty)
+  
+  final def isEmptyIgnoreWhitespace(implicit ev: A =:= String): RowPredicate = this.map(_.trim.isEmpty)
   
   final def <(rhs: A)(implicit ev: Ordering[A]): RowPredicate = this.map(lhs => ev.lt(lhs, rhs))
   final def <=(rhs: A)(implicit ev: Ordering[A]): RowPredicate = this.map(lhs => ev.lteq(lhs, rhs))
@@ -178,7 +194,7 @@ final case class ColumnName(name: String) extends ColumnExpr[String] {
   override def eval(row: CsvRow): String = {
     val value = row.getFieldByName(name)
     
-    require(value != null, s"Field named '$name' not found in row $row") 
+    require(value != null, s"Field named '$name' not found in record number ${row.recordNumber} (row $row)") 
     
     value
   }
@@ -187,12 +203,12 @@ final case class ColumnName(name: String) extends ColumnExpr[String] {
 }
 
 final case class MappedColumnExpr[A: TypeTag, B: TypeTag](f: A => B, dependsOn: ColumnExpr[A]) extends ColumnExpr[B] {
-  override def eval(row: CsvRow): B = f(dependsOn.eval(row))
+  override protected def eval(row: CsvRow): B = f(dependsOn(row))
 }
 
 final case class FlatMappedColumnExpr[A: TypeTag, B: TypeTag](
     f: A => ColumnExpr[B], 
     dependsOn: ColumnExpr[A]) extends ColumnExpr[B] {
   
-  override def eval(row: CsvRow): B = f(dependsOn.eval(row)).eval(row)
+  override protected def eval(row: CsvRow): B = f(dependsOn(row)).apply(row)
 }

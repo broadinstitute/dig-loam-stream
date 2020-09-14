@@ -6,6 +6,7 @@ import scala.util.Success
 import scala.concurrent.duration._
 import loamstream.TestHelpers
 import rx.lang.scala.Observable
+import rx.lang.scala.schedulers.IOScheduler
 
 
 /**
@@ -15,6 +16,10 @@ import rx.lang.scala.Observable
 final class LoopsTest extends FunSuite {
   private def alwaysWorks: Try[Int] = Success(42)
   private def alwaysFails: Try[Int] = Tries.failure("blarg")
+  
+  private def alwaysWorksObs: Observable[Try[Int]] = Observable.just(Success(42))
+  private def alwaysFailsObs: Observable[Try[Int]] = Observable.just(Tries.failure("blarg"))
+  
   private def worksAfter[A](howManyTries: Int, returning: A): () => Try[A] = {
     var count = 0
     
@@ -22,6 +27,12 @@ final class LoopsTest extends FunSuite {
       if(count >= howManyTries) { Success(returning) }
       else { try { Tries.failure("blarg") } finally { count += 1 } }
     }
+  }
+  
+  private def worksAfterObs[A](howManyTries: Int, returning: A): () => Observable[Try[A]] = {
+    val fn = worksAfter(howManyTries, returning)
+    
+    () => Observable.just(fn())
   }
   
   private def waitForFirst[A](obs: Observable[A]): A = {
@@ -66,35 +77,43 @@ final class LoopsTest extends FunSuite {
     import TestHelpers.waitFor
     import scala.concurrent.ExecutionContext.Implicits.global
     
+    val scheduler = IOScheduler()
+    
     test("retryUntilSuccessWithBackoffAsync - 0 times") {
-      assert(waitForFirst(retryUntilSuccessWithBackoffAsync(0, 0.1.seconds, 0.5.seconds)(alwaysWorks)) === None)
-      assert(waitForFirst(retryUntilSuccessWithBackoffAsync(0, 0.1.seconds, 0.5.seconds)(alwaysFails)) === None)
+      assert(waitForFirst(
+          retryUntilSuccessWithBackoffAsync(0, 0.1.seconds, 0.5.seconds, scheduler)(alwaysWorksObs)) === None)
+      assert(waitForFirst(
+          retryUntilSuccessWithBackoffAsync(0, 0.1.seconds, 0.5.seconds, scheduler)(alwaysFailsObs)) === None)
       
-      val willWorkEventually = worksAfter(1, "foo")
+      val willWorkEventually = worksAfterObs(1, "foo")
       
-      assert(
-          waitForFirst(retryUntilSuccessWithBackoffAsync(0, 0.01.seconds, 0.05.seconds)(willWorkEventually())) === None)
+      assert(waitForFirst(
+          retryUntilSuccessWithBackoffAsync(0, 0.01.seconds, 0.05.seconds, scheduler)(willWorkEventually())) === None)
     }
     
     test("retryUntilSuccessWithBackoffAsync - 1 times") {
-      assert(waitForFirst(retryUntilSuccessWithBackoffAsync(1, 0.01.seconds, 0.05.seconds)(alwaysWorks)) === Some(42))
-      assert(waitForFirst(retryUntilSuccessWithBackoffAsync(1, 0.01.seconds, 0.05.seconds)(alwaysFails)) === None)
+      assert(waitForFirst(
+          retryUntilSuccessWithBackoffAsync(1, 0.01.seconds, 0.05.seconds, scheduler)(alwaysWorksObs)) === Some(42))
       
-      val willWorkEventually = worksAfter(1, "foo")
+      assert(waitForFirst(
+          retryUntilSuccessWithBackoffAsync(1, 0.01.seconds, 0.05.seconds, scheduler)(alwaysFailsObs)) === None)
       
-      assert(
-          waitForFirst(retryUntilSuccessWithBackoffAsync(1, 0.01.seconds, 0.05.seconds)(willWorkEventually())) === None)
+      val willWorkEventually = worksAfterObs(1, "foo")
+      
+      assert(waitForFirst(
+          retryUntilSuccessWithBackoffAsync(1, 0.01.seconds, 0.05.seconds, scheduler)(willWorkEventually())) === None)
     }
     
     test("retryUntilSuccessWithBackoffAsync - 3 times") {
-      assert(waitForFirst(retryUntilSuccessWithBackoffAsync(3, 0.01.seconds, 0.05.seconds)(alwaysWorks)) === Some(42))
-      assert(waitForFirst(retryUntilSuccessWithBackoffAsync(3, 0.01.seconds, 0.05.seconds)(alwaysFails)) === None)
+      assert(waitForFirst(
+          retryUntilSuccessWithBackoffAsync(3, 0.01.seconds, 0.05.seconds, scheduler)(alwaysWorksObs)) === Some(42))
+      assert(waitForFirst(
+          retryUntilSuccessWithBackoffAsync(3, 0.01.seconds, 0.05.seconds, scheduler)(alwaysFailsObs)) === None)
       
-      val willWorkEventually = worksAfter(2, "foo")
+      val willWorkEventually = worksAfterObs(2, "foo")
       
-      assert(
-        waitForFirst(
-          retryUntilSuccessWithBackoffAsync(3, 0.01.seconds, 0.05.seconds)(willWorkEventually())) === Some("foo"))
+      assert(waitForFirst(retryUntilSuccessWithBackoffAsync(
+          3, 0.01.seconds, 0.05.seconds, scheduler)(willWorkEventually())) === Some("foo"))
     }
   }
   

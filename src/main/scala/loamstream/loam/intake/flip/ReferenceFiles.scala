@@ -2,12 +2,14 @@ package loamstream.loam.intake.flip
 
 import java.nio.file.Files.exists
 import java.nio.file.Path
+import loamstream.util.TimeUtils
+import loamstream.util.Loggable
 
 /**
  * @author clint
  * Apr 1, 2020
  */
-final class ReferenceFiles private[flip] (chromsToFiles: Map[String, ReferenceFileHandle]) {
+final class ReferenceFiles private[flip] (chromsToFiles: Map[String, ReferenceFileHandle]) extends Loggable {
   def isKnown(chrom: String): Boolean = chromsToFiles.contains(chrom)
   
   def getChar(chrom: String, position: Long): Option[Char] = chromsToFiles.get(chrom).flatMap(_.readAt(position))
@@ -15,8 +17,6 @@ final class ReferenceFiles private[flip] (chromsToFiles: Map[String, ReferenceFi
   def getString(chrom: String, position: Long, length: Int): Option[String] = {
     chromsToFiles.get(chrom).flatMap(_.readAt(position, length))
   }
-  
-  def forChrom(chrom: String): ReferenceFileHandle = chromsToFiles(chrom)
 }
   
 object ReferenceFiles {
@@ -39,8 +39,12 @@ object ReferenceFiles {
             s"ERROR: no sequence file for chromosome: ${chrom} (both ${txtPath} and ${gzPath} not found)")
         
         val handle = {
-          if(exists(txtPath)) { ReferenceFileHandle(txtPath.toFile) }
-          else { ReferenceFileHandle.fromGzippedFile(gzPath.toFile) }
+          //prefer unzipped files, if both zipped and unzipped are present
+          val path = if(exists(txtPath)) txtPath else gzPath
+          
+          //NB: Memory-map reference files for performance.  These files are large, but only hundreds of megs.
+          //Doing this results in a ~500x speedup compared to seeking into files with java.io.Readers.
+          ReferenceFileHandle(path.toFile)
         }
         
         chrom -> handle

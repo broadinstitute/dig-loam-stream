@@ -6,14 +6,14 @@ import java.time.temporal.ChronoField
 import scala.util.Success
 import scala.util.Try
 import org.scalatest.FunSuite
+import loamstream.drm.DrmTaskId
 import loamstream.drm.Queue
 import loamstream.model.execute.Resources.LsfResources
 import loamstream.model.jobs.TerminationReason
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Memory
-import loamstream.util.RetryingCommandInvoker
+import loamstream.util.CommandInvoker
 import loamstream.util.RunResults
-import loamstream.drm.DrmTaskId
 import rx.lang.scala.schedulers.ComputationScheduler
 
 import scala.collection.immutable.ArraySeq
@@ -40,7 +40,7 @@ final class BacctAccountingClientTest extends FunSuite {
   
   test("Parse actual bacct outpout - bad input") {
     def doTest(bacctOutput: Seq[String]): Unit = {
-      val mockInvoker = new RetryingCommandInvoker[DrmTaskId](
+      val mockInvoker = CommandInvoker.Async.Retrying[DrmTaskId](
           0, 
           "MOCK", 
           _ => runResultsAttempt(stdout = bacctOutput), 
@@ -58,7 +58,7 @@ final class BacctAccountingClientTest extends FunSuite {
   test("Parse actual bacct outpout - happy path") {
     val splitOutput = ArraySeq.unsafeWrapArray(actualOutput.split("\\n"))
     
-    val mockInvoker = new RetryingCommandInvoker[DrmTaskId](
+    val mockInvoker = CommandInvoker.Async.Retrying[DrmTaskId](
         0, 
         "MOCK", 
         _ => runResultsAttempt(stdout = splitOutput),
@@ -93,7 +93,7 @@ final class BacctAccountingClientTest extends FunSuite {
       
       val splitOutput = ArraySeq.unsafeWrapArray(rawOutput.split("\\n"))
       
-      val mockInvoker = new RetryingCommandInvoker[DrmTaskId](
+      val mockInvoker = CommandInvoker.Async.Retrying[DrmTaskId](
           0, 
           "MOCK", 
           _ => runResultsAttempt(stdout = splitOutput),
@@ -126,7 +126,7 @@ final class BacctAccountingClientTest extends FunSuite {
   test("Parse actual bacct outpout - problematic output") {
     val splitOutput = ArraySeq.unsafeWrapArray(problematicOutput.split("\\n"))
     
-    val mockInvoker = new RetryingCommandInvoker[DrmTaskId](
+    val mockInvoker = CommandInvoker.Async.Retrying[DrmTaskId](
         0, 
         "MOCK", 
         _ => runResultsAttempt(stdout = splitOutput),

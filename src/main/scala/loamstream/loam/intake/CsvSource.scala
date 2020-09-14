@@ -32,6 +32,10 @@ sealed trait CsvSource {
   
   def filterNot(p: RowPredicate): CsvSource = fromCombinator(_.filterNot(p))
   
+  def tee: (CsvSource, CsvSource) = (this, duplicate)
+  
+  private def duplicate: CsvSource = CsvSource.FromIterator(records.duplicate._2)
+  
   private final def addSourceTo(columnDef: UnsourcedColumnDef): SourcedColumnDef = SourcedColumnDef(columnDef, this) 
   
   final def producing(columnDef: UnsourcedColumnDef): SourcedColumnDef = addSourceTo(columnDef)

@@ -1,9 +1,10 @@
 package loamstream.drm.uger
 
-import org.ggf.drmaa.JobTemplate
-import loamstream.drm.ScriptBuilderParams
 import java.nio.file.Path
+
 import loamstream.conf.UgerConfig
+import loamstream.drm.ScriptBuilderParams
+
 
 /**
  * @author clint
@@ -35,7 +36,7 @@ final case class UgerScriptBuilderParams(extraPathDir: Path, condaEnvName: Strin
   override val preamble: Option[String] = Option(ugerPreamble)
   override val indexEnvVarName: String = "SGE_TASK_ID"
   override val jobIdEnvVarName: String = "JOB_ID"
-  override val drmIndexVarExpr: String = JobTemplate.PARAMETRIC_INDEX
+  override val drmIndexVarExpr: String = "$JOB_ID.$TASK_ID"
 }
 
 object UgerScriptBuilderParams {

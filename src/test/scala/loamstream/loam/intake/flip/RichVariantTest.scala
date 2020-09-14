@@ -9,10 +9,22 @@ import loamstream.loam.intake.Variant
  * Apr 1, 2020
  */
 final class RichVariantTest extends FunSuite {
+  private object JSet {
+    def empty[A]: java.util.Set[A] = new java.util.HashSet 
+    
+    def apply[A](as: A*): java.util.Set[A] = {
+      val result = new java.util.HashSet[A]
+      
+      as.foreach(result.add)
+      
+      result
+    }
+  }
+  
   test("forwarded accessors") {
     val v = Variant(chrom = "a", pos = 123, alt = "b", ref = "c")
     
-    val richV = new RichVariant(ReferenceFiles.empty, Set.empty, v)
+    val richV = new RichVariant(ReferenceFiles.empty, JSet.empty, v)
     
     assert(richV.chrom === "a")
     assert(richV.position === 123)
@@ -23,7 +35,7 @@ final class RichVariantTest extends FunSuite {
   test("toKey") {
     val v = Variant(chrom = "a", pos = 123, alt = "b", ref = "c")
     
-    val richV = new RichVariant(ReferenceFiles.empty, Set.empty, v)
+    val richV = new RichVariant(ReferenceFiles.empty, JSet.empty, v)
     
     assert(richV.toKey === s"a_123_c_b")
   }
@@ -31,7 +43,7 @@ final class RichVariantTest extends FunSuite {
   test("toKeyMunged") {
     val v = Variant(chrom = "a", pos = 123, alt = "A", ref = "C")
     
-    val richV = new RichVariant(ReferenceFiles.empty, Set.empty, v)
+    val richV = new RichVariant(ReferenceFiles.empty, JSet.empty, v)
     
     assert(richV.toKeyMunged === s"a_123_G_T")
   }
@@ -41,9 +53,9 @@ final class RichVariantTest extends FunSuite {
     
     val v1 = Variant(chrom = "x", pos = 456, alt = "A", ref = "C")
     
-    val varId0 = (new RichVariant(ReferenceFiles.empty, Set.empty, v0)).toKey
+    val varId0 = (new RichVariant(ReferenceFiles.empty, JSet.empty, v0)).toKey
     
-    val varsIn26k: Set[String] = Set(varId0) 
+    val varsIn26k: java.util.Set[String] = JSet(varId0) 
     
     val richV0 = new RichVariant(ReferenceFiles.empty, varsIn26k, v0)
     
@@ -58,9 +70,9 @@ final class RichVariantTest extends FunSuite {
     
     val v1 = Variant(chrom = "x", pos = 456, alt = "A", ref = "C")
     
-    val varId0Munged = (new RichVariant(ReferenceFiles.empty, Set.empty, v0)).toKeyMunged
+    val varId0Munged = (new RichVariant(ReferenceFiles.empty, JSet.empty, v0)).toKeyMunged
     
-    val varsIn26k: Set[String] = Set(varId0Munged) 
+    val varsIn26k: java.util.Set[String] = JSet(varId0Munged) 
     
     val richV0 = new RichVariant(ReferenceFiles.empty, varsIn26k, v0)
     
@@ -71,25 +83,22 @@ final class RichVariantTest extends FunSuite {
   }
   
   test("refChar") {
-    Helpers.withZippedAndUnzippedTestFiles("123456789") { testFile =>
-      val handle = {
-        if(testFile.getFileName.toString.endsWith("txt")) { ReferenceFileHandle(testFile.toFile) }
-        else { ReferenceFileHandle.fromGzippedFile(testFile.toFile) }
-      }
+    Helpers.withTestFile("123456789") { testFile =>
+      val handle = ReferenceFileHandle(testFile.toFile)
       
       val refFiles = new ReferenceFiles(Map("a" -> handle))
       
       val v0 = Variant(chrom = "a", pos = 2, alt = "A", ref = "C")
     
-      val richV0 = new RichVariant(refFiles, Set.empty, v0)
+      val richV0 = new RichVariant(refFiles, JSet.empty, v0)
       
       val v1 = Variant(chrom = "a", pos = 123, alt = "A", ref = "C")
     
-      val richV1 = new RichVariant(refFiles, Set.empty, v1)
+      val richV1 = new RichVariant(refFiles, JSet.empty, v1)
       
       val v2 = Variant(chrom = "Q", pos = 123, alt = "A", ref = "C")
     
-      val richV2 = new RichVariant(refFiles, Set.empty, v2)
+      val richV2 = new RichVariant(refFiles, JSet.empty, v2)
       
       //NB: positions start from 1, so v0's position refers to the 2nd char in the file
       assert(richV0.refChar === Some('2')) 
@@ -99,25 +108,22 @@ final class RichVariantTest extends FunSuite {
   }
   
   test("refFromReferenceGenome") {
-    Helpers.withZippedAndUnzippedTestFiles("123456789") { testFile =>
-      val handle = {
-        if(testFile.getFileName.toString.endsWith("txt")) { ReferenceFileHandle(testFile.toFile) }
-        else { ReferenceFileHandle.fromGzippedFile(testFile.toFile) }
-      }
+    Helpers.withTestFile("123456789") { testFile =>
+      val handle = ReferenceFileHandle(testFile.toFile)
       
       val refFiles = new ReferenceFiles(Map("a" -> handle))
       
       val v0 = Variant(chrom = "a", pos = 2, alt = "A", ref = "CCT")
     
-      val richV0 = new RichVariant(refFiles, Set.empty, v0)
+      val richV0 = new RichVariant(refFiles, JSet.empty, v0)
       
       val v1 = Variant(chrom = "a", pos = 123, alt = "A", ref = "C")
     
-      val richV1 = new RichVariant(refFiles, Set.empty, v1)
+      val richV1 = new RichVariant(refFiles, JSet.empty, v1)
       
       val v2 = Variant(chrom = "Q", pos = 123, alt = "A", ref = "C")
     
-      val richV2 = new RichVariant(refFiles, Set.empty, v2)
+      val richV2 = new RichVariant(refFiles, JSet.empty, v2)
       
       //NB: positions start from 1, so v0's position refers to the 2nd char in the file
       assert(richV0.refFromReferenceGenome === Some("234")) 
@@ -127,25 +133,22 @@ final class RichVariantTest extends FunSuite {
   }
   
   test("altFromReferenceGenome") {
-    Helpers.withZippedAndUnzippedTestFiles("123456789") { testFile =>
-      val handle = {
-        if(testFile.getFileName.toString.endsWith("txt")) { ReferenceFileHandle(testFile.toFile) }
-        else { ReferenceFileHandle.fromGzippedFile(testFile.toFile) }
-      }
+    Helpers.withTestFile("123456789") { testFile =>
+      val handle = ReferenceFileHandle(testFile.toFile)
       
       val refFiles = new ReferenceFiles(Map("a" -> handle))
       
       val v0 = Variant(chrom = "a", pos = 3, alt = "ACT", ref = "CCT")
     
-      val richV0 = new RichVariant(refFiles, Set.empty, v0)
+      val richV0 = new RichVariant(refFiles, JSet.empty, v0)
       
       val v1 = Variant(chrom = "a", pos = 123, alt = "A", ref = "C")
     
-      val richV1 = new RichVariant(refFiles, Set.empty, v1)
+      val richV1 = new RichVariant(refFiles, JSet.empty, v1)
       
       val v2 = Variant(chrom = "Q", pos = 123, alt = "A", ref = "C")
     
-      val richV2 = new RichVariant(refFiles, Set.empty, v2)
+      val richV2 = new RichVariant(refFiles, JSet.empty, v2)
       
       //NB: positions start from 1, so v0's position refers to the 2nd char in the file
       assert(richV0.altFromReferenceGenome === Some("345")) 

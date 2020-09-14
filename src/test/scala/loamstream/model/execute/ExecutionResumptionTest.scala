@@ -50,6 +50,8 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
     
     e
   }
+  
+  private val run: Run = Run.create()
 
   test("Pipelines can be resumed after stopping 1/3rd of the way through") {
     doTest(Seq(Skipped, Succeeded, Succeeded)) { (start, f1, f2, f3) =>
@@ -163,7 +165,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
       expectations: Seq[JobStatus],
       doSetup: () => Unit): Unit = {
     
-    createTablesAndThen {
+    registerRunAndThen(run) {
       if (!runningEverything) {
         doSetup()
       }

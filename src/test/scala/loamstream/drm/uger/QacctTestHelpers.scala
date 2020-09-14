@@ -9,6 +9,7 @@ import loamstream.model.execute.Resources.UgerResources
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Memory
 import loamstream.util.RunResults
+import loamstream.util.ExitCodes
 
 import scala.collection.immutable.ArraySeq
 
@@ -22,7 +23,8 @@ object QacctTestHelpers {
       stderr: Seq[String] = Nil, 
       fakeBinaryName: String = "MOCK"): Try[RunResults] = {
     
-    Success(RunResults(fakeBinaryName, exitCode = 0, stdout = stdout, stderr = stderr))
+    Success(
+        RunResults(fakeBinaryName, exitCode = 0, stdout = stdout, stderr = stderr, isSuccess = ExitCodes.isSuccess))
   }
   
   def failedRun(
@@ -31,7 +33,8 @@ object QacctTestHelpers {
       stderr: Seq[String] = Nil, 
       fakeBinaryName: String = "MOCK"): Try[RunResults] = {
 
-    Success(RunResults(fakeBinaryName, exitCode = exitCode, stdout = stdout, stderr = stderr))
+    Success(RunResults(
+        fakeBinaryName, exitCode = exitCode, stdout = stdout, stderr = stderr, isSuccess = ExitCodes.isSuccess))
   }
   
   def expectedResources(
@@ -68,7 +71,10 @@ object QacctTestHelpers {
       queue: Option[Queue], 
       node: Option[String],
       expectedStartTime: LocalDateTime,
-      expectedEndTime: LocalDateTime): Seq[String] = ArraySeq.unsafeWrapArray(s"""
+      expectedEndTime: LocalDateTime,
+      exitCode: Int = 0,
+      jobNumber: String = "6436107",
+      taskIndex: Int = 1): Seq[String] = ArraySeq.unsafeWrapArray(s"""
 qname        ${queue.map(_.name).getOrElse("")}
 hostname     ${node.getOrElse("")}
 group        broad
@@ -76,8 +82,8 @@ owner        cgilbert
 project      broad
 department   defaultdepartment
 jobname      LoamStream-aad659d0-f261-4e02-a78b-90755cb2a9d7
-jobnumber    6436107
-taskid       1
+jobnumber    ${jobNumber}
+taskid       ${taskIndex}
 account      sge
 priority     0
 cwd          /humgen/diabetes/users/cgilbert/run-dir/extra-uger-info
@@ -90,7 +96,7 @@ granted_pe   NONE
 slots        1
 failed       0
 deleted_by   NONE
-exit_status  0
+exit_status  ${exitCode}
 ru_wallclock 6.959
 ru_utime     2.248
 ru_stime     0.239

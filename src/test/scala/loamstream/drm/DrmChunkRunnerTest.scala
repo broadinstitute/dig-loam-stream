@@ -48,6 +48,7 @@ import java.time.LocalDateTime
 import loamstream.model.execute.Resources.DrmResources
 import loamstream.model.jobs.TerminationReason
 import loamstream.model.execute.Resources.UgerResources
+import loamstream.drm.uger.QdelJobKiller
 
 
 /**
@@ -99,20 +100,21 @@ final class DrmChunkRunnerTest extends FunSuite {
   private val ugerPathBuilder = new UgerPathBuilder(UgerScriptBuilderParams(ugerConfig))
   
   test("No failures when empty set of jobs is presented - Uger") {
-    val mockDrmClient = new MockDrmaaClient(Map.empty)
+    val mockDrmClient = new MockPoller(Map.empty)
     val runner = DrmChunkRunner(
         environmentType = EnvironmentType.Uger,
         pathBuilder = ugerPathBuilder,
         executionConfig = executionConfig,
         drmConfig = ugerConfig,
-        jobSubmitter = JobSubmitter.Drmaa(mockDrmClient, ugerConfig),
+        jobSubmitter = new MockJobSubmitter,
         //NB: The poller can always fail, since it should never be invoked
         jobMonitor = new JobMonitor(scheduler, JustFailsMockPoller),
-        accountingClient = MockAccountingClient.NeverWorks)
+        accountingClient = MockAccountingClient.NeverWorks,
+        jobKiller = MockJobKiller.DoesNothing)
     
-    val result = waitFor(runner.run(Set.empty, TestHelpers.DummyJobOracle).firstAsFuture)
+    val result = waitFor(runner.run(Set.empty, TestHelpers.DummyJobOracle).to[Seq].firstAsFuture)
     
-    assert(result === Map.empty)
+    assert(result === Nil)
   }
   
   test("No failures when empty set of jobs is presented - Lsf") {
@@ -125,36 +127,19 @@ final class DrmChunkRunnerTest extends FunSuite {
         jobSubmitter = new MockJobSubmitter,
         //NB: The poller can always fail, since it should never be invoked
         jobMonitor = new JobMonitor(scheduler, JustFailsMockPoller),
-        accountingClient = MockAccountingClient.NeverWorks)
+        accountingClient = MockAccountingClient.NeverWorks,
+        jobKiller = MockJobKiller.DoesNothing)
     
-    val result = waitFor(runner.run(Set.empty, TestHelpers.DummyJobOracle).firstAsFuture)
+    val result = waitFor(runner.run(Set.empty, TestHelpers.DummyJobOracle).to[Seq].firstAsFuture)
     
-    assert(result === Map.empty)
+    assert(result === Nil)
   }
   
-  test("combine") {
-    import DrmChunkRunner.combine
-    
-    assert(combine(Map.empty, Map.empty) == Map.empty)
-    
-    val m1 = Map("a" -> 1, "b" -> 2, "c" -> 3)
-    
-    assert(combine(Map.empty, m1) == Map.empty)
-    
-    assert(combine(m1, Map.empty) == Map.empty)
-    
-    val m2 = Map("a" -> 42.0, "c" -> 99.0, "x" -> 123.456)
-    
-    assert(combine(m1, m2) == Map("a" -> (1, 42.0), "c" -> (3, 99.0)))
-    
-    assert(combine(m2, m1) == Map("a" -> (42.0, 1), "c" -> (99.0, 3)))
-  }
-  
-  private def toTuple(jobWrapper: DrmJobWrapper): (DrmJobWrapper, Observable[DrmStatus]) = {
+  private def toTupleObs(jobWrapper: DrmJobWrapper): Observable[(DrmJobWrapper, DrmStatus)] = {
     
     val mockJob = jobWrapper.commandLineJob.asInstanceOf[MockDrmJob]
     
-    jobWrapper -> Observable.from(mockJob.statusesToReturn)
+    Observable.from(mockJob.statusesToReturn).map(status => jobWrapper -> status)
   }
   
   test("toRunDatas - one failed job") {
@@ -174,9 +159,11 @@ final class DrmChunkRunnerTest extends FunSuite {
       val accountingClient = new DrmChunkRunnerTest.MockAccountingClient(
           Map.empty[DrmTaskId, AccountingInfo].withDefault(_ => bogusAccountingInfo))
       
-      val result = waitFor(toRunDatas(accountingClient, Map(id -> toTuple(failed))).firstAsFuture)
+      val jobsAndDrmStatusesById = toTupleObs(failed).map { case (wrapper, status) => (id, wrapper, status) }
       
-      val Seq((actualJob, runData)) = result.toSeq
+      val result = waitFor(toRunDatas(accountingClient, jobsAndDrmStatusesById).firstAsFuture)
+      
+      val (actualJob, runData) = result
       
       assert(actualJob === job)    
       assert(runData.jobStatus === JobStatus.Failed)
@@ -214,9 +201,11 @@ final class DrmChunkRunnerTest extends FunSuite {
       
       val worked = DrmJobWrapper(ExecutionConfig.default, defaultUgerSettings, ugerPathBuilder, job, path("."), 1)
       
-      val result = waitFor(toRunDatas(accountingClient, Map(id -> toTuple(worked))).firstAsFuture)
+      val jobsAndDrmStatusesById = toTupleObs(worked).map { case (wrapper, status) => (id, wrapper, status) }
       
-      val Seq((actualJob, runData)) = result.toSeq
+      val result = waitFor(toRunDatas(accountingClient, jobsAndDrmStatusesById).firstAsFuture)
+      
+      val (actualJob, runData) = result
       
       assert(actualJob === job)
       assert(runData.jobStatus === JobStatus.WaitingForOutputs)
@@ -253,14 +242,17 @@ final class DrmChunkRunnerTest extends FunSuite {
       val worked = DrmJobWrapper(ExecutionConfig.default, defaultUgerSettings, ugerPathBuilder, workedJob, path("."), 1)
       val failed = DrmJobWrapper(ExecutionConfig.default, defaultUgerSettings, ugerPathBuilder, failedJob, path("."), 2)
       
-      val input = Map(goodId -> toTuple(worked), badId -> toTuple(failed))
+      val forGoodId = toTupleObs(worked).map { case (wrapper, status) => (goodId, wrapper, status) }
+      val forBadId = toTupleObs(failed).map { case (wrapper, status) => (badId, wrapper, status) }
+      
+      val input = Observables.merge(Seq(forGoodId, forBadId))
       
       import QacctTestHelpers.{successfulRun, actualQacctOutput}
 
       val accountingClient = new DrmChunkRunnerTest.MockAccountingClient(
           Map.empty[DrmTaskId, AccountingInfo].withDefault(_ => bogusAccountingInfo))
       
-      val result = waitFor(toRunDatas(accountingClient, input).firstAsFuture)
+      val result = waitFor(toRunDatas(accountingClient, input).to[Seq].map(_.toMap).firstAsFuture)
       
       val goodExecution = result(workedJob)
       val badExecution = result(failedJob)
@@ -300,7 +292,7 @@ final class DrmChunkRunnerTest extends FunSuite {
         JobStatus.Failed)
   }
   
-  test("DRM config is propagated to DRMAA client - 2 jobs, same settings") {
+  test("DRM config is propagated to JobSubmitter - 2 jobs, same settings") {
     
     def makeGraph(drmSystem: DrmSystem): LoamGraph = {
       TestHelpers.makeGraph(drmSystem) { implicit context =>
@@ -325,8 +317,9 @@ final class DrmChunkRunnerTest extends FunSuite {
             executionConfig = executionConfig,
             drmConfig = ugerConfig,
             jobSubmitter = mockJobSubmitter,
-            jobMonitor = new JobMonitor(poller = JustFailsMockPoller),
-            accountingClient = MockAccountingClient.NeverWorks)
+            jobMonitor = new JobMonitor(poller = JustFailsMockPoller, scheduler = IOScheduler()),
+            accountingClient = MockAccountingClient.NeverWorks,
+            jobKiller = MockJobKiller.DoesNothing)
       }
       case DrmSystem.Lsf => {
         DrmChunkRunner(
@@ -335,8 +328,9 @@ final class DrmChunkRunnerTest extends FunSuite {
             executionConfig = executionConfig,
             drmConfig = lsfConfig,
             jobSubmitter = mockJobSubmitter,
-            jobMonitor = new JobMonitor(poller = JustFailsMockPoller),
-            accountingClient = MockAccountingClient.NeverWorks)
+            jobMonitor = new JobMonitor(poller = JustFailsMockPoller, scheduler = IOScheduler()),
+            accountingClient = MockAccountingClient.NeverWorks,
+            jobKiller = MockJobKiller.DoesNothing)
       }
     }
     
@@ -363,7 +357,7 @@ final class DrmChunkRunnerTest extends FunSuite {
           
       
       val results = {
-        waitFor(chunkRunner.run(jobs.map(_.job).toSet, TestHelpers.DummyJobOracle).firstAsFuture)
+        waitFor(chunkRunner.run(jobs.map(_.job).toSet, TestHelpers.DummyJobOracle).to[Seq].map(_.toMap).firstAsFuture)
       }
       
       val actualSubmissionParams = mockJobSubmitter.params
@@ -378,7 +372,7 @@ final class DrmChunkRunnerTest extends FunSuite {
     doTest(DrmSystem.Lsf)
   }
   
-  test("Uger config is propagated to DRMAA client - 2 pairs of jobs with different settings") {
+  test("Uger config is propagated to JobSubmitter - 2 pairs of jobs with different settings") {
     
     def makeGraphAndTools(drmSystem: DrmSystem): (LoamGraph, LoamCmdTool, LoamCmdTool, LoamCmdTool, LoamCmdTool) = {
       implicit val sc = new LoamScriptContext(TestHelpers.emptyProjectContext(drmSystem))
@@ -404,16 +398,15 @@ final class DrmChunkRunnerTest extends FunSuite {
     
     def makeChunkRunner(drmSystem: DrmSystem, mockJobSubmitter: MockJobSubmitter): DrmChunkRunner = drmSystem match {
       case DrmSystem.Uger => { 
-        val mockDrmaaClient = MockDrmaaClient(Map.empty)
-
         DrmChunkRunner(
             environmentType = EnvironmentType.Uger,
             pathBuilder = ugerPathBuilder,
             executionConfig = executionConfig,
             drmConfig = ugerConfig,
             jobSubmitter = mockJobSubmitter,
-            jobMonitor = new JobMonitor(poller = new DrmaaPoller(mockDrmaaClient)),
-            accountingClient = MockAccountingClient.NeverWorks)
+            jobMonitor = new JobMonitor(poller = MockPoller(Map.empty), scheduler = IOScheduler()),
+            accountingClient = MockAccountingClient.NeverWorks,
+            jobKiller = MockJobKiller.DoesNothing)
       }
       case DrmSystem.Lsf => {
         DrmChunkRunner(
@@ -423,8 +416,9 @@ final class DrmChunkRunnerTest extends FunSuite {
             drmConfig = lsfConfig,
             jobSubmitter = mockJobSubmitter,
             //NB: The poller can fail, since we're not checking execution results, just config-propagation
-            jobMonitor = new JobMonitor(poller = JustFailsMockPoller),
-            accountingClient = MockAccountingClient.NeverWorks)
+            jobMonitor = new JobMonitor(poller = JustFailsMockPoller, scheduler = IOScheduler()),
+            accountingClient = MockAccountingClient.NeverWorks,
+            jobKiller = MockJobKiller.DoesNothing)
       }
     }
     
@@ -459,7 +453,7 @@ final class DrmChunkRunnerTest extends FunSuite {
       val chunkRunner = makeChunkRunner(drmSystem, mockJobSubmitter)
           
       val results = {
-        waitFor(chunkRunner.run(jobs.map(_.job).toSet, TestHelpers.DummyJobOracle).firstAsFuture)
+        waitFor(chunkRunner.run(jobs.map(_.job).toSet, TestHelpers.DummyJobOracle).to[Seq].map(_.toMap).firstAsFuture)
       }
       
       val actualSubmissionParams = mockJobSubmitter.params
@@ -513,10 +507,10 @@ object DrmChunkRunnerTest {
   final class MockJobSubmitter extends JobSubmitter {
     @volatile var params: Seq[(DrmSettings, DrmTaskArray)] = Vector.empty
     
-    override def submitJobs(drmSettings: DrmSettings, taskArray: DrmTaskArray): DrmSubmissionResult = {
+    override def submitJobs(drmSettings: DrmSettings, taskArray: DrmTaskArray): Observable[DrmSubmissionResult] = {
       params :+= (drmSettings -> taskArray)
       
-      DrmSubmissionResult.SubmissionSuccess(Map.empty)
+      Observable.just(DrmSubmissionResult.SubmissionSuccess(Map.empty))
     }
     
     override def stop(): Unit = ()

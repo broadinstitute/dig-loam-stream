@@ -23,6 +23,7 @@ import loamstream.drm.Queue
 import loamstream.model.execute.Settings
 import loamstream.model.execute.LocalSettings
 import loamstream.googlecloud.ClusterConfig
+import loamstream.conf.LsSettings
 
 /**
  * @author clint
@@ -55,7 +56,7 @@ final class LoamPredefTest extends FunSuite {
     
     assert(loamConfig !== baseConfig)
     
-    implicit val scriptContext = new LoamScriptContext(LoamProjectContext.empty(loamConfig))
+    implicit val scriptContext = new LoamScriptContext(LoamProjectContext.empty(loamConfig, LsSettings.noCliConfig))
     
     val settings = GoogleSettings(scriptContext.googleConfig.clusterId, newClusterConfig)
     

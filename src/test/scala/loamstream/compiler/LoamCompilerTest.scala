@@ -12,6 +12,7 @@ import loamstream.loam.LoamLoamScript
 import loamstream.util.code.ScalaId
 import loamstream.loam.ScalaLoamScript
 import java.nio.file.Path
+import loamstream.conf.LsSettings
 
 /**
   * LoamStream
@@ -55,7 +56,7 @@ final class LoamCompilerTest extends FunSuite {
     }
     
     testAsLoamAndScala(code, "Code") { script =>
-      val result = compiler.compile(TestHelpers.config, script)
+      val result = compiler.compile(TestHelpers.config, LsSettings.noCliConfig, script)
      
       assert(result.errors === Nil)
       
@@ -74,7 +75,7 @@ final class LoamCompilerTest extends FunSuite {
     }
 
     testAsLoamAndScala(code, "Code") { script =>
-      val result = compiler.compile(TestHelpers.config, script)
+      val result = compiler.compile(TestHelpers.config, LsSettings.noCliConfig, script)
       
       assert(result.errors.nonEmpty)
       
@@ -88,7 +89,7 @@ final class LoamCompilerTest extends FunSuite {
           
       assert(scriptAttempt.isSuccess, s"Expected to find $exampleFile, but got ${scriptAttempt.get}")
       
-      val result = LoamCompiler.default.compile(LoamProject(TestHelpers.config, scriptAttempt.get))
+      val result = LoamCompiler.default.compile(LoamProject(TestHelpers.config, LsSettings.noCliConfig, scriptAttempt.get))
       
       assert(result.errors.isEmpty)
       assert(result.warnings.isEmpty)

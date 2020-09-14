@@ -140,8 +140,8 @@ final class FlipDetectorTest extends FunSuite {
 object FlipDetectorTest {
   private[flip] def makeFlipDetector: FlipDetector = {
     new FlipDetector.Default(
-      referenceDir = Paths.get("/home/clint/workspace/marcins-scripts/reference/reference"),
+      referenceDir = Paths.get("src/test/resources/intake/reference-first-1M-of-chrom1/"),
       isVarDataType = true,
-      pathTo26kMap = Paths.get("/home/clint/workspace/marcins-scripts/26k_id.map"))
+      pathTo26kMap = Paths.get("src/test/resources/intake/26k_id.map.first100"))
   }
 }

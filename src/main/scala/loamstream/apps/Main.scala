@@ -1,37 +1,28 @@
 package loamstream.apps
 
+import java.nio.file.Path
+
 import scala.util.Failure
 import scala.util.Success
 
 import loamstream.cli.Conf
+import loamstream.cli.Intent
+import loamstream.cli.JobFilterIntent
 import loamstream.compiler.LoamCompiler
 import loamstream.compiler.LoamEngine
 import loamstream.compiler.LoamProject
+import loamstream.conf.LoamConfig
+import loamstream.conf.LsSettings
+import loamstream.db.LoamDao
 import loamstream.loam.LoamScript
+import loamstream.model.execute.DryRunner
+import loamstream.model.execute.Run
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.LJob
 import loamstream.util.Loggable
 import loamstream.util.OneTimeLatch
-import loamstream.util.Versions
-import loamstream.cli.Intent
-import loamstream.db.LoamDao
-import java.nio.file.Path
-import loamstream.model.execute.JobFilter
-import loamstream.model.execute.DbBackedJobFilter
 import loamstream.util.TimeUtils
-import loamstream.model.execute.DryRunner
-import loamstream.drm.DrmSystem
-import loamstream.conf.LoamConfig
-import org.apache.commons.io.IOUtils
-import org.apache.commons.io.FileUtils
-import java.nio.file.Paths
-import loamstream.conf.DrmConfig
-import loamstream.db.slick.DbDescriptor
-import loamstream.conf.ExecutionConfig
-import loamstream.conf.Locations
-import loamstream.util.Files
-import loamstream.cli.JobFilterIntent
-import loamstream.conf.LsSettings
+import loamstream.util.Versions
 
 
 /**
@@ -49,7 +40,7 @@ object Main extends Loggable {
 
     val intent = Intent.from(cli)
     
-    import Intent._
+    import loamstream.cli.Intent._
 
     def run = new Run
     
@@ -174,11 +165,17 @@ object Main extends Loggable {
   
         //NB: Shut down before logging anything about jobs, so that potentially-noisy shutdown info is logged
         //before final job statuses.
-        val runResults = shutdownAfter(wiring) {
-          wiring.loamRunner.run(project)
+        val (runResults, elapsedMillis) = shutdownAfter(wiring) {
+          wiring.dao.registerNewRun(Run.create())
+          
+          TimeUtils.elapsed {
+            wiring.loamRunner.run(project)
+          }
         }
         
-        describeRunResults(loamEngine.config, runResults)
+        describeRunResults(loamEngine.config, runResults.get)
+        
+        info(s"Running project with ${project.scripts.size} scripts took ${elapsedMillis / 1000} seconds")
       } finally {
         shutdown(wiring)
       }

@@ -5,6 +5,7 @@ import org.scalatest.FunSuite
 import loamstream.compiler.LoamCompiler
 import loamstream.compiler.LoamProject
 import loamstream.loam.ScriptType
+import loamstream.conf.LsSettings
 
 /**
   * @author oliver
@@ -37,7 +38,7 @@ final class CompileExampleLoamsTest extends FunSuite {
       
       val script = scriptAttempt.get
       
-      val compileResult = loamEngine.compile(LoamProject(TestHelpers.configWithUger, script))
+      val compileResult = loamEngine.compile(LoamProject(TestHelpers.configWithUger, LsSettings.noCliConfig, script))
       
       val message = s"; Compilation failed for $loamFile:\n${compileResult.report}"
       

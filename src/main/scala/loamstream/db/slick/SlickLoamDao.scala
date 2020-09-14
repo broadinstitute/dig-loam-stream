@@ -24,4 +24,4 @@ import loamstream.util.Loggable
  * For a schema description, see Tables
  */
 final class SlickLoamDao(val descriptor: DbDescriptor) extends 
-    LoamDao with CommonDaoOps with OutputDaoOps with ExecutionDaoOps with CommandDaoOps
+    LoamDao with CommonDaoOps with OutputDaoOps with ExecutionDaoOps with RunDaoOps with CommandDaoOps

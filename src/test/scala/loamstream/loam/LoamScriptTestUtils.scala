@@ -15,6 +15,7 @@ import loamstream.model.jobs.LJob
 import loamstream.util.Files
 import loamstream.util.Loggable
 import loamstream.util.Tries
+import loamstream.conf.LsSettings
 
 /** Utils for testing specific LoamScripts */
 object LoamScriptTestUtils extends Loggable {
@@ -66,7 +67,7 @@ object LoamScriptTestUtils extends Loggable {
     createInputFiles(filePaths)
     val engine = TestHelpers.loamEngine
     
-    val results = run(engine, LoamProject(TestHelpers.config, scripts))
+    val results = run(engine, LoamProject(TestHelpers.config, LsSettings.noCliConfig, scripts))
     
     assert(results.jobExecutionsOpt.isSuccess, results.compileResultOpt)
     assertOutputFilesExist(filePaths)

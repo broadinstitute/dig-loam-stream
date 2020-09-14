@@ -32,8 +32,6 @@ object CommandInvoker extends Loggable {
   trait Sync[A] extends (SuccessfulInvocationFn[A])
 
   trait Async[A] extends (AsyncInvocationFn[A])
-
-  
   
   object Sync {
     final class JustOnce[A](

@@ -57,6 +57,7 @@ import loamstream.model.jobs.JobOracle
 import loamstream.model.execute.EnvironmentType
 import java.time.LocalDateTime
 import java.time.ZoneId
+import loamstream.conf.LsSettings
 
 /**
   * @author clint
@@ -187,9 +188,11 @@ object TestHelpers {
     executionFrom(result.toJobStatus, Option(result), resources)
   }
   
-  def emptyProjectContext = LoamProjectContext.empty(config)
+  def emptyProjectContext = LoamProjectContext.empty(config, LsSettings.noCliConfig)
   
-  def emptyProjectContext(drmSystem: DrmSystem) = LoamProjectContext.empty(config.copy(drmSystem = Option(drmSystem)))
+  def emptyProjectContext(drmSystem: DrmSystem) = {
+    LoamProjectContext.empty(config.copy(drmSystem = Option(drmSystem)), LsSettings.noCliConfig)
+  }
   
   def withScriptContext[A](f: LoamScriptContext => A): A = f(new LoamScriptContext(emptyProjectContext))
   
@@ -239,10 +242,10 @@ object TestHelpers {
     finally { FileUtils.deleteQuietly(workDir.toFile) }
   }
 
-  def loamEngine: LoamEngine = LoamEngine.default(config)
+  def loamEngine: LoamEngine = LoamEngine.default(config, LsSettings.noCliConfig)
 
   def compile(loamCode: String): LoamCompiler.Result = {
-    loamEngine.compiler.compile(config, LoamScript.withGeneratedName(loamCode))
+    loamEngine.compiler.compile(config, LsSettings.noCliConfig, LoamScript.withGeneratedName(loamCode))
   }
   
   val defaultUgerSettings: UgerDrmSettings = {

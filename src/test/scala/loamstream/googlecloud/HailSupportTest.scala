@@ -16,6 +16,7 @@ import loamstream.util.BashScript.Implicits.BashPath
 import loamstream.util.Files
 import loamstream.model.execute.LocalSettings
 import loamstream.model.execute.Settings
+import loamstream.conf.LsSettings
 
 /**
  * @author clint
@@ -54,7 +55,7 @@ final class HailSupportTest extends FunSuite {
     LoamConfig.fromString(configString).get
   }
 
-  private val projectContext: LoamProjectContext = LoamProjectContext.empty(config)
+  private val projectContext: LoamProjectContext = LoamProjectContext.empty(config, LsSettings.noCliConfig)
 
   private val googleSettings = GoogleSettings(clusterId, clusterConfig = ClusterConfig.default)
 
@@ -104,17 +105,17 @@ final class HailSupportTest extends FunSuite {
   }
 
   test("Guards: config sections") {
-    withScriptContext(LoamProjectContext.empty(config)) { implicit scriptContext =>
+    withScriptContext(LoamProjectContext.empty(config, LsSettings.noCliConfig)) { implicit scriptContext =>
       hail""
     }
 
-    withScriptContext(LoamProjectContext.empty(config)) { implicit scriptContext =>
+    withScriptContext(LoamProjectContext.empty(config, LsSettings.noCliConfig)) { implicit scriptContext =>
       pyhail""
     }
 
     val noGoogleConfig = config.copy(googleConfig = None)
 
-    withScriptContext(LoamProjectContext.empty(noGoogleConfig)) { implicit scriptContext =>
+    withScriptContext(LoamProjectContext.empty(noGoogleConfig, LsSettings.noCliConfig)) { implicit scriptContext =>
       intercept[Exception] {
         hail""
       }
@@ -126,7 +127,7 @@ final class HailSupportTest extends FunSuite {
 
     val noHailConfig = config.copy(hailConfig = None)
 
-    withScriptContext(LoamProjectContext.empty(noHailConfig)) { implicit scriptContext =>
+    withScriptContext(LoamProjectContext.empty(noHailConfig, LsSettings.noCliConfig)) { implicit scriptContext =>
       intercept[Exception] {
         hail""
       }

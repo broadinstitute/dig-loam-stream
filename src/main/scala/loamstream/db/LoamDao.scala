@@ -7,6 +7,7 @@ import loamstream.model.jobs.DataHandle
 import loamstream.model.jobs.StoreRecord
 import loamstream.util.Paths
 import loamstream.model.jobs.JobStatus
+import loamstream.model.execute.Run
 
 /**
  * @author clint
@@ -14,6 +15,10 @@ import loamstream.model.jobs.JobStatus
  * date: Aug 4, 2016
  */
 trait LoamDao {
+
+  def findLastRun: Option[Run]
+  def registerNewRun(run: Run): Unit
+  
   final def insertExecutions(execution: Execution, others: Execution*): Unit = insertExecutions(execution +: others)
   def insertExecutions(rows: Iterable[Execution]): Unit
 

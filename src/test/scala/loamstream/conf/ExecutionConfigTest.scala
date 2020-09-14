@@ -30,7 +30,8 @@ final class ExecutionConfigTest extends FunSuite {
         Defaults.dbDir,
         Defaults.logDir,
         Defaults.jobDataDir,
-        Defaults.maxJobLogFilesPerDir)
+        Defaults.maxJobLogFilesPerDir,
+        Defaults.numWorkerThreads)
 
     assert(ExecutionConfig.default === expected)
   }
@@ -74,6 +75,7 @@ final class ExecutionConfigTest extends FunSuite {
                     |    outputPollingFrequencyInHz = 1.23
                     |    anonStoreDir = ${expectedAnonStoreDir.render}
                     |    maxJobLogFilesPerDir = $expectedMaxJobLogFilesPerDir
+                    |    numWorkerThreads = 456
                     |  }
                     |}""".stripMargin
 
@@ -86,7 +88,8 @@ final class ExecutionConfigTest extends FunSuite {
         outputPollingFrequencyInHz = expectedOutputPollingFrequencyInHz,
         anonStoreDir = expectedAnonStoreDir,
         singularity = SingularityConfig.default,
-        maxJobLogFilesPerDir = expectedMaxJobLogFilesPerDir)
+        maxJobLogFilesPerDir = expectedMaxJobLogFilesPerDir,
+        numWorkerThreads = 456)
 
     assert(executionConfig === expected)
   }
@@ -103,6 +106,7 @@ final class ExecutionConfigTest extends FunSuite {
     val expectedSingularityExecutable = path("/foo/bar/baz")
     val mappedDir0 = path("/bar")
     val mappedDir1 = path("/baz/blerg/blip")
+    val expectedMaxJobLogFilesPerDir = 12345
     
     val input = s"""|loamstream {
                     |  execution {
@@ -111,6 +115,8 @@ final class ExecutionConfigTest extends FunSuite {
                     |    maxWaitTimeForOutputs = "99 seconds"
                     |    outputPollingFrequencyInHz = 1.23
                     |    anonStoreDir = ${expectedAnonStoreDir.render}
+                    |    maxJobLogFilesPerDir = $expectedMaxJobLogFilesPerDir
+                    |    numWorkerThreads = 456
                     |    singularity {
                     |      executable = ${expectedSingularityExecutable.render}
                     |      mappedDirs = [${mappedDir0.render}, ${mappedDir1.render}]
@@ -126,7 +132,9 @@ final class ExecutionConfigTest extends FunSuite {
         maxWaitTimeForOutputs = expectedMaxWaitTime,
         outputPollingFrequencyInHz = expectedOutputPollingFrequencyInHz,
         anonStoreDir = expectedAnonStoreDir,
-        singularity = SingularityConfig(expectedSingularityExecutable.render, Seq(mappedDir0, mappedDir1)))
+        singularity = SingularityConfig(expectedSingularityExecutable.render, Seq(mappedDir0, mappedDir1)),
+        maxJobLogFilesPerDir = expectedMaxJobLogFilesPerDir,
+        numWorkerThreads = 456)
 
     assert(executionConfig === expected)
   }

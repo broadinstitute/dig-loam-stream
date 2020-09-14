@@ -13,4 +13,5 @@ final case class ExecutionRow(
     status: JobStatus, 
     exitCode: Int,
     jobDir: Option[String],
-    terminationReason: Option[String])
+    terminationReason: Option[String],
+    runId: Option[Int] = None)

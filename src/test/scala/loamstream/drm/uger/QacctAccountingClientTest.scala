@@ -57,7 +57,7 @@ final class QacctAccountingClientTest extends FunSuite {
   }
   
   test("getResourceUsage - accounting client fails") {
-    val ugerConfig = UgerConfig(maxQacctRetries = 0)
+    val ugerConfig = UgerConfig(maxRetries = 0)
     
     val mockClient = new MockQacctAccountingClient(_ => Tries.failure("blarg"), ugerConfig)
     
@@ -104,7 +104,7 @@ final class QacctAccountingClientTest extends FunSuite {
   test("retries - never works") {
     val maxRuns = 6
     
-    val ugerConfig = UgerConfig(maxQacctRetries = maxRuns - 1)
+    val ugerConfig = UgerConfig(maxRetries = maxRuns - 1)
     
     val mockClient = new MockQacctAccountingClient(_ => Tries.failure("blarg"), ugerConfig, 0.001.seconds, 0.5.seconds)
     
@@ -129,7 +129,7 @@ final class QacctAccountingClientTest extends FunSuite {
   test("retries - works after 2 failures") {
     val maxRuns = 5
     
-    val ugerConfig = UgerConfig(maxQacctRetries = maxRuns - 1)
+    val ugerConfig = UgerConfig(maxRetries = maxRuns - 1)
     
     val expectedNode: String = "uger-c052.broadinstitute.org"
     val expectedQueue: Queue = Queue("broad")

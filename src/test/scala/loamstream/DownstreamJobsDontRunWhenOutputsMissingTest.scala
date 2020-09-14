@@ -31,6 +31,8 @@ final class DownstreamJobsDontRunWhenOutputsMissingTest extends FunSuite {
     val intermediateFile = workDir / "inter.txt"
     val outputFile = workDir / "out.txt"
     
+    val className = getClass.getSimpleName
+    
     val graph = TestHelpers.makeGraph { implicit context =>
       import loamstream.loam.LoamSyntax._
       
@@ -38,8 +40,8 @@ final class DownstreamJobsDontRunWhenOutputsMissingTest extends FunSuite {
       val intermediate = store(intermediateFile)
       val output = store(outputFile)
       
-      cmd"echo foo".in(input).out(intermediate).tag("first")
-      cmd"echo bar".in(intermediate).out(output).tag("second")
+      cmd"echo foo".in(input).out(intermediate).tag(s"${className}-first")
+      cmd"echo bar".in(intermediate).out(output).tag(s"${className}-second")
     }
     
     assert(!exists(inputFile))
@@ -57,8 +59,8 @@ final class DownstreamJobsDontRunWhenOutputsMissingTest extends FunSuite {
     val firstJob = executable.jobNodes.head.dependencies.head.job
     val secondJob = executable.jobNodes.head.job
     
-    assert(firstJob.name === "first")
-    assert(secondJob.name === "second")
+    assert(firstJob.name === s"${className}-first")
+    assert(secondJob.name === s"${className}-second")
     
     import scala.concurrent.duration._
     

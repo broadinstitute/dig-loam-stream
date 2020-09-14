@@ -35,6 +35,8 @@ import loamstream.util.Loggable
 import loamstream.util.Sequence
 import loamstream.model.jobs.PseudoExecution
 import loamstream.model.jobs.JobOracle
+import loamstream.model.execute.Run
+import loamstream.conf.LsSettings
 
 
 
@@ -46,6 +48,8 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
   // scalastyle:off no.whitespace.before.left.bracket
 
+  private val currentRun: Run = Run.create()
+  
   test("Jobs are skipped if their outputs were already produced by a previous run") {
     def copyAToB(fileIn: Path, fileOut: Path): LoamGraph = TestHelpers.makeGraph { implicit context =>
       import loamstream.loam.LoamSyntax._
@@ -173,7 +177,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
     
     val fileIn = Paths.get("src", "test", "resources", "a.txt")
   
-    createTablesAndThen {
+    registerRunAndThen(currentRun) {
       withWorkDir { workDir =>
         val fileOut1 = workDir.resolve("fileOut1.txt")
         val fileOut2 = workDir.resolve("fileOut2.txt")
@@ -239,7 +243,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       assert(findExecution(output1).get.outputs === Set(output1))
     }
     
-    createTablesAndThen {
+    registerRunAndThen(currentRun) {
       withWorkDir { workDir => 
         val fileOut1 = workDir.resolve("fileOut1.txt")
   
@@ -298,7 +302,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       assert(findExecution(output2) === None)
     }
     
-    createTablesAndThen {
+    registerRunAndThen(currentRun) {
       withWorkDir { workDir =>
         val fileOut1 = workDir.resolve("fileOut1.txt")
         val fileOut2 = workDir.resolve("fileOut2.txt")
@@ -335,7 +339,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
   private def loamEngine = {
     val (executer, _) = makeLoggingExecuter
 
-    LoamEngine(TestHelpers.config, LoamCompiler.default, executer)
+    LoamEngine(TestHelpers.config, LsSettings.noCliConfig, LoamCompiler.default, executer)
   }
 
   private def compileAndRun(graph: LoamGraph): (Executable, Map[LJob, Execution]) = {

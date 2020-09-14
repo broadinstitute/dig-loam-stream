@@ -10,6 +10,7 @@ import loamstream.loam.intake.aggregator.AggregatorCommands
 import loamstream.loam.intake.aggregator.AggregatorIntakeConfig
 import loamstream.loam.intake.aggregator.Metadata
 import loamstream.loam.intake.aggregator.SourceColumns
+import loamstream.conf.LsSettings
 
 /**
  * @author clint
@@ -24,9 +25,8 @@ object ReadMe extends AggregatorCommands {
   import IntakeSyntax._
 
   //Dummy script context to make things compile
-  private implicit val scriptContext: LoamScriptContext = {
-    new LoamScriptContext(LoamProjectContext.empty(LoamConfig.fromConfig(ConfigFactory.load()).get))
-  }
+  private implicit val scriptContext: LoamScriptContext = new LoamScriptContext(
+    LoamProjectContext.empty(LoamConfig.fromConfig(ConfigFactory.load()).get, LsSettings.noCliConfig))
 
   /*
    * 1)

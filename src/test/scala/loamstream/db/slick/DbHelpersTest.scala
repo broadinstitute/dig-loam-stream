@@ -6,11 +6,11 @@ import org.scalatest.FunSuite
   * @author clint
   *         date: Aug 10, 2016
   */
-final class HelpersTest extends FunSuite {
+final class DbHelpersTest extends FunSuite {
   test("timestampFromLong") {
     val millis = 123456
 
-    val timestamp = Helpers.timestampFromLong(millis)
+    val timestamp = DbHelpers.timestampFromLong(millis)
 
     assert(timestamp.toInstant.toEpochMilli === millis)
   }

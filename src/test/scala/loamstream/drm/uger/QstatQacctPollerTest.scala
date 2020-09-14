@@ -11,6 +11,8 @@ import loamstream.util.Observables
 import loamstream.TestHelpers
 import loamstream.drm.DrmStatus.CommandResult
 import loamstream.util.Traversables
+import scala.util.Try
+import scala.util.Failure
 
 /**
  * @author clint
@@ -76,7 +78,7 @@ final class QstatQacctPollerTest extends FunSuite {
     
     val expected = Map(tid3 -> CommandResult(42), tid4 -> CommandResult(0))
     
-    assert(actual === expected)
+    assert(actual.toMap === expected)
   }
   
   test("parseMultiTaskQacctResults - problematic qacct output") {
@@ -92,7 +94,7 @@ final class QstatQacctPollerTest extends FunSuite {
     
     val expected = Map(tid -> CommandResult(0))
     
-    assert(actual === expected)
+    assert(actual.toMap === expected)
   }
   
   test("poll - happy path") {
@@ -168,17 +170,68 @@ final class QstatQacctPollerTest extends FunSuite {
   }
   
   test("parseQstatOutput - happy path") {
+    val id1 = DrmTaskId("19115592", 1)
+    val id2 = DrmTaskId("19115592", 2)
+    val id3 = DrmTaskId("19115592", 3)
+    
+    val ids = Set(id1, id2, id3)
+    
     val expected = Iterable(
-      Success(DrmTaskId("19115592", 2) -> DrmStatus.Running),
-      Success(DrmTaskId("19115592", 1) -> DrmStatus.Running))
+      Success(id2 -> DrmStatus.Running),
+      Success(id1 -> DrmStatus.Running))
         
-    assert(QstatSupport.parseQstatOutput(qstatLines).toList === expected)
+    assert(QstatSupport.parseQstatOutput(ids, qstatLines).toList === expected)
     
-    assert(QstatSupport.parseQstatOutput(dataLines).toList === expected)
+    assert(QstatSupport.parseQstatOutput(ids, dataLines).toList === expected)
     
-    assert(QstatSupport.parseQstatOutput(headerLines).isEmpty)
+    assert(QstatSupport.parseQstatOutput(ids, headerLines).isEmpty)
     
-    assert(QstatSupport.parseQstatOutput(Nil).isEmpty)
+    assert(QstatSupport.parseQstatOutput(ids, Nil).isEmpty)
+  }
+  
+  test("parseQstatOutput - happy path, some listings for whole task array") {
+    val id1 = DrmTaskId("19115592", 1)
+    val id2 = DrmTaskId("19115592", 2)
+    val id3 = DrmTaskId("19115592", 3)
+    
+    val taskArrayId1 = "19115593"
+    val taskArrayId2 = "19115594"
+    
+    val id11 = DrmTaskId(taskArrayId1,1)
+    val id12 = DrmTaskId(taskArrayId1,2)
+    
+    val id22 = DrmTaskId(taskArrayId2,2)
+    val id24 = DrmTaskId(taskArrayId2,4)
+    val id26 = DrmTaskId(taskArrayId2,6)
+    
+    val ids = Set(id1, id2, id3, id11, id12, id22, id24, id26)
+    
+    //NB: convert to a map to ignore ordering
+    val expected: Iterable[Try[(DrmTaskId, DrmStatus)]] = Seq(
+      id1 -> DrmStatus.Running,
+      id2 -> DrmStatus.Running,
+      id11 -> DrmStatus.Queued,
+      id12 -> DrmStatus.Queued,
+      id22 -> DrmStatus.Running,
+      id24 -> DrmStatus.Running,
+      id26 -> DrmStatus.Running).map(Success(_))
+    
+    // scalastyle:off line.size.limit
+    val lines = qstatLines ++ Seq(
+        s"$taskArrayId2 0.56956 test.sh    cgilbert     r     07/24/2020 11:51:17 broad@uger-c104.broadinstitute                                   1 2-6:2",
+        s"$taskArrayId1 0.56956 test.sh    cgilbert     qw     07/24/2020 11:51:18 broad@uger-c104.broadinstitute                                  1 1-2:1")
+    // scalastyle:on line.size.limit
+      
+    def sort(s: Iterable[Try[(DrmTaskId, DrmStatus)]]): Iterable[Try[(DrmTaskId, DrmStatus)]] = {
+      val ordering: Ordering[Try[(DrmTaskId, DrmStatus)]] = DrmTaskId.ordering.on {
+        case Success((taskId, _)) => taskId
+        case Failure(_) => ???
+      }
+      
+      s.toSeq.sorted(ordering)
+    }
+        
+    assert(sort(QstatSupport.parseQstatOutput(ids, lines).toList) === sort(expected))
   }
   
   test("parseQstatOutput - bad lines should be ignored") {
@@ -186,35 +239,56 @@ final class QstatQacctPollerTest extends FunSuite {
     
     val lines = headerLines ++ Seq(d0, "some bogus line lalala", d1)
     
+    val id1 = DrmTaskId("19115592", 1)
+    val id2 = DrmTaskId("19115592", 2)
+    val id3 = DrmTaskId("19115592", 3)
+    
+    val ids = Set(id1, id2, id3)
+    
     val expected = Iterable(
-      Success(DrmTaskId("19115592", 2) -> DrmStatus.Running),
-      Success(DrmTaskId("19115592", 1) -> DrmStatus.Running))
+      Success(id2 -> DrmStatus.Running),
+      Success(id1 -> DrmStatus.Running))
         
-    assert(QstatSupport.parseQstatOutput(lines).toList === expected)
+    assert(QstatSupport.parseQstatOutput(ids, lines).toList === expected)
   }
   
   test("parseQstatOutput - bad statuses should be failures") {
     val lines = headerLines ++ dataLinesWithBadStatuses
     
-    val actual = QstatSupport.parseQstatOutput(lines).toList
+    val id1 = DrmTaskId("19115592", 1)
+    val id2 = DrmTaskId("19115592", 2)
+    val id3 = DrmTaskId("19115592", 3)
     
-    assert(actual.forall(_.isFailure))
+    val ids = Set(id1, id2, id3)
+    
+    val actual = QstatSupport.parseQstatOutput(ids, lines).toList
+    
+    assert(actual.forall { 
+      case Success((drmTaskId, drmStatus)) => drmStatus.isUndetermined
+      case _ => false
+    })
     
     assert(actual.size === 2)
   }
   
   test("getByTaskId - happy path") {
+    val id1 = DrmTaskId("19115592", 1)
+    val id2 = DrmTaskId("19115592", 2)
+    val id3 = DrmTaskId("19115592", 3)
+    
+    val ids = Set(id1, id2, id3)
+    
     val expected = Map(
-      DrmTaskId("19115592", 2) -> Success(DrmStatus.Running),
-      DrmTaskId("19115592", 1) -> Success(DrmStatus.Running))
+      id2 -> Success(DrmStatus.Running),
+      id1 -> Success(DrmStatus.Running))
         
-    assert(QstatSupport.getByTaskId(qstatLines) === expected)
+    assert(QstatSupport.getByTaskId(ids, qstatLines) === expected)
     
-    assert(QstatSupport.getByTaskId(dataLines) === expected)
+    assert(QstatSupport.getByTaskId(ids, dataLines) === expected)
     
-    assert(QstatSupport.getByTaskId(headerLines) === Map.empty)
+    assert(QstatSupport.getByTaskId(ids, headerLines) === Map.empty)
     
-    assert(QstatSupport.getByTaskId(Nil) === Map.empty)
+    assert(QstatSupport.getByTaskId(ids, Nil) === Map.empty)
   }
   
   test("getByTaskId - bad lines should be ignored") {
@@ -222,17 +296,29 @@ final class QstatQacctPollerTest extends FunSuite {
     
     val lines = headerLines ++ Seq(d0, "some bogus line lalala", d1)
     
+    val id1 = DrmTaskId("19115592", 1)
+    val id2 = DrmTaskId("19115592", 2)
+    val id3 = DrmTaskId("19115592", 3)
+    
+    val ids = Set(id1, id2, id3)
+    
     val expected = Map(
-      DrmTaskId("19115592", 1) -> Success(DrmStatus.Running),
-      DrmTaskId("19115592", 2) -> Success(DrmStatus.Running))
+      id1 -> Success(DrmStatus.Running),
+      id2 -> Success(DrmStatus.Running))
         
-    assert(QstatSupport.getByTaskId(lines) === expected)
+    assert(QstatSupport.getByTaskId(ids, lines) === expected)
   }
   
   test("getByTaskId - bad statuses should be failures") {
+    val id1 = DrmTaskId("19115592", 1)
+    val id2 = DrmTaskId("19115592", 2)
+    val id3 = DrmTaskId("19115592", 3)
+    
+    val ids = Set(id1, id2, id3)
+    
     val lines = headerLines ++ dataLinesWithBadStatuses
     
-    val actual = QstatSupport.getByTaskId(lines)
+    val actual = QstatSupport.getByTaskId(ids, lines)
     
     assert(actual === Map.empty)
   }
@@ -241,30 +327,56 @@ final class QstatQacctPollerTest extends FunSuite {
     import QstatSupport.toDrmStatus
     import DrmStatus._
     
-    //happy paths
-    assert(toDrmStatus("E") === Success(Failed))
-    assert(toDrmStatus("h") === Success(QueuedHeld))
-    assert(toDrmStatus("r") === Success(Running))
-    assert(toDrmStatus("R") === Success(Running))
-    assert(toDrmStatus("s") === Success(Suspended))
-    assert(toDrmStatus("S") === Success(Suspended))
-    assert(toDrmStatus("N") === Success(Suspended))
-    assert(toDrmStatus("w") === Success(Queued))
-    assert(toDrmStatus("qw") === Success(Queued))
-    assert(toDrmStatus("d") === Success(Undetermined))
-    assert(toDrmStatus("P") === Success(Undetermined))
-    assert(toDrmStatus("t") === Success(Undetermined))
-    assert(toDrmStatus("T") === Success(Undetermined))
+    assert(toDrmStatus("qw") === Queued)
+    assert(toDrmStatus("hqw") === Queued)
+    assert(toDrmStatus("hRwq") === Queued)
+
+    assert(toDrmStatus("r") === Running)
+    assert(toDrmStatus("R") === Running)
+    assert(toDrmStatus("t") === Running)
+    assert(toDrmStatus("Rr") === Running)
+    assert(toDrmStatus("Rt") === Running)
+
+    assert(toDrmStatus("N") === Suspended)
+    assert(toDrmStatus("s") === Suspended)
+    assert(toDrmStatus("ts") === Suspended)
+    assert(toDrmStatus("S") === Suspended)
+    assert(toDrmStatus("tS") === Suspended)
+    assert(toDrmStatus("T") === Suspended)
+    assert(toDrmStatus("tT") === Suspended)
+    assert(toDrmStatus("Rs") === Suspended)
+    assert(toDrmStatus("Rts") === Suspended)
+    assert(toDrmStatus("RS") === Suspended)
+    assert(toDrmStatus("RtS") === Suspended)
+    assert(toDrmStatus("RT") === Suspended)
+    assert(toDrmStatus("RtT") === Suspended)
+
+    assert(toDrmStatus("E") === Failed)
+    assert(toDrmStatus("Eqw") === Failed)
+    assert(toDrmStatus("Ehqw") === Failed)
+    assert(toDrmStatus("EhRqw") === Failed)
+
+    assert(toDrmStatus("d") === Failed)
+    assert(toDrmStatus("dr") === Failed)
+    assert(toDrmStatus("dt") === Failed)
+    assert(toDrmStatus("dRr") === Failed)
+    assert(toDrmStatus("dRt") === Failed)
+    assert(toDrmStatus("ds") === Failed)
+    assert(toDrmStatus("dS") === Failed)
+    assert(toDrmStatus("dT") === Failed)
+    assert(toDrmStatus("dRs") === Failed)
+    assert(toDrmStatus("dRS") === Failed)
+    assert(toDrmStatus("dRT") === Failed)
     
     //unmapped strings
-    assert(toDrmStatus("X").isFailure)
-    assert(toDrmStatus("b").isFailure)
-    assert(toDrmStatus("Q").isFailure)
+    assert(toDrmStatus("X") === Undetermined)
+    assert(toDrmStatus("b") === Undetermined)
+    assert(toDrmStatus("Q") === Undetermined)
     
-    assert(toDrmStatus("").isFailure)
-    assert(toDrmStatus("    ").isFailure)
-    assert(toDrmStatus("asdf").isFailure)
-    assert(toDrmStatus("12345").isFailure)
+    assert(toDrmStatus("") === Undetermined)
+    assert(toDrmStatus("    ") === Undetermined)
+    assert(toDrmStatus("asdf") === Undetermined)
+    assert(toDrmStatus("12345") === Undetermined)
   }
   
   private def outputForTasks(idsToExitCodes: (DrmTaskId, Int)*): Seq[String] = {
@@ -296,7 +408,7 @@ final class QstatQacctPollerTest extends FunSuite {
         tid1 -> DrmStatus.CommandResult(0),
         tid2 -> DrmStatus.CommandResult(0))
     
-    assert(parseMultiTaskQacctResults(Set(tid0, tid1, tid2))(jobId -> output) === expected)
+    assert(parseMultiTaskQacctResults(Set(tid0, tid1, tid2))(jobId -> output).toMap === expected)
   }
   
   test("parseQacctResults - more results than we're looking for") {
@@ -314,7 +426,7 @@ final class QstatQacctPollerTest extends FunSuite {
         tid0 -> DrmStatus.CommandResult(4),
         tid1 -> DrmStatus.CommandResult(0))
     
-    assert(parseMultiTaskQacctResults(Set(tid0, tid1))(jobId -> output) === expected)
+    assert(parseMultiTaskQacctResults(Set(tid0, tid1))(jobId -> output).toMap === expected)
   }
 
   test("parseQacctResults - bad input") {
@@ -332,9 +444,9 @@ final class QstatQacctPollerTest extends FunSuite {
     
     val brokenField = lines.map(_.replaceAll("exit_status", "blerg"))
     
-    assert(parseMultiTaskQacctResults(Set(tid0, tid1))(jobId -> missingField) === Map.empty) 
+    assert(parseMultiTaskQacctResults(Set(tid0, tid1))(jobId -> missingField).toMap === Map.empty) 
   
-    assert(parseMultiTaskQacctResults(Set(tid0, tid1))(jobId -> brokenField) === Map.empty)
+    assert(parseMultiTaskQacctResults(Set(tid0, tid1))(jobId -> brokenField).toMap === Map.empty)
   }
   
   test("parseQacctResults - some good input, some bad") {
@@ -354,9 +466,10 @@ final class QstatQacctPollerTest extends FunSuite {
     
     val expected = Map(tid0 -> DrmStatus.CommandResult(4), tid2 -> DrmStatus.CommandResult(0))
     
-    assert(parseMultiTaskQacctResults(Set(tid0, tid1, tid2))(jobId -> lines) === expected) 
+    assert(parseMultiTaskQacctResults(Set(tid0, tid1, tid2))(jobId -> lines).toMap === expected) 
   }
-  
+
+  // scalastyle:off line.size.limit
   private val problematicQacctOutput: String = {
     """qname        broad               
 hostname     uger-c024.broadinstitute.org
@@ -410,4 +523,5 @@ maxpss       0.000
 arid         undefined
 jc_name      NONE"""
   }
+  // scalastyle:on line.size.limit
 }

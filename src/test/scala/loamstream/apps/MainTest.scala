@@ -20,6 +20,7 @@ import loamstream.conf.UgerConfig
 import loamstream.conf.LsfConfig
 import loamstream.conf.ExecutionConfig
 import loamstream.conf.CompilationConfig
+import loamstream.conf.LsSettings
 
 
 
@@ -53,6 +54,8 @@ object MainTest {
     
     override def config: LoamConfig = ???
   
+    override def settings: LsSettings = ???
+    
     override def dao: LoamDao = ???
 
     override def executer: Executer = ???

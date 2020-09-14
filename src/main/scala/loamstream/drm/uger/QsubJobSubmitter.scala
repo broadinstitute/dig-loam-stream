@@ -20,6 +20,7 @@ import loamstream.util.Options
 import loamstream.util.Tries
 import scala.concurrent.ExecutionContext
 import loamstream.drm.SessionSource
+import rx.lang.scala.Scheduler
 
 
 /**
@@ -56,11 +57,8 @@ object QsubJobSubmitter extends Loggable {
   def fromExecutable(
       sessionSource: SessionSource, 
       ugerConfig: UgerConfig, 
-      actualExecutable: String = "qsub"): QsubJobSubmitter = {
-    
-    //TODO
-    val scheduler = IOScheduler()
-    import scala.concurrent.ExecutionContext.Implicits._
+      actualExecutable: String = "qsub",
+      scheduler: Scheduler)(implicit ec: ExecutionContext): QsubJobSubmitter = {
     
     new QsubJobSubmitter(
         Qsub.commandInvoker(sessionSource, ugerConfig, actualExecutable, scheduler), 

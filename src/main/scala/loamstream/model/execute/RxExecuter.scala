@@ -79,7 +79,7 @@ final case class RxExecuter(
       ExecutionState.initialFor(executable, maxRunsPerJob)
     }
     
-    val chunkResults: Observable[Map[LJob, Execution]] = {
+    val chunkResults: Observable[(LJob, Execution)] = {
       //Note onBackpressureDrop(), in case runEligibleJobs takes too long (or the polling window is too short)
       val ticks = Observable.interval(windowLength, scheduler).onBackpressureDrop
       
@@ -90,29 +90,44 @@ final case class RxExecuter(
       ticks.map(_ => executionState.updateJobs()).distinctUntilChanged.flatMap(runJobs).takeUntil(_ => isFinished)
     }
     
-    val futureMergedResults = chunkResults.foldLeft(emptyExecutionMap)(_ ++ _).firstAsFuture
+    val futureMergedResults = chunkResults.foldLeft(emptyExecutionMap)(_ + _).firstAsFuture
 
     Await.result(futureMergedResults, timeout)
   }
   
-  private def finish(executionState: ExecutionState)(results: Map[LJob, Execution]): Map[LJob, Execution] = {
-    def msg = {
-      val howMany: Int = 50 //scalastyle:ignore magic.number
+  private def finishOneJob(
+      executionState: ExecutionState)(result: (LJob, Execution)): (LJob, Execution) = {
+    
+    val (job, execution) = result
+    
+    executionState.finish(job, execution.status)
+    
+    result
+  }
+  
+  private def finish(
+      executionState: ExecutionState)(results: Iterable[(LJob, Execution)]): Observable[(LJob, Execution)] = {
+    
+    if(results.isEmpty) { Observable.empty }
+    else {
+      def msg = {
+        val howMany: Int = 50 //scalastyle:ignore magic.number
+  
+        def firstIds = results.iterator.collect { case (j, _) => j.id }
+        
+        s"Finishing ${results.size} jobs; first $howMany ids: ${firstIds.mkString(",")}"
+      }
       
-      s"Finishing ${results.size} jobs; first $howMany ids: ${results.keys.take(howMany).map(_.id).mkString(",")}"
+      TimeUtils.time(msg, trace(_)) {
+        Observable.from(results).map(finishOneJob(executionState))
+      }
     }
-    
-    TimeUtils.time(msg, trace(_)) {
-      executionState.finish(results)
-    }
-    
-    results
   }
   
   private def runEligibleJobs(
       executionState: ExecutionState, 
       jobOracle: JobOracle,
-      jobsAndCells: ExecutionState.JobStatuses): Observable[Map[LJob, Execution]] = {
+      jobsAndCells: ExecutionState.JobStatuses): Observable[(LJob, Execution)] = {
     
     val (numReadyToRun, numCannotRun) = (jobsAndCells.readyToRun.size, jobsAndCells.cannotRun.size)
     import jobsAndCells.{ numRunning, numFinished }
@@ -130,45 +145,46 @@ final case class RxExecuter(
     if(notFinishedJobs.nonEmpty) {
       runNotFinishedJobs(notFinishedJobs, executionState, jobOracle)
     } else {
-      Observable.just(Map.empty)
+      Observable.empty
     }
   }
   
   private def runNotFinishedJobs(
       notFinishedJobs: Iterable[LJob],
       executionState: ExecutionState, 
-      jobOracle: JobOracle): Observable[Map[LJob, Execution]] = {
+      jobOracle: JobOracle): Observable[(LJob, Execution)] = {
     
     val (jobsToMaybeRun, skippedJobs) = notFinishedJobs.map(_.job).partition(jobFilter.shouldRun)
       
     val (jobsToCancel, jobsToRun) = jobsToMaybeRun.partition(jobCanceler.shouldCancel)
     
-    handleSkippedJobs(skippedJobs)
+    handleSkipped(skippedJobs)
     
-    val cancelledJobsMap = cancelJobs(jobsToCancel)
+    val cancelledJobTuples = cancelJobs(jobsToCancel)
     
-    record(jobOracle, cancelledJobsMap)
+    record(jobOracle, cancelledJobTuples)
     
-    val skippedResultMap = toSkippedResultMap(skippedJobs)
+    val skippedResultTuples = toSkippedResultTuples(skippedJobs)
     
-    for {
-      executionTupleOpt <- runJobs(jobsToRun, jobOracle)
-    } yield {
+    logFinished(cancelledJobTuples)
+    logFinished(skippedResultTuples)
+    
+    val cancelledOrSkippedJobsObs = finish(executionState)(cancelledJobTuples ++ skippedResultTuples)
+    
+    val actuallyRunJobsObs = runJobs(jobsToRun, jobOracle).flatMap { executionTupleOpt =>
       record(jobOracle, executionTupleOpt)
       
-      val executionMap = cancelledJobsMap ++ executionTupleOpt
+      logFinished(executionTupleOpt)
       
-      logFinishedJobs(executionMap)
-      
-      val results = executionMap ++ skippedResultMap
-      
-      finish(executionState)(results)
+      finish(executionState)(executionTupleOpt)
     }
+    
+    Observables.merge(cancelledOrSkippedJobsObs, actuallyRunJobsObs)
   }
 
-  private val emptyExecutionMap: Map[LJob, Execution] = Map.empty
+  private def emptyExecutionMap: Map[LJob, Execution] = Map.empty
   
-  private def logFinishedJobs(jobs: Map[LJob, Execution]): Unit = {
+  private def logFinished(jobs: Iterable[(LJob, Execution)]): Unit = {
     for {
       (job, execution) <- jobs
     } {
@@ -194,16 +210,14 @@ final case class RxExecuter(
     }
   }
   
-  private def cancelJobs(jobsToCancel: Iterable[LJob]): Map[LJob, Execution] = {
+  private def cancelJobs(jobsToCancel: Iterable[LJob]): Iterable[(LJob, Execution)] = {
     import JobStatus.Canceled
     
-    import loamstream.util.Traversables.Implicits._
-    
-    jobsToCancel.mapTo(job => Execution.from(job, Canceled, terminationReason = None))
+    jobsToCancel.map(job => job -> Execution.from(job, Canceled, terminationReason = None))
   }
   
-  private def handleSkippedJobs(skippedJobs: Iterable[LJob]): Unit = {
-    logSkippedJobs(skippedJobs)
+  private def handleSkipped(skippedJobs: Iterable[LJob]): Unit = {
+    logSkipped(skippedJobs)
   }
   
   private def logJobsToBeRun(jobsToRun: Iterable[LJob]): Unit = {
@@ -212,7 +226,7 @@ final case class RxExecuter(
     jobsToRun.foreach(job => debug(s"Dispatching job to ChunkRunner: $job"))
   }
   
-  private def logSkippedJobs(skippedJobs: Iterable[LJob]): Unit = skippedJobs.size match {
+  private def logSkipped(skippedJobs: Iterable[LJob]): Unit = skippedJobs.size match {
     case 0 => debug("Skipped 0 jobs")
     case numSkipped => {
       info(s"Skipped ($numSkipped) jobs:")
@@ -221,10 +235,8 @@ final case class RxExecuter(
     }
   }
   
-  private def toSkippedResultMap(skippedJobs: Iterable[LJob]): Map[LJob, Execution] = {
-    import loamstream.util.Traversables.Implicits._
-      
-    skippedJobs.mapTo(job => Execution.from(job, JobStatus.Skipped, terminationReason = None))
+  private def toSkippedResultTuples(skippedJobs: Iterable[LJob]): Iterable[(LJob, Execution)] = {
+    skippedJobs.map(job => job -> Execution.from(job, JobStatus.Skipped, terminationReason = None))
   }
 }
 

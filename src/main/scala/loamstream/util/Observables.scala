@@ -94,6 +94,8 @@ object Observables extends Loggable {
     toScalaObservable(rx.Observable.merge(javaIterableOfJavaObservables))
   }
   
+  def merge[A](first: Observable[A], rest: Observable[A]*): Observable[A] = merge(first +: rest)
+  
   /**
    * @author clint
    * date: Jul 1, 2016

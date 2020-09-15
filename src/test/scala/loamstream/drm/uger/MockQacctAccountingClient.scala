@@ -13,6 +13,7 @@ import loamstream.util.CommandInvoker
 import loamstream.util.RunResults
 import loamstream.util.ValueBox
 import rx.lang.scala.schedulers.ComputationScheduler
+import loamstream.util.LogContext
 
 /**
  * @author clint
@@ -48,6 +49,8 @@ final class MockQacctAccountingClient(
     import scala.concurrent.ExecutionContext.Implicits.global
     
     val invoker = {
+      import LogContext.Implicits.Noop
+      
       CommandInvoker.Async.Retrying[DrmTaskId](
           ugerConfig.maxRetries, 
           "MOCK", 

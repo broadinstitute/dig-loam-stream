@@ -18,7 +18,7 @@ sealed trait RunResults {
 
   final def logStdOutAndStdErr(
       headerMessage: String, 
-      level: Loggable.Level = Loggable.Level.Error)(implicit logCtx: LogContext): Unit = {
+      level: LogContext.Level = LogContext.Level.Error)(implicit logCtx: LogContext): Unit = {
     
     def doLog(s: => String): Unit = logCtx.log(level, s)
     
@@ -34,16 +34,16 @@ sealed trait RunResults {
     case r: RunResults.Unsuccessful => {
       val msg = s"Error invoking '${r.commandLine}' (exit code ${r.exitCode}): $extraMessage"
 
-      r.logStdOutAndStdErr(s"$msg; output streams follow:", Loggable.Level.Warn)
+      r.logStdOutAndStdErr(s"$msg; output streams follow:", LogContext.Level.Warn)
 
       Tries.failure(msg)
     }
     case r: RunResults.CouldNotStart => {
       val msg = s"Couldn't run '${r.commandLine}': $extraMessage: No exit code, caught "
 
-      ctx.log(Loggable.Level.Warn, msg, r.cause)
+      ctx.warn(msg, r.cause)
       
-      r.logStdOutAndStdErr(s"$msg; output streams follow:", Loggable.Level.Warn)
+      r.logStdOutAndStdErr(s"$msg; output streams follow:", LogContext.Level.Warn)
       
       Failure(r.cause)
     }

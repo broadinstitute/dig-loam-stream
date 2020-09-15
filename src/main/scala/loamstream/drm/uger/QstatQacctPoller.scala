@@ -177,6 +177,9 @@ object QstatQacctPoller extends Loggable {
       }.toMap
     }
 
+    type PollResult = (DrmTaskId, DrmStatus)
+    type PollResultsAttempt = Try[Iterator[PollResult]]
+    
     // scalastyle:off line.size.limit
     /**
      * Parse qacct output like the following.  Results are returned one line per job/task
@@ -190,7 +193,7 @@ object QstatQacctPoller extends Loggable {
     // scalastyle:on line.size.limit
     def parseQstatOutput(
       idsWereLookingFor: Iterable[DrmTaskId],
-      lines: Seq[String]): Iterator[Try[(DrmTaskId, DrmStatus)]] = {
+      lines: Seq[String]): Iterator[Try[PollResult]] = {
 
       val idsWereLookingForSet = idsWereLookingFor.toSet
 
@@ -198,26 +201,40 @@ object QstatQacctPoller extends Loggable {
         case (taskId, _) => idsWereLookingForSet.contains(taskId)
       }
 
-      val lineResults: Iterator[Try[Iterator[(DrmTaskId, DrmStatus)]]] = lines.iterator.map(_.trim).collect {
-        case QstatRegexes.jobIdStatusAndTaskIndex(jobId, ugerStatusCode, taskIndexString) => {
-          Try(DrmTaskId(jobId, taskIndexString.toInt)).map { drmTaskId =>
-            val drmStatus = toDrmStatus(ugerStatusCode.trim)
+      def handleSingleJobLine(jobId: String, ugerStatusCode: String, taskIndexString: String): PollResultsAttempt = {
+        Try(DrmTaskId(jobId, taskIndexString.toInt)).map { drmTaskId =>
+          val drmStatus = toDrmStatus(ugerStatusCode.trim)
 
-            Iterator(drmTaskId -> drmStatus).filter(isIdWeCareAbout)
-          }
+          Iterator(drmTaskId -> drmStatus).filter(isIdWeCareAbout)
+        }
+      }
+      
+      def handleTaskArrayLine(
+          jobId: String, 
+          ugerStatusCode: String, 
+          idxStart: String, 
+          idxEnd: String, 
+          idxIncrement: String): PollResultsAttempt = {
+
+        for {
+          start <- Try(idxStart.trim.toInt)
+          end <- Try(idxEnd.trim.toInt)
+          increment <- Try(idxIncrement.trim.toInt)
+        } yield {
+          val drmStatus = toDrmStatus(ugerStatusCode.trim)
+
+          def toPollResult(taskIndex: Int): PollResult = DrmTaskId(jobId.trim, taskIndex) -> drmStatus
+          
+          (start to end by increment).iterator.map(toPollResult).filter(isIdWeCareAbout)
+        }
+      }
+      
+      val lineResults: Iterator[PollResultsAttempt] = lines.iterator.map(_.trim).collect {
+        case QstatRegexes.jobIdStatusAndTaskIndex(jobId, ugerStatusCode, taskIndexString) => {
+          handleSingleJobLine(jobId, ugerStatusCode, taskIndexString)
         }
         case QstatRegexes.jobIdStatusForWholeTaskArray(jobId, ugerStatusCode, idxStart, idxEnd, idxIncrement) => {
-          for {
-            start <- Try(idxStart.trim.toInt)
-            end <- Try(idxEnd.trim.toInt)
-            increment <- Try(idxIncrement.trim.toInt)
-          } yield {
-            val drmStatus = toDrmStatus(ugerStatusCode.trim)
-
-            (start to end by increment).iterator.map { taskIndex =>
-              DrmTaskId(jobId.trim, taskIndex) -> drmStatus
-            }.filter(isIdWeCareAbout)
-          }
+          handleTaskArrayLine(jobId, ugerStatusCode, idxStart, idxEnd, idxIncrement)
         }
       }
 

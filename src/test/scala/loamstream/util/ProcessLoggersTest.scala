@@ -74,7 +74,7 @@ final class ProcessLoggersTest extends FunSuite {
   }
 
   test("PassThrough") {
-    def doTest(level: Loggable.Level): Unit = {
+    def doTest(level: LogContext.Level): Unit = {
       val logCtx = new ProcessLoggersTest.MockLogCtx
 
       val name = "asdf"
@@ -98,11 +98,11 @@ final class ProcessLoggersTest extends FunSuite {
       assert(logCtx.logEvents === expected)
     }
 
-    doTest(Loggable.Level.Debug)
-    doTest(Loggable.Level.Error)
-    doTest(Loggable.Level.Info)
-    doTest(Loggable.Level.Trace)
-    doTest(Loggable.Level.Warn)
+    doTest(LogContext.Level.Debug)
+    doTest(LogContext.Level.Error)
+    doTest(LogContext.Level.Info)
+    doTest(LogContext.Level.Trace)
+    doTest(LogContext.Level.Warn)
   }
 
 }
@@ -125,10 +125,10 @@ object ProcessLoggersTest {
   }
 
   private final class MockLogCtx extends LogContext {
-    val logEvents: Buffer[(Loggable.Level, String)] = new ArrayBuffer
+    val logEvents: Buffer[(LogContext.Level, String)] = new ArrayBuffer
 
-    override def log(level: Loggable.Level, s: => String): Unit = logEvents += (level -> s)
+    override def log(level: LogContext.Level, s: => String): Unit = logEvents += (level -> s)
 
-    override def log(level: Loggable.Level, s: => String, e: Throwable): Unit = ???
+    override def log(level: LogContext.Level, s: => String, e: Throwable): Unit = ???
   }
 }

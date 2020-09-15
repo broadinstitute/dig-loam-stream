@@ -17,6 +17,7 @@ import loamstream.model.quantities.Memory
 import loamstream.util.CommandInvoker
 import loamstream.util.RunResults
 import rx.lang.scala.schedulers.ComputationScheduler
+import loamstream.util.LogContext
 
 /**
  * @author clint
@@ -40,6 +41,8 @@ final class BacctAccountingClientTest extends FunSuite {
   
   test("Parse actual bacct outpout - bad input") {
     def doTest(bacctOutput: Seq[String]): Unit = {
+      import LogContext.Implicits.Noop
+      
       val mockInvoker = CommandInvoker.Async.Retrying[DrmTaskId](
           0, 
           "MOCK", 
@@ -57,6 +60,8 @@ final class BacctAccountingClientTest extends FunSuite {
   
   test("Parse actual bacct outpout - happy path") {
     val splitOutput = actualOutput.split("\\n")
+    
+    import LogContext.Implicits.Noop
     
     val mockInvoker = CommandInvoker.Async.Retrying[DrmTaskId](
         0, 
@@ -93,6 +98,8 @@ final class BacctAccountingClientTest extends FunSuite {
       
       val splitOutput = rawOutput.split("\\n")
       
+      import LogContext.Implicits.Noop
+      
       val mockInvoker = CommandInvoker.Async.Retrying[DrmTaskId](
           0, 
           "MOCK", 
@@ -125,6 +132,8 @@ final class BacctAccountingClientTest extends FunSuite {
   
   test("Parse actual bacct outpout - problematic output") {
     val splitOutput = problematicOutput.split("\\n")
+    
+    import LogContext.Implicits.Noop
     
     val mockInvoker = CommandInvoker.Async.Retrying[DrmTaskId](
         0, 

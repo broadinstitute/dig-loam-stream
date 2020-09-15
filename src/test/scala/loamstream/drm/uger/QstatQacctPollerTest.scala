@@ -13,6 +13,7 @@ import loamstream.drm.DrmStatus.CommandResult
 import loamstream.util.Traversables
 import scala.util.Try
 import scala.util.Failure
+import loamstream.util.LogContext
 
 /**
  * @author clint
@@ -103,6 +104,8 @@ final class QstatQacctPollerTest extends FunSuite {
     val qstatInvocationFn: CommandInvoker.InvocationFn[Unit] = { _ => 
       Success(RunResults.Successful("MOCK_QSTAT", qstatLines, Nil))
     }
+    
+    import LogContext.Implicits.Noop
     
     val qstatInvoker: CommandInvoker.Async[Unit] = new CommandInvoker.Async.JustOnce("MOCK_QSTAT", qstatInvocationFn)
     

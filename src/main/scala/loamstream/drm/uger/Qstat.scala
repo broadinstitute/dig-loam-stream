@@ -8,12 +8,13 @@ import loamstream.util.Processes
 import scala.concurrent.ExecutionContext
 import loamstream.drm.SessionSource
 import loamstream.util.RateLimitedCache
+import loamstream.util.LogContext
 
 /**
  * @author clint
  * Jul 24, 2020
  */
-object Qstat extends Loggable {
+object Qstat {
   type InvocationFn[A] = A => Try[RunResults]
   
   private[uger] def makeTokens(actualExecutable: String, sessionSource: SessionSource): Seq[String] = {
@@ -23,13 +24,14 @@ object Qstat extends Loggable {
   final def commandInvoker(
       sessionSource: SessionSource,
       pollingFrequencyInHz: Double,
-      actualExecutable: String = "qstat")(implicit ec: ExecutionContext): CommandInvoker.Async[Unit] = {
+      actualExecutable: String = "qstat")
+     (implicit ec: ExecutionContext, logCtx: LogContext): CommandInvoker.Async[Unit] = {
     
     //Unit and ignored args are obviously a smell, but a more principled refactoring will have to wait.
     def invocationFn(ignored: Unit): Try[RunResults] = {
       val tokens = makeTokens(actualExecutable, sessionSource)
       
-      trace(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
+      logCtx.trace(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
       
       Processes.runSync(tokens)()
     }

@@ -36,6 +36,7 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.Promise
 import scala.util.Try
 import loamstream.conf.LsSettings
+import loamstream.util.LogContext
 
 /** The compiler compiling Loam scripts into execution plans */
 object LoamCompiler extends Loggable {
@@ -45,8 +46,8 @@ object LoamCompiler extends Loggable {
   }
 
   final case class Settings(logCode: Boolean, logCodeOnError: Boolean) {
-    def logCodeForLevel(level: Loggable.Level): Boolean = {
-      logCode || (logCodeOnError && (level >= Loggable.Level.Warn))
+    def logCodeForLevel(level: LogContext.Level): Boolean = {
+      logCode || (logCodeOnError && (level >= LogContext.Level.Warn))
     }
   }
 
@@ -235,7 +236,7 @@ final class LoamCompiler(
   }
 
   private def logScripts(
-    logLevel: Loggable.Level,
+    logLevel: LogContext.Level,
     project: LoamProject): Unit = {
 
     if (settings.logCodeForLevel(logLevel)) {
@@ -282,7 +283,7 @@ final class LoamCompiler(
     val lengthOfLine = 100
     val graphPrinter = GraphPrinter.byLine(lengthOfLine)
 
-    logScripts(Loggable.Level.Trace, project)
+    logScripts(LogContext.Level.Trace, project)
 
     trace(s"""|[Start Graph]
               |${graphPrinter.print(graph)}

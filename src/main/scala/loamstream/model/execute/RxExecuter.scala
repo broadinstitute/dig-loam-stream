@@ -79,7 +79,7 @@ final case class RxExecuter(
       ExecutionState.initialFor(executable, maxRunsPerJob)
     }
     
-    val chunkResults: Observable[(LJob, Execution)] = {
+    val jobResultTuples: Observable[(LJob, Execution)] = {
       //Note onBackpressureDrop(), in case runEligibleJobs takes too long (or the polling window is too short)
       val ticks = Observable.interval(windowLength, scheduler).onBackpressureDrop
       
@@ -90,7 +90,7 @@ final case class RxExecuter(
       ticks.map(_ => executionState.updateJobs()).distinctUntilChanged.flatMap(runJobs).takeUntil(_ => isFinished)
     }
     
-    val futureMergedResults = chunkResults.foldLeft(emptyExecutionMap)(_ + _).firstAsFuture
+    val futureMergedResults = jobResultTuples.toMap.firstAsFuture
 
     Await.result(futureMergedResults, timeout)
   }

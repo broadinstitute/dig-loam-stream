@@ -29,7 +29,7 @@ object QacctInvoker extends AccountingCommandInvoker.Companion[DrmTaskId] {
         maxCacheAge: Duration,
         scheduler: Scheduler)(implicit ec: ExecutionContext): CommandInvoker.Async[String] = {
 
-      val rateLimitedCache = RateLimitedCachedQacctInvoker.fromActualBinary(
+      val rateLimitedCache = RateLimitedQacctInvoker.fromActualBinary(
           maxSize = ugerConfig.maxQacctCacheSize,
           maxAge = maxCacheAge,
           maxRetries = ugerConfig.maxRetries,

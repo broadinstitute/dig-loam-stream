@@ -179,7 +179,7 @@ final case class RxExecuter(
       finish(executionState)(executionTupleOpt)
     }
     
-    Observables.merge(cancelledOrSkippedJobsObs, actuallyRunJobsObs)
+    cancelledOrSkippedJobsObs ++ actuallyRunJobsObs
   }
 
   private def emptyExecutionMap: Map[LJob, Execution] = Map.empty

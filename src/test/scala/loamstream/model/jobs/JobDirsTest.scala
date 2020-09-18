@@ -9,7 +9,7 @@ import org.scalatest.FunSuite
 import loamstream.TestHelpers
 import loamstream.model.execute.LocalSettings
 import loamstream.util.Paths
-import loamstream.model.jobs.JobDirs.DirNode
+import loamstream.model.jobs.DirTree.DirNode
 import org.scalactic.Equality
 
 /**
@@ -17,19 +17,19 @@ import org.scalactic.Equality
  * Sep 26, 2019
  */
 final class JobDirsTest extends FunSuite {
-  import JobDirs.DirNode._
+  import DirTree.DirNode._
   import JobDirsTest.NamedJob
   import JobDirsTest.DirNodeOps
   
-  private implicit object DirNodeEquality extends Equality[DirNode] {
-    override def areEqual(lhs: DirNode, a: Any): Boolean = a match {
-      case rhs: DirNode => lhs.equalsWithoutId(rhs)
+  private implicit def dirNodeEquality[A]: Equality[DirNode[A]] = new Equality[DirNode[A]] {
+    override def areEqual(lhs: DirNode[A], a: Any): Boolean = a match {
+      case rhs: DirNode[_] => lhs.equalsWithoutId(rhs)
       case _ => false
     }
   }
   
   test("findHeight") {
-    import JobDirs.findHeight
+    import DirTree.findHeight
     
     assert(findHeight(1, 0) === 0)
     assert(findHeight(2, 0) === 0)
@@ -72,7 +72,7 @@ final class JobDirsTest extends FunSuite {
     val jobFooBarBaz = NamedJob("foo/bar/baz")
     
     intercept[Exception] {
-      Interior("x", Seq.empty)
+      Interior("x", Seq.empty[DirNode[LJob]])
     }
     
     intercept[Exception] {
@@ -80,7 +80,7 @@ final class JobDirsTest extends FunSuite {
     }
     
     intercept[Exception] {
-      Interior("", Seq.empty)
+      Interior("", Seq.empty[DirNode[LJob]])
     }
     
     Interior("x", Seq(Leaf(jobFoo), Leaf(jobFooBarBaz)))
@@ -114,17 +114,17 @@ final class JobDirsTest extends FunSuite {
     assert(allUnique(ids(50000)))
   }
   
-  test("pathsByJob - just a leaf") {
+  test("pathsByValue - just a leaf") {
     import TestHelpers.path
     
     val jobFoo = NamedJob("foo")
     
     val leaf = Leaf(jobFoo)
     
-    assert(leaf.pathsByJob(path("what/ever")) === Map(jobFoo -> path("what/ever/foo")))
+    assert(leaf.pathsByValue(path("what/ever")) === Map(jobFoo -> path("what/ever/foo")))
   }
   
-  test("pathsByJob - one level") {
+  test("pathsByValue - one level") {
     import TestHelpers.path
     
     val jobFoo = NamedJob("foo")
@@ -140,10 +140,10 @@ final class JobDirsTest extends FunSuite {
         jobBaz -> path("some/root/x/baz"),
         jobBlerg -> path("some/root/x/blerg"))
     
-    assert(interior.pathsByJob(path("some/root")) === expected)
+    assert(interior.pathsByValue(path("some/root")) === expected)
   }
   
-  test("pathsByJob - more levels") {
+  test("pathsByValue - more levels") {
     import TestHelpers.path
     
     val jobFoo = NamedJob("foo")
@@ -178,7 +178,7 @@ final class JobDirsTest extends FunSuite {
         jobFlerg -> path("some/root/0/2/y/flerg"),
         jobAsdf -> path("some/root/0/2/y/asdf"))
     
-    assert(interior.pathsByJob(path("some/root")) === expected)
+    assert(interior.pathsByValue(path("some/root")) === expected)
   }
   
   test("makeDirsUnder - one level") {
@@ -293,20 +293,22 @@ final class JobDirsTest extends FunSuite {
   }
   
   test("allocate - guards") {
-    import JobDirs.allocate
+    import DirTree.allocate
     
     val job = NamedJob("foo")
     
+    val empty: Seq[LJob] = Nil
+    
     intercept[Exception] {
-      allocate(Nil, 0)
+      allocate(empty, 0)
     }
     
     intercept[Exception] {
-      allocate(Nil, 1)
+      allocate(empty, 1)
     }
     
     intercept[Exception] {
-      allocate(Nil, 42)
+      allocate(empty, 42)
     }
     
     intercept[Exception] {
@@ -322,7 +324,7 @@ final class JobDirsTest extends FunSuite {
     
     val nextId = () => ids.next()
     
-    val node = JobDirs.allocate(Seq(job0, job1), 4, nextId)
+    val node = DirTree.allocate(Seq(job0, job1), 4, nextId)
     
     assert(node === Interior("0", Seq(Leaf(job0), Leaf(job1))))
   }
@@ -358,7 +360,7 @@ final class JobDirsTest extends FunSuite {
                              
     val jobs = Seq(jobFoo, jobBar, jobBaz, jobBlerg, jobZerg, jobNerg, jobFlerg, jobAsdf)
                              
-    val node = JobDirs.allocate(jobs, 2, nextId)
+    val node = DirTree.allocate(jobs, 2, nextId)
     
     assert(node === expected)
   }
@@ -366,16 +368,16 @@ final class JobDirsTest extends FunSuite {
   test("allocate - lots of jobs") {
     val jobNames = Iterator.iterate(0)(_ + 1).map(_.toString)
     
-    val jobs = jobNames.take(20000).map(NamedJob(_))
+    val jobs: Iterator[LJob] = jobNames.take(20000).map(NamedJob(_))
     
     val branchingFactor = 500
     
-    val node = JobDirs.allocate(jobs.toSeq, branchingFactor)
+    val node = DirTree.allocate(jobs.toSeq, branchingFactor)
     
-    assert(node.isInstanceOf[Interior])
+    assert(node.isInstanceOf[Interior[_]])
     
-    def isValid(n: JobDirs.DirNode): Boolean = n match {
-      case _: Leaf => true
+    def isValid(n: DirTree.DirNode[LJob]): Boolean = n match {
+      case _: Leaf[_] => true
       case Interior(_, children) => children.size <= branchingFactor && children.forall(isValid)
     }
     
@@ -389,27 +391,27 @@ final class JobDirsTest extends FunSuite {
     
     val branchingFactor = 10
     
-    val node = JobDirs.allocate(jobs.toSeq, branchingFactor)
+    val node: DirNode[LJob] = DirTree.allocate(jobs.toSeq, branchingFactor)
     
-    val root = node.asInstanceOf[Interior]
+    val root = node.asInstanceOf[Interior[_]]
     
     assert(root.children.size == 2)
     
-    def isValid(n: JobDirs.DirNode): Boolean = n match {
-      case _: Leaf => true
+    def isValid(n: DirTree.DirNode[LJob]): Boolean = n match {
+      case _: Leaf[_] => true
       case Interior(_, children) => children.size <= branchingFactor && children.forall(isValid)
     }
     
     assert(isValid(node))
     
-    val leftBranch = root.children.head.asInstanceOf[DirNode.Interior]
-    val rightBranch = root.children.drop(1).head.asInstanceOf[DirNode.Interior]
+    val leftBranch = root.children.head.asInstanceOf[DirNode.Interior[LJob]]
+    val rightBranch = root.children.drop(1).head.asInstanceOf[DirNode.Interior[LJob]]
     
-    val lhsLeaves = leftBranch.children.map(_.asInstanceOf[DirNode.Leaf])
-    val rhsLeaves = rightBranch.children.map(_.asInstanceOf[DirNode.Leaf])
+    val lhsLeaves = leftBranch.children.map(_.asInstanceOf[DirNode.Leaf[LJob]])
+    val rhsLeaves = rightBranch.children.map(_.asInstanceOf[DirNode.Leaf[LJob]])
     
-    assert(lhsLeaves.map(_.job.name).toSet === (0 to 9).map(_.toString).toSet)
-    assert(rhsLeaves.map(_.job.name).toSet === Set("10"))
+    assert(lhsLeaves.map(_.value.name).toSet === (0 to 9).map(_.toString).toSet)
+    assert(rhsLeaves.map(_.value.name).toSet === Set("10"))
   }
 }
 
@@ -433,12 +435,12 @@ object JobDirsTest {
     }
   }
   
-  private final implicit class DirNodeOps(val dirNode: DirNode) extends AnyVal {
-    def equalsWithoutId(other: DirNode): Boolean = (dirNode, other) match {
-      case (lhs: DirNode.Interior, rhs: DirNode.Interior) => {
-        lhs.children.iterator.zip(rhs.children.iterator).forall { case (l, r) => l.equalsWithoutId(r) }
+  private final implicit class DirNodeOps(val dirNode: DirNode[_]) extends AnyVal {
+    def equalsWithoutId(other: DirNode[_]): Boolean = (dirNode, other) match {
+      case (DirNode.Interior(_, lhsChildren), DirNode.Interior(_, rhsChildren)) => {
+        lhsChildren.iterator.zip(rhsChildren.iterator).forall { case (l, r) => l.equalsWithoutId(r) }
       }
-      case (lhs: DirNode.Leaf, rhs: DirNode.Leaf) => lhs == rhs
+      case (lhs: DirNode.Leaf[_], rhs: DirNode.Leaf[_]) => lhs == rhs
       case _ => false
     }
   }

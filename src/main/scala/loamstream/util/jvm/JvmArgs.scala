@@ -24,8 +24,8 @@ final case class JvmArgs(jvmArgs: Seq[String], classpath: String) {
   
   def rerunCommandTokens(conf: Conf.Values): Seq[String] = {
     Seq(javaBinary.toString) ++
+    jvmArgs ++
     Seq("-jar", classpath) ++
-    jvmArgs ++ 
     conf.toArguments
   }
 }

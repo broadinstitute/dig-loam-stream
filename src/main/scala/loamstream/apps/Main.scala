@@ -38,6 +38,8 @@ object Main extends Loggable {
 
     describeLoamstream()
 
+    info(s"Worker mode is ${if(cli.toValues.workerSupplied) "ON" else "OFF"}")
+    
     val intent = Intent.from(cli)
     
     import loamstream.cli.Intent._

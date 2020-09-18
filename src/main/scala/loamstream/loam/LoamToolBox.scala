@@ -61,7 +61,7 @@ final class LoamToolBox(client: Option[CloudStorageClient] = None) extends Logga
 
     val toolNameOpt = graph.nameOf(tool)
 
-    def commandLineJob(commandLine: String) = CommandLineJob(
+    def commandLineJob(commandLine: String, settings: Settings = settings) = CommandLineJob(
       commandLineString = commandLine, 
       workDir = workDir, 
       initialSettings = settings, 
@@ -86,12 +86,13 @@ final class LoamToolBox(client: Option[CloudStorageClient] = None) extends Logga
                 conf.
                   withBackend(invokesLs.scriptContext.config.drmSystem.get).
                   withIsWorker(true).
-                  onlyRun("fake-stub-tag-name")
+                  onlyRun(invokesLs.tagNameToRun)
               }
               
-              jvmArgs.rerunCommandTokens(newConf)
+              invokesLs.preambles ++ jvmArgs.rerunCommandTokens(newConf)
             }
-            case None => ??? //TODO
+            case None => sys.error(
+                s"In order to run in --worker mode, LS must be run from the command line, but no CLI config was found")
           }
         }
         
@@ -100,7 +101,7 @@ final class LoamToolBox(client: Option[CloudStorageClient] = None) extends Logga
       case nativeTool: NativeTool => {
         Some(NativeJob(
             body = nativeTool.body,
-            initialSettings = settings, 
+            initialSettings = LocalSettings, 
             dependencies = dependencyJobs,
             successorsFn = () => successorJobs, 
             inputs = inputs,

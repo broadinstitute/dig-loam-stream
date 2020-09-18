@@ -203,7 +203,12 @@ object Conf {
     def confSupplied: Boolean = conf.isDefined
     
     def toArguments: Seq[String] = {
-      def toString(flag: Boolean, sOpt: ScallopOption[Boolean]): String = if(flag) sOpt.name else ""
+      def munge(argName: String): String = argName.size match {
+        case 1 => s"-${argName}"
+        case _ => s"--${argName}"
+      }
+      
+      def toString(flag: Boolean, sOpt: ScallopOption[Boolean]): String = if(flag) munge(sOpt.name) else ""
         
       val conf = derivedFrom
         
@@ -213,7 +218,7 @@ object Conf {
         def cleanSomething = cleanDbSupplied || cleanLogsSupplied || cleanScriptsSupplied
         
         if(cleanEverything) { 
-          Seq(conf.clean.name) 
+          Seq(munge(conf.clean.name)) 
         } else if (cleanSomething) {
           Seq(
             toString(cleanDbSupplied, conf.cleanDb),
@@ -225,7 +230,7 @@ object Conf {
       }
       
       val confPart: Seq[String] = {
-        conf.conf.toOption.toSeq.flatMap(confFilePath => Seq(conf.conf.name, confFilePath.toString))
+        conf.conf.toOption.toSeq.flatMap(confFilePath => Seq(munge(conf.conf.name), confFilePath.toString))
       }
       
       val noValidationPart: Seq[String] = Seq(toString(noValidationSupplied, conf.noValidation))
@@ -234,21 +239,21 @@ object Conf {
       val disableHashingPart: Seq[String] = Seq(toString(disableHashingSupplied, conf.disableHashing)) 
       
       val backendPart: Seq[String] = {
-        conf.backend.toOption.toSeq.flatMap(backend => Seq(conf.backend.name, backend.toLowerCase))
+        conf.backend.toOption.toSeq.flatMap(backend => Seq(munge(conf.backend.name), backend.toLowerCase))
       } 
       
-      val runPart: Seq[String] = run.toSeq.flatMap { case (what, hows) => conf.run.name +: what +: hows }
+      val runPart: Seq[String] = run.toSeq.flatMap { case (what, hows) => munge(conf.run.name) +: what +: hows }
       
       val workerPart: Seq[String] = Seq(toString(workerSupplied, conf.worker))
       
-      val loamsPart: Seq[String] = conf.loams.name +: loams.map(_.toString)
+      val loamsPart: Seq[String] = munge(conf.loams.name) +: loams.map(_.toString)
       
       val result: Buffer[String] = new ListBuffer
       
       result ++= workerPart ++= cleanParts ++= confPart ++= noValidationPart ++= compileOnlyPart ++= dryRunPart ++= 
       disableHashingPart ++= backendPart ++= runPart ++= loamsPart
       
-      result.toList
+      result.toList.filter(_.nonEmpty)
     }
   }
 }

@@ -10,36 +10,40 @@ import loamstream.util.{ Paths => LPaths }
  * @author clint
  * Jul 2019
  */
-object JobDirs {
+object DirTree {
 
-  def allocate(jobs: Iterable[LJob], branchingFactor: Int, nextId: () => String = () => DirNode.nextId()): DirNode = {
-    require(jobs.nonEmpty)
+  def allocate[A : DirNode.CanBeASimplePath](
+      as: Iterable[A], 
+      branchingFactor: Int, 
+      nextId: () => String = () => DirNode.nextId()): DirNode[A] = {
     
-    val numJobs = jobs.size
+    require(as.nonEmpty)
     
-    val height = findHeight(branchingFactor, numJobs)
+    val numValues = as.size
+    
+    val height = findHeight(branchingFactor, numValues)
     
     require(height >= 0)
     
-    def interior(children: Iterable[DirNode]): Option[DirNode.Interior] = {
+    def interior(children: Iterable[DirNode[A]]): Option[DirNode.Interior[A]] = {
       if(children.nonEmpty) { Some(DirNode.Interior(id = nextId(), children = children)) }
       else { None }
     }
     
-    val jobChunks = jobs.grouped(branchingFactor)
+    val chunks = as.grouped(branchingFactor)
     
-    def makeInteriorNodesAtHeight(h: Int): Option[DirNode.Interior] = h match {
-      case 0 if jobChunks.hasNext => interior(children = jobChunks.next().map(DirNode.Leaf))
-      case n if jobChunks.hasNext => {
+    def makeInteriorNodesAtHeight(h: Int): Option[DirNode.Interior[A]] = h match {
+      case 0 if chunks.hasNext => interior(children = chunks.next().map(DirNode.Leaf(_)))
+      case n if chunks.hasNext => {
         interior(children = (1 to branchingFactor).flatMap(_ => makeInteriorNodesAtHeight(n - 1)))
       }
       case _ => None
     }
     
-    def empty = DirNode.Interior(children = Nil)
+    def empty = DirNode.Interior[A](children = Nil)
 
-    (height, jobs.headOption) match {
-      case (0, Some(job)) => DirNode.Leaf(job)
+    (height, as.headOption) match {
+      case (0, Some(value)) => DirNode.Leaf(value)
       case (_, None) => empty
       case _ => makeInteriorNodesAtHeight(height - 1).getOrElse(empty)
     }
@@ -55,33 +59,28 @@ object JobDirs {
     }
   }
   
-  sealed trait DirNode {
-    def toSimplePathName: String = LPaths.mungePathRelatedChars {
-      this match {
-        case l: DirNode.Leaf => l.job.name
-        case i: DirNode.Interior => i.id
-      }
-    }
+  sealed trait DirNode[A] {
+    def toSimplePathName: String
     
-    def pathsByJob(jobDataDir: Path): Map[LJob, Path] = {
+    def pathsByValue(rootDir: Path): Map[A, Path] = {
       import loamstream.util.Paths.Implicits._
 
-      def doPathsByJob(root: Path)(n: DirNode): Iterable[(LJob, Path)] = n match {
-        case l @ DirNode.Leaf(job) => Seq(job -> (root / l.toSimplePathName).normalize)
+      def doPathsByValue(root: Path)(n: DirNode[A]): Iterable[(A, Path)] = n match {
+        case l @ DirNode.Leaf(value) => Seq(value -> (root / l.toSimplePathName).normalize)
         case i @ DirNode.Interior(id, children) => {
           val nodeRoot = root / i.toSimplePathName
           
-          children.flatMap(doPathsByJob(nodeRoot))
+          children.flatMap(doPathsByValue(nodeRoot))
         }
       }
       
-      doPathsByJob(jobDataDir)(this).toMap
+      doPathsByValue(rootDir)(this).toMap
     }
     
     def makeDirsUnder(root: Path): Boolean = {
       import loamstream.util.Files.createDirsIfNecessary
       
-      val pathsToCreate = pathsByJob(root).values.iterator
+      val pathsToCreate = pathsByValue(root).values.iterator
       
       val attempts = pathsToCreate.map(p => Try(createDirsIfNecessary(p)))
       
@@ -105,15 +104,29 @@ object JobDirs {
       is.flatMap(lettersPlus) ++ ids 
     }
     
-    private[JobDirs] def nextId(): String = lock.synchronized(ids.next())
-    
-    final case class Interior(id: String = nextId(), children: Iterable[DirNode]) extends DirNode {
-      require(id.nonEmpty)
-      require(children.nonEmpty)
+    private[DirTree] def nextId(): String = lock.synchronized(ids.next())
+
+    sealed trait CanBeASimplePath[A] {
+      def toSimplePathName(a: A): String
     }
     
-    final case class Leaf(job: LJob) extends DirNode {
-      require(job.name.nonEmpty)
+    object CanBeASimplePath {
+      implicit def jobsCanBeSimplePaths[J <: LJob]: CanBeASimplePath[J] = new CanBeASimplePath[J] {
+        override def toSimplePathName(j: J): String = LPaths.mungePathRelatedChars(j.name)
+      }
+    }
+    
+    final case class Interior[A: CanBeASimplePath](id: String = nextId(), children: Iterable[DirNode[A]]) extends DirNode[A] {
+      require(id.nonEmpty)
+      require(children.nonEmpty)
+      
+      override def toSimplePathName: String = LPaths.mungePathRelatedChars(id)
+    }
+    
+    final case class Leaf[A](value: A)(implicit ev: CanBeASimplePath[A]) extends DirNode[A] {
+      require(toSimplePathName.nonEmpty)
+      
+      override def toSimplePathName: String = ev.toSimplePathName(value)
     }
   }
 }

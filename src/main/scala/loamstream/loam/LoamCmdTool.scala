@@ -84,4 +84,16 @@ object LoamCmdTool {
   private[loam] def isStoreIterable(xs: Iterable[_]): Boolean = {
     xs.nonEmpty && xs.forall(_.isInstanceOf[Store])
   }
+  
+  implicit object CanAddPreambleToLoamCmdTools extends CanAddPreamble[LoamCmdTool] {
+    override def addPreamble(
+        preamble: String, 
+        orig: LoamCmdTool)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
+      
+      val useToken = StringToken(s"${preamble} (")
+      val closeParenToken = StringToken(")")
+  
+      orig.copy(tokens = useToken +: orig.tokens :+ closeParenToken)
+    }
+  }
 }

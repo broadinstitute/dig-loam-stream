@@ -70,7 +70,7 @@ final case class LoamEngine(
 
   def compileFiles(files: Iterable[Path]): Try[LoamCompiler.Result] = {
     def compileScripts(scripts: Iterable[LoamScript]): LoamCompiler.Result = {
-      compiler.compile(LoamProject(config, settings, scripts))
+      compile(LoamProject(config, settings, scripts))
     }
     
     Tries.sequence(files.map(loadFile)).map(compileScripts)

@@ -97,6 +97,7 @@ import scala.util.Success
 
 import rx.lang.scala.Scheduler
 import rx.lang.scala.schedulers.ExecutionContextScheduler
+import loamstream.util.DirOracle
 
 
 
@@ -516,7 +517,7 @@ object AppWiring extends Loggable {
 
     override def execute(
         executable: Executable, 
-        makeJobOracle: Executable => JobOracle)(implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
+        makeJobOracle: Executable => DirOracle[LJob])(implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
       
       delegate.execute(executable, makeJobOracle)(timeout)
     }

@@ -112,7 +112,7 @@ final class DrmJobWrapperTest extends FunSuite {
       
       val drmConfig = baseUgerConfig.copy(workDir = testWorkDir)
       
-      val executionConfig = baseExecutionConfig.copy(jobDataDir = testWorkDir)
+      val executionConfig = baseExecutionConfig.copy(loamstreamDir = testWorkDir)
       
       val jobOracle = TestHelpers.InDirJobOracle(testWorkDir)
       
@@ -154,7 +154,7 @@ final class DrmJobWrapperTest extends FunSuite {
 
       val testWorkDir = TestHelpers.getWorkDir(getClass.getSimpleName)
       
-      val executionConfig = baseExecutionConfig.copy(jobDataDir = testWorkDir)
+      val executionConfig = baseExecutionConfig.copy(loamstreamDir = testWorkDir)
       
       val drmConfig = baseUgerConfig.copy(workDir = testWorkDir)
       
@@ -198,7 +198,7 @@ final class DrmJobWrapperTest extends FunSuite {
       
       val drmConfig = baseUgerConfig.copy(workDir = testWorkDir)
       
-      val executionConfig = baseExecutionConfig.copy(jobDataDir = testWorkDir)
+      val executionConfig = baseExecutionConfig.copy(loamstreamDir = testWorkDir)
       
       val jobOracle = TestHelpers.InDirJobOracle(testWorkDir)
       
@@ -223,7 +223,7 @@ final class DrmJobWrapperTest extends FunSuite {
       
       val drmConfig = baseUgerConfig.copy(workDir = testWorkDir)
       
-      val executionConfig = baseExecutionConfig.copy(jobDataDir = testWorkDir)
+      val executionConfig = baseExecutionConfig.copy(loamstreamDir = testWorkDir)
       
       val jobOracle = TestHelpers.InDirJobOracle(testWorkDir)
       
@@ -253,7 +253,7 @@ final class DrmJobWrapperTest extends FunSuite {
         case _: LsfDrmSettings => baseLsfConfig.copy(workDir = testWorkDir)
       }
       
-      val executionConfig: ExecutionConfig = baseExecutionConfig.copy(jobDataDir = testWorkDir)
+      val executionConfig: ExecutionConfig = baseExecutionConfig.copy(loamstreamDir = testWorkDir)
       
       val jobOracle = TestHelpers.InDirJobOracle(testWorkDir)
       

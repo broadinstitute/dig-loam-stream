@@ -27,9 +27,7 @@ final class ExecutionConfigTest extends FunSuite {
         Defaults.dryRunOutputFile,
         Defaults.anonStoreDir,
         Defaults.singularityConfig,
-        Defaults.dbDir,
-        Defaults.logDir,
-        Defaults.jobDataDir,
+        Defaults.loamstreamDir,
         Defaults.maxJobLogFilesPerDir,
         Defaults.numWorkerThreads)
 
@@ -76,6 +74,7 @@ final class ExecutionConfigTest extends FunSuite {
                     |    anonStoreDir = ${expectedAnonStoreDir.render}
                     |    maxJobLogFilesPerDir = $expectedMaxJobLogFilesPerDir
                     |    numWorkerThreads = 456
+                    |    loamstreamDir = "foo/bar/baz"
                     |  }
                     |}""".stripMargin
 
@@ -89,7 +88,9 @@ final class ExecutionConfigTest extends FunSuite {
         anonStoreDir = expectedAnonStoreDir,
         singularity = SingularityConfig.default,
         maxJobLogFilesPerDir = expectedMaxJobLogFilesPerDir,
-        numWorkerThreads = 456)
+        numWorkerThreads = 456,
+        loamstreamDir = path("foo/bar/baz"))
+        
 
     assert(executionConfig === expected)
   }

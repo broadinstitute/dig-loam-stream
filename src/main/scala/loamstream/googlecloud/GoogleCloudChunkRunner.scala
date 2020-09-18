@@ -10,27 +10,24 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
+import GoogleCloudChunkRunner.ClusterStatus
 import loamstream.model.execute.ChunkRunner
 import loamstream.model.execute.ChunkRunnerFor
 import loamstream.model.execute.EnvironmentType
+import loamstream.model.execute.GoogleSettings
 import loamstream.model.execute.Resources.GoogleResources
 import loamstream.model.execute.Resources.LocalResources
+import loamstream.model.jobs.JobOracle
+import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.RunData
 import loamstream.util.ExecutorServices
 import loamstream.util.Loggable
-import loamstream.util.Maps
-import loamstream.util.Observables
 import loamstream.util.Terminable
-import rx.lang.scala.Observable
-import rx.lang.scala.schedulers.ExecutionContextScheduler
-import rx.lang.scala.Scheduler
-import loamstream.model.jobs.JobOracle
-import loamstream.model.execute.LocalSettings
-import loamstream.model.execute.GoogleSettings
-import GoogleCloudChunkRunner.ClusterStatus
-import loamstream.model.jobs.JobStatus
 import loamstream.util.ValueBox
+import rx.lang.scala.Observable
+import rx.lang.scala.Scheduler
+import rx.lang.scala.schedulers.ExecutionContextScheduler
 
 
 /**

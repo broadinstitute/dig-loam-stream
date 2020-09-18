@@ -1,9 +1,10 @@
-package loamstream.model.jobs
+package loamstream.util
 
 import java.nio.file.Path
 
 import scala.util.Try
 
+import loamstream.model.jobs.LJob
 import loamstream.util.{ Paths => LPaths }
 
 /**
@@ -49,7 +50,7 @@ object DirTree {
     }
   }
   
-  private[jobs] def findHeight(branchingFactor: Int, desiredLeaves: Int): Int = {
+  private[util] def findHeight(branchingFactor: Int, desiredLeaves: Int): Int = {
     if(desiredLeaves == 0) { 0 }
     else {
       import scala.math.{ ceil, log }

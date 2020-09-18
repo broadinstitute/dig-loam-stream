@@ -1,5 +1,7 @@
 package loamstream.drm
 
+import java.nio.file.Path
+
 import org.scalatest.FunSuite
 
 import loamstream.TestHelpers
@@ -9,16 +11,14 @@ import loamstream.drm.lsf.LsfPathBuilder
 import loamstream.drm.lsf.LsfScriptBuilderParams
 import loamstream.drm.uger.UgerPathBuilder
 import loamstream.drm.uger.UgerScriptBuilderParams
+import loamstream.model.execute.LocalSettings
+import loamstream.model.jobs.JobOracle
+import loamstream.model.jobs.LJob
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
 import loamstream.util.BashScript.Implicits.BashPath
-import loamstream.model.execute.LocalSettings
-import loamstream.model.jobs.JobOracle
-import java.nio.file.Path
-import loamstream.model.jobs.LJob
-import loamstream.util.Files
 
 /**
  * Created by kyuksel on 2/29/2016.
@@ -32,7 +32,7 @@ object ScriptBuilderTest {
 final class ScriptBuilderTest extends FunSuite {
 
   import ScriptBuilderTest.EnrichedString
-  import TestHelpers.path
+  import loamstream.TestHelpers.path
 
   test("A shell script is generated out of a CommandLineJob, and can be used to submit a UGER job") {
     def doTest(drmSystem: DrmSystem, containerParamsOpt: Option[ContainerParams]): Unit = {
@@ -91,7 +91,6 @@ final class ScriptBuilderTest extends FunSuite {
     doTest(DrmSystem.Lsf, Some(containerParams))
   }
 
-  import loamstream.TestHelpers.path
   
   private val ugerScriptBuilderParams = new UgerScriptBuilderParams(path("/foo/bar"), "someEnv")
   

@@ -13,6 +13,8 @@ trait Locations {
 
   def jobDataDir: Path
   
+  def workerDir: Path
+  
   def logDir: Path
 
   def dryRunOutputFile: Path
@@ -31,6 +33,7 @@ object Locations {
   final case class Literal(
     loamstreamDir: Path = Default.loamstreamDir,
     jobDataDir: Path = Default.jobDataDir,
+    workerDir: Path = Default.workerDir,
     logDir: Path = Default.logDir,
     dryRunOutputFile: Path = Default.dryRunOutputFile,
     dbDir: Path = Default.dbDir,
@@ -40,6 +43,8 @@ object Locations {
   object Default extends Locations {
     override val loamstreamDir: Path = path("./.loamstream")
 
+    override val workerDir: Path = (loamstreamDir / "workers").normalize
+    
     private[this] val jobDir: Path = (loamstreamDir / "jobs").normalize
     
     override val jobDataDir: Path = jobDir / "data"

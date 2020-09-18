@@ -1,25 +1,29 @@
-package loamstream.model.jobs
+package loamstream.util
 
 import java.nio.file.Path
 
 import scala.collection.Seq
 
+import org.scalactic.Equality
 import org.scalatest.FunSuite
 
+import DirTree.DirNode
 import loamstream.TestHelpers
 import loamstream.model.execute.LocalSettings
-import loamstream.util.Paths
-import loamstream.model.jobs.DirTree.DirNode
-import org.scalactic.Equality
+import loamstream.model.jobs.JobResult
+import loamstream.model.jobs.JobStatus
+import loamstream.model.jobs.LJob
+import loamstream.model.jobs.MockJob
+import loamstream.model.jobs.RunData
 
 /**
  * @author clint
  * Sep 26, 2019
  */
-final class JobDirsTest extends FunSuite {
+final class DirTreeTest extends FunSuite {
   import DirTree.DirNode._
-  import JobDirsTest.NamedJob
-  import JobDirsTest.DirNodeOps
+  import DirTreeTest.DirNodeOps
+  import DirTreeTest.NamedJob
   
   private implicit def dirNodeEquality[A]: Equality[DirNode[A]] = new Equality[DirNode[A]] {
     override def areEqual(lhs: DirNode[A], a: Any): Boolean = a match {
@@ -415,7 +419,7 @@ final class JobDirsTest extends FunSuite {
   }
 }
 
-object JobDirsTest {
+object DirTreeTest {
   private final case class NamedJob(override val name: String) extends 
       MockJob(
           name, 

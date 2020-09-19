@@ -285,7 +285,7 @@ final class HailSupportTest extends FunSuite {
 
     val toolBox = new LoamToolBox()
 
-    val job = toolBox.getJob(graph)(tool).get.asInstanceOf[CommandLineJob]
+    val job = toolBox.createExecutable(graph).jobNodes.head.job.asInstanceOf[CommandLineJob]
 
     def collapseWhitespace(s: String) = s.replaceAll("\\s+", " ")
 

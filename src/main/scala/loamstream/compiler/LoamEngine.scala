@@ -34,6 +34,7 @@ import loamstream.loam.LoamLoamScript
 import loamstream.loam.ScalaLoamScript
 import loamstream.util.Files
 import loamstream.conf.LsSettings
+import loamstream.conf.ExecutionConfig
 
 
 /**
@@ -51,11 +52,14 @@ object LoamEngine {
     LoamEngine(config, settings, compiler, RxExecuter.default, csClient)
   }
 
-  def toExecutable(graph: LoamGraph, csClient: Option[CloudStorageClient] = None): Executable = {
+  def toExecutable(
+      graph: LoamGraph, 
+      executionConfig: ExecutionConfig = ExecutionConfig.default, 
+      csClient: Option[CloudStorageClient] = None): Executable = {
     
     val toolBox = new LoamToolBox(csClient)
 
-    toolBox.createExecutable(graph)
+    toolBox.createExecutable(graph, executionConfig)
   }
 }
 
@@ -82,10 +86,10 @@ final case class LoamEngine(
     compiler.compile(project)
   }
   
-  def run(graph: LoamGraph): Map[LJob, Execution] = {
+  def run(graph: LoamGraph, executionConfig: ExecutionConfig = ExecutionConfig.default): Map[LJob, Execution] = {
     info("Making Executable from LoamGraph")
     
-    val executable = LoamEngine.toExecutable(graph, csClient)
+    val executable = LoamEngine.toExecutable(graph, executionConfig, csClient)
     
     listJobsThatCouldRun(executable, config.executionConfig.dryRunOutputFile)
     

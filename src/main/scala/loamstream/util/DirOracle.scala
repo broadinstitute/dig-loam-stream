@@ -22,17 +22,20 @@ trait DirOracle[A] {
 }
 
 object DirOracle {
-  final class For[A : DirTree.DirNode.CanBeASimplePath](
-      executionConfig: ExecutionConfig, 
-      jobs: Iterable[A]) extends DirOracle[A] {
+  final case class For[A : DirTree.DirNode.CanBeASimplePath](
+      executionConfig: ExecutionConfig,
+      getRootDir: ExecutionConfig => Path,
+      values: Iterable[A]) extends DirOracle[A] {
     
-    private lazy val dirNode: DirTree.DirNode[A] = DirTree.allocate(jobs, executionConfig.maxJobLogFilesPerDir)
+    private val rootDir = getRootDir(executionConfig)
+    
+    private lazy val dirNode: DirTree.DirNode[A] = DirTree.allocate(values, executionConfig.maxJobLogFilesPerDir)
     
     private lazy val dirsByJob: Map[A, Path] = {
-      dirNode.pathsByValue(executionConfig.jobDataDir)
+      dirNode.pathsByValue(rootDir)
     }
     
-    private lazy val init: Unit = dirNode.makeDirsUnder(executionConfig.jobDataDir)
+    private lazy val init: Unit = dirNode.makeDirsUnder(rootDir)
 
     private def initAndThen[A](body: => A): A = {
       def doInit(): Unit = init

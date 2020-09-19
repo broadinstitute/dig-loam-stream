@@ -148,11 +148,11 @@ object AppWiring extends Loggable {
     withDrmSystem.copy(compilationConfig = newCompilationConfig).copy(cliConfig = cliConfig)
   }
   
-  def jobFilterForDryRun(intent: Intent.DryRun, makeDao: => LoamDao): JobFilter = {
-    AppWiring.makeJobFilter(intent.jobFilterIntent, intent.hashingStrategy, makeDao)
+  def jobFilterForDryRun(intent: Intent.DryRun, config: LoamConfig, makeDao: LoamConfig => LoamDao): JobFilter = {
+    AppWiring.makeJobFilter(intent.jobFilterIntent, intent.hashingStrategy, makeDao(config))
   }
   
-  def forRealRun(intent: Intent.RealRun, makeDao: => LoamDao): AppWiring = {
+  def forRealRun(intent: Intent.RealRun, makeDao: LoamConfig => LoamDao): AppWiring = {
     new DefaultAppWiring(intent, makeDao = makeDao)
   }
 
@@ -175,9 +175,9 @@ object AppWiring extends Loggable {
   
   private final class DefaultAppWiring(
       intent: Intent.RealRun,
-      makeDao: => LoamDao) extends AppWiring {
+      makeDao: LoamConfig => LoamDao) extends AppWiring {
     
-    override lazy val dao: LoamDao = makeDao
+    override lazy val dao: LoamDao = makeDao(config)
     
     override lazy val config: LoamConfig = {
       loamConfigFrom(
@@ -509,7 +509,11 @@ object AppWiring extends Loggable {
     dao
   }
   
-  private[apps] def makeDefaultDb: LoamDao = makeDaoFrom(DbDescriptor.onDiskDefault)
+  private[apps] def makeDefaultDb(loamConfig: LoamConfig): LoamDao = makeDefaultDbIn(loamConfig.executionConfig.dbDir)
+  
+  private[apps] def makeDefaultDbIn(dbDir: Path): LoamDao = {
+    makeDaoFrom(DbDescriptor.onDiskHsqldbAt(dbDir, DbDescriptor.defaultDbName))
+  }
   
   private[apps] final class TerminableExecuter(
       val delegate: Executer,

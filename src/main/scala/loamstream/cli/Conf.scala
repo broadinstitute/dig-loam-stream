@@ -71,6 +71,10 @@ final case class Conf private (arguments: Seq[String]) extends ScallopConf(argum
   /** Whether we're running in worker mode (running on a DRM system on behalf of another LS instance) */
   val worker: ScallopOption[Boolean] = opt[Boolean](descr = "Run in worker mode (run on a DRM system on behalf of another LS instance)")
   
+  val workDir: ScallopOption[Path] = opt[Path](
+      descr = "Path to store logs, db files, and job metadata in, analogous to the default .loamstream.  Only " +
+              "respected if --worker is also supplied.")
+  
   /** Whether to clear the DB */
   val cleanDb: ScallopOption[Boolean] = opt[Boolean](descr = "Clean db")
   
@@ -162,6 +166,7 @@ final case class Conf private (arguments: Seq[String]) extends ScallopConf(argum
       backend = backend.toOption,
       run = getRun,
       workerSupplied = worker.isSupplied,
+      workDir = workDir.toOption,
       this)
   }
 }
@@ -192,6 +197,7 @@ object Conf {
       backend: Option[String],
       run: Option[(String, Seq[String])],
       workerSupplied: Boolean,
+      workDir: Option[Path],
       derivedFrom: Conf) {
     
     def withIsWorker(isWorker: Boolean): Values = copy(workerSupplied = true)
@@ -199,6 +205,8 @@ object Conf {
     def onlyRun(jobName: String): Values = copy(run = Some((RunStrategies.AllOf, Seq(jobName))))
     
     def withBackend(drmSystem: DrmSystem): Values = copy(backend = Some(drmSystem.name.toLowerCase))
+    
+    def withWorkDir(workDir: Path): Values = copy(workDir = Option(workDir)) 
     
     def confSupplied: Boolean = conf.isDefined
     

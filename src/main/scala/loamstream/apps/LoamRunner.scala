@@ -19,7 +19,7 @@ final case class LoamRunner(loamEngine: LoamEngine) extends Loggable {
     info(compilationResults.summary)
 
     compilationResults match {
-      case success: LoamCompiler.Result.Success => Right(loamEngine.run(success.graph))
+      case success: LoamCompiler.Result.Success => Right(loamEngine.run(success.graph, project.config.executionConfig))
       case _ => Left(compilationResults)
     }
   }

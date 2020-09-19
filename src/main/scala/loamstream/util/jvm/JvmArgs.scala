@@ -22,9 +22,12 @@ final case class JvmArgs(jvmArgs: Seq[String], classpath: String) {
     javaBinaryPath.toAbsolutePath
   }
   
-  def rerunCommandTokens(conf: Conf.Values): Seq[String] = {
+  def rerunCommandTokens(conf: Conf.Values, systemProperties: Map[String, String]): Seq[String] = {
+    val sysprops = systemProperties.toSeq.map { case (k, v) => s"-D${k}=${v}" }
+    
     Seq(javaBinary.toString) ++
-    jvmArgs ++
+    jvmArgs ++ 
+    sysprops ++
     Seq("-jar", classpath) ++
     conf.toArguments
   }

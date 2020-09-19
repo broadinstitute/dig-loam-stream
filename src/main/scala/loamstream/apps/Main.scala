@@ -50,7 +50,7 @@ object Main extends Loggable {
       case Right(ShowVersionAndQuit) => ()
       case Right(ShowHelpAndQuit) => cli.printHelp()
       case Right(compileOnly: CompileOnly) => run.doCompileOnly(compileOnly)
-      case Right(dryRun: DryRun) => run.doDryRun(dryRun)
+      case Right(dryRun: DryRun) => run.doDryRun(dryRun)()
       case Right(real: RealRun) => run.doRealRun(real)
       case Left(message) => cli.printHelp(message)
       case _ => cli.printHelp()
@@ -102,9 +102,12 @@ object Main extends Loggable {
       info(compilationResult.report)
     }
     
-    def doDryRun(intent: Intent.DryRun, makeDao: => LoamDao = AppWiring.makeDefaultDb): Unit = {
+    def doDryRun(
+        intent: Intent.DryRun)( 
+        makeDao: LoamConfig => LoamDao = AppWiring.makeDefaultDb): Unit = {
+      
       val config = {
-        AppWiring.loamConfigFrom(intent.confFile, intent.drmSystemOpt, intent.shouldValidate, intent.cliConfig) 
+        AppWiring.loamConfigFrom(intent.confFile, intent.drmSystemOpt, intent.shouldValidate, intent.cliConfig)
       }
       
       val lsSettings = LsSettings(intent.cliConfig.map(_.toValues))
@@ -117,12 +120,12 @@ object Main extends Loggable {
       
       compilationResult match {
         case LoamCompiler.Result.Success(_, _, graph) => {
-          val executable = LoamEngine.toExecutable(graph)
+          val executable = LoamEngine.toExecutable(graph, config.executionConfig)
     
           val jobsToBeRun = intent.jobFilterIntent match {
             case JobFilterIntent.AsByNameJobFilter(byNameFilter) => DryRunner.toBeRun(byNameFilter, executable) 
             case _ => {
-              val jobFilter = AppWiring.jobFilterForDryRun(intent, makeDao)
+              val jobFilter = AppWiring.jobFilterForDryRun(intent, config, makeDao)
               
               DryRunner.toBeRun(jobFilter, executable)
             }
@@ -143,9 +146,15 @@ object Main extends Loggable {
       }
     }
     
-    def doRealRun(intent: Intent.RealRun, makeDao: => LoamDao = AppWiring.makeDefaultDb): Unit = {
+    def doRealRun(
+        intent: Intent.RealRun, 
+        makeDao: LoamConfig => LoamDao = conf => AppWiring.makeDefaultDbIn(conf.executionConfig.dbDir)): Unit = {
       
       val wiring = AppWiring.forRealRun(intent, makeDao)
+      
+      val lsDir =  wiring.config.executionConfig.loamstreamDir.toAbsolutePath
+      
+      info(s"Loamstream will create logs and metadata files under ${lsDir}")
       
       addShutdownHook(wiring)
       

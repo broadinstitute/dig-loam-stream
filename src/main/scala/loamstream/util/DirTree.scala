@@ -107,7 +107,7 @@ object DirTree {
     
     private[DirTree] def nextId(): String = lock.synchronized(ids.next())
 
-    sealed trait CanBeASimplePath[A] {
+    trait CanBeASimplePath[A] {
       def toSimplePathName(a: A): String
     }
     

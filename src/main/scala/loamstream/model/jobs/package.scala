@@ -14,7 +14,7 @@ package object jobs {
   
   object JobOracle {
     def fromExecutable(executionConfig: ExecutionConfig, executable: Executable): DirOracle[LJob] = {
-      new DirOracle.For(executionConfig, executable.allJobs)
+      new DirOracle.For(executionConfig, _.jobDataDir, executable.allJobs)
     }
   }
 }

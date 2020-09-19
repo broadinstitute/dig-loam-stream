@@ -113,7 +113,7 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
         if(scriptContext.lsSettings.thisInstanceIsAWorker) { doIt }
         else {
           scriptContext.settings match {
-            case drmSettings: DrmSettings => InvokesLsTool("fake-stub-tag-name")
+            case drmSettings: DrmSettings => InvokesLsTool()
             case settings => {
               sys.error(
                   s"Intake jobs can only run locally with --worker or on a DRM system, but settings were $settings")

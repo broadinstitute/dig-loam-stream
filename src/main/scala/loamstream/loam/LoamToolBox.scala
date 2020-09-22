@@ -45,7 +45,7 @@ final class LoamToolBox(client: Option[CloudStorageClient] = None) extends Logga
   private[loam] def toJobs(graph: LoamGraph, oracle: DirOracle[Tool], finalTools: Set[Tool]): Set[JobNode] = {
     finalTools.flatMap(getJob(graph, oracle))
   }
-
+  
   def getJob(graph: LoamGraph, oracle: DirOracle[Tool])(tool: Tool): Option[JobNode] = lock.synchronized {
     loamJobs.get(tool) match {
       case s @ Some(_) => s
@@ -62,76 +62,21 @@ final class LoamToolBox(client: Option[CloudStorageClient] = None) extends Logga
       }
     }
   }
-
+  
   private[loam] def newJob(graph: LoamGraph, oracle: DirOracle[Tool], tool: Tool): Option[JobNode] = {
-    val workDir: Path = graph.workDirOpt(tool).getOrElse(Paths.get("."))
-
-    val settings: Settings = graph.settingsOpt(tool).getOrElse(LocalSettings)
-
-    val dependencyJobs = toJobs(graph, oracle, graph.toolsPreceding(tool))
-    def successorJobs = toJobs(graph, oracle, graph.toolsSucceeding(tool))
-
-    val inputs = inputsFor(graph, tool)
-    val outputs = outputsFor(graph, tool)
-
-    val toolNameOpt = graph.nameOf(tool)
-
-    def commandLineJob(commandLine: String, settings: Settings = settings) = CommandLineJob(
-      commandLineString = commandLine, 
-      workDir = workDir, 
-      initialSettings = settings, 
-      dependencies = dependencyJobs,
-      successorsFn = () => successorJobs, 
-      inputs = inputs,
-      outputs = outputs, 
-      nameOpt = toolNameOpt)
+    lazy val newJobParams = new NewJobParams(graph, oracle, tool)
+    
+    import newJobParams.commandLineJob
+    import newJobParams.nativeJob
     
     tool match {
       case cmdTool: LoamCmdTool => Some(commandLineJob(cmdTool.commandLine))
       case invokesLs: InvokesLsTool => {
-        val commandLine = {
-          val jvmArgs = invokesLs.scriptContext.lsSettings.jvmArgs
-          val cliConfig = invokesLs.scriptContext.lsSettings.cliConfig
-          
-          cliConfig match {
-            case Some(conf) => {
-              val workDirOpt = oracle.dirOptFor(invokesLs)
-              
-              require(workDirOpt.isDefined, s"Couldn't determine work dir for tool $invokesLs")
-              
-              val workDir = workDirOpt.get
-              
-              val sysprops = Map(
-                  SysPropNames.loamstreamWorkDir -> workDir.toString,
-                  SysPropNames.loamstreamExecutionLoamstreamDir -> workDir.toString)
-              
-              val newConf = {
-                conf.
-                  withBackend(invokesLs.scriptContext.config.drmSystem.get).
-                  withIsWorker(true).
-                  withWorkDir(workDir).
-                  onlyRun(graph.nameOf(invokesLs).get) //TODO
-              }
-              
-              invokesLs.preambles ++ jvmArgs.rerunCommandTokens(newConf, sysprops)
-            }
-            case None => sys.error(
-                s"In order to run in --worker mode, LS must be run from the command line, but no CLI config was found")
-          }
-        }
+        val commandLineTokens = makeWorkerJobCommandLineTokens(graph, invokesLs, oracle)
         
-        Some(commandLineJob(commandLine.mkString(" ")))
+        Some(commandLineJob(commandLineTokens.mkString(" ")))
       }
-      case nativeTool: NativeTool => {
-        Some(NativeJob(
-            body = nativeTool.body,
-            initialSettings = LocalSettings, 
-            dependencies = dependencyJobs,
-            successorsFn = () => successorJobs, 
-            inputs = inputs,
-            outputs = outputs, 
-            nameOpt = toolNameOpt))
-      }
+      case nativeTool: NativeTool => Some(nativeJob(nativeTool))
       case t => {
         warn(s"Not mapping tool with unknown type: $t")
         
@@ -140,19 +85,75 @@ final class LoamToolBox(client: Option[CloudStorageClient] = None) extends Logga
     }
   }
 
-  private def inputsFor(graph: LoamGraph, tool: Tool): Set[DataHandle] = handlesFor(graph.toolInputs(tool))
-  
-  private def outputsFor(graph: LoamGraph, tool: Tool): Set[DataHandle] = handlesFor(graph.toolOutputs(tool))
-  
-  private def handlesFor(stores: Set[Store]): Set[DataHandle] = {
-    def pathOrUriToOutput(store: Store): Option[DataHandle] = {
-      store.pathOpt.orElse(store.uriOpt).map {
-        case path: Path => DataHandle.PathHandle(path)
-        case uri: URI   => DataHandle.GcsUriHandle(uri, client)
-      }
-    }
+  private final class NewJobParams(graph: LoamGraph, oracle: DirOracle[Tool], tool: Tool) {
     
-    stores.flatMap(pathOrUriToOutput)
+    private val workDir: Path = graph.workDirOpt(tool).getOrElse(Paths.get("."))
+
+    private val settings: Settings = graph.settingsOpt(tool).getOrElse(LocalSettings)
+
+    private val dependencyJobs = toJobs(graph, oracle, graph.toolsPreceding(tool))
+    private def successorJobs = toJobs(graph, oracle, graph.toolsSucceeding(tool))
+
+    private val inputs = LoamToolBox.inputsFor(graph, tool, client)
+    private val outputs = LoamToolBox.outputsFor(graph, tool, client)
+
+    private val toolNameOpt = graph.nameOf(tool)
+    
+    def commandLineJob(commandLine: String, initialSettings: Settings = settings): CommandLineJob = CommandLineJob(
+      commandLineString = commandLine, 
+      workDir = workDir, 
+      initialSettings = initialSettings, 
+      dependencies = dependencyJobs,
+      successorsFn = () => successorJobs, 
+      inputs = inputs,
+      outputs = outputs, 
+      nameOpt = toolNameOpt)
+      
+    def nativeJob(nativeTool: NativeTool): NativeJob = NativeJob(
+        body = nativeTool.body,
+        initialSettings = LocalSettings, 
+        dependencies = dependencyJobs,
+        successorsFn = () => successorJobs, 
+        inputs = inputs,
+        outputs = outputs, 
+        nameOpt = toolNameOpt)
+  }
+  
+  private def makeWorkerJobCommandLineTokens(
+      graph: LoamGraph, 
+      invokesLs: InvokesLsTool, 
+      oracle: DirOracle[Tool]): Seq[String] = {
+    
+    val lsSettings = invokesLs.scriptContext.lsSettings
+    
+    val jvmArgs = lsSettings.jvmArgs
+    val cliConfig = lsSettings.cliConfig
+    
+    cliConfig match {
+      case Some(conf) => {
+        val workDirOpt = oracle.dirOptFor(invokesLs)
+        
+        require(workDirOpt.isDefined, s"Couldn't determine work dir for tool $invokesLs")
+        
+        val workDir = workDirOpt.get
+        
+        val sysprops = Map(
+            SysPropNames.loamstreamWorkDir -> workDir.toString,
+            SysPropNames.loamstreamExecutionLoamstreamDir -> workDir.toString)
+        
+        val newConf = {
+          conf.
+            withBackend(invokesLs.scriptContext.config.drmSystem.get).
+            withIsWorker(true).
+            withWorkDir(workDir).
+            onlyRun(graph.nameOf(invokesLs).get) //TODO
+        }
+        
+        invokesLs.preambles ++ jvmArgs.rerunCommandTokens(newConf, sysprops)
+      }
+      case None => sys.error(
+          s"In order to run in --worker mode, LS must be run from the command line, but no CLI config was found")
+    }
   }
 }
 
@@ -180,4 +181,25 @@ object LoamToolBox {
       
     DirOracle.For(executionConfig, _.workerDir, invokesLsTools)
   }
+  
+  private def inputsFor(
+      graph: LoamGraph, 
+      tool: Tool, 
+      client: Option[CloudStorageClient]): Set[DataHandle] = handlesFor(graph.toolInputs(tool), client)
+  
+  private def outputsFor(
+      graph: LoamGraph, 
+      tool: Tool, 
+      client: Option[CloudStorageClient]): Set[DataHandle] = handlesFor(graph.toolOutputs(tool), client)
+  
+  private def handlesFor(stores: Set[Store], client: Option[CloudStorageClient]): Set[DataHandle] = {
+      def pathOrUriToOutput(store: Store): Option[DataHandle] = {
+        store.pathOpt.orElse(store.uriOpt).map {
+          case path: Path => DataHandle.PathHandle(path)
+          case uri: URI   => DataHandle.GcsUriHandle(uri, client)
+        }
+      }
+      
+      stores.flatMap(pathOrUriToOutput)
+    }
 }

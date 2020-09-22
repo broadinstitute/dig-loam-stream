@@ -21,6 +21,7 @@ import loamstream.util.DirOracle
 import loamstream.util.jvm.SysPropNames
 import loamstream.util.DirTree.DirNode
 import loamstream.conf.ExecutionConfig
+import loamstream.util.ValueBox
 
 /**
  * LoamStream
@@ -46,14 +47,18 @@ final class LoamToolBox(client: Option[CloudStorageClient] = None) extends Logga
   }
 
   def getJob(graph: LoamGraph, oracle: DirOracle[Tool])(tool: Tool): Option[JobNode] = lock.synchronized {
-    if (loamJobs.contains(tool)) {
-      loamJobs.get(tool)
-    } else {
-      newJob(graph, oracle, tool) match {
-        case jobOpt @ Some(job) =>
+    loamJobs.get(tool) match {
+      case s @ Some(_) => s
+      case None => {
+        val newJobOpt = newJob(graph, oracle, tool)
+        
+        newJobOpt.foreach { job =>
           loamJobs += tool -> job
-          jobOpt
-        case None => None
+          
+          job
+        }
+        
+        newJobOpt
       }
     }
   }

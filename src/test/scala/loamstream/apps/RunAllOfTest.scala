@@ -32,7 +32,7 @@ final class RunAllOfTest extends FunSuite {
     
     val runIfAllMatch = intent.jobFilterIntent.asInstanceOf[JobFilterIntent.RunIfAllMatch]
     
-    val jobFilter = AppWiring.jobFilterForDryRun(intent, ???)
+    val jobFilter = AppWiring.jobFilterForDryRun(intent, TestHelpers.config, _ => ???)
     
     assert(jobFilter.isInstanceOf[ByNameJobFilter.AllOf])
     

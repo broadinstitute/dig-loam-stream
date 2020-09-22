@@ -55,7 +55,7 @@ final class HailSupportTest extends FunSuite {
     LoamConfig.fromString(configString).get
   }
 
-  private val projectContext: LoamProjectContext = LoamProjectContext.empty(config, LsSettings.noCliConfig)
+  private def projectContext: LoamProjectContext = LoamProjectContext.empty(config, LsSettings.noCliConfig)
 
   private val googleSettings = GoogleSettings(clusterId, clusterConfig = ClusterConfig.default)
 
@@ -285,6 +285,10 @@ final class HailSupportTest extends FunSuite {
 
     val toolBox = new LoamToolBox()
 
+    val executable = toolBox.createExecutable(graph)
+    
+    assert(executable.jobNodes.size === 1, s"Expected only one job, but got ${executable.jobNodes}")
+    
     val job = toolBox.createExecutable(graph).jobNodes.head.job.asInstanceOf[CommandLineJob]
 
     def collapseWhitespace(s: String) = s.replaceAll("\\s+", " ")

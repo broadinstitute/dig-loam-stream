@@ -89,7 +89,9 @@ final class LoamCompilerTest extends FunSuite {
           
       assert(scriptAttempt.isSuccess, s"Expected to find $exampleFile, but got ${scriptAttempt.get}")
       
-      val result = LoamCompiler.default.compile(LoamProject(TestHelpers.config, LsSettings.noCliConfig, scriptAttempt.get))
+      val result = {
+        LoamCompiler.default.compile(LoamProject(TestHelpers.config, LsSettings.noCliConfig, scriptAttempt.get))
+      }
       
       assert(result.errors.isEmpty)
       assert(result.warnings.isEmpty)

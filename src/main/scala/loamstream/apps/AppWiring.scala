@@ -521,7 +521,8 @@ object AppWiring extends Loggable {
 
     override def execute(
         executable: Executable, 
-        makeJobOracle: Executable => DirOracle[LJob])(implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
+        makeJobOracle: Executable => DirOracle[LJob])
+       (implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
       
       delegate.execute(executable, makeJobOracle)(timeout)
     }

@@ -32,7 +32,9 @@ trait LoamTestHelpers extends Loggable {
     compile(LoamProject(TestHelpers.config, LsSettings.noCliConfig, paths.map(toScript)), throwOnError = false)
   }
 
-  def compile(script: LoamScript): LoamCompiler.Result = compile(LoamProject(TestHelpers.config, LsSettings.noCliConfig, Set(script)))
+  def compile(script: LoamScript): LoamCompiler.Result = {
+    compile(LoamProject(TestHelpers.config, LsSettings.noCliConfig, Set(script)))
+  }
     
   def compile(project: LoamProject, throwOnError: Boolean = true): LoamCompiler.Result = {
 

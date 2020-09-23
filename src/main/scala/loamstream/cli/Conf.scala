@@ -69,7 +69,8 @@ final case class Conf private (arguments: Seq[String]) extends ScallopConf(argum
   val help: ScallopOption[Boolean] = opt[Boolean](descr = "Show help and exit")
   
   /** Whether we're running in worker mode (running on a DRM system on behalf of another LS instance) */
-  val worker: ScallopOption[Boolean] = opt[Boolean](descr = "Run in worker mode (run on a DRM system on behalf of another LS instance)")
+  val worker: ScallopOption[Boolean] = opt[Boolean](
+      descr = "Run in worker mode (run on a DRM system on behalf of another LS instance)")
   
   val workDir: ScallopOption[Path] = opt[Path](
       descr = "Path to store logs, db files, and job metadata in, analogous to the default .loamstream.  Only " +
@@ -211,13 +212,6 @@ object Conf {
     def confSupplied: Boolean = conf.isDefined
     
     def toArguments: Seq[String] = {
-      def munge(argName: String): String = argName.size match {
-        case 1 => s"-${argName}"
-        case _ => s"--${argName}"
-      }
-      
-      def toString(flag: Boolean, sOpt: ScallopOption[Boolean]): String = if(flag) munge(sOpt.name) else ""
-        
       val conf = derivedFrom
         
       val cleanParts: Seq[String] = {
@@ -226,35 +220,35 @@ object Conf {
         def cleanSomething = cleanDbSupplied || cleanLogsSupplied || cleanScriptsSupplied
         
         if(cleanEverything) { 
-          Seq(munge(conf.clean.name)) 
+          Seq(asArgName(conf.clean)) 
         } else if (cleanSomething) {
           Seq(
-            toString(cleanDbSupplied, conf.cleanDb),
-            toString(cleanLogsSupplied, conf.cleanLogs),
-            toString(cleanScriptsSupplied, conf.cleanScripts)).filter(_.nonEmpty)
+            asStringIfSupplied(conf.cleanDb),
+            asStringIfSupplied(conf.cleanLogs),
+            asStringIfSupplied(conf.cleanScripts)).filter(_.nonEmpty)
         } else {
           Nil
         }
       }
       
       val confPart: Seq[String] = {
-        conf.conf.toOption.toSeq.flatMap(confFilePath => Seq(munge(conf.conf.name), confFilePath.toString))
+        conf.conf.toOption.toSeq.flatMap(confFilePath => Seq(asArgName(conf.conf), confFilePath.toString))
       }
       
-      val noValidationPart: Seq[String] = Seq(toString(noValidationSupplied, conf.noValidation))
-      val compileOnlyPart: Seq[String] = Seq(toString(compileOnlySupplied, conf.compileOnly))
-      val dryRunPart: Seq[String] = Seq(toString(dryRunSupplied, conf.dryRun))
-      val disableHashingPart: Seq[String] = Seq(toString(disableHashingSupplied, conf.disableHashing)) 
+      val noValidationPart: Seq[String] = Seq(asStringIfSupplied(conf.noValidation))
+      val compileOnlyPart: Seq[String] = Seq(asStringIfSupplied(conf.compileOnly))
+      val dryRunPart: Seq[String] = Seq(asStringIfSupplied(conf.dryRun))
+      val disableHashingPart: Seq[String] = Seq(asStringIfSupplied(conf.disableHashing)) 
       
       val backendPart: Seq[String] = {
-        conf.backend.toOption.toSeq.flatMap(backend => Seq(munge(conf.backend.name), backend.toLowerCase))
+        conf.backend.toOption.toSeq.flatMap(backend => Seq(asArgName(conf.backend), backend.toLowerCase))
       } 
       
-      val runPart: Seq[String] = run.toSeq.flatMap { case (what, hows) => munge(conf.run.name) +: what +: hows }
+      val runPart: Seq[String] = run.toSeq.flatMap { case (what, hows) => asArgName(conf.run) +: what +: hows }
       
-      val workerPart: Seq[String] = Seq(toString(workerSupplied, conf.worker))
+      val workerPart: Seq[String] = Seq(asStringIfSupplied(conf.worker))
       
-      val loamsPart: Seq[String] = munge(conf.loams.name) +: loams.map(_.toString)
+      val loamsPart: Seq[String] = asArgName(conf.loams) +: loams.map(_.toString)
       
       val result: Buffer[String] = new ListBuffer
       
@@ -263,5 +257,20 @@ object Conf {
       
       result.toList.filter(_.nonEmpty)
     }
+  }
+  
+  private def asStringIfSupplied(sOpt: ScallopOption[Boolean]): String = {
+    if(sOpt.isSupplied) asArgName(sOpt) else ""
+  }
+  
+  private def asArgName(arg: ScallopOption[_]): String = {
+    val argName = arg.name
+    
+    val hyphens = argName.size match {
+      case 1 => "-"
+      case _ => "--"
+    }
+    
+    s"${hyphens}${argName}"
   }
 }

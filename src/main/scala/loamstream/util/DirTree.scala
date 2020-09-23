@@ -117,7 +117,10 @@ object DirTree {
       }
     }
     
-    final case class Interior[A: CanBeASimplePath](id: String = nextId(), children: Iterable[DirNode[A]]) extends DirNode[A] {
+    final case class Interior[A: CanBeASimplePath](
+        id: String = nextId(), 
+        children: Iterable[DirNode[A]]) extends DirNode[A] {
+      
       require(id.nonEmpty)
       require(children.nonEmpty)
       

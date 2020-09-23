@@ -59,6 +59,12 @@ object ColumnDefs {
     ColumnDef(destColumn, expr, 1.0 - expr)
   }
   
+  def oddsRatio(sourceColumn: ColumnExpr[_], destColumn: ColumnName = ColumnNames.odds_ratio): UnsourcedColumnDef = {
+    val expr = asDouble(sourceColumn)
+
+    ColumnDef(destColumn, expr, 1.0 / expr)
+  }
+  
   //TODO: Something better, this makes potentially-superfluous .map() invocations
   private def asDouble(column: ColumnExpr[_]): ColumnExpr[Double] = column.asString.asDouble
       

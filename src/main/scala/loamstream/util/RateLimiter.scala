@@ -13,12 +13,6 @@ import scala.util.Failure
 final class RateLimiter[A](delegate: () => Try[A], maxAge: Duration) extends (() => Try[A]) {
   private val lastInvocationBox: ValueBox[Option[Long]] = ValueBox(None)
   
-  private def lastRun: Long = lastInvocationBox.value.getOrElse(Long.MinValue)
-  
-  private[util] def timeToRun(lastRan: Long, now: Long = System.currentTimeMillis): Boolean = {
-    (lastRan + maxAge.toMillis) <= now
-  }
-  
   override def apply(): Try[A] = {
     val now = System.currentTimeMillis
     
@@ -33,6 +27,10 @@ final class RateLimiter[A](delegate: () => Try[A], maxAge: Duration) extends (()
         (lastRanOpt, failure) 
       }
     }
+  }
+  
+  private[util] def timeToRun(lastRan: Long, now: Long = System.currentTimeMillis): Boolean = {
+    (lastRan + maxAge.toMillis) <= now
   }
 }
 

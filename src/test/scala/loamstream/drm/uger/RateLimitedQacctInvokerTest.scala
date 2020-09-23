@@ -14,9 +14,9 @@ import loamstream.util.Sequence
  * @author clint
  * Sep 10, 2020
  */
-final class RateLimitedCachedQacctInvokerTest extends FunSuite {
+final class RateLimitedQacctInvokerTest extends FunSuite {
   test("makeTokens") {
-    import RateLimitedCachedQacctInvoker.makeTokens
+    import RateLimitedQacctInvoker.makeTokens
     
     assert(makeTokens(jobNumber = "12345") === Seq("qacct", "-j", "12345"))
     
@@ -43,7 +43,7 @@ final class RateLimitedCachedQacctInvokerTest extends FunSuite {
     
     import scala.concurrent.ExecutionContext.Implicits.global
     
-    val caches = new RateLimitedCachedQacctInvoker(
+    val caches = new RateLimitedQacctInvoker(
         "MOCK", 
         successfulInvocationFn, 
         maxSize = 3, 
@@ -53,8 +53,11 @@ final class RateLimitedCachedQacctInvokerTest extends FunSuite {
     
     val invoker = caches.commandInvoker
     
+    def assertThrows(f: => Any): Unit = intercept[Exception] { f }
+    
     assert(waitFor(invoker.apply(taskArrayId0)).stdout.head === "0-0")
-    assert(waitFor(invoker.apply(taskArrayId0)).stdout.head === "0-0")
+    
+    assertThrows(waitFor(invoker.apply(taskArrayId0)))
     
     Thread.sleep(1000)
     
@@ -63,8 +66,8 @@ final class RateLimitedCachedQacctInvokerTest extends FunSuite {
     assert(waitFor(invoker.apply(taskArrayId1)).stdout.head === "1-0")
     assert(waitFor(invoker.apply(taskArrayId2)).stdout.head === "2-0")
     
-    assert(waitFor(invoker.apply(taskArrayId1)).stdout.head === "1-0")
-    assert(waitFor(invoker.apply(taskArrayId2)).stdout.head === "2-0")
+    assertThrows(waitFor(invoker.apply(taskArrayId1)))
+    assertThrows(waitFor(invoker.apply(taskArrayId2)))
     
     Thread.sleep(1000)
     
@@ -73,11 +76,10 @@ final class RateLimitedCachedQacctInvokerTest extends FunSuite {
     assert(waitFor(invoker.apply(taskArrayId1)).stdout.head === "1-1")
     assert(waitFor(invoker.apply(taskArrayId2)).stdout.head === "2-1")
     
-    assert(caches.currentCacheMap.keySet === Set(taskArrayId0, taskArrayId1, taskArrayId2))
+    assert(caches.currentLimiterMap.keySet === Set(taskArrayId0, taskArrayId1, taskArrayId2))
     
     assert(waitFor(invoker.apply(taskArrayId3)).stdout.head === "3-0")
     
-    //Oldest cached value should be evicted
-    assert(caches.currentCacheMap.keySet === Set(taskArrayId1, taskArrayId2, taskArrayId3))
+    assert(caches.currentLimiterMap.keySet === Set(taskArrayId0, taskArrayId1, taskArrayId2, taskArrayId3))
   }
 }

@@ -35,7 +35,7 @@ final case class SourceColumns(
   def withDefaultOddsRatio: SourceColumns = withOddsRatio(ColumnNames.odds_ratio)
   def withDefaultEaf: SourceColumns = withEaf(ColumnNames.eaf)
   def withDefaultMaf: SourceColumns = withMaf(ColumnNames.maf)
-  def withDefaultN: SourceColumns = withMaf(ColumnNames.n)
+  def withDefaultN: SourceColumns = withN(ColumnNames.n)
   
   private val mapping: Map[ColumnName, ColumnName] = {
     //mandatory columns

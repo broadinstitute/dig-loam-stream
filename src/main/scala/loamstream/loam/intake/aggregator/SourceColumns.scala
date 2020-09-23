@@ -10,7 +10,8 @@ final case class SourceColumns(
     beta: Option[ColumnName] = None,
     oddsRatio: Option[ColumnName] = None,
     eaf: Option[ColumnName] = None,
-    maf: Option[ColumnName] = None) {
+    maf: Option[ColumnName] = None,
+    n: Option[ColumnName] = None) {
   
   def withoutZscore: SourceColumns = copy(zscore = None)
   def withoutStderr: SourceColumns = copy(stderr = None)
@@ -18,6 +19,7 @@ final case class SourceColumns(
   def withoutOddsRatio: SourceColumns = copy(oddsRatio = None)
   def withoutEaf: SourceColumns = copy(eaf = None)
   def withoutMaf: SourceColumns = copy(maf = None)
+  def withoutN: SourceColumns = copy(n = None)
   
   def withZscore(newZscore: ColumnName): SourceColumns = copy(zscore = Option(newZscore))
   def withStderr(newStderr: ColumnName): SourceColumns = copy(stderr = Option(newStderr))
@@ -25,6 +27,7 @@ final case class SourceColumns(
   def withOddsRatio(newOddsRatio: ColumnName): SourceColumns = copy(oddsRatio = Option(newOddsRatio))
   def withEaf(newEaf: ColumnName): SourceColumns = copy(eaf = Option(newEaf))
   def withMaf(newMaf: ColumnName): SourceColumns = copy(maf = Option(newMaf))
+  def withN(newN: ColumnName): SourceColumns = copy(n = Option(newN))
   
   def withDefaultZscore: SourceColumns = withZscore(ColumnNames.zscore)
   def withDefaultStderr: SourceColumns = withStderr(ColumnNames.stderr)
@@ -32,6 +35,7 @@ final case class SourceColumns(
   def withDefaultOddsRatio: SourceColumns = withOddsRatio(ColumnNames.odds_ratio)
   def withDefaultEaf: SourceColumns = withEaf(ColumnNames.eaf)
   def withDefaultMaf: SourceColumns = withMaf(ColumnNames.maf)
+  def withDefaultN: SourceColumns = withMaf(ColumnNames.n)
   
   private val mapping: Map[ColumnName, ColumnName] = {
     //mandatory columns
@@ -45,7 +49,8 @@ final case class SourceColumns(
       beta.map(ColumnNames.beta -> _) ++
       oddsRatio.map(ColumnNames.odds_ratio -> _) ++
       eaf.map(ColumnNames.eaf -> _) ++
-      maf.map(ColumnNames.maf -> _)
+      maf.map(ColumnNames.maf -> _) ++ 
+      n.map(ColumnNames.n -> _)
   }
       
   def asConfigFileContents: String = {
@@ -102,6 +107,7 @@ object SourceColumns {
         beta = Option(ColumnNames.beta),
         oddsRatio = Option(ColumnNames.odds_ratio),
         eaf = Option(ColumnNames.eaf),
-        maf = Option(ColumnNames.maf))
+        maf = Option(ColumnNames.maf),
+        n = Option(ColumnNames.n))
   }
 }

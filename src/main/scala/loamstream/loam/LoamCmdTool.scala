@@ -90,10 +90,10 @@ object LoamCmdTool {
         preamble: String, 
         orig: LoamCmdTool)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
       
-      val useToken = StringToken(s"${preamble} (")
+      val preambleToken = StringToken(s"${preamble} (")
       val closeParenToken = StringToken(")")
   
-      orig.copy(tokens = useToken +: orig.tokens :+ closeParenToken)
+      orig.copy(tokens = preambleToken +: orig.tokens :+ closeParenToken)
     }
   }
 }

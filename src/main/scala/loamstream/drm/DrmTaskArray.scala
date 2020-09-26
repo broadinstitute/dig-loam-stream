@@ -46,6 +46,8 @@ final case class DrmTaskArray(
       
       val drmScriptInJobDir = jobDir.resolve("drm-script.sh")
       
+      debug(s"Copying script for task array ${drmJobName} to ${drmScriptInJobDir}")
+      
       LFiles.copyAndOverwrite(drmScript, drmScriptInJobDir)
     }
     

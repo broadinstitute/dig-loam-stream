@@ -110,7 +110,13 @@ final case class DrmChunkRunner(
     drmTaskArray: DrmTaskArray): Observable[(LJob, RunData)] = {
 
     def submit(): Observable[DrmSubmissionResult] = {
-      TimeUtils.time(s"Submitting task array with ${drmTaskArray.size} jobs", debug(_)) {
+      val name = drmTaskArray.drmJobName
+      
+      val msg = s"Submitting task array ${name} with ${drmTaskArray.size} jobs"
+      
+      TimeUtils.time(msg, debug(_)) {
+        debug(msg)
+        
         jobSubmitter.submitJobs(drmSettings, drmTaskArray)
       }
     }

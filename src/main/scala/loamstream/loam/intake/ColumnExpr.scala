@@ -200,6 +200,8 @@ final case class ColumnName(name: String) extends ColumnExpr[String] {
   }
   
   override def asString: ColumnExpr[String] = this
+  
+  def mapName(f: String => String): ColumnName = copy(name = f(name))
 }
 
 final case class MappedColumnExpr[A: TypeTag, B: TypeTag](f: A => B, dependsOn: ColumnExpr[A]) extends ColumnExpr[B] {

@@ -102,7 +102,7 @@ object ColumnDefs {
       ColumnDef(destColumn, sourceColumn)
     }
     
-    def n(sourceColumn: ColumnExpr[_], destColumn: ColumnName = ColumnNames.stderr): UnsourcedColumnDef = {
+    def n(sourceColumn: ColumnExpr[_], destColumn: ColumnName = ColumnNames.n): UnsourcedColumnDef = {
       ColumnDef(destColumn, sourceColumn)
     }
   }

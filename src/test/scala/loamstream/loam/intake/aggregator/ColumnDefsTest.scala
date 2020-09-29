@@ -95,7 +95,7 @@ final class ColumnDefsTest extends FunSuite {
   }
   
   test("zscore") {
-    val baz = ColumnName("baz")
+    val baz = ColumnName("baz").asDouble
     
     val zscoreDef = ColumnDefs.zscore(baz)
     

@@ -108,7 +108,12 @@ object ColumnDefs {
   }
 
   //TODO: Something better, this makes potentially-superfluous .map() invocations
-  private def asDouble(column: ColumnExpr[_]): ColumnExpr[Double] = column.asString.asDouble
+  private def asDouble(column: ColumnExpr[_]): ColumnExpr[Double] = {
+    if(column.isDoubleExpr) { column.asInstanceOf[ColumnExpr[Double]] }
+    else {
+      column.asString.asDouble
+    }
+  }
       
   private def simpleDoubleColumn(
       sourceColumn: ColumnExpr[_],

@@ -22,11 +22,10 @@ trait AggregatorCommands {
       metadata: Metadata, 
       csvFile: Store, 
       sourceColumnMapping: SourceColumns,
+      workDir: Path = Paths.get("."),
       logFile: Option[Path] = None,
       skipValidation: Boolean = false,
       yes: Boolean = false)(implicit scriptContext: LoamScriptContext): Tool = {
-    
-    val workDir: Path = Paths.get(".")
     
     val aggregatorConfigFileName: Path = {
       workDir.resolve(s"aggregator-intake-${metadata.dataset}-${metadata.phenotype}.conf")

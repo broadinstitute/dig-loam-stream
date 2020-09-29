@@ -455,4 +455,20 @@ final class ColumnExprTest extends FunSuite {
     assert(foo.isEmptyIgnoreWhitespace.apply(row) === true)
     assert(blerg.isEmptyIgnoreWhitespace.apply(row) === true)
   }
+  
+  test("mapName") {
+    val baz = ColumnName("baz")
+    
+    val BAZ = baz.mapName(_.toUpperCase)
+    
+    val row = Helpers.csvRow("bar" -> "42", "baz" -> "asdf  ", "foo" -> "", "blerg" -> "  ")
+    
+    assert(baz.name.toUpperCase === BAZ.name)
+    
+    assert(baz.eval(row) === "asdf  ")
+    
+    intercept[Exception] {
+      BAZ.eval(row)
+    }
+  }
 }

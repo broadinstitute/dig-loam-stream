@@ -23,6 +23,7 @@ trait AggregatorCommands {
       csvFile: Store, 
       sourceColumnMapping: SourceColumns,
       workDir: Path = Paths.get("."),
+      logFile: Option[Path] = None,
       skipValidation: Boolean = false,
       yes: Boolean = false)(implicit scriptContext: LoamScriptContext): Tool = {
     
@@ -55,7 +56,9 @@ trait AggregatorCommands {
       
     val skipValidationPart = if(skipValidation) "--skip-validation" else ""
       
-    cmd"""${aggregatorIntakeCondaEnvPart}python ${mainPyPart} variants ${yesForcePart} ${skipValidationPart} ${aggregatorConfigFile}""". // scalastyle:ignore line.size.limit
+    val logfilePart: String = logFile.map(lf => s"2>&1 | tee ${lf}").getOrElse("")
+      
+    cmd"""${aggregatorIntakeCondaEnvPart}python ${mainPyPart} variants ${yesForcePart} ${skipValidationPart} ${aggregatorConfigFile} ${logfilePart}""". // scalastyle:ignore line.size.limit
         in(aggregatorConfigFile, csvFile)
   }
 }

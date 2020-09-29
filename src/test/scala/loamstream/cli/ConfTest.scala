@@ -279,6 +279,7 @@ final class ConfTest extends FunSuite with Matchers {
     
     val withWorker = values.withIsWorker(true)
     
+    assert(values.workerSupplied === false)
     assert(withWorker.workerSupplied === true)
     
     assert(values.toArguments === args)

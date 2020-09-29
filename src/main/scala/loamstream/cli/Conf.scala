@@ -223,9 +223,9 @@ object Conf {
           Seq(asArgName(conf.clean)) 
         } else if (cleanSomething) {
           Seq(
-            asStringIfSupplied(conf.cleanDb),
-            asStringIfSupplied(conf.cleanLogs),
-            asStringIfSupplied(conf.cleanScripts)).filter(_.nonEmpty)
+            asStringIfSupplied(cleanDbSupplied, conf.cleanDb),
+            asStringIfSupplied(cleanLogsSupplied, conf.cleanLogs),
+            asStringIfSupplied(cleanScriptsSupplied, conf.cleanScripts)).filter(_.nonEmpty)
         } else {
           Nil
         }
@@ -235,10 +235,10 @@ object Conf {
         conf.conf.toOption.toSeq.flatMap(confFilePath => Seq(asArgName(conf.conf), confFilePath.toString))
       }
       
-      val noValidationPart: Seq[String] = Seq(asStringIfSupplied(conf.noValidation))
-      val compileOnlyPart: Seq[String] = Seq(asStringIfSupplied(conf.compileOnly))
-      val dryRunPart: Seq[String] = Seq(asStringIfSupplied(conf.dryRun))
-      val disableHashingPart: Seq[String] = Seq(asStringIfSupplied(conf.disableHashing)) 
+      val noValidationPart: Seq[String] = Seq(asStringIfSupplied(noValidationSupplied, conf.noValidation))
+      val compileOnlyPart: Seq[String] = Seq(asStringIfSupplied(compileOnlySupplied, conf.compileOnly))
+      val dryRunPart: Seq[String] = Seq(asStringIfSupplied(dryRunSupplied, conf.dryRun))
+      val disableHashingPart: Seq[String] = Seq(asStringIfSupplied(disableHashingSupplied, conf.disableHashing)) 
       
       val backendPart: Seq[String] = {
         conf.backend.toOption.toSeq.flatMap(backend => Seq(asArgName(conf.backend), backend.toLowerCase))
@@ -246,9 +246,12 @@ object Conf {
       
       val runPart: Seq[String] = run.toSeq.flatMap { case (what, hows) => asArgName(conf.run) +: what +: hows }
       
-      val workerPart: Seq[String] = Seq(asStringIfSupplied(conf.worker))
+      val workerPart: Seq[String] = Seq(asStringIfSupplied(workerSupplied, conf.worker))
       
-      val loamsPart: Seq[String] = asArgName(conf.loams) +: loams.map(_.toString)
+      val loamsPart: Seq[String] = {
+        if(loams.nonEmpty) { asArgName(conf.loams) +: loams.map(_.toString) }
+        else { Nil }
+      }
       
       val result: Buffer[String] = new ListBuffer
       
@@ -259,8 +262,8 @@ object Conf {
     }
   }
   
-  private def asStringIfSupplied(sOpt: ScallopOption[Boolean]): String = {
-    if(sOpt.isSupplied) asArgName(sOpt) else ""
+  private def asStringIfSupplied(flag: Boolean, sOpt: ScallopOption[_]): String = {
+    if(flag) asArgName(sOpt) else ""
   }
   
   private def asArgName(arg: ScallopOption[_]): String = {

@@ -21,13 +21,12 @@ final class ColumnExprTest extends FunSuite {
     assert(foo.asDouble.map(_ * 2.0).render(row) === "0.2")
   }
   
-  test("map / |>") {
+  test("map") {
     val row = Helpers.csvRow("foo" -> "0.1", "bar" -> "42", "baz" -> "x_y_z_q")
     
     val f: Int => Double = _.toDouble
     
     assert(bar.asInt.map(f).apply(row) === 42.0D)
-    assert((bar.asInt |> f).apply(row) === 42.0D)
   }
   
   test("flatMap") {

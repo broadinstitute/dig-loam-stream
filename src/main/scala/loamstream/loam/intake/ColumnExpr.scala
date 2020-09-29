@@ -33,7 +33,6 @@ sealed abstract class ColumnExpr[A : TypeTag] extends
   final def render(row: CsvRow): String = eval(row).toString
   
   final def map[B: TypeTag](f: A => B): ColumnExpr[B] = MappedColumnExpr(f, this)
-  final def |>[B: TypeTag](f: A => B): ColumnExpr[B] = this.map(f) //scalastyle:ignore method.name
   
   final def flatMap[B: TypeTag](f: A => ColumnExpr[B]): ColumnExpr[B] = FlatMappedColumnExpr(f, this)
   

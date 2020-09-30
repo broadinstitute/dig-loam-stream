@@ -46,7 +46,7 @@ final case class Metadata(
     }
     
     val subjectsPart = subjects match {
-      case Some(s) => s"subjects ${subjects}"
+      case Some(s) => s"subjects ${s}"
       case _ => ""
     }
     

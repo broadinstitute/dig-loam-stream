@@ -177,8 +177,8 @@ object ReadMe extends AggregatorCommands {
     ancestry = "some-ancestry",
     author = Some("John Doe"),
     tech = "some-tech",
-    quantitative = Metadata.Quantitative.Subjects(42)
-    //or quantitative = Metadata.Quantitative.CasesAndControls(cases = 42, controls = 99)
+    quantitative = Some(Metadata.Quantitative.Subjects(42))
+    //or quantitative = Some(Metadata.Quantitative.CasesAndControls(cases = 42, controls = 99))
   )
   
   //NB: both aggregator.AggregatorIntakeConfigs and aggregator.Metadatas can be unmarshalled from HOCON .conf files.

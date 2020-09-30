@@ -123,7 +123,7 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
   def toMetadata(phenotypeConfigTuple: (String, PhenotypeConfig)): Metadata = {
     val (phenotype, PhenotypeConfig(_, subjects)) = phenotypeConfigTuple
     
-    generalMetadata.toMetadata(phenotype, Metadata.Quantitative.Subjects(subjects))
+    generalMetadata.toMetadata(phenotype, Some(Metadata.Quantitative.Subjects(subjects)))
   }
   
   val flipDetector: FlipDetector = new FlipDetector.Default(

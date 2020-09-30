@@ -21,12 +21,12 @@ final case class Metadata(
     ancestry: String,
     author: Option[String] = None,
     tech: String,
-    quantitative: Metadata.Quantitative,
+    quantitative: Option[Metadata.Quantitative],
     properties: Seq[(String, String)] = Nil) {
     
   require(VarIdFormat.isValid(varIdFormat))
   
-  def subjects: Int = quantitative.subjects
+  def subjects: Option[Int] = quantitative.map(_.subjects)
   
   def asConfigFileContents: String = {
     import Metadata.escape
@@ -36,12 +36,17 @@ final case class Metadata(
     import Metadata.Quantitative.CasesAndControls
 
     val casesPart = quantitative match {
-      case CasesAndControls(cases, _) => s"cases ${cases}"
+      case Some(CasesAndControls(cases, _)) => s"cases ${cases}"
       case _ => ""
     }
     
     val controlsPart = quantitative match {
-      case CasesAndControls(_, controls) => s"controls ${controls}"
+      case Some(CasesAndControls(_, controls)) => s"controls ${controls}"
+      case _ => ""
+    }
+    
+    val subjectsPart = subjects match {
+      case Some(s) => s"subjects ${subjects}"
       case _ => ""
     }
     
@@ -50,7 +55,7 @@ final case class Metadata(
         |tech ${escape(tech)}
         |${casesPart}
         |${controlsPart}
-        |subjects ${subjects}
+        |${subjectsPart}
         |var_id ${varIdFormat}
         |${authorPart}""".stripMargin.trim
   }
@@ -99,16 +104,15 @@ object Metadata extends ConfigParser[Metadata] {
     controls: Option[Int] = None,
     subjects: Option[Int] = None) {
     
-    private def quantitative: Try[Quantitative] = (cases, controls, subjects) match {
-      case (Some(cas), Some(cntrls), None) => Success(Quantitative.CasesAndControls(cas, cntrls))
-      case (None, None, Some(subjects)) => Success(Quantitative.Subjects(subjects))
-      case _ => Tries.failure(s"Either both cases and controls OR subjects must be supplied")
+    private def quantitative: Option[Quantitative] = (cases, controls, subjects) match {
+      case (Some(cas), Some(cntrls), None) => Some(Quantitative.CasesAndControls(cas, cntrls))
+      case (None, None, Some(subjects)) => Some(Quantitative.Subjects(subjects))
+      case _ => None
     }
     
     def toMetadata: Try[Metadata] = {
       for {
         ph <- Options.toTry(phenotype)("Expected phenotype to be present")
-        q <- quantitative
       } yield {
         Metadata(
           dataset = dataset,
@@ -117,20 +121,18 @@ object Metadata extends ConfigParser[Metadata] {
           ancestry = ancestry,
           author = author,
           tech = tech,
-          quantitative = q)
+          quantitative = quantitative)
       }
     }
     
-    def toNoPhenotype: Try[NoPhenotype] = {
-      quantitative.map { q =>
-        NoPhenotype(
-          dataset = dataset,
-          varIdFormat = varIdFormat,
-          ancestry = ancestry,
-          author = author,
-          tech = tech,
-          quantitative = q)
-      }
+    def toNoPhenotype: NoPhenotype = {
+      NoPhenotype(
+        dataset = dataset,
+        varIdFormat = varIdFormat,
+        ancestry = ancestry,
+        author = author,
+        tech = tech,
+        quantitative = quantitative)
     }
     
     def toNoPhenotypeOrQuantitative: NoPhenotypeOrQuantitative = {
@@ -163,7 +165,7 @@ object Metadata extends ConfigParser[Metadata] {
       ancestry: String,
       author: Option[String],
       tech: String,
-      quantitative: Quantitative) {
+      quantitative: Option[Quantitative]) {
     
     def toMetadata(phenotype: String): Metadata = {
       Metadata(
@@ -184,7 +186,7 @@ object Metadata extends ConfigParser[Metadata] {
       
       //NB: Marshal the contents of loamstream.intake.metadata into a Metadata instance.
       //Names of fields in Metadata and keys under loamstream.intake.metadata must match.
-      Try(config.as[Parsed](Defaults.configKey)).flatMap(_.toNoPhenotype)
+      Try(config.as[Parsed](Defaults.configKey)).map(_.toNoPhenotype)
     }
   }
   
@@ -195,7 +197,7 @@ object Metadata extends ConfigParser[Metadata] {
       author: Option[String],
       tech: String) {
     
-    def toMetadata(phenotype: String, quantitative: Quantitative): Metadata = {
+    def toMetadata(phenotype: String, quantitative: Option[Quantitative]): Metadata = {
       Metadata(
           dataset, 
           phenotype, 

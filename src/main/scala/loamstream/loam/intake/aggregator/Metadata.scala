@@ -34,28 +34,19 @@ final case class Metadata(
     val authorPart = author.map(a => s"author ${escape(a)}").getOrElse("")
     
     import Metadata.Quantitative.CasesAndControls
+    import Metadata.Quantitative.Subjects
+    import System.lineSeparator
 
-    val casesPart = quantitative match {
-      case Some(CasesAndControls(cases, _)) => s"cases ${cases}"
-      case _ => ""
-    }
-    
-    val controlsPart = quantitative match {
-      case Some(CasesAndControls(_, controls)) => s"controls ${controls}"
-      case _ => ""
-    }
-    
-    val subjectsPart = subjects match {
-      case Some(s) => s"subjects ${s}"
+    val quantitativePart = quantitative match {
+      case Some(CasesAndControls(cases, controls)) => s"cases ${cases}${lineSeparator}controls ${controls}"
+      case Some(Subjects(s)) => s"subjects ${s}"
       case _ => ""
     }
     
     s"""|dataset ${dataset} ${phenotype}
         |ancestry ${escape(ancestry)}
         |tech ${escape(tech)}
-        |${casesPart}
-        |${controlsPart}
-        |${subjectsPart}
+        |${quantitativePart}
         |var_id ${varIdFormat}
         |${authorPart}""".stripMargin.trim
   }

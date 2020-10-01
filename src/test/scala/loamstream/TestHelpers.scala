@@ -188,13 +188,19 @@ object TestHelpers {
     executionFrom(result.toJobStatus, Option(result), resources)
   }
   
-  def emptyProjectContext = LoamProjectContext.empty(config, LsSettings.noCliConfig)
+  def emptyProjectContext: LoamProjectContext = emptyProjectContext(LsSettings.noCliConfig)
   
-  def emptyProjectContext(drmSystem: DrmSystem) = {
+  def emptyProjectContext(drmSystem: DrmSystem): LoamProjectContext = {
     LoamProjectContext.empty(config.copy(drmSystem = Option(drmSystem)), LsSettings.noCliConfig)
   }
   
+  def emptyProjectContext(lsSettings: LsSettings): LoamProjectContext = LoamProjectContext.empty(config, lsSettings)
+  
   def withScriptContext[A](f: LoamScriptContext => A): A = f(new LoamScriptContext(emptyProjectContext))
+  
+  def withScriptContext[A](lsSettings: LsSettings)(f: LoamScriptContext => A): A = {
+    f(new LoamScriptContext(emptyProjectContext(lsSettings)))
+  }
   
   def withScriptContext[A](drmSystem: DrmSystem)(f: LoamScriptContext => A): A = {
     f(new LoamScriptContext(emptyProjectContext(drmSystem)))
@@ -210,6 +216,14 @@ object TestHelpers {
   
   def makeGraph(drmSystem: DrmSystem)(loamCode: LoamScriptContext => Any): LoamGraph = {
     withScriptContext(drmSystem) { sc =>
+      loamCode(sc)
+      
+      sc.projectContext.graph
+    }
+  }
+  
+  def makeGraph(lsSettings: LsSettings)(loamCode: LoamScriptContext => Any): LoamGraph = {
+    withScriptContext(lsSettings) { sc =>
       loamCode(sc)
       
       sc.projectContext.graph

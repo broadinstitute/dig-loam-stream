@@ -37,7 +37,8 @@ final class JvmArgsTest extends FunSuite {
         sysprop0,
         sysprop1,
         "-jar",
-        "some-class-path") ++ args
+        "some-class-path",
+        "--worker") ++ args
         
     assert(jvmArgs.rerunCommandTokens(Conf(args).toValues, syspropMap) === expected)
   }

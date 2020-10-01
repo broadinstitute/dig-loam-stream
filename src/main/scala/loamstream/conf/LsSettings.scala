@@ -9,8 +9,11 @@ import loamstream.util.Options
  * @author clint
  * Aug 13, 2020
  */
-final case class LsSettings(cliConfig: Option[Conf.Values]) {
-  lazy val jvmArgs: JvmArgs = JvmArgs()
+final case class LsSettings (
+    cliConfig: Option[Conf.Values], 
+    private val _jvmArgs: () => JvmArgs = () => LsSettings.defaultJvmArgs) {
+  
+  lazy val jvmArgs: JvmArgs = _jvmArgs()
   
   def thisInstanceIsAWorker: Boolean = {
     import Options.Implicits._
@@ -20,5 +23,11 @@ final case class LsSettings(cliConfig: Option[Conf.Values]) {
 }
 
 object LsSettings {
-  val noCliConfig: LsSettings = LsSettings(None)
+  private def defaultJvmArgs = JvmArgs()
+  
+  val noCliConfig: LsSettings = new LsSettings(None, () => defaultJvmArgs)
+  
+  def apply(cliConfig: Conf.Values, jvmArgs: => JvmArgs): LsSettings = {
+    new LsSettings(Option(cliConfig), () => jvmArgs)
+  }
 }

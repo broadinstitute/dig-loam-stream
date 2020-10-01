@@ -150,7 +150,7 @@ final class SimpleLocalAndUgerPipelineTest extends FunSuite {
       loams = Seq(loamScriptPath),
       cliConfig = None)
     
-    (new Main.Run).doRealRun(intent, dao)
+    (new Main.Run).doRealRun(intent, _ => dao)
     
     assert(exists(pathA))
     assert(exists(pathB))

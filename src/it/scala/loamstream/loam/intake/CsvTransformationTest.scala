@@ -38,7 +38,7 @@ final class CsvTransformationTest extends AggregatorIntakeTest {
           ancestry = "some-ancestry",
           author = Some("some-author"),
           tech = "some-tech",
-          quantitative = Quantitative.CasesAndControls(cases = 42, controls = 21),
+          quantitative = Some(Quantitative.CasesAndControls(cases = 42, controls = 21)),
           varIdFormat = "{chrom}_{pos}_{ref}_{alt}")  
         
         val graph = Loam.code(this, paths, s3Bucket, metadata)

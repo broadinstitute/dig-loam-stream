@@ -111,7 +111,7 @@ object TenNativeJobsOnUgerTest {
   private def loamCode(n: Int, workDir: Path): String = {
 s"""
 object NJobs extends loamstream.LoamFile {
-  import IntakeSyntax._
+  import loamstream.loam.intake.IntakeSyntax._
   
   val csvData = s\"\"\"|${ColumnNames.FOO.name} ${ColumnNames.BAR.name} ${ColumnNames.BAZ.name}
                     |a b 42

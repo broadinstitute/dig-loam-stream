@@ -42,7 +42,7 @@ final class TenNativeJobsOnUgerTest extends FunSuite {
 
       val loamConf = workDir.resolve("loamstream.conf")
       
-      LFiles.writeTo(loamConf)("loamstream { uger { } }")
+      LFiles.writeTo(loamConf)("loamstream { uger { } execution { maxRunsPerJob = 1 } }")
       
       val run = new Main.Run
       

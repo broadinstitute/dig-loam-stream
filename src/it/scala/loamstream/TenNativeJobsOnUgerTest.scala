@@ -15,6 +15,7 @@ import loamstream.loam.intake.ColumnName
 import java.nio.file.Path
 import java.nio.file.Files.exists
 import loamstream.util.{ Files => LFiles }
+import loamstream.drm.DrmSystem
 
 /**
  * @author clint
@@ -37,7 +38,7 @@ final class TenNativeJobsOnUgerTest extends FunSuite {
         
         val ugerDefaults = UgerConfig()
         
-        empty.copy(ugerConfig = Some(ugerDefaults), executionConfig = noRetries)
+        empty.copy(ugerConfig = Some(ugerDefaults), executionConfig = noRetries, drmSystem = Some(DrmSystem.Uger))
       }
       
       val n = 10

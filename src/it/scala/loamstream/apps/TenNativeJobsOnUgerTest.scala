@@ -123,6 +123,17 @@ object NJobs extends loamstream.LoamFile {
   object NoopFlipDetector extends FlipDetector {
     override def isFlipped(variantId: String): Boolean = false
   }
+
+  object ColumnNames {
+    val FOO = ColumnName("FOO")
+    val BAR = ColumnName("BAR")
+    val BAZ = ColumnName("BAZ")
+    val BLERG = ColumnName("BLERG")
+    val ZERG = ColumnName("ZERG")
+    val NERG = ColumnName("NERG")
+    val GLERG = ColumnName("GLERG")
+    val FLERG = ColumnName("FLERG")
+  }
   
   val destColumns = {
     import ColumnNames._

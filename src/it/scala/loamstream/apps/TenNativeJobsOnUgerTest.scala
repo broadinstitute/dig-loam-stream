@@ -161,7 +161,7 @@ object NJobs extends loamstream.LoamFile {
       val dest = store(path("${workDir}").resolve("loam_out").resolve(s"out-$${i}.tsv"))
   
     drm {
-      produceCsv(dest).from(rowDef).using(NoopFlipDetector).using("Java-1.8").tag(s"munge-csv-data-$${i}")
+      produceCsv(dest).from(rowDef).using(NoopFlipDetector).tag(s"munge-csv-data-$${i}")
     }
   }
 }""".trim

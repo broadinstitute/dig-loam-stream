@@ -96,7 +96,7 @@ final class TenNativeJobsOnUgerTest extends FunSuite with Loggable {
         
         assert(exists(outputFile))
         
-        val mungedOutputColumn = mungedOutputColumns(i)
+        val mungedOutputColumn = mungedOutputColumns(i - 1)
         
         val expectedOutput = s"""|${ColumnNames.FOO.name} ${ColumnNames.BAR.name} ${mungedOutputColumn.name}
                                  |a b 43

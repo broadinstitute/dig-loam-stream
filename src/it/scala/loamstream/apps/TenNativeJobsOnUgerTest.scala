@@ -101,7 +101,7 @@ final class TenNativeJobsOnUgerTest extends FunSuite with Loggable {
         val expectedOutput = s"""|${ColumnNames.FOO.name} ${ColumnNames.BAR.name} ${mungedOutputColumn.name}
                                  |a b 43
                                  |x y 100
-                                 |la la 124""".stripMargin
+                                 |la la 124""".stripMargin.replaceAll(" ", "\t")
                                  
         assert(
             LFiles.readFrom(outputFile) === expectedOutput,

@@ -20,6 +20,7 @@ import loamstream.cli.Conf
 import loamstream.cli.Intent
 import loamstream.util.Processes
 import loamstream.util.Loggable
+import java.nio.file.{Files => JFiles}
 
 /**
  * @author clint
@@ -53,6 +54,12 @@ final class TenNativeJobsOnUgerTest extends FunSuite with Loggable {
       
       LFiles.writeTo(loamConf)(confContents)
       
+      val outDir = workDir.resolve("loam_out")
+      
+      JFiles.createDirectories(outDir)
+      
+      assert(exists(outDir))
+      
       val tokens = Seq("java", "-jar", "target/scala-2.12/loamstream-assembly-1.4-SNAPSHOT.jar",
                        "--backend", "uger",
                        "--conf", loamConf.toString,
@@ -64,14 +71,12 @@ final class TenNativeJobsOnUgerTest extends FunSuite with Loggable {
       
       assert(runResult.flatMap(_.tryAsSuccess).isSuccess)
 
-      def toOutputFilePath(i: Int): Path = {
-        workDir.resolve("loam_out").resolve(s"out-${i}.tsv").toAbsolutePath
-      }
+      def toOutputFilePath(i: Int): Path = outDir.resolve(s"out-${i}.tsv").toAbsolutePath
       
       val expectedOutputFiles: Set[Path] = (1 to n).map(toOutputFilePath).toSet
       
       val actualOutputFiles: Set[Path] = {
-        workDir.toFile.listFiles.filter(_.getName.endsWith(".tsv")).map(_.toPath).toSet
+        outDir.toFile.listFiles.filter(_.getName.endsWith(".tsv")).map(_.toPath).toSet
       }
       
       assert(actualOutputFiles === expectedOutputFiles)

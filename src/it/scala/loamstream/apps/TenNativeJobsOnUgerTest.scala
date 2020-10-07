@@ -18,12 +18,14 @@ import loamstream.util.{ Files => LFiles }
 import loamstream.drm.DrmSystem
 import loamstream.cli.Conf
 import loamstream.cli.Intent
+import loamstream.util.Processes
+import loamstream.util.Loggable
 
 /**
  * @author clint
  * Oct 6, 2020
  */
-final class TenNativeJobsOnUgerTest extends FunSuite {
+final class TenNativeJobsOnUgerTest extends FunSuite with Loggable {
   import loamstream.IntegrationTestHelpers.withWorkDirUnderTarget
   import loamstream.IntegrationTestHelpers.makeGraph
   import TenNativeJobsOnUgerTest.loamCode
@@ -51,15 +53,16 @@ final class TenNativeJobsOnUgerTest extends FunSuite {
       
       LFiles.writeTo(loamConf)(confContents)
       
-      val run = new Main.Run
+      val tokens = Seq("java", "-jar", "target/scala-2.12/loamstream-assembly-1.4-SNAPSHOT.jar",
+                       "--backend", "uger",
+                       "--conf", loamConf.toString,
+                       "--loams", loamFile.toString)
       
-      val cliConf = Conf(s"--backend uger --conf ${loamConf} --loams ${loamFile}".split("\\s+").toList)
+      val runResult = Processes.runSync(tokens)()
       
-      val intent = Intent.from(cliConf).right.get
+      assert(runResult.isSuccess)
       
-      assert(intent.isInstanceOf[Intent.RealRun])
-          
-      run.doRealRun(intent.asInstanceOf[Intent.RealRun])
+      assert(runResult.flatMap(_.tryAsSuccess).isSuccess)
 
       def toOutputFilePath(i: Int): Path = {
         workDir.resolve("loam_out").resolve(s"out-${i}.tsv").toAbsolutePath

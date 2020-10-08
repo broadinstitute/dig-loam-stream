@@ -27,6 +27,8 @@ final case class LoamConfig(
     cliConfig: Option[loamstream.cli.Conf] = None)
     
 object LoamConfig extends ConfigParser[LoamConfig] with Loggable {
+  val defaults: LoamConfig = fromString("{}").get
+  
   override def fromConfig(config: Config): Try[LoamConfig] = {
     val ugerConfig = UgerConfig.fromConfig(config)
     val lsfConfig = LsfConfig.fromConfig(config)

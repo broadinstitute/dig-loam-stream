@@ -104,7 +104,7 @@ final class TenNativeJobsOnUgerTest extends FunSuite with Loggable {
                                  |la la 124""".stripMargin.replaceAll(" ", "\t")
                                  
         assert(
-            LFiles.readFrom(outputFile) === expectedOutput,
+            LFiles.readFrom(outputFile).trim === expectedOutput.trim, //trim to ignore trailing lines
             s"Unexpected contents in ${outputFile.toAbsolutePath}")                                 
       }
     }

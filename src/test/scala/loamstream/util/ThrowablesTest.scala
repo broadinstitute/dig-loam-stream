@@ -11,7 +11,7 @@ final class ThrowablesTest extends FunSuite {
   
   type ParamTuple = (LogContext.Level, String, Throwable)
   
-  private final class MockLogContext extends LogContext {
+  private final class MockLogContext extends LogContext with LogContext.AllLevelsEnabled {
     
     val params: ValueBox[Seq[ParamTuple]] = ValueBox(Vector.empty)
     

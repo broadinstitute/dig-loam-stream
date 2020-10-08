@@ -211,6 +211,14 @@ object Conf {
     
     def confSupplied: Boolean = conf.isDefined
     
+    /*
+     * Rebuild a set of arguments suitable for running LS from the command line, based on this instance's values.
+     *  
+     * This method is complex and error-prone - if a field is added to this class, it will need to be handled here
+     * as well - but it beats the alternative. :\ If we want to invoke LS with modified settings based on the ones 
+     * used for the current run, it's much nicer to flip a flag or two here (see the with* methods) and then build
+     * a new set of arguments than to grovel through a Seq[String], munging, adding, or removing values. :\  
+     */
     def toArguments: Seq[String] = {
       val conf = derivedFrom
         

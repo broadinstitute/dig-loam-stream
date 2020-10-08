@@ -61,7 +61,7 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
   type CsvRow = loamstream.loam.intake.CsvRow
   val CsvRow = loamstream.loam.intake.CsvRow
   
-  private def nativeTool[A](body: => A)(implicit scriptContext: LoamScriptContext): NativeTool = {
+  private def doLocally[A](body: => A)(implicit scriptContext: LoamScriptContext): NativeTool = {
     require(
         scriptContext.lsSettings.thisInstanceIsAWorker,
         s"Only running native jobs in --worker mode is supported")
@@ -73,8 +73,8 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
     }
   }
   
-  private def doOnADrmSystem[A](body: => A)(implicit scriptContext: LoamScriptContext): Tool = { 
-    if(scriptContext.lsSettings.thisInstanceIsAWorker) { nativeTool(body) }
+  private def nativeTool[A](body: => A)(implicit scriptContext: LoamScriptContext): Tool = { 
+    if(scriptContext.lsSettings.thisInstanceIsAWorker) { doLocally(body) }
     else {
       scriptContext.settings match {
         case drmSettings: DrmSettings => InvokesLsTool()
@@ -105,7 +105,7 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
     
     def using(flipDetector: => FlipDetector)(implicit scriptContext: LoamScriptContext): Tool = {
       //TODO: How to wire up inputs (if any)?
-      val tool: Tool = doOnADrmSystem {
+      val tool: Tool = nativeTool {
         TimeUtils.time(s"Producing ${dest.path}", info(_)) {
           val (headerRow, dataRows) = process(flipDetector)(RowDef(varIdColumnDef, otherColumnDefs))
           
@@ -129,7 +129,7 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
   final class AggregatorIntakeConfigFileTarget(dest: Store) {
     def from(configData: aggregator.ConfigData)(implicit scriptContext: LoamScriptContext): Tool = {
       //TODO: How to wire up inputs (if any)?
-      val tool: Tool = doOnADrmSystem {
+      val tool: Tool = nativeTool {
         Files.writeTo(dest.path)(configData.asConfigFileContents)
       }
       

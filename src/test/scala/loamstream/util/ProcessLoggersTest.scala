@@ -124,7 +124,7 @@ object ProcessLoggersTest {
     }
   }
 
-  private final class MockLogCtx extends LogContext {
+  private final class MockLogCtx extends LogContext with LogContext.AllLevelsEnabled {
     val logEvents: Buffer[(LogContext.Level, String)] = new ArrayBuffer
 
     override def log(level: LogContext.Level, s: => String): Unit = logEvents += (level -> s)

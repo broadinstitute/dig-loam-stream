@@ -14,9 +14,9 @@ trait Loggable extends LogContext {
   
   import LogContext.Level
   
-  protected implicit val logContext: LogContext = this
+  protected final implicit val logContext: LogContext = this
   
-  override final def log(level: Level, s: => String): Unit = level match {
+  final override def log(level: Level, s: => String): Unit = level match {
     case Level.Trace => logger.trace(s)
     case Level.Debug => logger.debug(s)
     case Level.Info => logger.info(s)
@@ -24,7 +24,7 @@ trait Loggable extends LogContext {
     case Level.Error => logger.error(s)
   }
 
-  override final def log(level: Level, s: => String, e: Throwable): Unit = level match {
+  final override def log(level: Level, s: => String, e: Throwable): Unit = level match {
     case Level.Trace => logger.trace(s, e)
     case Level.Debug => logger.debug(s, e)
     case Level.Info => logger.info(s, e)

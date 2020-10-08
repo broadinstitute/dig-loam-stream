@@ -11,11 +11,11 @@ trait LogContext {
   
   def log(level: Level, s: => String, e: Throwable): Unit 
   
-  def isTraceEnabled: Boolean = true
-  def isDebugEnabled: Boolean = true
-  def isInfoEnabled: Boolean = true
-  def isWarnEnabled: Boolean = true
-  def isErrorEnabled: Boolean = true
+  def isTraceEnabled: Boolean
+  def isDebugEnabled: Boolean
+  def isInfoEnabled: Boolean
+  def isWarnEnabled: Boolean
+  def isErrorEnabled: Boolean
   
   final def trace(s: => String): Unit = if (isTraceEnabled) { log(Level.Trace, s) }
 
@@ -39,7 +39,23 @@ trait LogContext {
 }
 
 object LogContext {
-  object Noop extends LogContext {
+  trait AllLevelsDisabled { self: LogContext =>
+    override def isTraceEnabled: Boolean = false
+    override def isDebugEnabled: Boolean = false
+    override def isInfoEnabled: Boolean = false
+    override def isWarnEnabled: Boolean = false
+    override def isErrorEnabled: Boolean = false
+  }
+  
+  trait AllLevelsEnabled { self: LogContext =>
+    override def isTraceEnabled: Boolean = true
+    override def isDebugEnabled: Boolean = true
+    override def isInfoEnabled: Boolean = true
+    override def isWarnEnabled: Boolean = true
+    override def isErrorEnabled: Boolean = true
+  }
+  
+  object Noop extends LogContext with AllLevelsDisabled {
     override def log(level: Level, s: => String): Unit = ()
   
     override def log(level: Level, s: => String, e: Throwable): Unit = () 

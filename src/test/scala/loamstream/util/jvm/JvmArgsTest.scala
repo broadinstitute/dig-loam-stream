@@ -40,6 +40,6 @@ final class JvmArgsTest extends FunSuite {
         "some-class-path",
         "--worker") ++ args
         
-    assert(jvmArgs.rerunCommandTokens(Conf(args).toValues, syspropMap) === expected)
+    assert(jvmArgs.rerunCommandTokens(Conf(args).toValues.withIsWorker(true), syspropMap) === expected)
   }
 }

@@ -34,15 +34,15 @@ final class TenNativeJobsOnUgerTest extends FunSuite with Loggable {
     
   test("Ten native jobs on Uger") {
     
-    withWorkDirUnderTarget() { workDir =>
-      val noRetries = ExecutionConfig.default.copy(maxRunsPerJob = 1)
-
-      val n = 10
-      
+    def writeLoamFile(n: Int, workDir: Path): Path = {
       val loamFile = workDir.resolve("NJobs.scala")
       
       LFiles.writeTo(loamFile)(loamCode(n, workDir))
-
+      
+      loamFile
+    }
+    
+    def writeConfFile(workDir: Path): Path = {
       val loamConf = workDir.resolve("loamstream.conf")
       
       val confContents = """|loamstream { 
@@ -54,15 +54,27 @@ final class TenNativeJobsOnUgerTest extends FunSuite with Loggable {
       
       LFiles.writeTo(loamConf)(confContents)
       
+      loamConf
+    }
+    
+    def makeOutputDir(workDir: Path): Path = {
       val outDir = workDir.resolve("loam_out")
       
       JFiles.createDirectories(outDir)
       
       assert(exists(outDir))
       
+      outDir
+    }
+    
+    def runLoamStream(n: Int, workDir: Path): Unit = {
+      val loamFile = writeLoamFile(n, workDir)
+
+      val confFile = writeConfFile(workDir)
+      
       val tokens = Seq("java", "-jar", "target/scala-2.12/loamstream-assembly-1.4-SNAPSHOT.jar",
                        "--backend", "uger",
-                       "--conf", loamConf.toString,
+                       "--conf", confFile.toString,
                        "--loams", loamFile.toString)
       
       val runResult = Processes.runSync(tokens)()
@@ -70,6 +82,14 @@ final class TenNativeJobsOnUgerTest extends FunSuite with Loggable {
       assert(runResult.isSuccess)
       
       assert(runResult.flatMap(_.tryAsSuccess).isSuccess)
+    }
+    
+    withWorkDirUnderTarget() { workDir =>
+      val n = 10
+      
+      val outDir = makeOutputDir(workDir)
+      
+      runLoamStream(n, workDir)
 
       def toOutputFilePath(i: Int): Path = outDir.resolve(s"out-${i}.tsv").toAbsolutePath
       

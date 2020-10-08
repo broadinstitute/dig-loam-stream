@@ -35,6 +35,8 @@ import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import scala.concurrent.Promise
 import scala.util.Try
+import loamstream.conf.LsSettings
+import loamstream.util.LogContext
 
 /** The compiler compiling Loam scripts into execution plans */
 object LoamCompiler extends Loggable {
@@ -44,8 +46,8 @@ object LoamCompiler extends Loggable {
   }
 
   final case class Settings(logCode: Boolean, logCodeOnError: Boolean) {
-    def logCodeForLevel(level: Loggable.Level): Boolean = {
-      logCode || (logCodeOnError && (level >= Loggable.Level.Warn))
+    def logCodeForLevel(level: LogContext.Level): Boolean = {
+      logCode || (logCodeOnError && (level >= LogContext.Level.Warn))
     }
   }
 
@@ -234,7 +236,7 @@ final class LoamCompiler(
   }
 
   private def logScripts(
-    logLevel: Loggable.Level,
+    logLevel: LogContext.Level,
     project: LoamProject): Unit = {
 
     if (settings.logCodeForLevel(logLevel)) {
@@ -281,7 +283,7 @@ final class LoamCompiler(
     val lengthOfLine = 100
     val graphPrinter = GraphPrinter.byLine(lengthOfLine)
 
-    logScripts(Loggable.Level.Trace, project)
+    logScripts(LogContext.Level.Trace, project)
 
     trace(s"""|[Start Graph]
               |${graphPrinter.print(graph)}
@@ -302,7 +304,7 @@ final class LoamCompiler(
    * LoamProjectContext when compiling and evaluating Loam code.
    */
   private def setProjectContextAndThen[A](project: LoamProject)(f: LoamProjectContext => A): A = {
-    val projectContext = LoamProjectContext.empty(project.config)
+    val projectContext = LoamProjectContext.empty(project.config, project.settings)
   
     LoamFile.ContextHolder.withContext(projectContext) {
       f(LoamFile.ContextHolder.projectContext)
@@ -310,7 +312,9 @@ final class LoamCompiler(
   }
 
   /** Compiles Loam script into execution plan */
-  def compile(config: LoamConfig, script: LoamScript): LoamCompiler.Result = compile(LoamProject(config, script))
+  def compile(config: LoamConfig, settings: LsSettings, script: LoamScript): LoamCompiler.Result = {
+    compile(LoamProject(config, settings, script))
+  }
 
   private def failureDueToException(e: Throwable): LoamCompiler.Result = {
     error(s"${e.getClass.getName} while trying to compile: ${e.getMessage}", e)

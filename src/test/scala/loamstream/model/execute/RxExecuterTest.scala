@@ -6,18 +6,14 @@ import loamstream.TestHelpers
 import loamstream.conf.ExecutionConfig
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobNode
+import loamstream.model.jobs.JobOracle
 import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.LJob
-import loamstream.model.jobs.MockJob
 import loamstream.model.jobs.RunData
 import loamstream.model.jobs.RxMockJob
 import loamstream.util.ValueBox
 import rx.lang.scala.Observable
-import loamstream.model.jobs.JobStatus.NotStarted
-import loamstream.model.jobs.JobRun
-import loamstream.util.Observables
-import loamstream.model.jobs.JobOracle
 
 
 /**

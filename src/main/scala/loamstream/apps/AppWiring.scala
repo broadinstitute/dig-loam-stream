@@ -14,6 +14,7 @@ import loamstream.compiler.LoamEngine
 import loamstream.conf.ExecutionConfig
 import loamstream.conf.LoamConfig
 import loamstream.conf.Locations
+import loamstream.conf.LsSettings
 import loamstream.conf.PythonConfig
 import loamstream.conf.RConfig
 import loamstream.conf.UgerConfig
@@ -94,8 +95,10 @@ import scala.concurrent.duration.Duration
 import scala.util.Try
 import scala.util.Success
 
-import rx.lang.scala.schedulers.ExecutionContextScheduler
 import rx.lang.scala.Scheduler
+import rx.lang.scala.schedulers.ExecutionContextScheduler
+import loamstream.util.DirOracle
+
 
 
 /**
@@ -105,6 +108,8 @@ import rx.lang.scala.Scheduler
  */
 trait AppWiring {
   def config: LoamConfig
+  
+  def settings: LsSettings
   
   def dao: LoamDao
 
@@ -118,7 +123,7 @@ trait AppWiring {
   
   def shutdown(): Seq[Throwable]
   
-  lazy val loamEngine: LoamEngine = LoamEngine(config, LoamCompiler.default, executer, cloudStorageClient)
+  lazy val loamEngine: LoamEngine = LoamEngine(config, settings, LoamCompiler.default, executer, cloudStorageClient)
   
   lazy val loamRunner: LoamRunner = LoamRunner(loamEngine)
 }
@@ -128,7 +133,8 @@ object AppWiring extends Loggable {
   def loamConfigFrom(
       confFile: Option[Path], 
       drmSystemOpt: Option[DrmSystem], 
-      shouldValidateGraph: Boolean): LoamConfig = {
+      shouldValidateGraph: Boolean,
+      cliConfig: Option[Conf]): LoamConfig = {
     
     val typesafeConfig: Config = loadConfig(confFile)
       
@@ -139,14 +145,14 @@ object AppWiring extends Loggable {
     
     val newCompilationConfig = withDrmSystem.compilationConfig.copy(shouldValidateGraph = shouldValidateGraph)
     
-    withDrmSystem.copy(compilationConfig = newCompilationConfig)
+    withDrmSystem.copy(compilationConfig = newCompilationConfig).copy(cliConfig = cliConfig)
   }
   
-  def jobFilterForDryRun(intent: Intent.DryRun, makeDao: => LoamDao): JobFilter = {
-    AppWiring.makeJobFilter(intent.jobFilterIntent, intent.hashingStrategy, makeDao)
+  def jobFilterForDryRun(intent: Intent.DryRun, config: LoamConfig, makeDao: LoamConfig => LoamDao): JobFilter = {
+    AppWiring.makeJobFilter(intent.jobFilterIntent, intent.hashingStrategy, makeDao(config))
   }
   
-  def forRealRun(intent: Intent.RealRun, makeDao: => LoamDao): AppWiring = {
+  def forRealRun(intent: Intent.RealRun, makeDao: LoamConfig => LoamDao): AppWiring = {
     new DefaultAppWiring(intent, makeDao = makeDao)
   }
 
@@ -169,11 +175,23 @@ object AppWiring extends Loggable {
   
   private final class DefaultAppWiring(
       intent: Intent.RealRun,
-      makeDao: => LoamDao) extends AppWiring {
+      makeDao: LoamConfig => LoamDao) extends AppWiring {
     
-    override lazy val dao: LoamDao = makeDao
+    override lazy val dao: LoamDao = makeDao(config)
     
-    override lazy val config: LoamConfig = loamConfigFrom(intent.confFile, intent.drmSystemOpt, intent.shouldValidate)
+    override lazy val config: LoamConfig = {
+      loamConfigFrom(
+          confFile = intent.confFile, 
+          drmSystemOpt = intent.drmSystemOpt, 
+          shouldValidateGraph = intent.shouldValidate,
+          cliConfig = intent.cliConfig)
+    }
+    
+    val settings: LsSettings = {
+      require(intent.cliConfig.isDefined, "Expected LS to be run from the command line")
+      
+      LsSettings(intent.cliConfig.map(_.toValues))
+    }
     
     override def executer: Executer = terminableExecuter
 
@@ -491,7 +509,11 @@ object AppWiring extends Loggable {
     dao
   }
   
-  private[apps] def makeDefaultDb: LoamDao = makeDaoFrom(DbDescriptor.onDiskDefault)
+  private[apps] def makeDefaultDb(loamConfig: LoamConfig): LoamDao = makeDefaultDbIn(loamConfig.executionConfig.dbDir)
+  
+  private[apps] def makeDefaultDbIn(dbDir: Path): LoamDao = {
+    makeDaoFrom(DbDescriptor.onDiskHsqldbAt(dbDir, DbDescriptor.defaultDbName))
+  }
   
   private[apps] final class TerminableExecuter(
       val delegate: Executer,
@@ -499,7 +521,8 @@ object AppWiring extends Loggable {
 
     override def execute(
         executable: Executable, 
-        makeJobOracle: Executable => JobOracle)(implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
+        makeJobOracle: Executable => DirOracle[LJob])
+       (implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
       
       delegate.execute(executable, makeJobOracle)(timeout)
     }
@@ -510,7 +533,7 @@ object AppWiring extends Loggable {
       import Throwables.quietly
       
       for {
-        terminable <- toStop
+        terminable <- toStop :+ delegate
         e <- quietly("Error shutting down: ")(terminable.stop()) 
       } yield e
     }

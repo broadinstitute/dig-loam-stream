@@ -13,6 +13,7 @@ import loamstream.model.execute.RxExecuter
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.LJob
 import loamstream.util.Loggable
+import loamstream.conf.LsSettings
 
 
 /**
@@ -28,10 +29,12 @@ trait LoamTestHelpers extends Loggable {
     
     val paths: Set[Path] = (path +: rest).toSet
     
-    compile(LoamProject(TestHelpers.config, paths.map(toScript)), throwOnError = false)
+    compile(LoamProject(TestHelpers.config, LsSettings.noCliConfig, paths.map(toScript)), throwOnError = false)
   }
 
-  def compile(script: LoamScript): LoamCompiler.Result = compile(LoamProject(TestHelpers.config, Set(script)))
+  def compile(script: LoamScript): LoamCompiler.Result = {
+    compile(LoamProject(TestHelpers.config, LsSettings.noCliConfig, Set(script)))
+  }
     
   def compile(project: LoamProject, throwOnError: Boolean = true): LoamCompiler.Result = {
 

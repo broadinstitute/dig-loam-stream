@@ -1,44 +1,45 @@
 package loamstream.model.execute
 
-import org.scalatest.FunSuite
-import loamstream.model.quantities.Cpus
-import loamstream.model.quantities.Memory
-import loamstream.model.quantities.CpuTime
-import loamstream.drm.Queue
-import loamstream.drm.ContainerParams
-import java.time.Instant
-import loamstream.model.execute.Resources.LocalResources
-import loamstream.model.execute.Resources.GoogleResources
-import loamstream.model.execute.Resources.DrmResources
-import loamstream.model.execute.Resources.UgerResources
-import loamstream.model.execute.Resources.LsfResources
-import loamstream.TestHelpers
-import loamstream.model.jobs.JobOracle
-import loamstream.model.jobs.MockJob
-import loamstream.model.jobs.JobStatus
-import loamstream.model.jobs.Execution
-import loamstream.model.jobs.JobResult
-import loamstream.util.{Files => LFiles}
-import java.nio.file.Files.exists
-import loamstream.googlecloud.ClusterConfig
-import loamstream.model.execute.Resources.AwsResources
-import org.broadinstitute.dig.aws.emr.AmiId
-import org.broadinstitute.dig.aws.emr.Cluster
-import org.broadinstitute.dig.aws.emr.InstanceType
-import org.broadinstitute.dig.aws.JobStep
 import java.net.URI
-import org.broadinstitute.dig.aws.emr.BootstrapScript
+import java.nio.file.Files.exists
+import java.time.LocalDateTime
+
+import org.broadinstitute.dig.aws.JobStep
+import org.broadinstitute.dig.aws.emr.AmiId
 import org.broadinstitute.dig.aws.emr.ApplicationConfig
 import org.broadinstitute.dig.aws.emr.ApplicationName
-import java.time.LocalDateTime
+import org.broadinstitute.dig.aws.emr.BootstrapScript
+import org.broadinstitute.dig.aws.emr.Cluster
+import org.broadinstitute.dig.aws.emr.InstanceType
+import org.scalatest.FunSuite
+
+import loamstream.TestHelpers
+import loamstream.drm.ContainerParams
+import loamstream.drm.Queue
+import loamstream.googlecloud.ClusterConfig
+import loamstream.model.execute.Resources.AwsResources
+import loamstream.model.execute.Resources.DrmResources
+import loamstream.model.execute.Resources.GoogleResources
+import loamstream.model.execute.Resources.LocalResources
+import loamstream.model.execute.Resources.LsfResources
+import loamstream.model.execute.Resources.UgerResources
+import loamstream.model.jobs.Execution
+import loamstream.model.jobs.JobOracle
+import loamstream.model.jobs.JobResult
+import loamstream.model.jobs.JobStatus
+import loamstream.model.jobs.MockJob
+import loamstream.model.quantities.CpuTime
+import loamstream.model.quantities.Cpus
+import loamstream.model.quantities.Memory
+import loamstream.util.{ Files => LFiles }
 
 /**
  * @author clint
  * May 28, 2019
  */
 final class FileSystemExecutionRecorderTest extends FunSuite {
-  import FileSystemExecutionRecorder.settingsToString
   import FileSystemExecutionRecorder.resourcesToString
+  import FileSystemExecutionRecorder.settingsToString
   private val startTime = LocalDateTime.now
   
   test("record") {

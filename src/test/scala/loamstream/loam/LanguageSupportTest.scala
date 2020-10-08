@@ -7,6 +7,7 @@ import loamstream.compiler.LoamPredef.store
 import loamstream.TestHelpers
 import loamstream.util.{BashScript, Files}
 import org.scalatest.FunSuite
+import loamstream.conf.LsSettings
 
 /**
  * @author kyuksel
@@ -22,7 +23,7 @@ final class LanguageSupportTest extends FunSuite {
 
   private implicit val scriptContext = new LoamScriptContext(emptyProjectContext)
 
-  private def emptyProjectContext = LoamProjectContext.empty(config)
+  private def emptyProjectContext = LoamProjectContext.empty(config, LsSettings.noCliConfig)
 
   private def doTest(loamLine: LoamCmdTool,
                      expectedBinary: Path,

@@ -66,7 +66,7 @@ final class IndexFilesTest extends FunSuite {
     TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
       val logDir = workDir.resolve("logs")
       
-      val executionConfig = ExecutionConfig.default.copy(logDir = logDir)
+      val executionConfig = ExecutionConfig.default.copy(loamstreamDir = workDir)
       
       val allJobsFile = logDir.resolve("all-jobs.tsv")
       val failedJobsFile = logDir.resolve("failed-jobs.tsv")
@@ -108,7 +108,7 @@ ${j2.id}${tab}${j2.name}${tab}Failed${tab}42${tab}${p2.toAbsolutePath}""".trim +
       TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
         val logDir = workDir.resolve("logs")
         
-        val executionConfig = ExecutionConfig.default.copy(logDir = logDir)
+        val executionConfig = ExecutionConfig.default.copy(loamstreamDir = workDir)
         
         val allJobsFile = logDir.resolve("all-jobs.tsv")
         val failedJobsFile = logDir.resolve("failed-jobs.tsv")

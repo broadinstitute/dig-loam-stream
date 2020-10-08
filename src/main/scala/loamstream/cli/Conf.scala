@@ -13,6 +13,8 @@ import org.rogach.scallop.exceptions.ScallopException
 import loamstream.drm.DrmSystem
 import loamstream.util.IoUtils
 import loamstream.util.Loggable
+import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.Buffer
 
 /**
  * Provides a command line interface for LoamStream apps
@@ -23,7 +25,7 @@ import loamstream.util.Loggable
  * to false is useful for tests, so that a validation failure doesn't make SBT exit.  If this is false, a 
  * CliException is thrown instead of invoking 'sys.exit()'.
  */
-final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) with Loggable {
+final case class Conf private (arguments: Seq[String]) extends ScallopConf(arguments) with Loggable {
   
   def printHelp(message: String): Unit = {
     printHelp()
@@ -65,6 +67,14 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) wit
   
   /** Whether to show usage info and quit */
   val help: ScallopOption[Boolean] = opt[Boolean](descr = "Show help and exit")
+  
+  /** Whether we're running in worker mode (running on a DRM system on behalf of another LS instance) */
+  val worker: ScallopOption[Boolean] = opt[Boolean](
+      descr = "Run in worker mode (run on a DRM system on behalf of another LS instance)")
+  
+  val workDir: ScallopOption[Path] = opt[Path](
+      descr = "Path to store logs, db files, and job metadata in, analogous to the default .loamstream.  Only " +
+              "respected if --worker is also supplied.")
   
   /** Whether to clear the DB */
   val cleanDb: ScallopOption[Boolean] = opt[Boolean](descr = "Clean db")
@@ -156,11 +166,15 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) wit
       disableHashingSupplied = disableHashing.isSupplied,
       backend = backend.toOption,
       run = getRun,
+      workerSupplied = worker.isSupplied,
+      workDir = workDir.toOption,
       this)
   }
 }
 
 object Conf {
+  
+  def apply(args: Iterable[String]): Conf = new Conf(args.toVector)
   
   object RunStrategies {
     val Everything = "everything"
@@ -183,8 +197,91 @@ object Conf {
       disableHashingSupplied: Boolean,
       backend: Option[String],
       run: Option[(String, Seq[String])],
+      workerSupplied: Boolean,
+      workDir: Option[Path],
       derivedFrom: Conf) {
     
+    def withIsWorker(isWorker: Boolean): Values = copy(workerSupplied = true)
+    
+    def onlyRun(jobName: String): Values = copy(run = Some((RunStrategies.AllOf, Seq(jobName))))
+    
+    def withBackend(drmSystem: DrmSystem): Values = copy(backend = Some(drmSystem.name.toLowerCase))
+    
+    def withWorkDir(workDir: Path): Values = copy(workDir = Option(workDir)) 
+    
     def confSupplied: Boolean = conf.isDefined
+    
+    /*
+     * Rebuild a set of arguments suitable for running LS from the command line, based on this instance's values.
+     *  
+     * This method is complex and error-prone - if a field is added to this class, it will need to be handled here
+     * as well - but it beats the alternative. :\ If we want to invoke LS with modified settings based on the ones 
+     * used for the current run, it's much nicer to flip a flag or two here (see the with* methods) and then build
+     * a new set of arguments than to grovel through a Seq[String], munging, adding, or removing values. :\  
+     */
+    def toArguments: Seq[String] = {
+      val conf = derivedFrom
+        
+      val cleanParts: Seq[String] = {
+        val cleanEverything = cleanDbSupplied && cleanLogsSupplied && cleanScriptsSupplied
+        
+        def cleanSomething = cleanDbSupplied || cleanLogsSupplied || cleanScriptsSupplied
+        
+        if(cleanEverything) { 
+          Seq(asArgName(conf.clean)) 
+        } else if (cleanSomething) {
+          Seq(
+            asStringIfSupplied(cleanDbSupplied, conf.cleanDb),
+            asStringIfSupplied(cleanLogsSupplied, conf.cleanLogs),
+            asStringIfSupplied(cleanScriptsSupplied, conf.cleanScripts)).filter(_.nonEmpty)
+        } else {
+          Nil
+        }
+      }
+      
+      val confPart: Seq[String] = {
+        conf.conf.toOption.toSeq.flatMap(confFilePath => Seq(asArgName(conf.conf), confFilePath.toString))
+      }
+      
+      val noValidationPart: Seq[String] = Seq(asStringIfSupplied(noValidationSupplied, conf.noValidation))
+      val compileOnlyPart: Seq[String] = Seq(asStringIfSupplied(compileOnlySupplied, conf.compileOnly))
+      val dryRunPart: Seq[String] = Seq(asStringIfSupplied(dryRunSupplied, conf.dryRun))
+      val disableHashingPart: Seq[String] = Seq(asStringIfSupplied(disableHashingSupplied, conf.disableHashing)) 
+      
+      val backendPart: Seq[String] = {
+        conf.backend.toOption.toSeq.flatMap(backend => Seq(asArgName(conf.backend), backend.toLowerCase))
+      } 
+      
+      val runPart: Seq[String] = run.toSeq.flatMap { case (what, hows) => asArgName(conf.run) +: what +: hows }
+      
+      val workerPart: Seq[String] = Seq(asStringIfSupplied(workerSupplied, conf.worker))
+      
+      val loamsPart: Seq[String] = {
+        if(loams.nonEmpty) { asArgName(conf.loams) +: loams.map(_.toString) }
+        else { Nil }
+      }
+      
+      val result: Buffer[String] = new ListBuffer
+      
+      result ++= workerPart ++= cleanParts ++= confPart ++= noValidationPart ++= compileOnlyPart ++= dryRunPart ++= 
+      disableHashingPart ++= backendPart ++= runPart ++= loamsPart
+      
+      result.toList.filter(_.nonEmpty)
+    }
+  }
+  
+  private def asStringIfSupplied(flag: Boolean, sOpt: ScallopOption[_]): String = {
+    if(flag) asArgName(sOpt) else ""
+  }
+  
+  private def asArgName(arg: ScallopOption[_]): String = {
+    val argName = arg.name
+    
+    val hyphens = argName.size match {
+      case 1 => "-"
+      case _ => "--"
+    }
+    
+    s"${hyphens}${argName}"
   }
 }

@@ -47,7 +47,7 @@ object ProcessLoggers {
   
   final class PassThrough(
       name: String,
-      level: Loggable.Level = Loggable.Level.Info)(implicit logCtx: LogContext) extends 
+      level: LogContext.Level = LogContext.Level.Info)(implicit logCtx: LogContext) extends 
           ProcessLogger with WithDefaultBuffer {
 
     //Methods from ProcessLogger 

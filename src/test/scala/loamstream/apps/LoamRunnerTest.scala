@@ -15,6 +15,7 @@ import loamstream.loam.LoamScript
 import java.nio.file.Path
 import loamstream.util.Paths
 import loamstream.util.Files
+import loamstream.conf.LsSettings
 
 /**
  * @author clint
@@ -42,7 +43,7 @@ final class LoamRunnerTest extends FunSuite {
     
     val loamRunner = LoamRunner(loamEngine)
 
-    val project = LoamProject(config, LoamScript.withGeneratedName(code))
+    val project = LoamProject(config, LsSettings.noCliConfig, LoamScript.withGeneratedName(code))
     
     val results = loamRunner.run(project)
     

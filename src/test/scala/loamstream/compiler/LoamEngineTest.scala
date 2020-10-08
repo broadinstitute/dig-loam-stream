@@ -12,6 +12,7 @@ import loamstream.util.Files
 import loamstream.util.Paths
 import loamstream.model.execute.LocalSettings
 import loamstream.loam.LoamLoamScript
+import loamstream.conf.LsSettings
 
 
 /**
@@ -72,7 +73,7 @@ final class LoamEngineTest extends FunSuite {
   test("compile") {
     val script = engine.loadFile(firstDotLoam).get
     
-    val project = LoamProject(config, Set(script))
+    val project = LoamProject(config, LsSettings.noCliConfig, Set(script))
     
     val results @ LoamCompiler.Result.Success(warnings, infos, graph) = engine.compile(project)
     
@@ -142,7 +143,7 @@ final class LoamEngineTest extends FunSuite {
     
     val localConfig = config.copy(executionConfig = ExecutionConfig.default)
     
-    val localEngine = LoamEngine.default(localConfig)
+    val localEngine = LoamEngine.default(localConfig, LsSettings.noCliConfig)
     
     def job(commandLine: String) = {
       CommandLineJob(commandLineString = commandLine, initialSettings = LocalSettings)

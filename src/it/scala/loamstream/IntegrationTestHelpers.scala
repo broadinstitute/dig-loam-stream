@@ -15,6 +15,7 @@ import loamstream.loam.LoamScriptContext
 import loamstream.util.Sequence
 import loamstream.db.slick.SlickLoamDao
 import scala.util.Try
+import loamstream.conf.LsSettings
 
 /**
  * @author clint
@@ -66,8 +67,11 @@ object IntegrationTestHelpers {
     }
   }
   
-  def withScriptContext[A](config: LoamConfig = minimalConfig)(f: LoamScriptContext => A): A = {
-    f(new LoamScriptContext(LoamProjectContext.empty(config)))
+  def withScriptContext[A](
+      config: LoamConfig = minimalConfig,
+      lsSettings: LsSettings = LsSettings.noCliConfig)(f: LoamScriptContext => A): A = {
+    
+    f(new LoamScriptContext(LoamProjectContext.empty(config, lsSettings)))
   }
   
   val minimalConfig: LoamConfig = LoamConfig(

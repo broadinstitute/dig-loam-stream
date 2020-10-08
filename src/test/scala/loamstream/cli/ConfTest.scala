@@ -232,4 +232,58 @@ final class ConfTest extends FunSuite with Matchers {
       assert(values.cleanScriptsSupplied === false)
     }
   }
+  
+  test("Values.toArguments - simple cases") {
+    def doSimpleTest(flag: String): Unit = {
+      val args = Seq(flag)
+      
+      val conf = makeConf(args)
+    
+      assert(conf.toValues.toArguments === args)
+    }
+    
+    doSimpleTest("--clean")
+    doSimpleTest("--dry-run")
+    doSimpleTest("--disable-hashing")
+    doSimpleTest("--worker")
+    doSimpleTest("--clean-db")
+    doSimpleTest("--clean-logs")
+    doSimpleTest("--clean-scripts")
+    doSimpleTest("--compile-only")
+    doSimpleTest("--no-validation")
+  }
+  
+  test("Values.toArguments - real-world") {
+    def doTest(argLine: String): Unit = {
+      val args: Seq[String] = argLine.split("\\s+").toList
+    
+      val conf = Conf(args)
+    
+      assert(conf.toValues.toArguments === args)
+    }
+    
+    doTest("--conf foo.conf --backend uger --run allOf bar --loams x.loam y.loam")
+    doTest("--conf foo.conf --backend lsf --run anyOf baz --loams a.loam b.loam c.loam")
+    doTest("--conf foo.conf --backend uger --run noneOf foo --loams a.loam b.loam c.loam")
+    doTest("--conf foo.conf --backend uger --run everything --loams u.loam v.loam")
+  }
+  
+  test("Values.toArguments - --worker is added") {
+    val argLine = "--conf foo.conf --backend uger --loams u.loam v.loam"
+    
+    val args: Seq[String] = argLine.split("\\s+").toList
+    
+    val values = Conf(args).toValues
+    
+    assert(values.workerSupplied === false)
+    
+    val withWorker = values.withIsWorker(true)
+    
+    assert(values.workerSupplied === false)
+    assert(withWorker.workerSupplied === true)
+    
+    assert(values.toArguments === args)
+    
+    assert(withWorker.toArguments === ("--worker" +: args))
+  }
 }

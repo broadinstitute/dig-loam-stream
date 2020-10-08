@@ -13,6 +13,7 @@ import loamstream.googlecloud.HailConfig
 import loamstream.model.execute.LocalSettings
 import loamstream.model.execute.Settings
 import loamstream.util.ValueBox
+import loamstream.conf.LsSettings
 
 /** Container for compile time and run time context for a script */
 final class LoamScriptContext(val projectContext: LoamProjectContext) {
@@ -35,6 +36,8 @@ final class LoamScriptContext(val projectContext: LoamProjectContext) {
   def settings_=(newSettings: Settings): Unit = {
     settingsBox.value = newSettings
   }
+  
+  def lsSettings: LsSettings = projectContext.lsSettings
 
   lazy val executionId: String = s"${java.util.UUID.randomUUID}"
   

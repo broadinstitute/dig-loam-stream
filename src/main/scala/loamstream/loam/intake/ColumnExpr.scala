@@ -9,7 +9,10 @@ import scala.util.control.NonFatal
  * @author clint
  * Dec 17, 2019
  */
-sealed abstract class ColumnExpr[A : TypeTag] extends ColumnExpr.ArithmeticOps[A] with RowParser[A] {
+sealed abstract class ColumnExpr[A : TypeTag] extends 
+    ColumnExpr.ArithmeticOps[A] with ColumnExpr.TypeOps[A] with ColumnExpr.BooleanOps[A] with RowParser[A] {
+  
+  protected[intake] def tpe: TypeTag[A] = implicitly[TypeTag[A]]
   
   final override def apply(row: CsvRow): A = {
     try { eval(row) }
@@ -30,13 +33,15 @@ sealed abstract class ColumnExpr[A : TypeTag] extends ColumnExpr.ArithmeticOps[A
   final def render(row: CsvRow): String = eval(row).toString
   
   final def map[B: TypeTag](f: A => B): ColumnExpr[B] = MappedColumnExpr(f, this)
-  final def |>[B: TypeTag](f: A => B): ColumnExpr[B] = this.map(f) //scalastyle:ignore method.name
   
   final def flatMap[B: TypeTag](f: A => ColumnExpr[B]): ColumnExpr[B] = FlatMappedColumnExpr(f, this)
   
   import ColumnExpr._
   
-  def asString: ColumnExpr[String] = this.map(_.toString)
+  def asString: ColumnExpr[String] = {
+    if(isStringExpr) { this.asInstanceOf[ColumnExpr[String]] }
+    else { this.map(_.toString) }
+  }
   
   final def asInt(implicit ev: ConvertableToNumber[A]): ColumnExpr[Int] = this.map(ev.toInt(_))
   
@@ -74,22 +79,31 @@ sealed abstract class ColumnExpr[A : TypeTag] extends ColumnExpr.ArithmeticOps[A
   
   final def matches(regex: Regex): RowPredicate = this.asString.map(regex.pattern.matcher(_).matches)
   
-  final def ===(rhs: A): RowPredicate = this.map(_ == rhs)
-  final def !==(rhs: A): RowPredicate = this.map(_ != rhs) //scalastyle:ignore method.name
-  
   final def trim(implicit ev: A =:= String): ColumnExpr[String] = this.map(_.trim)
   
   final def isEmpty(implicit ev: A =:= String): RowPredicate = this.map(_.isEmpty)
   
   final def isEmptyIgnoreWhitespace(implicit ev: A =:= String): RowPredicate = this.map(_.trim.isEmpty)
-  
-  final def <(rhs: A)(implicit ev: Ordering[A]): RowPredicate = this.map(lhs => ev.lt(lhs, rhs))
-  final def <=(rhs: A)(implicit ev: Ordering[A]): RowPredicate = this.map(lhs => ev.lteq(lhs, rhs))
-  final def >(rhs: A)(implicit ev: Ordering[A]): RowPredicate = this.map(lhs => ev.gt(lhs, rhs))
-  final def >=(rhs: A)(implicit ev: Ordering[A]): RowPredicate = this.map(lhs => ev.gteq(lhs, rhs))
 }
 
 object ColumnExpr {
+  trait BooleanOps[A] { self: ColumnExpr[A] =>
+    final def ===(rhs: A): RowPredicate = this.map(_ == rhs)
+    final def !==(rhs: A): RowPredicate = this.map(_ != rhs) //scalastyle:ignore method.name
+    
+    final def <(rhs: A)(implicit ev: Ordering[A]): RowPredicate = this.map(lhs => ev.lt(lhs, rhs))
+    final def <=(rhs: A)(implicit ev: Ordering[A]): RowPredicate = this.map(lhs => ev.lteq(lhs, rhs))
+    final def >(rhs: A)(implicit ev: Ordering[A]): RowPredicate = this.map(lhs => ev.gt(lhs, rhs))
+    final def >=(rhs: A)(implicit ev: Ordering[A]): RowPredicate = this.map(lhs => ev.gteq(lhs, rhs))
+  }
+  
+  trait TypeOps[A] { self: ColumnExpr[A] =>
+    final protected[intake] def isStringExpr: Boolean = tpe == typeTag[String]
+    final protected[intake] def isIntExpr: Boolean = tpe == typeTag[Int]
+    final protected[intake] def isLongExpr: Boolean = tpe == typeTag[Long]
+    final protected[intake] def isDoubleExpr: Boolean = tpe == typeTag[Double]
+  }
+  
   abstract class ArithmeticOps[A : TypeTag] { self: ColumnExpr[A] =>
     final def -(rhs: ColumnExpr[A])(implicit ev: Numeric[A]): ColumnExpr[A] = arithmeticOp(this, rhs)(_.minus)
     final def -(rhs: A)(implicit ev: Numeric[A]): ColumnExpr[A] = this - LiteralColumnExpr(rhs)

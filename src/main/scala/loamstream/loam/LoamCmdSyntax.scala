@@ -8,6 +8,7 @@ import loamstream.loam.LoamToken.StoreToken
 import loamstream.loam.LoamToken.StringToken
 import loamstream.model.Store
 import loamstream.conf.DynamicConfig
+import loamstream.model.Tool
 
 
 /**
@@ -33,21 +34,19 @@ trait LoamCmdSyntax extends GraphFunctions {
     }
   }
   
-  implicit final class LoamCmdToolOps(val originalTool: LoamCmdTool) {
-    def using(dotkits: String*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
+  //TODO: Put this somewhere else?
+  implicit final class LoamCmdToolOps[T <: Tool : CanAddPreamble](val originalTool: T) {
+    def using(dotkits: String*)(implicit scriptContext: LoamScriptContext): T = {
       val prefix = {
         val useuse = "source /broad/software/scripts/useuse"
         val and = "&&"
         val reuse = "reuse -q"
         val reuses = dotkits.mkString(s"$reuse ", s" $and $reuse ", s" $and")
-        val openParen = "("
-        s"$useuse $and $reuses $openParen"
+        
+        s"$useuse $and $reuses"
       }
   
-      val useToken = StringToken(prefix)
-      val closeParenToken = StringToken(")")
-  
-      val updatedTool = originalTool.copy(tokens = useToken +: originalTool.tokens :+ closeParenToken)
+      val updatedTool = implicitly[CanAddPreamble[T]].addPreamble(prefix, originalTool)
   
       originalTool.scriptContext.projectContext.updateGraph { graph =>
         graph.updateTool(originalTool, updatedTool)

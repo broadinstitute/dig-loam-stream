@@ -13,6 +13,8 @@ trait Locations {
 
   def jobDataDir: Path
   
+  def workerDir: Path
+  
   def logDir: Path
 
   def dryRunOutputFile: Path
@@ -28,22 +30,15 @@ object Locations {
   import java.nio.file.Paths.{ get => path }
   import loamstream.util.Paths.Implicits._
   
-  final case class Literal(
-    loamstreamDir: Path = Default.loamstreamDir,
-    jobDataDir: Path = Default.jobDataDir,
-    logDir: Path = Default.logDir,
-    dryRunOutputFile: Path = Default.dryRunOutputFile,
-    dbDir: Path = Default.dbDir,
-    ugerDir: Path = Default.ugerDir,
-    lsfDir: Path = Default.lsfDir) extends Locations
+  lazy val Default = DefaultsIn(path(".loamstream").normalize)
   
-  object Default extends Locations {
-    override val loamstreamDir: Path = path("./.loamstream")
-
+  final case class DefaultsIn(loamstreamDir: Path) extends Locations {
+    override val workerDir: Path = (loamstreamDir / "workers").normalize
+    
     private[this] val jobDir: Path = (loamstreamDir / "jobs").normalize
     
     override val jobDataDir: Path = jobDir / "data"
-
+    
     override val logDir: Path = (loamstreamDir / "logs").normalize
 
     override val dryRunOutputFile: Path = (logDir / "joblist").normalize

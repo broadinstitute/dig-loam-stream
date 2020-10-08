@@ -6,8 +6,8 @@ import org.scalatest.FunSuite
  * @author clint
  * Jun 20, 2019
  */
-final class LogableLevelTest extends FunSuite {
-  import Loggable.Level._
+final class LogContextLevelTest extends FunSuite {
+  import LogContext.Level._
   
   test("Names") {
     assert(Trace.name === "Trace")

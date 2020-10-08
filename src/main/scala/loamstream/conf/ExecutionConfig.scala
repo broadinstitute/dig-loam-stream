@@ -19,13 +19,16 @@ final case class ExecutionConfig(
     dryRunOutputFile: Path = Defaults.dryRunOutputFile,
     anonStoreDir: Path = Defaults.anonStoreDir,
     singularity: SingularityConfig = Defaults.singularityConfig,
-    dbDir: Path = Defaults.dbDir,
-    logDir: Path = Defaults.logDir,
-    jobDataDir: Path = Defaults.jobDataDir,
+    loamstreamDir: Path = Defaults.loamstreamDir,
     maxJobLogFilesPerDir: Int = Defaults.maxJobLogFilesPerDir,
     numWorkerThreads: Int = Defaults.numWorkerThreads) {
   
-  def toLocations: Locations = Locations.Literal(dbDir = dbDir, logDir = logDir, jobDataDir = jobDataDir)
+  val locations: Locations = Locations.DefaultsIn(loamstreamDir)
+  
+  def dbDir: Path = locations.dbDir
+  def logDir: Path = locations.logDir
+  def jobDataDir: Path = locations.jobDataDir
+  def workerDir: Path = locations.workerDir
 }
 
 object ExecutionConfig extends ConfigParser[ExecutionConfig] {
@@ -47,11 +50,7 @@ object ExecutionConfig extends ConfigParser[ExecutionConfig] {
     
     val singularityConfig: SingularityConfig = SingularityConfig.default
     
-    val dbDir: Path = Locations.Default.dbDir
-    
-    val logDir: Path = Locations.Default.logDir
-    
-    val jobDataDir: Path = Locations.Default.jobDataDir
+    val loamstreamDir: Path = Locations.Default.loamstreamDir
     
     val maxJobLogFilesPerDir: Int = 3000
     
@@ -71,7 +70,8 @@ object ExecutionConfig extends ConfigParser[ExecutionConfig] {
     anonStoreDir: Path = Defaults.anonStoreDir,
     singularity: SingularityConfig = Defaults.singularityConfig,
     maxJobLogFilesPerDir: Int = Defaults.maxJobLogFilesPerDir,
-    numWorkerThreads: Int = Defaults.numWorkerThreads) {
+    numWorkerThreads: Int = Defaults.numWorkerThreads,
+    loamstreamDir: Path = Defaults.loamstreamDir) {
     
     def toExecutionConfig: ExecutionConfig = ExecutionConfig(
       executionPollingFrequencyInHz = executionPollingFrequencyInHz,
@@ -81,7 +81,8 @@ object ExecutionConfig extends ConfigParser[ExecutionConfig] {
       anonStoreDir = anonStoreDir,
       singularity = singularity,
       maxJobLogFilesPerDir = maxJobLogFilesPerDir,
-      numWorkerThreads = numWorkerThreads)
+      numWorkerThreads = numWorkerThreads,
+      loamstreamDir = loamstreamDir)
   }
   
   override def fromConfig(config: Config): Try[ExecutionConfig] = {

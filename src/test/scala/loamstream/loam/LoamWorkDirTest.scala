@@ -9,6 +9,7 @@ import loamstream.TestHelpers
 import loamstream.compiler.LoamPredef
 import loamstream.loam.LoamScriptTestUtils.FilePaths
 import loamstream.util.Paths
+import loamstream.conf.LsSettings
 
 
 /**
@@ -26,7 +27,9 @@ final class LoamWorkDirTest extends FunSuite {
   private def assertWorkDirIsSet(workDirOpt1: Option[Path], workDirOpt2: Option[Path]): Unit = {
     import loamstream.loam.LoamSyntax._
     
-    implicit val scriptContext = new LoamScriptContext(LoamProjectContext.empty(TestHelpers.config))
+    implicit val scriptContext = {
+      new LoamScriptContext(LoamProjectContext.empty(TestHelpers.config, LsSettings.noCliConfig))
+    }
     
     workDirOpt1 match {
       case Some(workDir1) => changeDir(workDir1)

@@ -9,14 +9,6 @@ import loamstream.model.execute.JobFilter
  * Jul 9, 2019
  */
 final class JobFilterIntentTest extends FunSuite {
-  /*
-   * object AsByNameJobFilter {
-    def unapply(intent: JobFilterIntent): Option[ByNameJobFilter] = intent match {
-      case c: ConvertibleToByNameJobFilter => Some(c.toByNameJobFilter)
-      case _ => None
-    }
-  }
-   */
   import JobFilterIntent._
   
   private val regexes = Seq("a".r, "b".r)

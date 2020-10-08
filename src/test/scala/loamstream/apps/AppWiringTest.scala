@@ -45,7 +45,7 @@ final class AppWiringTest extends FunSuite with Matchers {
   private def appWiring(cli: Conf): AppWiring = {
     val intent = Intent.from(cli).right.get.asInstanceOf[Intent.RealRun]
     
-    AppWiring.forRealRun(intent, makeDao = AppWiring.makeDaoFrom(DbDescriptor.inMemoryHsqldb))
+    AppWiring.forRealRun(intent, makeDao = _ => AppWiring.makeDaoFrom(DbDescriptor.inMemoryHsqldb))
   }
   
   test("Local execution, db-backed") {
@@ -221,24 +221,32 @@ final class AppWiringTest extends FunSuite with Matchers {
     
     val expectedBaseConfig = LoamConfig.fromPath(confFileForUger).get
     
-    def doTest(drmSystemOpt: Option[DrmSystem], shouldValidate: Boolean): Unit = {
+    def doTest(drmSystemOpt: Option[DrmSystem], shouldValidate: Boolean, cliConf: Option[Conf]): Unit = {
       
       val withDrmSystem = expectedBaseConfig.copy(drmSystem = drmSystemOpt)
       
       val newCompilationConfig = withDrmSystem.compilationConfig.copy(shouldValidateGraph = shouldValidate)
       
-      val expected = withDrmSystem.copy(compilationConfig = newCompilationConfig)
+      val expected = withDrmSystem.copy(compilationConfig = newCompilationConfig).copy(cliConfig = cliConf)
       
-      assert(loamConfigFrom(Some(confFileForUger), drmSystemOpt, shouldValidate) === expected)
+      assert(loamConfigFrom(Some(confFileForUger), drmSystemOpt, shouldValidate, cliConf) === expected)
     }
     
-    doTest(None, true)
-    doTest(Some(DrmSystem.Uger), true)
-    doTest(Some(DrmSystem.Lsf), true)
+    val conf = Conf("--loams src/example/scala/cp.scala".split("\\s+"))
     
-    doTest(None, false)
-    doTest(Some(DrmSystem.Uger), false)
-    doTest(Some(DrmSystem.Lsf), false)
+    doTest(None, true, None)
+    doTest(Some(DrmSystem.Uger), true, None)
+    doTest(Some(DrmSystem.Lsf), true, None)
+    doTest(None, true, Some(conf))
+    doTest(Some(DrmSystem.Uger), true, Some(conf))
+    doTest(Some(DrmSystem.Lsf), true, Some(conf))
+    
+    doTest(None, false, None)
+    doTest(Some(DrmSystem.Uger), false, None)
+    doTest(Some(DrmSystem.Lsf), false, None)
+    doTest(None, false, Some(conf))
+    doTest(Some(DrmSystem.Uger), false, Some(conf))
+    doTest(Some(DrmSystem.Lsf), false, Some(conf))
   }
   
   test("defaultJobCanceler") {

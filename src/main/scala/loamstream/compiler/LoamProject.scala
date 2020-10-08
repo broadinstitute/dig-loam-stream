@@ -2,23 +2,23 @@ package loamstream.compiler
 
 import loamstream.loam.LoamScript
 import loamstream.conf.LoamConfig
+import loamstream.conf.LsSettings
 
 /** A collection of Loam scripts to be compiled together */
 object LoamProject {
   /** Returns LoamProject with one or more scripts */
-  def apply(config: LoamConfig, script: LoamScript, scripts: LoamScript*): LoamProject = {
-    LoamProject(config, script +: scripts)
+  def apply(config: LoamConfig, settings: LsSettings, script: LoamScript, scripts: LoamScript*): LoamProject = {
+    LoamProject(config, settings, script +: scripts)
   }
 
   /** Returns LoamProject with iterable of scripts */
-  def apply(config: LoamConfig, scripts: Iterable[LoamScript]): LoamProject = LoamProject(config, scripts.toSet)
-
-  /** Returns LoamProject with only one script */
-  def apply(config: LoamConfig, script: LoamScript): LoamProject = LoamProject(config, Set(script))
+  def apply(config: LoamConfig, settings: LsSettings, scripts: Iterable[LoamScript]): LoamProject = {
+    LoamProject(config, settings, scripts.toSet)
+  }
 }
 
 /** A collection of Loam scripts to be compiled together */
-final case class LoamProject(config: LoamConfig, scripts: Set[LoamScript]) {
+final case class LoamProject(config: LoamConfig, settings: LsSettings, scripts: Set[LoamScript]) {
 
   /** Returns project with that script added */
   def +(script: LoamScript): LoamProject = copy(scripts = scripts + script)

@@ -9,6 +9,7 @@ import loamstream.TestHelpers
 import loamstream.model.Store
 import loamstream.util.Maps
 import loamstream.model.execute.LocalSettings
+import loamstream.conf.LsSettings
 
 /**
   * LoamStream
@@ -279,7 +280,9 @@ object LoamGraphTest {
   private def makeTestComponents: GraphComponents = {
     import loamstream.TestHelpers.config
     
-    implicit val scriptContext: LoamScriptContext = new LoamScriptContext(LoamProjectContext.empty(config))
+    implicit val scriptContext: LoamScriptContext = {
+      new LoamScriptContext(LoamProjectContext.empty(config, LsSettings.noCliConfig))
+    }
     
     import loamstream.loam.LoamSyntax._
     

@@ -1,14 +1,16 @@
 package loamstream.loam.intake
 
+import loamstream.compiler.LoamPredef
+import loamstream.loam.GraphFunctions
+import loamstream.loam.InvokesLsTool
 import loamstream.loam.LoamScriptContext
 import loamstream.loam.NativeTool
 import loamstream.model.Store
 import loamstream.model.Tool
+import loamstream.model.execute.DrmSettings
 import loamstream.util.Files
-import loamstream.util.Hashes
-import loamstream.util.TimeUtils
 import loamstream.util.Loggable
-import loamstream.loam.GraphFunctions
+import loamstream.util.TimeUtils
 
 
 /**
@@ -59,6 +61,31 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
   type CsvRow = loamstream.loam.intake.CsvRow
   val CsvRow = loamstream.loam.intake.CsvRow
   
+  private def doLocally[A](body: => A)(implicit scriptContext: LoamScriptContext): NativeTool = {
+    require(
+        scriptContext.lsSettings.thisInstanceIsAWorker,
+        s"Only running native jobs in --worker mode is supported")
+        
+    LoamPredef.local {
+      NativeTool {
+        body
+      }
+    }
+  }
+  
+  private def nativeTool[A](body: => A)(implicit scriptContext: LoamScriptContext): Tool = { 
+    if(scriptContext.lsSettings.thisInstanceIsAWorker) { doLocally(body) }
+    else {
+      scriptContext.settings match {
+        case drmSettings: DrmSettings => InvokesLsTool()
+        case settings => {
+          sys.error(
+              s"Intake jobs can only run locally with --worker or on a DRM system, but settings were $settings")
+        }
+      }
+    }
+  }
+  
   implicit final class ColumnNameOps(val s: String) {
     def asColumnName: ColumnName = ColumnName(s)
   }
@@ -70,15 +97,15 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
       new ProcessTarget(dest, varIdColumnDef, otherColumnDefs: _*)
     }
   }    
-    
+
   final class ProcessTarget(
       dest: Store, 
       varIdColumnDef: SourcedColumnDef, 
       otherColumnDefs: SourcedColumnDef*) extends Loggable {
     
-    def using(flipDetector: => FlipDetector)(implicit scriptContext: LoamScriptContext): NativeTool = {
+    def using(flipDetector: => FlipDetector)(implicit scriptContext: LoamScriptContext): Tool = {
       //TODO: How to wire up inputs (if any)?
-      val tool = NativeTool {
+      val tool: Tool = nativeTool {
         TimeUtils.time(s"Producing ${dest.path}", info(_)) {
           val (headerRow, dataRows) = process(flipDetector)(RowDef(varIdColumnDef, otherColumnDefs))
           
@@ -99,25 +126,10 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
     }
   }
   
-  final class HashFileTarget(dest: Store) {
-    def from(fileToBeHashed: Store)(implicit scriptContext: LoamScriptContext): NativeTool = {
-      //TODO: How to wire up inputs (if any)?
-      val tool = NativeTool {
-        val hash = Hashes.md5(fileToBeHashed.path).valueAsBase64String 
-        
-        Files.writeTo(dest.path)(hash)
-      }
-      
-      addToGraph(tool)
-      
-      tool.out(dest)
-    }
-  }
-  
   final class AggregatorIntakeConfigFileTarget(dest: Store) {
-    def from(configData: aggregator.ConfigData)(implicit scriptContext: LoamScriptContext): NativeTool = {
+    def from(configData: aggregator.ConfigData)(implicit scriptContext: LoamScriptContext): Tool = {
       //TODO: How to wire up inputs (if any)?
-      val tool = NativeTool {
+      val tool: Tool = nativeTool {
         Files.writeTo(dest.path)(configData.asConfigFileContents)
       }
       
@@ -135,12 +147,6 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
     requireFsPath(dest)
     
     new TransformationTarget(dest)
-  }
-  
-  def produceMd5Hash(dest: Store): HashFileTarget = {
-    requireFsPath(dest)
-    
-    new HashFileTarget(dest)
   }
   
   def produceAggregatorIntakeConfigFile(dest: Store) = {

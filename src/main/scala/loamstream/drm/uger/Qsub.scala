@@ -13,12 +13,13 @@ import rx.lang.scala.schedulers.IOScheduler
 import rx.lang.scala.Scheduler
 import loamstream.drm.SessionSource
 import java.nio.file.Path
+import loamstream.util.LogContext
 
 /**
  * @author clint
  * Jul 24, 2020
  */
-object Qsub extends Loggable {
+object Qsub {
   type InvocationFn[A] = A => Try[RunResults]
   
   final case class Params(
@@ -94,12 +95,12 @@ object Qsub extends Loggable {
       sessionSource: SessionSource,
       ugerConfig: UgerConfig,
       actualExecutable: String = "qsub",
-      scheduler: Scheduler)(implicit ec: ExecutionContext): CommandInvoker.Async[Params] = {
+      scheduler: Scheduler)(implicit ec: ExecutionContext, logCtx: LogContext): CommandInvoker.Async[Params] = {
 
     def invocationFn(params: Params): Try[RunResults] = {
       val tokens = makeTokens(sessionSource, actualExecutable, params)
       
-      debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
+      logCtx.debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
       
       Processes.runSync(tokens)()
     }

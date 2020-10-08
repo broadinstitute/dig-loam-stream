@@ -21,6 +21,7 @@ import loamstream.model.jobs.Execution
 import loamstream.model.execute.DbBackedExecutionRecorder
 import loamstream.util.Paths
 import loamstream.model.execute.Run
+import loamstream.conf.LsSettings
 
 
 /**
@@ -64,7 +65,7 @@ final class OutputAndExecutionRecordingTest extends FunSuite with ProvidesSlickL
       
       val executer = RxExecuter.defaultWith(jobFilter, executionRecorder)
       
-      val loamEngine = LoamEngine(TestHelpers.config, LoamCompiler.default, executer)
+      val loamEngine = LoamEngine(TestHelpers.config, LsSettings.noCliConfig, LoamCompiler.default, executer)
       
       def out0ExFromDb = findExecution(StoreRecord(out0Path))
       def out1ExFromDb = findExecution(StoreRecord(out1Path))

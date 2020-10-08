@@ -38,4 +38,13 @@ object LId {
   }
   
   private val ids: Sequence[Long] = Sequence()
+  
+  trait IdBasedEquality { self: HasId =>
+    override def equals(other: Any): Boolean = other match {
+      case that: HasId if this.getClass == that.getClass => this.id == that.id
+      case _ => false
+    }
+    
+    override def hashCode: Int = id.hashCode
+  }
 }

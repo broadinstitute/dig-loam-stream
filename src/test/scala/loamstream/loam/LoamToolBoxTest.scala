@@ -1,14 +1,22 @@
 package loamstream.loam
 
+import java.nio.file.Path
+import java.nio.file.Paths
+
 import org.scalatest.FunSuite
 
 import loamstream.TestHelpers
-import loamstream.compiler.LoamPredef
+import loamstream.cli.Conf
+import loamstream.conf.LsSettings
+import loamstream.drm.DrmSystem
 import loamstream.model.execute.Executable
 import loamstream.model.execute.ExecuterHelpers
 import loamstream.model.jobs.JobNode
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.util.BashScript.Implicits.BashPath
+import loamstream.util.DirOracle
+import loamstream.util.jvm.JvmArgs
+import loamstream.util.jvm.SysPropNames
 import loamstream.model.jobs.DataHandle
 
 
@@ -269,6 +277,152 @@ final class LoamToolBoxTest extends FunSuite {
     assert(imputeJob0 ne imputeJob1)
     assert(imputeJob1 ne imputeJob2)
     assert(imputeJob2 ne imputeJob0)
+  }
+  
+  private object DummyOracles {
+    def alwaysReturns[A](workDir: Path): DirOracle[A] = new DirOracle[A] {
+      override def dirOptFor(job: A): Option[Path] = Some(workDir)
+    }
+  
+    def alwaysNone[A]: DirOracle[A] = new DirOracle[A] {
+      override def dirOptFor(job: A): Option[Path] = None
+    }
+  }
+  
+  test("makeWorkerJobCommandLineTokens - cliConfig guard") {
+    TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
+      val (graph, tool) = TestHelpers.withScriptContext(LsSettings(cliConfig = None)) { implicit scriptContext =>
+        val tool = InvokesLsTool().tag("foo")
+      
+        (scriptContext.projectContext.graph, tool)
+      }
+
+      //Should throw, no Conf.Values in LsSettings
+      intercept[Exception] {
+        LoamToolBox.makeWorkerJobCommandLineTokens(graph, tool, DummyOracles.alwaysReturns(workDir))
+      }
+    }
+  }
+  
+  test("makeWorkerJobCommandLineTokens - workDir guard") {
+    val cliConf = Conf("--backend uger --loams foo.loam".split("\\s+")).toValues
+    
+    val (graph, tool) = TestHelpers.withScriptContext(LsSettings(Some(cliConf))) { implicit scriptContext =>
+      val tool = InvokesLsTool().tag("foo")
+      
+      (scriptContext.projectContext.graph, tool)
+    }
+
+    //Should throw, can't determine work dir for tool invocation
+    intercept[Exception] {
+      LoamToolBox.makeWorkerJobCommandLineTokens(graph, tool, DummyOracles.alwaysNone)
+    }
+  }
+  
+  test("makeWorkerJobCommandLineTokens - DRM system guard") {
+    val cliConf = Conf("--backend uger --loams foo.loam".split("\\s+")).toValues
+    
+    val (graph, tool) = {
+      implicit val scriptContext = {
+        val withoutDrmSystem = TestHelpers.config.copy(drmSystem = None)
+      
+        new LoamScriptContext(LoamProjectContext.empty(withoutDrmSystem, LsSettings(Some(cliConf))))
+      }
+      
+      val tool = InvokesLsTool().tag("foo")
+      
+      (scriptContext.projectContext.graph, tool)
+    }
+
+    //Should throw, no DRM system defined in LoamConfig
+    TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
+      intercept[Exception] {
+        LoamToolBox.makeWorkerJobCommandLineTokens(graph, tool, DummyOracles.alwaysReturns(workDir))
+      }
+    }
+  }
+  
+  test("makeWorkerJobCommandLineTokens - user-specified-tag guard") {
+    val cliConf = Conf("--backend uger --loams foo.loam".split("\\s+")).toValues
+    
+    val (graph, tool) = {
+      implicit val scriptContext = {
+        val withoutDrmSystem = TestHelpers.config.copy(drmSystem = Some(DrmSystem.Uger))
+      
+        new LoamScriptContext(LoamProjectContext.empty(withoutDrmSystem, LsSettings(Some(cliConf))))
+      }
+      
+      val tool = InvokesLsTool() //Note no .tag(...)
+      
+      (scriptContext.projectContext.graph, tool)
+    }
+
+    //Should throw, no tag on InvokesLsTool
+    TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
+      intercept[Exception] {
+        LoamToolBox.makeWorkerJobCommandLineTokens(graph, tool, DummyOracles.alwaysReturns(workDir))
+      }
+    }
+  }
+    
+  test("makeWorkerJobCommandLineTokens - happy path") {
+    val args = "--backend uger --loams foo.loam".split("\\s+").toList
+    
+    val jobName = "some-job"
+    
+    val cliConf = Conf(args).toValues
+    
+    val jvmArgs = JvmArgs(Seq("jvmArg0", "jvmArg1", "jvmArg2"), "some-class-path")
+    
+    val (graph, tool) = {
+      import LoamSyntax._
+      
+      implicit val scriptContext = {
+        val withoutDrmSystem = TestHelpers.config.copy(drmSystem = Some(DrmSystem.Uger))
+      
+        new LoamScriptContext(LoamProjectContext.empty(withoutDrmSystem, LsSettings(cliConf, jvmArgs)))
+      }
+      
+      val tool = InvokesLsTool().tag(jobName).using("Bar-2.0", "Baz-3.1")
+      
+      (scriptContext.projectContext.graph, tool)
+    }
+
+    TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
+      def makePreambles(dotkits: String*): String = {
+        val useuse = "source /broad/software/scripts/useuse"
+        val and = "&&"
+        val reuse = "reuse -q"
+        val reuses = dotkits.mkString(s"$reuse ", s" $and $reuse ", s" $and")
+      
+        s"$useuse $and $reuses"
+      }
+      
+      val expectedJavaBinary = Paths.get(System.getProperty("java.home")).resolve("bin").resolve("java")
+      
+      val sysprops = Map(
+          SysPropNames.loamstreamWorkDir -> workDir.toString,
+          SysPropNames.loamstreamExecutionLoamstreamDir -> workDir.toString)
+      
+      val expected = Seq(
+        makePreambles("Bar-2.0", "Baz-3.1"),
+        expectedJavaBinary.toString,
+        "jvmArg0", 
+        "jvmArg1", 
+        "jvmArg2",
+        s"-D${SysPropNames.loamstreamWorkDir}=${workDir}",
+        s"-D${SysPropNames.loamstreamExecutionLoamstreamDir}=${workDir}",
+        "-jar",
+        "some-class-path",
+        "--worker",
+        "--backend", "uger",
+        "--run", "allOf", jobName,
+        "--loams", "foo.loam")
+      
+      val actual = LoamToolBox.makeWorkerJobCommandLineTokens(graph, tool, DummyOracles.alwaysReturns(workDir))
+        
+      assert(actual === expected)
+    }
   }
 }
 

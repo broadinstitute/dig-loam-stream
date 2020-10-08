@@ -57,6 +57,7 @@ import loamstream.model.jobs.JobOracle
 import loamstream.model.execute.EnvironmentType
 import java.time.LocalDateTime
 import java.time.ZoneId
+import loamstream.conf.LsSettings
 
 /**
   * @author clint
@@ -187,11 +188,19 @@ object TestHelpers {
     executionFrom(result.toJobStatus, Option(result), resources)
   }
   
-  def emptyProjectContext = LoamProjectContext.empty(config)
+  def emptyProjectContext: LoamProjectContext = emptyProjectContext(LsSettings.noCliConfig)
   
-  def emptyProjectContext(drmSystem: DrmSystem) = LoamProjectContext.empty(config.copy(drmSystem = Option(drmSystem)))
+  def emptyProjectContext(drmSystem: DrmSystem): LoamProjectContext = {
+    LoamProjectContext.empty(config.copy(drmSystem = Option(drmSystem)), LsSettings.noCliConfig)
+  }
+  
+  def emptyProjectContext(lsSettings: LsSettings): LoamProjectContext = LoamProjectContext.empty(config, lsSettings)
   
   def withScriptContext[A](f: LoamScriptContext => A): A = f(new LoamScriptContext(emptyProjectContext))
+  
+  def withScriptContext[A](lsSettings: LsSettings)(f: LoamScriptContext => A): A = {
+    f(new LoamScriptContext(emptyProjectContext(lsSettings)))
+  }
   
   def withScriptContext[A](drmSystem: DrmSystem)(f: LoamScriptContext => A): A = {
     f(new LoamScriptContext(emptyProjectContext(drmSystem)))
@@ -207,6 +216,14 @@ object TestHelpers {
   
   def makeGraph(drmSystem: DrmSystem)(loamCode: LoamScriptContext => Any): LoamGraph = {
     withScriptContext(drmSystem) { sc =>
+      loamCode(sc)
+      
+      sc.projectContext.graph
+    }
+  }
+  
+  def makeGraph(lsSettings: LsSettings)(loamCode: LoamScriptContext => Any): LoamGraph = {
+    withScriptContext(lsSettings) { sc =>
       loamCode(sc)
       
       sc.projectContext.graph
@@ -239,10 +256,10 @@ object TestHelpers {
     finally { FileUtils.deleteQuietly(workDir.toFile) }
   }
 
-  def loamEngine: LoamEngine = LoamEngine.default(config)
+  def loamEngine: LoamEngine = LoamEngine.default(config, LsSettings.noCliConfig)
 
   def compile(loamCode: String): LoamCompiler.Result = {
-    loamEngine.compiler.compile(config, LoamScript.withGeneratedName(loamCode))
+    loamEngine.compiler.compile(config, LsSettings.noCliConfig, LoamScript.withGeneratedName(loamCode))
   }
   
   val defaultUgerSettings: UgerDrmSettings = {

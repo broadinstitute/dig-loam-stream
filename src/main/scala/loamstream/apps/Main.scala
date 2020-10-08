@@ -12,6 +12,7 @@ import loamstream.compiler.LoamCompiler
 import loamstream.compiler.LoamEngine
 import loamstream.compiler.LoamProject
 import loamstream.conf.LoamConfig
+import loamstream.conf.LsSettings
 import loamstream.db.LoamDao
 import loamstream.loam.LoamScript
 import loamstream.model.execute.DryRunner
@@ -37,6 +38,8 @@ object Main extends Loggable {
 
     describeLoamstream()
 
+    info(s"Worker mode is ${if(cli.toValues.workerSupplied) "ON" else "OFF"}")
+    
     val intent = Intent.from(cli)
     
     import loamstream.cli.Intent._
@@ -47,7 +50,7 @@ object Main extends Loggable {
       case Right(ShowVersionAndQuit) => ()
       case Right(ShowHelpAndQuit) => cli.printHelp()
       case Right(compileOnly: CompileOnly) => run.doCompileOnly(compileOnly)
-      case Right(dryRun: DryRun) => run.doDryRun(dryRun)
+      case Right(dryRun: DryRun) => run.doDryRun(dryRun)()
       case Right(real: RealRun) => run.doRealRun(real)
       case Left(message) => cli.printHelp(message)
       case _ => cli.printHelp()
@@ -86,19 +89,30 @@ object Main extends Loggable {
     }
     
     def doCompileOnly(intent: Intent.CompileOnly): Unit = {
-      val config = AppWiring.loamConfigFrom(intent.confFile, intent.drmSystemOpt, intent.shouldValidate)
+      val config = {
+        AppWiring.loamConfigFrom(intent.confFile, intent.drmSystemOpt, intent.shouldValidate, intent.cliConfig)
+      }
       
-      val loamEngine = LoamEngine.default(config)
+      val lsSettings = LsSettings(intent.cliConfig.map(_.toValues))
+      
+      val loamEngine = LoamEngine.default(config, lsSettings)
       
       val compilationResult = compile(loamEngine, intent.loams)
   
       info(compilationResult.report)
     }
     
-    def doDryRun(intent: Intent.DryRun, makeDao: => LoamDao = AppWiring.makeDefaultDb): Unit = {
-      val config = AppWiring.loamConfigFrom(intent.confFile, intent.drmSystemOpt, intent.shouldValidate) 
+    def doDryRun(
+        intent: Intent.DryRun)( 
+        makeDao: LoamConfig => LoamDao = AppWiring.makeDefaultDb): Unit = {
       
-      val loamEngine = LoamEngine.default(config)
+      val config = {
+        AppWiring.loamConfigFrom(intent.confFile, intent.drmSystemOpt, intent.shouldValidate, intent.cliConfig)
+      }
+      
+      val lsSettings = LsSettings(intent.cliConfig.map(_.toValues))
+      
+      val loamEngine = LoamEngine.default(config, lsSettings)
       
       val compilationResult = compile(loamEngine, intent.loams)
   
@@ -106,12 +120,12 @@ object Main extends Loggable {
       
       compilationResult match {
         case LoamCompiler.Result.Success(_, _, graph) => {
-          val executable = LoamEngine.toExecutable(graph)
+          val executable = LoamEngine.toExecutable(graph, config.executionConfig)
     
           val jobsToBeRun = intent.jobFilterIntent match {
             case JobFilterIntent.AsByNameJobFilter(byNameFilter) => DryRunner.toBeRun(byNameFilter, executable) 
             case _ => {
-              val jobFilter = AppWiring.jobFilterForDryRun(intent, makeDao)
+              val jobFilter = AppWiring.jobFilterForDryRun(intent, config, makeDao)
               
               DryRunner.toBeRun(jobFilter, executable)
             }
@@ -132,9 +146,15 @@ object Main extends Loggable {
       }
     }
     
-    def doRealRun(intent: Intent.RealRun, makeDao: => LoamDao = AppWiring.makeDefaultDb): Unit = {
+    def doRealRun(
+        intent: Intent.RealRun, 
+        makeDao: LoamConfig => LoamDao = conf => AppWiring.makeDefaultDbIn(conf.executionConfig.dbDir)): Unit = {
       
       val wiring = AppWiring.forRealRun(intent, makeDao)
+      
+      val lsDir =  wiring.config.executionConfig.loamstreamDir.toAbsolutePath
+      
+      info(s"Loamstream will create logs and metadata files under ${lsDir}")
       
       addShutdownHook(wiring)
       
@@ -152,7 +172,7 @@ object Main extends Loggable {
       }
       
       try {
-        val project = LoamProject(loamEngine.config, loamScripts)
+        val project = LoamProject(loamEngine.config, wiring.settings, loamScripts)
   
         //NB: Shut down before logging anything about jobs, so that potentially-noisy shutdown info is logged
         //before final job statuses.

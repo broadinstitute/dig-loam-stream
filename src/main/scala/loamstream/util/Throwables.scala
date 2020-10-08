@@ -16,7 +16,7 @@ object Throwables {
   
   def quietly(
       message: String, 
-      level: Loggable.Level = Loggable.Level.Error)
+      level: LogContext.Level = LogContext.Level.Error)
       (f: => Any)
       (implicit logContext: LogContext): Option[Throwable] = {
     

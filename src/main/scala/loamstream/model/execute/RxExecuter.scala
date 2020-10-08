@@ -2,36 +2,27 @@ package loamstream.model.execute
 
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration.DurationDouble
 
+import loamstream.conf.ExecutionConfig
 import loamstream.model.jobs.Execution
-import loamstream.model.jobs.JobRun
+import loamstream.model.jobs.JobOracle
 import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.LJob
+import loamstream.model.jobs.RunData
+import loamstream.util.ExecutionContexts
+import loamstream.util.FileMonitor
+import loamstream.util.Futures
 import loamstream.util.Loggable
-import loamstream.util.Maps
 import loamstream.util.Observables
+import loamstream.util.Terminable
+import loamstream.util.TimeUtils
 import rx.lang.scala.Observable
 import rx.lang.scala.Scheduler
 import rx.lang.scala.schedulers.IOScheduler
-import loamstream.model.jobs.JobNode
-import loamstream.conf.ExecutionConfig
-import loamstream.util.ValueBox
-import java.io.FileWriter
-import loamstream.util.ExecutionContexts
-import loamstream.util.Terminable
-import java.io.PrintWriter
-import java.time.Instant
-import loamstream.model.jobs.log.JobLog
-import loamstream.model.jobs.RunData
-import scala.concurrent.Future
-import loamstream.conf.LoamConfig
-import loamstream.util.FileMonitor
-import loamstream.util.Futures
-import jdk.nashorn.internal.runtime.FinalScriptFunctionData
-import loamstream.model.jobs.JobOracle
-import loamstream.util.TimeUtils
+
 
 /**
  * @author kaan
@@ -79,7 +70,7 @@ final case class RxExecuter(
       ExecutionState.initialFor(executable, maxRunsPerJob)
     }
     
-    val chunkResults: Observable[(LJob, Execution)] = {
+    val jobResultTuples: Observable[(LJob, Execution)] = {
       //Note onBackpressureDrop(), in case runEligibleJobs takes too long (or the polling window is too short)
       val ticks = Observable.interval(windowLength, scheduler).onBackpressureDrop
       
@@ -90,7 +81,7 @@ final case class RxExecuter(
       ticks.map(_ => executionState.updateJobs()).distinctUntilChanged.flatMap(runJobs).takeUntil(_ => isFinished)
     }
     
-    val futureMergedResults = chunkResults.foldLeft(emptyExecutionMap)(_ + _).firstAsFuture
+    val futureMergedResults = jobResultTuples.toMap.firstAsFuture
 
     Await.result(futureMergedResults, timeout)
   }
@@ -130,7 +121,7 @@ final case class RxExecuter(
       jobsAndCells: ExecutionState.JobStatuses): Observable[(LJob, Execution)] = {
     
     val (numReadyToRun, numCannotRun) = (jobsAndCells.readyToRun.size, jobsAndCells.cannotRun.size)
-    import jobsAndCells.{ numRunning, numFinished }
+    import jobsAndCells.{ numFinished, numRunning }
     val numRemaining = executionState.size - numReadyToRun - numCannotRun - numRunning - numFinished
     
     info(s"RxExecuter.runEligibleJobs(): Ready to run: $numReadyToRun; Cannot run: $numCannotRun; " +
@@ -211,7 +202,7 @@ final case class RxExecuter(
   }
   
   private def cancelJobs(jobsToCancel: Iterable[LJob]): Iterable[(LJob, Execution)] = {
-    import JobStatus.Canceled
+    import loamstream.model.jobs.JobStatus.Canceled
     
     jobsToCancel.map(job => job -> Execution.from(job, Canceled, terminationReason = None))
   }

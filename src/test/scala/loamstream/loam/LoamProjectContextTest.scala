@@ -3,6 +3,7 @@ package loamstream.loam
 import org.scalatest.FunSuite
 
 import loamstream.TestHelpers
+import loamstream.conf.LsSettings
 
 /**
  * @author clint
@@ -13,9 +14,9 @@ final class LoamProjectContextTest extends FunSuite {
   import loamstream.TestHelpers.config
   
   test("updateGraph") {
-    val ctx = LoamProjectContext.empty(config)
+    val ctx = LoamProjectContext.empty(config, LsSettings.noCliConfig)
     
-    implicit val scriptCtx = new LoamScriptContext(LoamProjectContext.empty(config))
+    implicit val scriptCtx = new LoamScriptContext(ctx)
     
     val tool = makeTool("foo")
     

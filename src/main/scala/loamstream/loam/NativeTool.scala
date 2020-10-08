@@ -11,7 +11,8 @@ import loamstream.util.Functions
  * Dec 19, 2019
  */
 final class NativeTool private (
-    val body: () => Any)(implicit override val scriptContext: LoamScriptContext) extends Tool {
+    val body: () => Any)
+   (implicit override val scriptContext: LoamScriptContext) extends Tool with LId.IdBasedEquality {
   
   /** Input and output stores before any are specified using in or out */
   override def defaultStores: DefaultStores = DefaultStores.empty

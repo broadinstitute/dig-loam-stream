@@ -33,6 +33,8 @@ import scala.util.Failure
 import loamstream.loam.LoamLoamScript
 import loamstream.loam.ScalaLoamScript
 import loamstream.util.Files
+import loamstream.conf.LsSettings
+import loamstream.conf.ExecutionConfig
 
 
 /**
@@ -42,23 +44,28 @@ import loamstream.util.Files
 object LoamEngine {
   def default(
       config: LoamConfig,
+      settings: LsSettings,
       csClient: Option[CloudStorageClient] = None): LoamEngine = {
     
     val compiler = LoamCompiler(config.compilationConfig, LoamCompiler.Settings.default) 
     
-    LoamEngine(config, compiler, RxExecuter.default, csClient)
+    LoamEngine(config, settings, compiler, RxExecuter.default, csClient)
   }
 
-  def toExecutable(graph: LoamGraph, csClient: Option[CloudStorageClient] = None): Executable = {
+  def toExecutable(
+      graph: LoamGraph, 
+      executionConfig: ExecutionConfig = ExecutionConfig.default, 
+      csClient: Option[CloudStorageClient] = None): Executable = {
     
     val toolBox = new LoamToolBox(csClient)
 
-    toolBox.createExecutable(graph)
+    toolBox.createExecutable(graph, executionConfig)
   }
 }
 
 final case class LoamEngine(
     config: LoamConfig,
+    settings: LsSettings,
     compiler: LoamCompiler, 
     executer: Executer,
     csClient: Option[CloudStorageClient] = None) extends Loggable {
@@ -67,7 +74,7 @@ final case class LoamEngine(
 
   def compileFiles(files: Iterable[Path]): Try[LoamCompiler.Result] = {
     def compileScripts(scripts: Iterable[LoamScript]): LoamCompiler.Result = {
-      compiler.compile(LoamProject(config, scripts))
+      compile(LoamProject(config, settings, scripts))
     }
     
     Tries.sequence(files.map(loadFile)).map(compileScripts)
@@ -79,10 +86,10 @@ final case class LoamEngine(
     compiler.compile(project)
   }
   
-  def run(graph: LoamGraph): Map[LJob, Execution] = {
+  def run(graph: LoamGraph, executionConfig: ExecutionConfig = ExecutionConfig.default): Map[LJob, Execution] = {
     info("Making Executable from LoamGraph")
     
-    val executable = LoamEngine.toExecutable(graph, csClient)
+    val executable = LoamEngine.toExecutable(graph, executionConfig, csClient)
     
     listJobsThatCouldRun(executable, config.executionConfig.dryRunOutputFile)
     

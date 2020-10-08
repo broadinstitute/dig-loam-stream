@@ -8,6 +8,7 @@ import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.model.jobs.LJob
 import loamstream.util.Files
 import java.io.IOException
+import loamstream.conf.ExecutionConfig
 
 /**
  * @author clint

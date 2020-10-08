@@ -22,7 +22,7 @@ import rx.lang.scala.Observable
  * and greater periods after each failure, starting at delayStart and doubling after each failure, up to a max of
  * delayCap.  See Loops.Backoff.delaySequence and Loops.retryUntilSuccessWithBackoff .
  */
-object CommandInvoker extends Loggable {
+object CommandInvoker {
   type InvocationFn[A] = A => Try[RunResults]
   
   type SuccessfulInvocationFn[A] = A => Try[RunResults.Successful]
@@ -107,7 +107,7 @@ object CommandInvoker extends Loggable {
   object Async {
     final class JustOnce[A](
       val binaryName: String,
-      delegateFn: InvocationFn[A])(implicit ec: ExecutionContext) extends CommandInvoker.Async[A] with Loggable {
+      delegateFn: InvocationFn[A])(implicit ec: ExecutionContext, logCtx: LogContext) extends CommandInvoker.Async[A] {
 
       override def apply(param: A): Future[RunResults.Successful] = {
         import Observables.Implicits._
@@ -116,7 +116,7 @@ object CommandInvoker extends Loggable {
       }
 
       private[CommandInvoker] def invokeBinary(param: A): Observable[Try[RunResults.Successful]] = Observable.just {
-        delegateFn(param).flatMap(_.tryAsSuccess)
+        delegateFn(param).flatMap(_.tryAsSuccess(logCtx))
       }
     }
 
@@ -125,7 +125,7 @@ object CommandInvoker extends Loggable {
       maxRetries: Int,
       delayStart: Duration = Retrying.defaultDelayStart,
       delayCap: Duration = Retrying.defaultDelayCap,
-      scheduler: Scheduler)(implicit ec: ExecutionContext) extends CommandInvoker.Async[A] with Loggable {
+      scheduler: Scheduler)(implicit ec: ExecutionContext, logCtx: LogContext) extends CommandInvoker.Async[A] {
 
       override def apply(param: A): Future[RunResults.Successful] = runCommand(param)
 
@@ -158,7 +158,7 @@ object CommandInvoker extends Loggable {
           case _ => {
             val msg = s"Invoking '$binaryName' with param '$param' failed after $maxRuns runs"
 
-            debug(msg)
+            logCtx.debug(msg)
 
             Future.failed(new Exception(msg))
           }
@@ -175,7 +175,7 @@ object CommandInvoker extends Loggable {
         delegateFn: InvocationFn[A],
         delayStart: Duration = Retrying.defaultDelayStart,
         delayCap: Duration = Retrying.defaultDelayCap,
-        scheduler: Scheduler)(implicit ec: ExecutionContext): Retrying[A] = {
+        scheduler: Scheduler)(implicit ec: ExecutionContext, logCtx: LogContext): Retrying[A] = {
 
         new Retrying(
           new JustOnce[A](binaryName, delegateFn),

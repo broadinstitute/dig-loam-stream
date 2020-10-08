@@ -147,9 +147,10 @@ final class SimpleLocalAndUgerPipelineTest extends FunSuite {
       hashingStrategy = hashingStrategy,
       jobFilterIntent = jobFilterIntent,
       drmSystemOpt = environmentDescriptor.drmSystem,
-      loams = Seq(loamScriptPath))
+      loams = Seq(loamScriptPath),
+      cliConfig = None)
     
-    (new Main.Run).doRealRun(intent, dao)
+    (new Main.Run).doRealRun(intent, _ => dao)
     
     assert(exists(pathA))
     assert(exists(pathB))

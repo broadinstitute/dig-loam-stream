@@ -7,6 +7,7 @@ import loamstream.loam.LoamLoamScript
 import loamstream.loam.ScriptType
 import loamstream.loam.ScalaLoamScript
 import loamstream.util.code.ScalaId
+import loamstream.conf.LsSettings
 
 /**
   * LoamStream
@@ -58,7 +59,9 @@ final class LoamCompilerMultiFileTest extends FunSuite {
         """
           |cmd"echo ${values.greeting} the answer is ${values.answer}"
         """.stripMargin)
-      val project = LoamProject(TestHelpers.config, valuesScript(scriptType), scriptIndividualImport)
+      val project = {
+        LoamProject(TestHelpers.config, LsSettings.noCliConfig, valuesScript(scriptType), scriptIndividualImport)
+      }
 
       val compileResults = LoamCompiler.default.compile(project)
       assertCompiledFine(compileResults, 0, 1)
@@ -76,7 +79,9 @@ final class LoamCompilerMultiFileTest extends FunSuite {
           |import values.{answer, greeting}
           |cmd"echo $greeting the answer is $answer"
         """.stripMargin)
-      val project = LoamProject(TestHelpers.config, valuesScript(scriptType), scriptIndividualImport)
+      val project = {
+        LoamProject(TestHelpers.config, LsSettings.noCliConfig, valuesScript(scriptType), scriptIndividualImport)
+      }
 
       val compileResults = LoamCompiler.default.compile(project)
       assertCompiledFine(compileResults, 0, 1)
@@ -94,7 +99,9 @@ final class LoamCompilerMultiFileTest extends FunSuite {
           |import values.{answer => answerToTheGreatQuestion, greeting => casualGreeting}
           |cmd"echo $casualGreeting the answer is $answerToTheGreatQuestion"
         """.stripMargin)
-      val project = LoamProject(TestHelpers.config, valuesScript(scriptType), scriptIndividualImport)
+      val project = {
+        LoamProject(TestHelpers.config, LsSettings.noCliConfig, valuesScript(scriptType), scriptIndividualImport)
+      }
 
       val compileResults = LoamCompiler.default.compile(project)
       assertCompiledFine(compileResults, 0, 1)
@@ -112,7 +119,9 @@ final class LoamCompilerMultiFileTest extends FunSuite {
           |import values._
           |cmd"echo $greeting the answer is $answer"
         """.stripMargin)
-      val project = LoamProject(TestHelpers.config, valuesScript(scriptType), scriptWildcardImport)
+      val project = {
+        LoamProject(TestHelpers.config, LsSettings.noCliConfig, valuesScript(scriptType), scriptWildcardImport)
+      }
 
       val compileResults = LoamCompiler.default.compile(project)
       assertCompiledFine(compileResults, 0, 1)
@@ -156,7 +165,7 @@ final class LoamCompilerMultiFileTest extends FunSuite {
           """.stripMargin),
         combinerScript)
           
-      val project = LoamProject(TestHelpers.config, scripts)
+      val project = LoamProject(TestHelpers.config, LsSettings.noCliConfig, scripts)
 
       val compileResults = LoamCompiler.default.compile(project)
       assertCompiledFine(compileResults, 0, 1)

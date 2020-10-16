@@ -34,7 +34,7 @@ object ReadMe extends AggregatorCommands {
    * CsvSources are handles to CSV data that may be iterated over:   
    */
   {
-    val someSource: RowSource[CsvRow] = RowSource.fromFile(path("some-file.tsv"))
+    val someSource: Source[CsvRow] = Source.fromFile(path("some-file.tsv"))
     
     val rows: Iterator[CsvRow] = someSource.records
     
@@ -42,11 +42,11 @@ object ReadMe extends AggregatorCommands {
      * You can filter over the Iterators you get from CsvSources, or you can also get a filtered
      * CsvSource that will always give you filtered Iterators:  
      */
-    val filteredSource: RowSource[CsvRow] = someSource.filter(ColumnNames.BETA.asDouble > 42.0)
+    val filteredSource: Source[CsvRow] = someSource.filter(ColumnNames.BETA.asDouble > 42.0)
     
     //Similarly, you can limit the size of CsvSources or skip leading rows:
-    val first10Source: RowSource[CsvRow] = someSource.take(10)
-    val skipsFirstRowSource: RowSource[CsvRow] = someSource.drop(1)
+    val first10Source: Source[CsvRow] = someSource.take(10)
+    val skipsFirstRowSource: Source[CsvRow] = someSource.drop(1)
   }
   
   /*
@@ -61,8 +61,8 @@ object ReadMe extends AggregatorCommands {
    * y   123 world
    * z   13  asdf
    */
-  val firstRow: CsvRow = CsvSource.fromFile(path("some-file.tsv")).records.next()
-  val secondRow: CsvRow = CsvSource.fromFile(path("some-file.tsv")).drop(1).records.next()
+  val firstRow: CsvRow = Source.fromFile(path("some-file.tsv")).records.next()
+  val secondRow: CsvRow = Source.fromFile(path("some-file.tsv")).drop(1).records.next()
   
   secondRow.getFieldByIndex(0) // => "y"
   secondRow.getFieldByName("BAR") // => "123"
@@ -141,9 +141,9 @@ object ReadMe extends AggregatorCommands {
         isVarDataType = true,
         pathTo26kMap = path("src/test/resources/intake/26k_id.map.first100"))
   
-  val input = CsvSource.fromFile(
+  val input = Source.fromFile(
         path("src/test/resources/intake/real-input-data.tsv"), 
-        CsvSource.Formats.spaceDelimitedWithHeader)
+        Source.Formats.spaceDelimitedWithHeader)
   
   val transformedCsv = store("target/ReadMe/transformed.tsv")
   

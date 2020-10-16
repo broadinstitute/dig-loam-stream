@@ -35,11 +35,6 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
   type RowDef = loamstream.loam.intake.RowDef
   val RowDef = loamstream.loam.intake.RowDef
   
-  @deprecated
-  type CsvSource[A] = loamstream.loam.intake.Source[A]
-  @deprecated
-  val CsvSource = loamstream.loam.intake.Source
-  
   type Source[A] = loamstream.loam.intake.Source[A]
   val Source = loamstream.loam.intake.Source
   
@@ -157,7 +152,7 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
           val (headerRow, dataRows) = process(flipDetector)(RowDef(varIdColumnDef, otherColumnDefs))
           
           //TODO
-          val csvFormat = CsvSource.Defaults.csvFormat
+          val csvFormat = Source.Defaults.csvFormat
           
           val renderer = Renderer.CommonsCsv(csvFormat)
           

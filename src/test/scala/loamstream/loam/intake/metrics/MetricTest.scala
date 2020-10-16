@@ -24,7 +24,7 @@ final class MetricTest extends FunSuite {
                             |b 2
                             |c 1""".stripMargin
   
-  private val source = CsvSource.fromString(csvData, CsvSource.Formats.spaceDelimitedWithHeader)
+  private val source = Source.fromString(csvData, Source.Formats.spaceDelimitedWithHeader)
                             
   test("countGreaterThan") {
     val gt2 = Metric.countGreaterThan(Bar)(2)
@@ -77,7 +77,7 @@ final class MetricTest extends FunSuite {
                       |b 8 4 2
                       |c 9 2 4.5""".stripMargin
   
-    val source = CsvSource.fromString(csvData, CsvSource.Formats.spaceDelimitedWithHeader)
+    val source = Source.fromString(csvData, Source.Formats.spaceDelimitedWithHeader)
     
     val flipDetector = new MetricTest.MockFlipDetector(Set.empty)
     
@@ -97,7 +97,7 @@ final class MetricTest extends FunSuite {
                       |b 8 4 -2
                       |c 9 2 4.5""".stripMargin
   
-    val source = CsvSource.fromString(csvData, CsvSource.Formats.spaceDelimitedWithHeader)
+    val source = Source.fromString(csvData, Source.Formats.spaceDelimitedWithHeader)
     
     val flipDetector = new MetricTest.MockFlipDetector(Set("y", "a", "b"))
     
@@ -120,7 +120,7 @@ final class MetricTest extends FunSuite {
                       |b 8 4 2
                       |c 9 2 4.5""".stripMargin
   
-    val source = CsvSource.fromString(csvData, CsvSource.Formats.spaceDelimitedWithHeader)
+    val source = Source.fromString(csvData, Source.Formats.spaceDelimitedWithHeader)
     
     val flipDetector = new MetricTest.MockFlipDetector(Set.empty)
     
@@ -147,7 +147,7 @@ final class MetricTest extends FunSuite {
                       |b 8 4 -2
                       |c 9 2 4.5""".stripMargin
   
-    val source = CsvSource.fromString(csvData, CsvSource.Formats.spaceDelimitedWithHeader)
+    val source = Source.fromString(csvData, Source.Formats.spaceDelimitedWithHeader)
     
     val flipDetector = new MetricTest.MockFlipDetector(Set("y", "a", "b"))
     
@@ -166,7 +166,7 @@ final class MetricTest extends FunSuite {
     doMetricTest(mean, expected = (1 + 2 + 3 + 4 + 5 + 6) / 6.0)(source)
   }
   
-  private def doMetricTest[A](metric: Metric[A], expected: A)(rows: RowSource[CsvRow]): Unit = {
+  private def doMetricTest[A](metric: Metric[A], expected: A)(rows: Source[CsvRow]): Unit = {
     assert(Fold.fold(rows.records)(metric) === expected)
     
     assert(Fold.fold(rows.records.toList)(metric) === expected)

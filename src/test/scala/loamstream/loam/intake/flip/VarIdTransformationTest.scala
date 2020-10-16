@@ -20,7 +20,7 @@ final class VarIdTransformationTest extends FunSuite {
     
     def inputVarIds = inputsAndExpectedOutputs.iterator.collect { case (i, _) => i }
     
-    val source: RowSource[CsvRow] = RowSource.FromIterator {
+    val source: Source[CsvRow] = Source.FromIterator {
       inputVarIds.map(i => LiteralCsvRow("VAR_ID", i)) 
     }
     

@@ -60,9 +60,9 @@ final class ProcessRealDataTest extends FunSuite with Loggable {
         isVarDataType = true,
         pathTo26kMap = path("src/test/resources/intake/26k_id.map.first100"))
   
-    val source = RowSource.fromFile(
+    val source = Source.fromFile(
         path("src/test/resources/intake/real-input-data.tsv"), 
-        RowSource.Formats.tabDelimitedWithHeader.withDelimiter(' '))
+        Source.Formats.tabDelimitedWithHeader.withDelimiter(' '))
     
     TestHelpers.withWorkDir(this.getClass.getSimpleName) { workDir =>
       val (actualDataPath, graph) = TestHelpers.withScriptContext { implicit scriptContext =>
@@ -93,9 +93,9 @@ final class ProcessRealDataTest extends FunSuite with Loggable {
         
       val results = RxExecuter.default.execute(executable)
     
-      val expected = RowSource.fromFile(path("src/test/resources/intake/real-output-data.tsv"))
+      val expected = Source.fromFile(path("src/test/resources/intake/real-output-data.tsv"))
       
-      val actual = RowSource.fromFile(actualDataPath)
+      val actual = Source.fromFile(actualDataPath)
       
       val expectations: Iterable[(String, (String, String) => Unit)] = {
         val asDouble: (String, String) => Unit = { (lhs, rhs) => compareWithEpsilon(lhs.toDouble, rhs.toDouble) }

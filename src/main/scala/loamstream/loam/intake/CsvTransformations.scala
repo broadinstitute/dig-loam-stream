@@ -7,16 +7,16 @@ package loamstream.loam.intake
  * Methods that do the actual processing of data from CsvSources via ColumnDefs and RowDefs
  */
 trait CsvTransformations { self: IntakeSyntax =>
-  private[intake] def fuse(flipDetector: FlipDetector)(columnDefs: Seq[ColumnDef]): ParseFn = {
+  private[intake] def fuse(flipDetector: FlipDetector)(columnDefs: Seq[NamedColumnDef[_]]): ParseFn = {
     (varIdValue, varIdDef, row) =>
       val flipDetected = flipDetector.isFlipped(varIdValue)
       
-      def getRowParser(columnDef: ColumnDef): RowParser[TypedData] = {
+      def getRowParser(columnDef: NamedColumnDef[_]): RowParser[TypedData] = {
         if(flipDetected) { columnDef.getTypedValueFromSourceWhenFlipNeeded }
         else { columnDef.getTypedValueFromSource }
       }
       
-      val dataRowValues: Map[ColumnDef, TypedData] = {
+      val dataRowValues: Map[NamedColumnDef[_], TypedData] = {
         Map.empty ++ (varIdDef +: columnDefs).map { columnDef =>
           val columnValueFn: RowParser[TypedData] = getRowParser(columnDef)
           
@@ -29,22 +29,41 @@ trait CsvTransformations { self: IntakeSyntax =>
       DataRow(dataRowValues)
   }
   
-  private def headerRowFrom(columnDefs: Seq[ColumnDef]): HeaderRow = {
-    HeaderRow(columnDefs.sortBy(_.index).map(cd => (cd.name.name, cd.getValueFromSource.dataType)))
+  private[intake] def headerRowFrom(columnDefs: Seq[NamedColumnDef[_]]): HeaderRow = {
+    HeaderRow(columnDefs.sortBy(_.index).map(cd => (cd.name.name, cd.expr.dataType)))
   }
 
+  def process2(flipDetector: FlipDetector, source: RowSource[CsvRow])(transform: RowDef): (HeaderRow, Iterator[CsvRow]) = {
+    val resultRows = source.tagFlips(transform.varIdDef, flipDetector).map(transform)
+    
+    val header = headerRowFrom(transform.columnDefs)
+    
+    (header, resultRows.records)
+  }
+  
+  def process3(flipDetector: FlipDetector, source: RowSource[CsvRow])(transform: aggregator.AggregatorRowExpr): (HeaderRow, Iterator[aggregator.DataRow]) = {
+    //Allow mapping to Rs that aren't <: CsvRow?
+    val resultRows = source.tagFlips(transform.markerDef, flipDetector).records.map(transform)
+    
+    val header = headerRowFrom(transform.columnDefs)
+    
+    (header, resultRows)
+  }
+  
   def process(flipDetector: FlipDetector)(rowDef: RowDef): (HeaderRow, Iterator[DataRow]) = {
-    val varIdSource = rowDef.varIdDef.source
+    type Source = RowSource[CsvRow.WithFlipTag]
     
-    val columnDefsBySource: Map[CsvSource, Seq[ColumnDef]] = rowDef.otherColumns.groupBy(_.source)
+    val varIdSource: Source = ??? //rowDef.varIdDef.source
+
+    val columnDefsBySource: Map[Source, Seq[NamedColumnDef[_]]] = rowDef.otherColumns.groupBy(??? /*_.source*/ )
     
-    val nonVarIdColumnDefsBySource: Map[CsvSource, Seq[ColumnDef]] = columnDefsBySource - varIdSource
+    val nonVarIdColumnDefsBySource: Map[Source, Seq[NamedColumnDef[_]]] = columnDefsBySource - varIdSource
     
-    val columnDefsWithSameSourceAsVarID: Seq[ColumnDef] = columnDefsBySource.get(varIdSource).getOrElse(Nil)
+    val columnDefsWithSameSourceAsVarID: Seq[NamedColumnDef[_]] = columnDefsBySource.get(varIdSource).getOrElse(Nil)
     
     import loamstream.util.Maps.Implicits._
     
-    val parseFnsBySourceNonVarId: Map[CsvSource, ParseFn] = {
+    val parseFnsBySourceNonVarId: Map[Source, ParseFn] = {
       nonVarIdColumnDefsBySource.strictMapValues(fuse(flipDetector))
     }
     

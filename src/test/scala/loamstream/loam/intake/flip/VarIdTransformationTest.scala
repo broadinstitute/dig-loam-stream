@@ -20,20 +20,20 @@ final class VarIdTransformationTest extends FunSuite {
     
     def inputVarIds = inputsAndExpectedOutputs.iterator.collect { case (i, _) => i }
     
-    val source: CsvSource = CsvSource.FromIterator {
+    val source: RowSource[CsvRow] = RowSource.FromIterator {
       inputVarIds.map(i => LiteralCsvRow("VAR_ID", i)) 
     }
     
     val varIdColumnName = ColumnName("VAR_ID")
     
-    val varIdDef = ColumnDef(
+    val varIdDef = NamedColumnDef(
         varIdColumnName, 
         varIdColumnName, 
         varIdColumnName.map(Variant.from(_).flip.underscoreDelimited))
     
-    val rowDef = UnsourcedRowDef(varIdDef = varIdDef, otherColumns = Nil)
-    
-    val (headerRow, dataRows) = process(flipDetector)(rowDef.from(source))
+    val rowDef: RowDef = ??? //RowDef(varIdDef = varIdDef, otherColumns = Nil)
+
+    val (headerRow, dataRows) = process(flipDetector)(rowDef /*.from(source)*/ )
       
     val actualVarIds = dataRows.map(_.values.head)
       

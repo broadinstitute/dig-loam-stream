@@ -18,7 +18,7 @@ object ColumnNames {
   val odds_ratio: ColumnName = "odds_ratio".asColumnName
   val eaf: ColumnName =        "eaf".asColumnName
   val maf: ColumnName =        "maf".asColumnName
-  val n: ColumnName =        "n".asColumnName
+  val n: ColumnName =          "n".asColumnName
   
   lazy val values: Seq[ColumnName] = Seq(
       marker,

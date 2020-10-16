@@ -1,6 +1,6 @@
 package loamstream.loam.intake.metrics
 
-import loamstream.loam.intake.CsvSource
+import loamstream.loam.intake.RowSource
 import loamstream.loam.intake.CsvRow
 import loamstream.util.Iterators
 
@@ -9,15 +9,15 @@ import loamstream.util.Iterators
  * Mar 25, 2020
  */
 object Sample {
-  def random(howMany: Int)(source: CsvSource): CsvSource = {
-    CsvSource.FromIterator {
+  def random[A](howMany: Int)(source: RowSource[A]): RowSource[A] = {
+    RowSource.FromIterator {
       val indices = randomIndices(source, howMany)
       
       Iterators.sample(source.records, indices)
     }
   }
   
-  private[metrics] def randomIndices(source: CsvSource, howMany: Int): Seq[Int] = {
+  private[metrics] def randomIndices[A](source: RowSource[A], howMany: Int): Seq[Int] = {
     val size = source.records.size
     
     require(howMany >= 0, s"Expected howMany to be >= 0, but got $howMany")

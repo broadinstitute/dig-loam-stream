@@ -120,7 +120,7 @@ final class CsvTransformationTest extends AggregatorIntakeTest {
   }
   
   private def expectedDataAsRows: Seq[CsvRow] = {
-    CsvSource.fromReader(new StringReader(expectedMungedContents)).records.toIndexedSeq
+    RowSource.fromReader(new StringReader(expectedMungedContents)).records.toIndexedSeq
   }
   
   private def uploadedDataAsRows(data: String): Seq[CsvRow] = {
@@ -310,7 +310,7 @@ object CsvTransformationTest {
           ColumnDef(PValue, PDashValue.asDouble, PDashValue.asDouble))
       }
       
-      val source: CsvSource = CsvSource.fromCommandLine(s"cat ${inputDataFile.path}")
+      val source: RowSource = CsvSource.fromCommandLine(s"cat ${inputDataFile.path}")
       
       val flipDetector = new FlipDetector.Default(
         referenceDir = path("/home/clint/workspace/marcins-scripts/reference"),

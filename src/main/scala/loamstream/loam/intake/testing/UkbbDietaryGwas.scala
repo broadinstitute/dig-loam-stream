@@ -49,6 +49,19 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
     RowDef(varId, otherColumns)
   }
   
+  val toAggregatorRows: aggregator.AggregatorRowExpr = {
+    import ColumnNames._
+    import ColumnDefs._
+    
+    aggregator.AggregatorRowExpr(
+      markerDef = marker(chromColumn = CHR, posColumn = BP, refColumn = ALLELE1, altColumn = ALLELE0),
+      pvalueDef = pvalue(P_BOLT_LMM),
+      zscoreDef = Some(zscore(BETA, SE)),
+      stderrDef = Some(stderr(SE)),
+      betaDef = Some(beta(BETA)),
+      eafDef = Some(eaf(A1FREQ)))
+  }
+  
   object Paths {
     val workDir: Path = path("./output")
     
@@ -82,15 +95,27 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
     
     val csvFormat = org.apache.commons.csv.CSVFormat.DEFAULT.withDelimiter(' ').withFirstRecordAsHeader
     
-    val source = CsvSource.fromCommandLine(s"zcat ${sourceStore.path}", csvFormat)
+    val source = RowSource.fromCommandLine(s"zcat ${sourceStore.path}", csvFormat)
     
-    val columns = rowDef.from(source)
+    produceCsv(dest).
+        from(source).
+        using(flipDetector).
+        via(toAggregatorRows).
+        filter(aggregator.RowFilters.validEaf).
+        filter(aggregator.RowFilters.validMaf).
+        filter(aggregator.RowFilters.validPValue).
+        map(aggregator.RowTransforms.clampPValues).
+        go().
+        tag(s"process-phenotype-$phenotype").
+        in(sourceStore)
+    
+    /*val columns = rowDef.from(source)
         
     produceCsv(dest).
         from(columns).
         using(flipDetector).
         tag(s"process-phenotype-$phenotype").
-        in(sourceStore)
+        in(sourceStore)*/
         
     dest
   }

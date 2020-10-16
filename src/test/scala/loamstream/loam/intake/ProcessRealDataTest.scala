@@ -7,12 +7,16 @@ import loamstream.util.Files
 import loamstream.util.TimeUtils
 import scala.util.control.NonFatal
 import loamstream.loam.intake.aggregator.ColumnDefs
+import loamstream.loam.LoamSyntax
+import loamstream.util.Loggable
+import loamstream.compiler.LoamEngine
+import loamstream.model.execute.RxExecuter
 
 /**
  * @author clint
  * Apr 6, 2020
  */
-final class ProcessRealDataTest extends FunSuite {
+final class ProcessRealDataTest extends FunSuite with Loggable {
   test("Real input produces output that matches the existing/old Perl scripts") {
     import IntakeSyntax._
     import TestHelpers._
@@ -36,37 +40,62 @@ final class ProcessRealDataTest extends FunSuite {
     import ColumnNames._
     import ColumnDefs._
   
-    val rowDef = UnsourcedRowDef(
-      varIdDef = marker(CHR, BP, ALLELE0, ALLELE1, VAR_ID),
-      otherColumns = Seq(
-        eaf(A1FREQ, EAF_PH),
-        ColumnDef(MAF_PH, A1FREQ.asDouble.complementIf(_ > 0.5)),
-        beta(BETA, BETA),
-        just(SE),
-        ColumnDef(P_VALUE, P_BOLT_LMM, P_BOLT_LMM)))
-    
+    val toAggregatorRows: aggregator.AggregatorRowExpr = {
+      aggregator.AggregatorRowExpr(
+        markerDef = marker(
+                      chromColumn = CHR, 
+                      posColumn = BP, 
+                      refColumn = ALLELE0, 
+                      altColumn = ALLELE1, 
+                      destColumn = VAR_ID),
+        pvalueDef = NamedColumnDef(P_VALUE, P_BOLT_LMM.asDouble, None),
+        stderrDef = Some(NamedColumnDef(SE, SE.asDouble)),
+        betaDef = Some(beta(BETA, destColumn = BETA)),
+        eafDef = Some(eaf(A1FREQ, destColumn = EAF_PH)),
+        mafDef = Some(NamedColumnDef(MAF_PH, A1FREQ.asDouble.complementIf(_ > 0.5))))
+  }
+        
     val flipDetector: FlipDetector = new FlipDetector.Default(
         referenceDir = path("src/test/resources/intake/reference-first-1M-of-chrom1"),
         isVarDataType = true,
         pathTo26kMap = path("src/test/resources/intake/26k_id.map.first100"))
   
-    val input = CsvSource.fromFile(
+    val source = RowSource.fromFile(
         path("src/test/resources/intake/real-input-data.tsv"), 
-        CsvSource.Formats.tabDelimitedWithHeader.withDelimiter(' '))
-    
-    val (headerRow: HeaderRow, resultIterator: Iterator[DataRow]) = process(flipDetector)(rowDef.from(input))
-        
-    val expected = CsvSource.fromFile(path("src/test/resources/intake/real-output-data.tsv"))
+        RowSource.Formats.tabDelimitedWithHeader.withDelimiter(' '))
     
     TestHelpers.withWorkDir(this.getClass.getSimpleName) { workDir =>
+      val (actualDataPath, graph) = TestHelpers.withScriptContext { implicit scriptContext =>
+        import LoamSyntax._
+        
+        val destPath = workDir.resolve("processed.tsv")
+        
+        val dest = store(destPath)
+        
+        val sourceStore = store(path("src/test/resources/intake/real-input-data.tsv"))
+        
+        produceCsv(dest).
+          from(source).
+          using(flipDetector).
+          via(toAggregatorRows).
+          filter(aggregator.RowFilters.validEaf).
+          filter(aggregator.RowFilters.validMaf).
+          filter(aggregator.RowFilters.validPValue).
+          map(aggregator.RowTransforms.clampPValues).
+          go(forceLocal = true).
+          tag(s"process-real-data").
+          in(sourceStore)
+          
+        (destPath, scriptContext.projectContext.graph)
+      }
       
-      val actualDataPath = workDir.resolve("processed.tsv")
+      val executable = LoamEngine.toExecutable(graph)
+        
+      val results = RxExecuter.default.execute(executable)
+    
+      val expected = RowSource.fromFile(path("src/test/resources/intake/real-output-data.tsv"))
       
-      val renderer: Renderer = Renderer.CommonsCsv(CsvSource.Formats.tabDelimitedWithHeader)
-      
-      Files.writeLinesTo(actualDataPath)(Iterator(renderer.render(headerRow)) ++ resultIterator.map(renderer.render))
-      
-      val actual = CsvSource.fromFile(actualDataPath)
+      val actual = RowSource.fromFile(actualDataPath)
       
       val expectations: Iterable[(String, (String, String) => Unit)] = {
         val asDouble: (String, String) => Unit = { (lhs, rhs) => compareWithEpsilon(lhs.toDouble, rhs.toDouble) }

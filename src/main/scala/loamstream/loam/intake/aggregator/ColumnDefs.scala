@@ -1,7 +1,6 @@
 package loamstream.loam.intake.aggregator
 
 import loamstream.loam.intake.IntakeSyntax
-import loamstream.loam.intake.UnsourcedColumnDef
 
 /**
  * @author clint
@@ -16,9 +15,9 @@ object ColumnDefs {
       posColumn: ColumnExpr[_],
       refColumn: ColumnExpr[_],
       altColumn: ColumnExpr[_],
-      destColumn: ColumnName = ColumnNames.marker): UnsourcedColumnDef = {
+      destColumn: ColumnName = ColumnNames.marker): NamedColumnDef[String] = {
     
-    ColumnDef(
+    NamedColumnDef(
       destColumn,
       //"{chrom}_{pos}_{ref}_{alt}"
       strexpr"${chromColumn}_${posColumn}_${refColumn}_${altColumn}",
@@ -26,20 +25,26 @@ object ColumnDefs {
       strexpr"${chromColumn}_${posColumn}_${altColumn}_${refColumn}")
   }
   
-  def just(columnName: ColumnName): UnsourcedColumnDef = ColumnDef(columnName)
+  def just(columnName: ColumnName): NamedColumnDef[String] = NamedColumnDef(columnName)
   
-  def pvalue(sourceColumn: ColumnExpr[_], destColumn: ColumnName = ColumnNames.pvalue): UnsourcedColumnDef = {
+  def pvalue(
+      sourceColumn: ColumnExpr[_], 
+      destColumn: ColumnName = ColumnNames.pvalue): NamedColumnDef[Double] = {
+    
     simpleDoubleColumn(sourceColumn, destColumn) 
   }
   
-  def stderr(sourceColumn: ColumnExpr[_], destColumn: ColumnName = ColumnNames.stderr): UnsourcedColumnDef = {
+  def stderr(
+      sourceColumn: ColumnExpr[_], 
+      destColumn: ColumnName = ColumnNames.stderr): NamedColumnDef[Double] = {
+    
     simpleDoubleColumn(sourceColumn, destColumn)
   }
   
   def zscoreFrom(
       betaColumn: ColumnExpr[_], 
       stderrColumn: ColumnExpr[_], 
-      destColumn: ColumnName = ColumnNames.zscore): UnsourcedColumnDef = {
+      destColumn: ColumnName = ColumnNames.zscore): NamedColumnDef[Double] = {
     
     val expr = asDouble(betaColumn) / asDouble(stderrColumn)
     
@@ -48,80 +53,106 @@ object ColumnDefs {
   
   def zscore(
       sourceColumn: ColumnExpr[_], 
-      destColumn: ColumnName = ColumnNames.zscore): UnsourcedColumnDef = {
+      destColumn: ColumnName = ColumnNames.zscore): NamedColumnDef[Double] = {
     
     negateIfFlipped(sourceColumn, destColumn)
   }
   
-  def beta(sourceColumn: ColumnExpr[_], destColumn: ColumnName = ColumnNames.beta): UnsourcedColumnDef = {
+  def beta(
+      sourceColumn: ColumnExpr[_], 
+      destColumn: ColumnName = ColumnNames.beta): NamedColumnDef[Double] = {
+    
     negateIfFlipped(sourceColumn, destColumn)
   }
   
-  def eaf(sourceColumn: ColumnExpr[_], destColumn: ColumnName = ColumnNames.eaf): UnsourcedColumnDef = {
+  def eaf(sourceColumn: ColumnExpr[_], destColumn: ColumnName = ColumnNames.eaf): NamedColumnDef[Double] = {
     val expr = asDouble(sourceColumn)
     
-    ColumnDef(destColumn, expr, 1.0 - expr)
+    NamedColumnDef(destColumn, expr, 1.0 - expr)
   }
   
-  def oddsRatio(sourceColumn: ColumnExpr[_], destColumn: ColumnName = ColumnNames.odds_ratio): UnsourcedColumnDef = {
+  def oddsRatio(
+      sourceColumn: ColumnExpr[_], 
+      destColumn: ColumnName = ColumnNames.odds_ratio): NamedColumnDef[Double] = {
+    
     val expr = asDouble(sourceColumn)
 
-    ColumnDef(destColumn, expr, 1.0 / expr)
+    NamedColumnDef(destColumn, expr, 1.0 / expr)
   }
   
   object PassThru {
-    def marker(sourceColumn: ColumnExpr[_], destColumn: ColumnName = ColumnNames.marker): UnsourcedColumnDef = {
-      ColumnDef(destColumn, sourceColumn)
+    def marker(
+        sourceColumn: ColumnExpr[String], 
+        destColumn: ColumnName = ColumnNames.marker): NamedColumnDef[String] = {
+      
+      NamedColumnDef(destColumn, sourceColumn)
     }
     
-    def pvalue(sourceColumn: ColumnExpr[_], destColumn: ColumnName = ColumnNames.pvalue): UnsourcedColumnDef = {
-      ColumnDef(destColumn, sourceColumn)
+    def pvalue(
+        sourceColumn: ColumnExpr[_], 
+        destColumn: ColumnName = ColumnNames.pvalue): NamedColumnDef[Double] = {
+      
+      NamedColumnDef(destColumn, asDouble(sourceColumn))
     }
     
-    def zscore(sourceColumn: ColumnExpr[_], destColumn: ColumnName = ColumnNames.zscore): UnsourcedColumnDef = {
-      ColumnDef(destColumn, sourceColumn)
+    def zscore(
+        sourceColumn: ColumnExpr[_], 
+        destColumn: ColumnName = ColumnNames.zscore): NamedColumnDef[Double] = {
+      
+      NamedColumnDef(destColumn, asDouble(sourceColumn))
     }
     
-    def stderr(sourceColumn: ColumnExpr[_], destColumn: ColumnName = ColumnNames.stderr): UnsourcedColumnDef = {
-      ColumnDef(destColumn, sourceColumn)
+    def stderr(
+        sourceColumn: ColumnExpr[_], 
+        destColumn: ColumnName = ColumnNames.stderr): NamedColumnDef[Double] = {
+      
+      NamedColumnDef(destColumn, asDouble(sourceColumn))
     }
     
-    def beta(sourceColumn: ColumnExpr[_], destColumn: ColumnName = ColumnNames.beta): UnsourcedColumnDef = {
-      ColumnDef(destColumn, sourceColumn)
+    def beta(
+        sourceColumn: ColumnExpr[_], 
+        destColumn: ColumnName = ColumnNames.beta): NamedColumnDef[Double] = {
+      
+      NamedColumnDef(destColumn, asDouble(sourceColumn))
     }
     
-    def oddsRatio(sourceColumn: ColumnExpr[_], destColumn: ColumnName = ColumnNames.odds_ratio): UnsourcedColumnDef = {
-      ColumnDef(destColumn, sourceColumn)
+    def oddsRatio(
+        sourceColumn: ColumnExpr[_], 
+        destColumn: ColumnName = ColumnNames.odds_ratio): NamedColumnDef[Double] = {
+      
+      NamedColumnDef(destColumn, asDouble(sourceColumn))
     }
     
-    def eaf(sourceColumn: ColumnExpr[_], destColumn: ColumnName = ColumnNames.eaf): UnsourcedColumnDef = {
-      ColumnDef(destColumn, sourceColumn)
+    def eaf(sourceColumn: ColumnExpr[_], destColumn: ColumnName = ColumnNames.eaf): NamedColumnDef[Double] = {
+      NamedColumnDef(destColumn, asDouble(sourceColumn))
     }
     
-    def maf(sourceColumn: ColumnExpr[_], destColumn: ColumnName = ColumnNames.maf): UnsourcedColumnDef = {
-      ColumnDef(destColumn, sourceColumn)
+    def maf(sourceColumn: ColumnExpr[_], destColumn: ColumnName = ColumnNames.maf): NamedColumnDef[Double] = {
+      NamedColumnDef(destColumn, asDouble(sourceColumn))
     }
     
-    def n(sourceColumn: ColumnExpr[_], destColumn: ColumnName = ColumnNames.n): UnsourcedColumnDef = {
-      ColumnDef(destColumn, sourceColumn)
+    def n(sourceColumn: ColumnExpr[_], destColumn: ColumnName = ColumnNames.n): NamedColumnDef[Double] = {
+      NamedColumnDef(destColumn, asDouble(sourceColumn))
     }
   }
 
   //TODO: Something better, this makes potentially-superfluous .map() invocations
-  private def asDouble(column: ColumnExpr[_]): ColumnExpr[Double] = {
-    if(column.isDoubleExpr) { column.asInstanceOf[ColumnExpr[Double]] }
-    else {
-      column.asString.asDouble
-    }
+  private def asDouble(column: ColumnExpr[_]): ColumnExpr[Double] = column match {
+    case ColumnExpr.Double(expr) => expr
+    case ColumnExpr.String(expr) => expr.asDouble
+    case _ => column.asString.asDouble
   }
       
   private def simpleDoubleColumn(
       sourceColumn: ColumnExpr[_],
-      aggregatorName: ColumnName): UnsourcedColumnDef = ColumnDef(aggregatorName, asDouble(sourceColumn))
+      aggregatorName: ColumnName): NamedColumnDef[Double] = {
+    
+    NamedColumnDef(aggregatorName, asDouble(sourceColumn))
+  }
       
-  def negateIfFlipped(sourceColumn: ColumnExpr[_], aggregatorName: ColumnName): UnsourcedColumnDef = {
+  def negateIfFlipped(sourceColumn: ColumnExpr[_], aggregatorName: ColumnName): NamedColumnDef[Double] = {
     val expr = asDouble(sourceColumn)
     
-    ColumnDef(aggregatorName, expr, expr.negate)
+    NamedColumnDef(aggregatorName, expr, expr.negate)
   }
 }

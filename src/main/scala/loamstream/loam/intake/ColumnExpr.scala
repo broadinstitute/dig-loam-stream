@@ -4,6 +4,7 @@ import scala.reflect.runtime.universe.TypeTag
 import scala.reflect.runtime.universe.typeTag
 import scala.util.matching.Regex
 import scala.util.control.NonFatal
+import loamstream.util.Sequence
 
 /**
  * @author clint
@@ -87,6 +88,18 @@ sealed abstract class ColumnExpr[A : TypeTag] extends
 }
 
 object ColumnExpr {
+  object String {
+    def unapply(expr: ColumnExpr[_]): Option[ColumnExpr[String]] = {
+      if(expr.isStringExpr) Some(expr.asInstanceOf[ColumnExpr[String]]) else None
+    }
+  }
+  
+  object Double {
+    def unapply(expr: ColumnExpr[_]): Option[ColumnExpr[Double]] = {
+      if(expr.isDoubleExpr) Some(expr.asInstanceOf[ColumnExpr[Double]]) else None
+    }
+  }
+  
   trait BooleanOps[A] { self: ColumnExpr[A] =>
     final def ===(rhs: A): RowPredicate = this.map(_ == rhs)
     final def !==(rhs: A): RowPredicate = this.map(_ != rhs) //scalastyle:ignore method.name
@@ -213,9 +226,17 @@ final case class ColumnName(name: String) extends ColumnExpr[String] {
     value
   }
   
+  private[intake] val index: Int = ColumnName.nextColumnIndex()
+  
   override def asString: ColumnExpr[String] = this
   
   def mapName(f: String => String): ColumnName = copy(name = f(name))
+}
+
+object ColumnName {
+  private[this] val indices: Sequence[Int] = Sequence()
+  
+  private[intake] def nextColumnIndex(): Int = indices.next()
 }
 
 final case class MappedColumnExpr[A: TypeTag, B: TypeTag](f: A => B, dependsOn: ColumnExpr[A]) extends ColumnExpr[B] {

@@ -6,7 +6,7 @@ import java.nio.file.Paths
 import scala.util.matching.Regex
 import loamstream.util.Loggable
 import loamstream.util.TimeUtils
-import loamstream.loam.intake.CsvSource
+import loamstream.loam.intake.RowSource
 
 /**
  * Tests variants for allele-flipping. 
@@ -78,7 +78,7 @@ object FlipDetector extends Loggable {
     }
   
     private val variantsFrom26k: java.util.Set[String] = TimeUtils.time("Reading 26k map", trace(_)) {
-      val iterator = CsvSource.fromFile(pathTo26kMap, CsvSource.Formats.tabDelimited).records
+      val iterator = RowSource.fromFile(pathTo26kMap, RowSource.Formats.tabDelimited).records
       
       val result: java.util.Set[String] = new java.util.HashSet
       

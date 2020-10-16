@@ -166,7 +166,7 @@ final class MetricTest extends FunSuite {
     doMetricTest(mean, expected = (1 + 2 + 3 + 4 + 5 + 6) / 6.0)(source)
   }
   
-  private def doMetricTest[A](metric: Metric[A], expected: A)(rows: CsvSource): Unit = {
+  private def doMetricTest[A](metric: Metric[A], expected: A)(rows: RowSource[CsvRow]): Unit = {
     assert(Fold.fold(rows.records)(metric) === expected)
     
     assert(Fold.fold(rows.records.toList)(metric) === expected)

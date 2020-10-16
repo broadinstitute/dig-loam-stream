@@ -29,23 +29,19 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
   type Variant = loamstream.loam.intake.Variant
   val Variant = loamstream.loam.intake.Variant
   
-  type ColumnDef = loamstream.loam.intake.ColumnDef
-  val ColumnDef = loamstream.loam.intake.ColumnDef
-  
-  type UnsourcedColumnDef = loamstream.loam.intake.UnsourcedColumnDef
-  val UnsourcedColumnDef = loamstream.loam.intake.UnsourcedColumnDef
-  
-  type SourcedColumnDef = loamstream.loam.intake.SourcedColumnDef
-  val SourcedColumnDef = loamstream.loam.intake.SourcedColumnDef
+  type NamedColumnDef[A] = loamstream.loam.intake.NamedColumnDef[A]
+  val NamedColumnDef = loamstream.loam.intake.NamedColumnDef
   
   type RowDef = loamstream.loam.intake.RowDef
   val RowDef = loamstream.loam.intake.RowDef
   
-  type UnsourcedRowDef = loamstream.loam.intake.UnsourcedRowDef
-  val UnsourcedRowDef = loamstream.loam.intake.UnsourcedRowDef
+  @deprecated
+  type CsvSource[A] = loamstream.loam.intake.RowSource[A]
+  @deprecated
+  val CsvSource = loamstream.loam.intake.RowSource
   
-  type CsvSource = loamstream.loam.intake.CsvSource
-  val CsvSource = loamstream.loam.intake.CsvSource
+  type RowSource[A] = loamstream.loam.intake.RowSource[A]
+  val RowSource = loamstream.loam.intake.RowSource
   
   type FlipDetector = loamstream.loam.intake.flip.FlipDetector
   val FlipDetector = loamstream.loam.intake.flip.FlipDetector
@@ -62,10 +58,6 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
   val CsvRow = loamstream.loam.intake.CsvRow
   
   private def doLocally[A](body: => A)(implicit scriptContext: LoamScriptContext): NativeTool = {
-    require(
-        scriptContext.lsSettings.thisInstanceIsAWorker,
-        s"Only running native jobs in --worker mode is supported")
-        
     LoamPredef.local {
       NativeTool {
         body
@@ -73,9 +65,10 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
     }
   }
   
-  private def nativeTool[A](body: => A)(implicit scriptContext: LoamScriptContext): Tool = { 
-    if(scriptContext.lsSettings.thisInstanceIsAWorker) { doLocally(body) }
-    else {
+  private def nativeTool[A](forceLocal: Boolean = false)(body: => A)(implicit scriptContext: LoamScriptContext): Tool = { 
+    if(forceLocal || scriptContext.lsSettings.thisInstanceIsAWorker) {
+      doLocally(body) 
+    } else {
       scriptContext.settings match {
         case drmSettings: DrmSettings => InvokesLsTool()
         case settings => {
@@ -91,21 +84,75 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
   }
   
   final class TransformationTarget(dest: Store) {
+    def from(source: RowSource[CsvRow]): UsingTarget = new UsingTarget(dest, source)
+    
     def from(rowDef: RowDef): ProcessTarget = from(rowDef.varIdDef, rowDef.otherColumns: _*)
     
-    def from(varIdColumnDef: SourcedColumnDef, otherColumnDefs: SourcedColumnDef*): ProcessTarget = {
+    def from(varIdColumnDef: NamedColumnDef[String], otherColumnDefs: NamedColumnDef[_]*): ProcessTarget = {
       new ProcessTarget(dest, varIdColumnDef, otherColumnDefs: _*)
     }
-  }    
+  }
+  
+  final class UsingTarget(
+      dest: Store, 
+      rows: RowSource[CsvRow]) extends Loggable {
+    
+    def using(flipDetector: => FlipDetector): ViaTarget = new ViaTarget(dest, rows, flipDetector)
+  }
+  
+  final class ViaTarget(
+      dest: Store, 
+      rows: RowSource[CsvRow],
+      flipDetector: => FlipDetector) extends Loggable {
+    
+    def via(expr: aggregator.AggregatorRowExpr): ViaTarget2 = {
+      val dataRows = rows.tagFlips(expr.markerDef, flipDetector).map(expr)
+      
+      val headerRow = headerRowFrom(expr.columnDefs)
+      
+      new ViaTarget2(dest, headerRow, dataRows)
+    }
+  }
+  
+  final case class ViaTarget2(
+      dest: Store, 
+      headerRow: HeaderRow,
+      rows: RowSource[aggregator.DataRow]) extends Loggable {
+    
+    def filter(predicate: aggregator.DataRow => Boolean): ViaTarget2 = copy(rows = rows.filter(predicate))
+    
+    def map(transform: aggregator.DataRow => aggregator.DataRow): ViaTarget2 = copy(rows = rows.map(transform))
+    
+    //TODO: better name
+    def go(forceLocal: Boolean = false)(implicit scriptContext: LoamScriptContext): Tool = {
+      //TODO: How to wire up inputs (if any)?
+      val tool: Tool = nativeTool(forceLocal) {
+        TimeUtils.time(s"Producing ${dest.path}", info(_)) {
+          //TODO
+          val csvFormat = RowSource.Defaults.csvFormat
+          
+          val renderer = Renderer.CommonsCsv(csvFormat)
+          
+          val rowsToWrite: Iterator[Row] = Iterator(headerRow) ++ rows.records.map(_.toIntakeRow)
+          
+          Files.writeLinesTo(dest.path)(rowsToWrite.map(renderer.render))
+        }
+      }
+      
+      addToGraph(tool)
+      
+      tool.out(dest)
+    }
+  }
 
   final class ProcessTarget(
       dest: Store, 
-      varIdColumnDef: SourcedColumnDef, 
-      otherColumnDefs: SourcedColumnDef*) extends Loggable {
+      varIdColumnDef: NamedColumnDef[String], 
+      otherColumnDefs: NamedColumnDef[_]*) extends Loggable {
     
     def using(flipDetector: => FlipDetector)(implicit scriptContext: LoamScriptContext): Tool = {
       //TODO: How to wire up inputs (if any)?
-      val tool: Tool = nativeTool {
+      val tool: Tool = nativeTool() {
         TimeUtils.time(s"Producing ${dest.path}", info(_)) {
           val (headerRow, dataRows) = process(flipDetector)(RowDef(varIdColumnDef, otherColumnDefs))
           
@@ -129,7 +176,7 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
   final class AggregatorIntakeConfigFileTarget(dest: Store) {
     def from(configData: aggregator.ConfigData)(implicit scriptContext: LoamScriptContext): Tool = {
       //TODO: How to wire up inputs (if any)?
-      val tool: Tool = nativeTool {
+      val tool: Tool = nativeTool() {
         Files.writeTo(dest.path)(configData.asConfigFileContents)
       }
       

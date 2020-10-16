@@ -34,7 +34,7 @@ object ReadMe extends AggregatorCommands {
    * CsvSources are handles to CSV data that may be iterated over:   
    */
   {
-    val someSource: CsvSource = CsvSource.fromFile(path("some-file.tsv"))
+    val someSource: RowSource[CsvRow] = RowSource.fromFile(path("some-file.tsv"))
     
     val rows: Iterator[CsvRow] = someSource.records
     
@@ -42,11 +42,11 @@ object ReadMe extends AggregatorCommands {
      * You can filter over the Iterators you get from CsvSources, or you can also get a filtered
      * CsvSource that will always give you filtered Iterators:  
      */
-    val filteredSource: CsvSource = someSource.filter(ColumnNames.BETA.asDouble > 42.0)
+    val filteredSource: RowSource[CsvRow] = someSource.filter(ColumnNames.BETA.asDouble > 42.0)
     
     //Similarly, you can limit the size of CsvSources or skip leading rows:
-    val first10Source: CsvSource = someSource.take(10)
-    val skipsFirstRowSource: CsvSource = someSource.drop(1)
+    val first10Source: RowSource[CsvRow] = someSource.take(10)
+    val skipsFirstRowSource: RowSource[CsvRow] = someSource.drop(1)
   }
   
   /*
@@ -97,9 +97,9 @@ object ReadMe extends AggregatorCommands {
    */
   val BIP = "BIP".asColumnName
   //Make a column named 'BIP' that has values that are the ones from column BAR plus one:
-  ColumnDef(BIP, BAR.asInt + 1)
+  NamedColumnDef(BIP, BAR.asInt + 1)
   //Make it BAR * 2 when it's detected that ref and alt alleles are flipped, otherwise BAR + 1:
-  ColumnDef(BIP, BAR.asInt + 1, BAR.asInt * 2)
+  NamedColumnDef(BIP, BAR.asInt + 1, BAR.asInt * 2)
 
   /*
    * Since ColumnDefs produce named columns, combining a bunch of them makes a row.  That's what a RowDef
@@ -150,7 +150,7 @@ object ReadMe extends AggregatorCommands {
   //What follows is still rough, and could use some factoring
   
   produceCsv(transformedCsv).
-    from(rowDef.from(input)).
+    from(rowDef /*.from(input)*/ ).
     using(flipDetector).
     tag("makeCsv")
   

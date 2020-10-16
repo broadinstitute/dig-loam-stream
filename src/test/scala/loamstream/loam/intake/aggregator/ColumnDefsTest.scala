@@ -1,7 +1,7 @@
 package loamstream.loam.intake.aggregator
 
 import org.scalatest.FunSuite
-import loamstream.loam.intake.ColumnDef
+import loamstream.loam.intake.NamedColumnDef
 import loamstream.loam.intake.ColumnName
 import loamstream.loam.intake.flip.FlipDetector
 import loamstream.loam.intake.Helpers
@@ -29,12 +29,12 @@ final class ColumnDefsTest extends FunSuite {
   
   test("PassThru") {
     def doTest(
-        f: ColumnName => ColumnDef,
+        f: ColumnName => NamedColumnDef[_],
         expectedDestColumn: ColumnName): Unit = {
   
       val sourceColumn = ColumnName("blarg")
       
-      assert(f(sourceColumn) === ColumnDef(expectedDestColumn, sourceColumn))
+      assert(f(sourceColumn) === NamedColumnDef(expectedDestColumn, sourceColumn))
     }
     
     import ColumnDefs.PassThru._
@@ -51,7 +51,7 @@ final class ColumnDefsTest extends FunSuite {
   }
   
   test("just") {
-    assert(ColumnDefs.just(blarg) === ColumnDef(blarg))
+    assert(ColumnDefs.just(blarg) === NamedColumnDef(blarg))
   }
   
   test("marker") {
@@ -66,8 +66,8 @@ final class ColumnDefsTest extends FunSuite {
     
     val row = Helpers.csvRow("foo" -> "42", "bar" -> "asdf", "baz" -> "123", "bip" -> "456")
     
-    assert(markerDef.getValueFromSource.apply(row) == "42_asdf_123_456") 
-    assert(markerDef.getValueFromSourceWhenFlipNeeded.get.apply(row) == "42_asdf_456_123")
+    assert(markerDef.expr.apply(row) == "42_asdf_123_456") 
+    assert(markerDef.exprWhenFlipped.get.apply(row) == "42_asdf_456_123")
   }
   
   test("pvalue") {
@@ -79,7 +79,7 @@ final class ColumnDefsTest extends FunSuite {
     
     val row = Helpers.csvRow("foo" -> "42", "bar" -> "asdf", "baz" -> "1.23", "bip" -> "456")
     
-    assert(pvalueDef.getValueFromSource.apply(row) == 1.23)
+    assert(pvalueDef.expr.apply(row) == 1.23)
   }
   
   test("stderr") {
@@ -91,7 +91,7 @@ final class ColumnDefsTest extends FunSuite {
     
     val row = Helpers.csvRow("foo" -> "42", "bar" -> "asdf", "baz" -> "1.23", "bip" -> "456")
     
-    assert(stderrDef.getValueFromSource.apply(row) == 1.23)
+    assert(stderrDef.expr.apply(row) == 1.23)
   }
   
   test("zscore") {
@@ -103,7 +103,7 @@ final class ColumnDefsTest extends FunSuite {
     
     val row = Helpers.csvRow("foo" -> "42", "bar" -> "asdf", "baz" -> "1.23", "bip" -> "456")
     
-    assert(zscoreDef.getValueFromSource.apply(row) == 1.23)
+    assert(zscoreDef.expr.apply(row) == 1.23)
   }
   
   test("zscoreFrom") {
@@ -116,8 +116,8 @@ final class ColumnDefsTest extends FunSuite {
     
     val row = Helpers.csvRow("foo" -> "42", "bar" -> "asdf", "baz" -> "1.2", "bip" -> "6")
     
-    assertCloseEnough(zscoreDef.getValueFromSource.apply(row).asInstanceOf[Double], 0.2)
-    assertCloseEnough(zscoreDef.getValueFromSourceWhenFlipNeeded.get.apply(row).asInstanceOf[Double], -0.2)
+    assertCloseEnough(zscoreDef.expr.apply(row).asInstanceOf[Double], 0.2)
+    assertCloseEnough(zscoreDef.exprWhenFlipped.get.apply(row).asInstanceOf[Double], -0.2)
   }
   
   test("beta") {
@@ -129,8 +129,8 @@ final class ColumnDefsTest extends FunSuite {
     
     val row = Helpers.csvRow("foo" -> "42", "bar" -> "asdf", "baz" -> "1.23", "bip" -> "456")
     
-    assert(betaDef.getValueFromSource.apply(row) == 1.23)
-    assert(betaDef.getValueFromSourceWhenFlipNeeded.get.apply(row) == -1.23)
+    assert(betaDef.expr.apply(row) == 1.23)
+    assert(betaDef.exprWhenFlipped.get.apply(row) == -1.23)
   }
 
   test("eaf") {
@@ -142,8 +142,8 @@ final class ColumnDefsTest extends FunSuite {
     
     val row = Helpers.csvRow("foo" -> "42", "bar" -> "asdf", "baz" -> "1.23", "bip" -> "456")
     
-    assert(eafDef.getValueFromSource.apply(row) == 1.23)
-    assert(eafDef.getValueFromSourceWhenFlipNeeded.get.apply(row) == (1.0 - 1.23))
+    assert(eafDef.expr.apply(row) == 1.23)
+    assert(eafDef.exprWhenFlipped.get.apply(row) == (1.0 - 1.23))
   }
   
   test("oddsRatio") {
@@ -155,7 +155,7 @@ final class ColumnDefsTest extends FunSuite {
     
     val row = Helpers.csvRow("foo" -> "42", "bar" -> "asdf", "baz" -> "1.23", "bip" -> "456")
     
-    assert(oddsRatioDef.getValueFromSource.apply(row) == 1.23)
-    assert(oddsRatioDef.getValueFromSourceWhenFlipNeeded.get.apply(row) == (1.0 / 1.23))
+    assert(oddsRatioDef.expr.apply(row) == 1.23)
+    assert(oddsRatioDef.exprWhenFlipped.get.apply(row) == (1.0 / 1.23))
   }
 }

@@ -15,7 +15,7 @@ final case class HeaderRow(typedValues: Seq[(String, DataType)]) extends Row {
   override def values: Seq[String] = typedValues.unzip._1
 }
 
-final case class DataRow(valuesByColumn: Map[ColumnDef, TypedData]) extends Row {
+final case class DataRow(valuesByColumn: Map[NamedColumnDef[_], TypedData]) extends Row {
   override def values: Seq[String] = {
     val sortedColumnDefs = valuesByColumn.keys.toSeq.sortBy(_.index)
     
@@ -25,8 +25,14 @@ final case class DataRow(valuesByColumn: Map[ColumnDef, TypedData]) extends Row 
   def ++(other: DataRow): DataRow = DataRow(valuesByColumn ++ other.valuesByColumn)
 }
 
+final case class LiteralRow(values: Seq[String]) extends Row
+
+object LiteralRow {
+  def apply(values: String*)(implicit discriminator: Int = 42): LiteralRow = new LiteralRow(values) 
+}
+
 object DataRow {
-  def apply(tuples: (ColumnDef, TypedData)*): DataRow = new DataRow(Map(tuples: _*))
+  def apply(tuples: (NamedColumnDef[_], TypedData)*): DataRow = new DataRow(Map(tuples: _*))
   
   val empty: DataRow = DataRow()
 }

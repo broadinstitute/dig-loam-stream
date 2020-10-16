@@ -36,12 +36,12 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
   val RowDef = loamstream.loam.intake.RowDef
   
   @deprecated
-  type CsvSource[A] = loamstream.loam.intake.RowSource[A]
+  type CsvSource[A] = loamstream.loam.intake.Source[A]
   @deprecated
-  val CsvSource = loamstream.loam.intake.RowSource
+  val CsvSource = loamstream.loam.intake.Source
   
-  type RowSource[A] = loamstream.loam.intake.RowSource[A]
-  val RowSource = loamstream.loam.intake.RowSource
+  type RowSource[A] = loamstream.loam.intake.Source[A]
+  val RowSource = loamstream.loam.intake.Source
   
   type FlipDetector = loamstream.loam.intake.flip.FlipDetector
   val FlipDetector = loamstream.loam.intake.flip.FlipDetector

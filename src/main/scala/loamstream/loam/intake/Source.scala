@@ -22,28 +22,28 @@ import loamstream.loam.intake.flip.FlipDetector
  * @author clint
  * Dec 17, 2019
  */
-sealed trait RowSource[R] {
+sealed trait Source[R] {
   def records: Iterator[R]
   
-  def take(n: Int): RowSource[R] = fromCombinator(_.take(n))
+  def take(n: Int): Source[R] = fromCombinator(_.take(n))
   
-  def drop(n: Int): RowSource[R] = fromCombinator(_.drop(n))
+  def drop(n: Int): Source[R] = fromCombinator(_.drop(n))
   
-  def filter(p: R => Boolean): RowSource[R] = fromCombinator(_.filter(p))
+  def filter(p: R => Boolean): Source[R] = fromCombinator(_.filter(p))
   
-  def filterNot(p: R => Boolean): RowSource[R] = fromCombinator(_.filterNot(p))
+  def filterNot(p: R => Boolean): Source[R] = fromCombinator(_.filterNot(p))
   
-  def tee: (RowSource[R], RowSource[R]) = (this, duplicate)
+  def tee: (Source[R], Source[R]) = (this, duplicate)
   
-  private def duplicate: RowSource[R] = RowSource.FromIterator(records.duplicate._2)
+  private def duplicate: Source[R] = Source.FromIterator(records.duplicate._2)
   
-  private final def fromCombinator[S](f: Iterator[R] => Iterator[S]): RowSource[S] = {
-    new RowSource.FromIterator(f(records))
+  private final def fromCombinator[S](f: Iterator[R] => Iterator[S]): Source[S] = {
+    new Source.FromIterator(f(records))
   }
   
   def tagFlips(
       markerDef: ColumnDef[String], 
-      flipDetector: => FlipDetector)(implicit ev: R <:< CsvRow): RowSource[CsvRow.WithFlipTag] = {
+      flipDetector: => FlipDetector)(implicit ev: R <:< CsvRow): Source[CsvRow.WithFlipTag] = {
     
     lazy val actualFlipDetector = flipDetector
     
@@ -56,12 +56,12 @@ sealed trait RowSource[R] {
     }
   }
   
-  def map[S](f: R => S): RowSource[S] = fromCombinator(_.map(f))
+  def map[S](f: R => S): Source[S] = fromCombinator(_.map(f))
   
-  def flatMap[S](f: R => RowSource[S]): RowSource[S] = fromCombinator(_.flatMap(f(_).records))
+  def flatMap[S](f: R => Source[S]): Source[S] = fromCombinator(_.flatMap(f(_).records))
 }
   
-object RowSource extends Loggable {
+object Source extends Loggable {
   
   object Formats {
     val spaceDelimited: CSVFormat = CSVFormat.DEFAULT.withDelimiter(' ')
@@ -79,7 +79,7 @@ object RowSource extends Loggable {
     val thisDir: Path = Paths.get(".")
   }
   
-  private[intake] final class FromIterator[R](iterator: => Iterator[R]) extends RowSource[R] {
+  private[intake] final class FromIterator[R](iterator: => Iterator[R]) extends Source[R] {
     override def records: Iterator[R] = iterator
   }
   
@@ -89,28 +89,28 @@ object RowSource extends Loggable {
 
   def fromFile(
       path: Path, 
-      csvFormat: CSVFormat = Defaults.csvFormat): RowSource[CsvRow] = {
+      csvFormat: CSVFormat = Defaults.csvFormat): Source[CsvRow] = {
     
     fromReader(new FileReader(path.toFile), csvFormat)
   }
   
   def fromGzippedFile(
       path: Path, 
-      csvFormat: CSVFormat = Defaults.csvFormat): RowSource[CsvRow] = {
+      csvFormat: CSVFormat = Defaults.csvFormat): Source[CsvRow] = {
     
     fromReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(path.toFile))), csvFormat)
   }
   
   def fromString(
       csvData: String,
-      csvFormat: CSVFormat = Defaults.csvFormat): RowSource[CsvRow] = {
+      csvFormat: CSVFormat = Defaults.csvFormat): Source[CsvRow] = {
     
     fromReader(new StringReader(csvData), csvFormat)
   }
   
   def fromReader(
       reader: => Reader, 
-      csvFormat: CSVFormat = Defaults.csvFormat): RowSource[CsvRow] = {
+      csvFormat: CSVFormat = Defaults.csvFormat): Source[CsvRow] = {
     
     FromIterator(toCsvRowIterator(reader, csvFormat))
   }
@@ -118,7 +118,7 @@ object RowSource extends Loggable {
   def fromCommandLine(
       command: String,
       csvFormat: CSVFormat = Defaults.csvFormat,
-      workDir: Path = Defaults.thisDir): RowSource[CsvRow] = {
+      workDir: Path = Defaults.thisDir): Source[CsvRow] = {
   
     FromIterator {
       val bashScriptForCommand = BashScript.fromCommandLineString(command)

@@ -27,7 +27,7 @@ final class CsvSourceTest extends FunSuite {
   
   private val rowDataAsString = rowDataToString(rowData)
     
-  private def doCsvSourceRecordsTest(source: RowSource[CsvRow], expectedRows: Seq[CsvRow] = csvRows): Unit = {
+  private def doCsvSourceRecordsTest(source: Source[CsvRow], expectedRows: Seq[CsvRow] = csvRows): Unit = {
     val actualRows = source.records.toIndexedSeq
     
     actualRows.zip(expectedRows).foreach { case (actualRow, expectedRow) =>
@@ -40,7 +40,7 @@ final class CsvSourceTest extends FunSuite {
   }
   
   test("fromString") {
-    doCsvSourceRecordsTest(RowSource.fromString(rowDataAsString))
+    doCsvSourceRecordsTest(Source.fromString(rowDataAsString))
   }
   
   test("fromFile") {
@@ -49,12 +49,12 @@ final class CsvSourceTest extends FunSuite {
       
       Files.writeTo(file)(rowDataAsString) 
       
-      doCsvSourceRecordsTest(RowSource.fromFile(file))
+      doCsvSourceRecordsTest(Source.fromFile(file))
     }
   }
   
   test("fromReader") {
-    doCsvSourceRecordsTest(RowSource.fromReader(new StringReader(rowDataAsString)))
+    doCsvSourceRecordsTest(Source.fromReader(new StringReader(rowDataAsString)))
   }
   
   test("fromCommandLine") {
@@ -63,14 +63,14 @@ final class CsvSourceTest extends FunSuite {
       
       Files.writeTo(file)(rowDataAsString) 
       
-      doCsvSourceRecordsTest(RowSource.fromCommandLine(s"cat $file", workDir = workDir))
+      doCsvSourceRecordsTest(Source.fromCommandLine(s"cat $file", workDir = workDir))
     }
   }
   
   test("take") {
     val reader = new StringReader(rowDataToString(rowData))
     
-    val source = RowSource.fromReader(reader).take(2)
+    val source = Source.fromReader(reader).take(2)
     
     val truncatedRowData = rowData.head +: rowData.tail.take(2)
     
@@ -82,7 +82,7 @@ final class CsvSourceTest extends FunSuite {
     
     val bar = ColumnName("BAR")
     
-    val source = RowSource.fromReader(reader).filter(bar.asInt > 10)
+    val source = Source.fromReader(reader).filter(bar.asInt > 10)
     
     val expectedRows = Helpers.csvRows(
         Seq("FOO", "BAR", "BAZ"),
@@ -96,7 +96,7 @@ final class CsvSourceTest extends FunSuite {
     
     val bar = ColumnName("BAR")
     
-    val source = RowSource.fromReader(reader).filterNot(bar.asInt > 10)
+    val source = Source.fromReader(reader).filterNot(bar.asInt > 10)
     
     val expectedRows = Helpers.csvRows(
         Seq("FOO", "BAR", "BAZ"),

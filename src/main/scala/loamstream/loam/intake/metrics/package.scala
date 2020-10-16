@@ -13,9 +13,9 @@ package object metrics {
   type Metric[A] = Fold[CsvRow, _, A]
   
   implicit final class MetricOps[A](val f: Metric[A]) extends AnyVal {
-    def process(rows: RowSource[CsvRow]): A = Fold.fold(rows.records)(f)
+    def process(rows: Source[CsvRow]): A = Fold.fold(rows.records)(f)
   
-    def processSampled(howMany: Int)(rows: RowSource[CsvRow]): A = {
+    def processSampled(howMany: Int)(rows: Source[CsvRow]): A = {
       Fold.fold(Sample.random(howMany)(rows).records)(f)
     }
   

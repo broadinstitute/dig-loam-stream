@@ -33,7 +33,7 @@ trait CsvTransformations { self: IntakeSyntax =>
     HeaderRow(columnDefs.sortBy(_.index).map(cd => (cd.name.name, cd.expr.dataType)))
   }
 
-  def process2(flipDetector: FlipDetector, source: RowSource[CsvRow])(transform: RowDef): (HeaderRow, Iterator[CsvRow]) = {
+  def process2(flipDetector: FlipDetector, source: Source[CsvRow])(transform: RowDef): (HeaderRow, Iterator[CsvRow]) = {
     val resultRows = source.tagFlips(transform.varIdDef, flipDetector).map(transform)
     
     val header = headerRowFrom(transform.columnDefs)
@@ -41,7 +41,7 @@ trait CsvTransformations { self: IntakeSyntax =>
     (header, resultRows.records)
   }
   
-  def process3(flipDetector: FlipDetector, source: RowSource[CsvRow])(transform: aggregator.AggregatorRowExpr): (HeaderRow, Iterator[aggregator.DataRow]) = {
+  def process3(flipDetector: FlipDetector, source: Source[CsvRow])(transform: aggregator.AggregatorRowExpr): (HeaderRow, Iterator[aggregator.DataRow]) = {
     //Allow mapping to Rs that aren't <: CsvRow?
     val resultRows = source.tagFlips(transform.markerDef, flipDetector).records.map(transform)
     
@@ -51,19 +51,19 @@ trait CsvTransformations { self: IntakeSyntax =>
   }
   
   def process(flipDetector: FlipDetector)(rowDef: RowDef): (HeaderRow, Iterator[DataRow]) = {
-    type Source = RowSource[CsvRow.WithFlipTag]
+    type RSource = Source[CsvRow.WithFlipTag]
     
-    val varIdSource: Source = ??? //rowDef.varIdDef.source
+    val varIdSource: RSource = ??? //rowDef.varIdDef.source
 
-    val columnDefsBySource: Map[Source, Seq[NamedColumnDef[_]]] = rowDef.otherColumns.groupBy(??? /*_.source*/ )
+    val columnDefsBySource: Map[RSource, Seq[NamedColumnDef[_]]] = rowDef.otherColumns.groupBy(??? /*_.source*/ )
     
-    val nonVarIdColumnDefsBySource: Map[Source, Seq[NamedColumnDef[_]]] = columnDefsBySource - varIdSource
+    val nonVarIdColumnDefsBySource: Map[RSource, Seq[NamedColumnDef[_]]] = columnDefsBySource - varIdSource
     
     val columnDefsWithSameSourceAsVarID: Seq[NamedColumnDef[_]] = columnDefsBySource.get(varIdSource).getOrElse(Nil)
     
     import loamstream.util.Maps.Implicits._
     
-    val parseFnsBySourceNonVarId: Map[Source, ParseFn] = {
+    val parseFnsBySourceNonVarId: Map[RSource, ParseFn] = {
       nonVarIdColumnDefsBySource.strictMapValues(fuse(flipDetector))
     }
     

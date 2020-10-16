@@ -40,8 +40,8 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
   @deprecated
   val CsvSource = loamstream.loam.intake.Source
   
-  type RowSource[A] = loamstream.loam.intake.Source[A]
-  val RowSource = loamstream.loam.intake.Source
+  type Source[A] = loamstream.loam.intake.Source[A]
+  val Source = loamstream.loam.intake.Source
   
   type FlipDetector = loamstream.loam.intake.flip.FlipDetector
   val FlipDetector = loamstream.loam.intake.flip.FlipDetector
@@ -84,7 +84,7 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
   }
   
   final class TransformationTarget(dest: Store) {
-    def from(source: RowSource[CsvRow]): UsingTarget = new UsingTarget(dest, source)
+    def from(source: Source[CsvRow]): UsingTarget = new UsingTarget(dest, source)
     
     def from(rowDef: RowDef): ProcessTarget = from(rowDef.varIdDef, rowDef.otherColumns: _*)
     
@@ -95,14 +95,14 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
   
   final class UsingTarget(
       dest: Store, 
-      rows: RowSource[CsvRow]) extends Loggable {
+      rows: Source[CsvRow]) extends Loggable {
     
     def using(flipDetector: => FlipDetector): ViaTarget = new ViaTarget(dest, rows, flipDetector)
   }
   
   final class ViaTarget(
       dest: Store, 
-      rows: RowSource[CsvRow],
+      rows: Source[CsvRow],
       flipDetector: => FlipDetector) extends Loggable {
     
     def via(expr: aggregator.AggregatorRowExpr): ViaTarget2 = {
@@ -117,7 +117,7 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
   final case class ViaTarget2(
       dest: Store, 
       headerRow: HeaderRow,
-      rows: RowSource[aggregator.DataRow]) extends Loggable {
+      rows: Source[aggregator.DataRow]) extends Loggable {
     
     def filter(predicate: aggregator.DataRow => Boolean): ViaTarget2 = copy(rows = rows.filter(predicate))
     
@@ -129,7 +129,7 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
       val tool: Tool = nativeTool(forceLocal) {
         TimeUtils.time(s"Producing ${dest.path}", info(_)) {
           //TODO
-          val csvFormat = RowSource.Defaults.csvFormat
+          val csvFormat = Source.Defaults.csvFormat
           
           val renderer = Renderer.CommonsCsv(csvFormat)
           

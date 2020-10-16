@@ -95,7 +95,7 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
     
     val csvFormat = org.apache.commons.csv.CSVFormat.DEFAULT.withDelimiter(' ').withFirstRecordAsHeader
     
-    val source = RowSource.fromCommandLine(s"zcat ${sourceStore.path}", csvFormat)
+    val source = Source.fromCommandLine(s"zcat ${sourceStore.path}", csvFormat)
     
     produceCsv(dest).
         from(source).

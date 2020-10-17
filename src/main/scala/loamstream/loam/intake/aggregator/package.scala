@@ -10,4 +10,6 @@ package object aggregator {
   type DataRowPredicate = DataRowParser[Boolean]
   
   type DataRowTransform = DataRowParser[DataRow]
+  
+  type TaggedRowParser[A] = CsvRow.WithFlipTag => A
 }

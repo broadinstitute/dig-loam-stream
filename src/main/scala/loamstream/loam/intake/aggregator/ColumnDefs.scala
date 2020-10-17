@@ -136,8 +136,7 @@ object ColumnDefs {
     }
   }
 
-  //TODO: Something better, this makes potentially-superfluous .map() invocations
-  private def asDouble(column: ColumnExpr[_]): ColumnExpr[Double] = column match {
+  private[aggregator] def asDouble(column: ColumnExpr[_]): ColumnExpr[Double] = column match {
     case ColumnExpr.Double(expr) => expr
     case ColumnExpr.String(expr) => expr.asDouble
     case _ => column.asString.asDouble

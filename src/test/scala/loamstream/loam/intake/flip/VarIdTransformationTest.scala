@@ -3,6 +3,9 @@ package loamstream.loam.intake.flip
 import org.scalatest.FunSuite
 import loamstream.loam.intake.IntakeSyntax
 import loamstream.loam.intake.CsvRow
+import loamstream.loam.intake.aggregator.RowExpr
+import loamstream.loam.intake.aggregator.ColumnNames
+import loamstream.loam.intake.LiteralColumnExpr
 
 
 /**
@@ -25,19 +28,22 @@ final class VarIdTransformationTest extends FunSuite {
     }
     
     val varIdColumnName = ColumnName("VAR_ID")
+    val pvalueColumnName = ColumnName("P_VALUE")
     
     val varIdDef = NamedColumnDef(
         varIdColumnName, 
         varIdColumnName, 
         varIdColumnName.map(Variant.from(_).flip.underscoreDelimited))
     
-    val rowDef: RowDef = ??? //RowDef(varIdDef = varIdDef, otherColumns = Nil)
-
-    val (headerRow, dataRows) = process(flipDetector)(rowDef /*.from(source)*/ )
+    val toAggregatorRow: RowExpr = RowExpr(
+        markerDef = varIdDef,
+        pvalueDef = NamedColumnDef(ColumnNames.pvalue, LiteralColumnExpr(42.0)))
+        
+    val dataRows = source.tagFlips(varIdDef, flipDetector).map(toAggregatorRow)
       
-    val actualVarIds = dataRows.map(_.values.head)
+    val actualVarIds = dataRows.map(_.marker)
       
-    actualVarIds.zip(inputsAndExpectedOutputs.iterator).foreach { case (actual, (input, expected)) =>
+    actualVarIds.records.zip(inputsAndExpectedOutputs.iterator).foreach { case (actual, (input, expected)) =>
       def msg = {
         s"Actual '$input' should have been turned to '$expected' but got '$actual'. " + 
         s"Input flipped? ${flipDetector.isFlipped(input)}"

@@ -25,8 +25,6 @@ trait ColumnDef[A] extends (CsvRow.WithFlipTag => A) {
   
   def exprWhenFlipped: Option[ColumnExpr[A]]
   
-  final val index: Int = ColumnDef.nextColumnIndex()
-  
   final def dataType: DataType = expr.dataType
   final def dataTypeFlipped: Option[DataType] = exprWhenFlipped.map(_.dataType)
   
@@ -46,10 +44,4 @@ trait ColumnDef[A] extends (CsvRow.WithFlipTag => A) {
   }
   
   def withName(name: ColumnName): NamedColumnDef[A] = NamedColumnDef(name, expr, exprWhenFlipped)
-}
-
-object ColumnDef {
-  private[this] val indices: Sequence[Int] = Sequence()
-  
-  private[intake] def nextColumnIndex(): Int = indices.next()
 }

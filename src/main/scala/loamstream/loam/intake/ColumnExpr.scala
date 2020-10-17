@@ -218,6 +218,8 @@ final case class LiteralColumnExpr[A: TypeTag](value: A) extends ColumnExpr[A] {
 }
 
 final case class ColumnName(name: String) extends ColumnExpr[String] {
+  override def toString: String = s"${getClass.getSimpleName}(${name})"
+  
   override def eval(row: CsvRow): String = {
     val value = row.getFieldByName(name)
     

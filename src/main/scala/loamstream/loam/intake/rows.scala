@@ -17,7 +17,7 @@ final case class HeaderRow(typedValues: Seq[(String, DataType)]) extends Row {
 
 final case class DataRow(valuesByColumn: Map[NamedColumnDef[_], TypedData]) extends Row {
   override def values: Seq[String] = {
-    val sortedColumnDefs = valuesByColumn.keys.toSeq.sortBy(_.index)
+    val sortedColumnDefs = valuesByColumn.keys.toSeq.sortBy(_.name.index)
     
     sortedColumnDefs.map(valuesByColumn.apply(_).raw)
   }

@@ -1,9 +1,7 @@
 package loamstream.loam.intake.aggregator
 
-import loamstream.loam.intake.RowExpr
 import loamstream.loam.intake.ColumnExpr
 import loamstream.loam.intake.CsvRow
-import loamstream.loam.intake.RowDef
 import loamstream.loam.intake.ColumnDef
 import loamstream.loam.intake.NamedColumnDef
 
@@ -11,7 +9,7 @@ import loamstream.loam.intake.NamedColumnDef
  * @author clint
  * Oct 14, 2020
  */
-final case class AggregatorRowExpr(
+final case class RowExpr(
     markerDef: NamedColumnDef[String],
     pvalueDef: NamedColumnDef[Double],
     zscoreDef: Option[NamedColumnDef[Double]] = None,
@@ -20,7 +18,7 @@ final case class AggregatorRowExpr(
     oddsRatioDef: Option[NamedColumnDef[Double]] = None,
     eafDef: Option[NamedColumnDef[Double]] = None,
     mafDef: Option[NamedColumnDef[Double]] = None,
-    nDef: Option[NamedColumnDef[Double]] = None) extends RowExpr[DataRow] {
+    nDef: Option[NamedColumnDef[Double]] = None) extends TaggedRowParser[DataRow] {
   
   def columnDefs: Seq[NamedColumnDef[_]] = {
     markerDef +: 
@@ -47,9 +45,3 @@ final case class AggregatorRowExpr(
     n = nDef.map(_.apply(row)))
 }
 
-object AggregatorRowExpr {
-  /*def fromRowDef(rowDef: RowDef): AggregatorRowExpr = AggregatorRowExpr(
-      markerExpr
-      )
-  }*/
-}

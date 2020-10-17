@@ -20,13 +20,8 @@ import loamstream.conf.LsSettings
  * 
  * It encodes processing an input .tsv and uploading it to S3 via the aggregator-intake project.  
  */
-object ReadMe extends AggregatorCommands {
-  import LoamSyntax._
+object ReadMe extends loamstream.LoamFile with AggregatorCommands {
   import IntakeSyntax._
-
-  //Dummy script context to make things compile
-  private implicit val scriptContext: LoamScriptContext = new LoamScriptContext(
-    LoamProjectContext.empty(LoamConfig.fromConfig(ConfigFactory.load()).get, LsSettings.noCliConfig))
 
   /*
    * 1)
@@ -127,13 +122,14 @@ object ReadMe extends AggregatorCommands {
   import ColumnNames._
   
   //Use aggregator-default column names to make things easier
-  val rowDef = RowDef(
+  //TODO: UPDATE
+  /*val rowDef = RowDef(
       varIdDef = marker(CHR, BP, ALLELE0, ALLELE1),
       otherColumns = Seq(
         eaf(A1FREQ),
         beta(BETA),
         stderr(SE),
-        pvalue(P_BOLT_LMM)))
+        pvalue(P_BOLT_LMM)))*/
         
   //Implements heuristics to tell if ref and alt alleles are flipped
   val flipDetector: FlipDetector = new FlipDetector.Default(
@@ -149,10 +145,11 @@ object ReadMe extends AggregatorCommands {
   
   //What follows is still rough, and could use some factoring
   
-  produceCsv(transformedCsv).
-    from(rowDef /*.from(input)*/ ).
+  //TODO: UPDATE
+  /*produceCsv(transformedCsv).
+    from(rowDef .from(input) ).
     using(flipDetector).
-    tag("makeCsv")
+    tag("makeCsv")*/
   
   /*
    * Values that work when running as diguser:

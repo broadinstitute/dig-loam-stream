@@ -10,7 +10,10 @@ import loamstream.util.Sequence
 final case class NamedColumnDef[A](
   name: ColumnName,
   expr: ColumnExpr[A],
-  exprWhenFlipped: Option[ColumnExpr[A]]) extends ColumnDef[A]
+  exprWhenFlipped: Option[ColumnExpr[A]]) extends ColumnDef[A] {
+  
+  override def toString: String = s"${getClass.getSimpleName}(${name}, ${expr}, ${exprWhenFlipped})"
+}
 
 object NamedColumnDef {
   def apply[A](

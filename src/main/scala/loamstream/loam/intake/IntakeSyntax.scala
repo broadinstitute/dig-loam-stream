@@ -32,9 +32,6 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
   type NamedColumnDef[A] = loamstream.loam.intake.NamedColumnDef[A]
   val NamedColumnDef = loamstream.loam.intake.NamedColumnDef
   
-  type RowDef = loamstream.loam.intake.RowDef
-  val RowDef = loamstream.loam.intake.RowDef
-  
   type Source[A] = loamstream.loam.intake.Source[A]
   val Source = loamstream.loam.intake.Source
   
@@ -80,18 +77,9 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
   
   final class TransformationTarget(dest: Store) {
     def from(source: Source[CsvRow]): UsingTarget = new UsingTarget(dest, source)
-    
-    def from(rowDef: RowDef): ProcessTarget = from(rowDef.varIdDef, rowDef.otherColumns: _*)
-    
-    def from(varIdColumnDef: NamedColumnDef[String], otherColumnDefs: NamedColumnDef[_]*): ProcessTarget = {
-      new ProcessTarget(dest, varIdColumnDef, otherColumnDefs: _*)
-    }
   }
   
-  final class UsingTarget(
-      dest: Store, 
-      rows: Source[CsvRow]) extends Loggable {
-    
+  final class UsingTarget(dest: Store, rows: Source[CsvRow]) extends Loggable {
     def using(flipDetector: => FlipDetector): ViaTarget = new ViaTarget(dest, rows, flipDetector)
   }
   
@@ -100,23 +88,31 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
       rows: Source[CsvRow],
       flipDetector: => FlipDetector) extends Loggable {
     
-    def via(expr: aggregator.AggregatorRowExpr): ViaTarget2 = {
+    def via(expr: aggregator.RowExpr): MapFilterAndGoTarget = {
       val dataRows = rows.tagFlips(expr.markerDef, flipDetector).map(expr)
       
       val headerRow = headerRowFrom(expr.columnDefs)
       
-      new ViaTarget2(dest, headerRow, dataRows)
+      new MapFilterAndGoTarget(dest, headerRow, dataRows)
     }
   }
   
-  final case class ViaTarget2(
+  final class MapFilterAndGoTarget(
       dest: Store, 
       headerRow: HeaderRow,
       rows: Source[aggregator.DataRow]) extends Loggable {
     
-    def filter(predicate: aggregator.DataRow => Boolean): ViaTarget2 = copy(rows = rows.filter(predicate))
+    def copy(
+        dest: Store = this.dest, 
+        headerRow: HeaderRow = this.headerRow,
+        rows: Source[aggregator.DataRow] = this.rows): MapFilterAndGoTarget = {
+      
+      new MapFilterAndGoTarget(dest, headerRow, rows)
+    }
     
-    def map(transform: aggregator.DataRow => aggregator.DataRow): ViaTarget2 = copy(rows = rows.map(transform))
+    def filter(predicate: aggregator.DataRow => Boolean): MapFilterAndGoTarget = copy(rows = rows.filter(predicate))
+    
+    def map(transform: aggregator.DataRow => aggregator.DataRow): MapFilterAndGoTarget = copy(rows = rows.map(transform))
     
     //TODO: better name
     def go(forceLocal: Boolean = false)(implicit scriptContext: LoamScriptContext): Tool = {
@@ -140,34 +136,6 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
     }
   }
 
-  final class ProcessTarget(
-      dest: Store, 
-      varIdColumnDef: NamedColumnDef[String], 
-      otherColumnDefs: NamedColumnDef[_]*) extends Loggable {
-    
-    def using(flipDetector: => FlipDetector)(implicit scriptContext: LoamScriptContext): Tool = {
-      //TODO: How to wire up inputs (if any)?
-      val tool: Tool = nativeTool() {
-        TimeUtils.time(s"Producing ${dest.path}", info(_)) {
-          val (headerRow, dataRows) = process(flipDetector)(RowDef(varIdColumnDef, otherColumnDefs))
-          
-          //TODO
-          val csvFormat = Source.Defaults.csvFormat
-          
-          val renderer = Renderer.CommonsCsv(csvFormat)
-          
-          val rowsToWrite: Iterator[Row] = Iterator(headerRow) ++ dataRows
-          
-          Files.writeLinesTo(dest.path)(rowsToWrite.map(renderer.render))
-        }
-      }
-      
-      addToGraph(tool)
-      
-      tool.out(dest)
-    }
-  }
-  
   final class AggregatorIntakeConfigFileTarget(dest: Store) {
     def from(configData: aggregator.ConfigData)(implicit scriptContext: LoamScriptContext): Tool = {
       //TODO: How to wire up inputs (if any)?

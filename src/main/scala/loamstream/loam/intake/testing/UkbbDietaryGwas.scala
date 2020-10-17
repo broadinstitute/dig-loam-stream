@@ -32,28 +32,12 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
     
     val VARID = "VARID".asColumnName
   }
-  
-  val rowDef = {
+
+  val toAggregatorRows: aggregator.RowExpr = {
     import ColumnNames._
     import ColumnDefs._
     
-    val varId = marker(chromColumn = CHR, posColumn = BP, refColumn = ALLELE1, altColumn = ALLELE0)
-        
-    val otherColumns = Seq(
-        pvalue(P_BOLT_LMM),
-        stderr(SE),
-        beta(BETA),
-        eaf(A1FREQ),
-        zscore(BETA, SE))
-        
-    RowDef(varId, otherColumns)
-  }
-  
-  val toAggregatorRows: aggregator.AggregatorRowExpr = {
-    import ColumnNames._
-    import ColumnDefs._
-    
-    aggregator.AggregatorRowExpr(
+    aggregator.RowExpr(
       markerDef = marker(chromColumn = CHR, posColumn = BP, refColumn = ALLELE1, altColumn = ALLELE0),
       pvalueDef = pvalue(P_BOLT_LMM),
       zscoreDef = Some(zscore(BETA, SE)),
@@ -108,15 +92,7 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
         go().
         tag(s"process-phenotype-$phenotype").
         in(sourceStore)
-    
-    /*val columns = rowDef.from(source)
-        
-    produceCsv(dest).
-        from(columns).
-        using(flipDetector).
-        tag(s"process-phenotype-$phenotype").
-        in(sourceStore)*/
-        
+       
     dest
   }
   

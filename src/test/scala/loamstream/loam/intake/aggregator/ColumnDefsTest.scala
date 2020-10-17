@@ -5,6 +5,7 @@ import loamstream.loam.intake.NamedColumnDef
 import loamstream.loam.intake.ColumnName
 import loamstream.loam.intake.flip.FlipDetector
 import loamstream.loam.intake.Helpers
+import loamstream.loam.intake.ColumnExpr
 
 /**
  * @author clint
@@ -30,24 +31,38 @@ final class ColumnDefsTest extends FunSuite {
   test("PassThru") {
     def doTest(
         f: ColumnName => NamedColumnDef[_],
-        expectedDestColumn: ColumnName): Unit = {
+        expectedDestColumn: ColumnName, 
+        isDouble: Boolean = false): Unit = {
   
+      val mungeSourceColumn: ColumnExpr[_] => ColumnExpr[_] = {
+        if(isDouble) ColumnDefs.asDouble else identity
+      }
+      
       val sourceColumn = ColumnName("blarg")
       
-      assert(f(sourceColumn) === NamedColumnDef(expectedDestColumn, sourceColumn))
+      val passThruColumnDef = f(sourceColumn)
+      
+      assert(passThruColumnDef.name === expectedDestColumn)
+      assert(passThruColumnDef.exprWhenFlipped.isEmpty)
+      
+      val row = Helpers.csvRow("foo" -> "42", "bar" -> "asdf", "blarg" -> "123", "bip" -> "456")
+      
+      val expected = if(isDouble) 123.0 else "123"
+      
+      assert(passThruColumnDef.expr.apply(row) == expected)
     }
     
     import ColumnDefs.PassThru._
     
-    doTest(beta(_), ColumnNames.beta)
-    doTest(eaf(_), ColumnNames.eaf)
-    doTest(maf(_), ColumnNames.maf)
+    doTest(beta(_), ColumnNames.beta, isDouble = true)
+    doTest(eaf(_), ColumnNames.eaf, isDouble = true)
+    doTest(maf(_), ColumnNames.maf, isDouble = true)
     doTest(marker(_), ColumnNames.marker)
-    doTest(n(_), ColumnNames.n)
-    doTest(oddsRatio(_), ColumnNames.odds_ratio)
-    doTest(pvalue(_), ColumnNames.pvalue)
-    doTest(stderr(_), ColumnNames.stderr)
-    doTest(zscore(_), ColumnNames.zscore)
+    doTest(n(_), ColumnNames.n, isDouble = true)
+    doTest(oddsRatio(_), ColumnNames.odds_ratio, isDouble = true)
+    doTest(pvalue(_), ColumnNames.pvalue, isDouble = true)
+    doTest(stderr(_), ColumnNames.stderr, isDouble = true)
+    doTest(zscore(_), ColumnNames.zscore, isDouble = true)
   }
   
   test("just") {

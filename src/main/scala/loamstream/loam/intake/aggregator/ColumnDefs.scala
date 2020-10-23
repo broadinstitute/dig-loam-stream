@@ -9,6 +9,7 @@ import loamstream.loam.intake.IntakeSyntax
 object ColumnDefs {
  
   import IntakeSyntax._
+  import ColumnExpr.asDouble
   
   def marker(
       chromColumn: ColumnExpr[_],
@@ -136,12 +137,6 @@ object ColumnDefs {
     }
   }
 
-  private[aggregator] def asDouble(column: ColumnExpr[_]): ColumnExpr[Double] = column match {
-    case ColumnExpr.Double(expr) => expr
-    case ColumnExpr.String(expr) => expr.asDouble
-    case _ => column.asString.asDouble
-  }
-      
   private def simpleDoubleColumn(
       sourceColumn: ColumnExpr[_],
       aggregatorName: ColumnName): NamedColumnDef[Double] = {

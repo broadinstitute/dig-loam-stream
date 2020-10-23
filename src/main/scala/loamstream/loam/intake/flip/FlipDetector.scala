@@ -14,7 +14,7 @@ import loamstream.loam.intake.Source
  * A fairly direct port of one of Marcin's Perl scripts. 
  */
 trait FlipDetector {
-  def isFlipped(variantId: String): Boolean
+  def isFlipped(variantId: String): Disposition
 }
 
 object FlipDetector extends Loggable {
@@ -34,20 +34,24 @@ object FlipDetector extends Loggable {
       isVarDataType: Boolean = Defaults.isVarDataType,
       pathTo26kMap: Path = Defaults.pathTo26kMap) extends FlipDetector with Loggable {
     
-    override def isFlipped(variantId: String): Boolean = {
-      val isValidKey: Boolean = !variantsFrom26k.contains(variantId) && !variantId.contains(",")
+    import Regexes.{ singleNucleotide, multiNucleotide }
+    
+    private val singleNucleotideExtractor = extractor(singleNucleotide)
+    private val multiNucleotideExtractor = extractor(multiNucleotide)
+    
+    override def isFlipped(variantId: String): Disposition = {
+      val isValidVariantId: Boolean = !variantsFrom26k.contains(variantId) && !variantId.contains(",")
       
-      import Regexes.{ singleNucleotide, multiNucleotide }
+      import Disposition.NotFlippedSameStrand
       
-      isValidKey && {
-        val singleNucleotideExtractor = extractor(singleNucleotide)
-        val multiNucleotideExtractor = extractor(multiNucleotide)
-        
+      if(isValidVariantId) {
         variantId match {
           case singleNucleotideExtractor(variant) => handleSingleNucleotideVariant(variant)
           case multiNucleotideExtractor(variant) => handleMultiNucleotideVariant(variant)
-          case _ => false
+          case _ => NotFlippedSameStrand
         }
+      } else {
+        NotFlippedSameStrand  
       }
     }
     
@@ -59,7 +63,7 @@ object FlipDetector extends Loggable {
       def isTxtOrGzFile(file: Path): Boolean = {
         val fileName = file.getFileName.toString
         
-        fileName.endsWith("txt")// || fileName.endsWith("gz")
+        fileName.endsWith("txt")
       }
       
       val txtFiles = referenceFiles.filter(isTxtOrGzFile)
@@ -71,13 +75,13 @@ object FlipDetector extends Loggable {
       }
     }
     
-    private[flip] val knownChroms: Set[String] = {
+    private[flip] lazy val knownChroms: Set[String] = {
       def chromsIfVarDataType = if(isVarDataType) chromsFromReference else Iterator.empty
       
       Set("X") ++ (1 to 22).map(_.toString) ++ chromsIfVarDataType
     }
   
-    private val variantsFrom26k: java.util.Set[String] = TimeUtils.time("Reading 26k map", trace(_)) {
+    private lazy val variantsFrom26k: java.util.Set[String] = TimeUtils.time("Reading 26k map", trace(_)) {
       val iterator = Source.fromFile(pathTo26kMap, Source.Formats.tabDelimited).records
       
       val result: java.util.Set[String] = new java.util.HashSet
@@ -89,21 +93,24 @@ object FlipDetector extends Loggable {
   
     private lazy val referenceFiles = ReferenceFiles(referenceDir, knownChroms)
     
-    private def handleSingleNucleotideVariant(variant: RichVariant): Boolean = {
+    private def handleSingleNucleotideVariant(variant: RichVariant): Disposition = {
       import variant.{ alt, reference }
-      import loamstream.util.Options.Implicits._
+      import Disposition._
       
-      variant.flip.isIn26k ||
-      variant.flip.isIn26kMunged ||
-      variant.refChar.map { refChar => 
-        val ref = refChar.toString
-    
-        (ref != reference) && { (ref == alt) || (ref == N2C(alt)) }
-      }.orElseFalse
+      //TODO: IS THIS RIGHT??
+      if(variant.flip.isIn26k) { FlippedSameStrand }
+      else if(variant.flip.isIn26kMunged) { FlippedComplementStrand }
+      else {
+        variant.refChar.map(_.toString).filter(_ != reference) match {
+          case Some(ref) if ref == alt => FlippedSameStrand
+          case Some(ref) if ref == Complement(alt) => FlippedComplementStrand
+          case _ => NotFlippedSameStrand
+        }
+      }
     }
     
-    private def handleMultiNucleotideVariant(variant: RichVariant): Boolean = {
-      def munge(s: String): String = {
+    private def handleMultiNucleotideVariant(variant: RichVariant): Disposition = {
+      def complement(s: String): String = {
           s.replaceAll("A", "X")
            .replaceAll("T", "A")
            .replaceAll("X", "T")
@@ -114,14 +121,13 @@ object FlipDetector extends Loggable {
         
       import variant.{ alt, reference }
       import loamstream.util.Options.Implicits._
+      import Disposition._
       
-      (for {
-        ref <- variant.refFromReferenceGenome
-        if ref != reference
-        altFromReferenceGenome <- variant.altFromReferenceGenome
-      } yield {
-        (altFromReferenceGenome == alt) || (altFromReferenceGenome == munge(alt))
-      }).orElseFalse
+      variant.refFromReferenceGenome.filter(_ != reference).zip(variant.altFromReferenceGenome) match {
+        case Some((_, altFromRefGenome)) if altFromRefGenome == alt => FlippedSameStrand
+        case Some((_, altFromRefGenome)) if altFromRefGenome == complement(alt) => FlippedComplementStrand
+        case _ => NotFlippedSameStrand
+      }
     }
     
     private def extractor(regex: Regex): RichVariant.Extractor = {

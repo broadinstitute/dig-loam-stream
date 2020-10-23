@@ -6,6 +6,7 @@ import loamstream.loam.intake.ColumnName
 import loamstream.loam.intake.flip.FlipDetector
 import loamstream.loam.intake.Helpers
 import loamstream.loam.intake.ColumnExpr
+import loamstream.loam.intake.flip.Disposition
 
 /**
  * @author clint
@@ -16,11 +17,11 @@ final class ColumnDefsTest extends FunSuite {
   
   private object FlipDetectors {
     val alwaysFlipped: FlipDetector = new FlipDetector {
-      override def isFlipped(variantId: String): Boolean = true
+      override def isFlipped(variantId: String): Disposition = Disposition.FlippedSameStrand
     }
     
     val neverFlipped: FlipDetector = new FlipDetector {
-      override def isFlipped(variantId: String): Boolean = false
+      override def isFlipped(variantId: String): Disposition = Disposition.NotFlippedSameStrand
     }
   }
   
@@ -34,10 +35,6 @@ final class ColumnDefsTest extends FunSuite {
         expectedDestColumn: ColumnName, 
         isDouble: Boolean = false): Unit = {
   
-      val mungeSourceColumn: ColumnExpr[_] => ColumnExpr[_] = {
-        if(isDouble) ColumnDefs.asDouble else identity
-      }
-      
       val sourceColumn = ColumnName("blarg")
       
       val passThruColumnDef = f(sourceColumn)

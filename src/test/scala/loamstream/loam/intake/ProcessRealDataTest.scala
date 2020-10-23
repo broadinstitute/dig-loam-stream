@@ -74,15 +74,17 @@ final class ProcessRealDataTest extends FunSuite with Loggable {
         
         val sourceStore = store(path("src/test/resources/intake/real-input-data.tsv"))
         
+        val filterLog: Store = store(path(s"${dest.path.toString}.filtered-rows"))
+        
         produceCsv(dest).
           from(source).
           using(flipDetector).
           via(toAggregatorRows).
-          filter(aggregator.RowFilters.validEaf).
-          filter(aggregator.RowFilters.validMaf).
-          filter(aggregator.RowFilters.validPValue).
-          map(aggregator.RowTransforms.clampPValues).
-          go(forceLocal = true).
+          filter(DataRowFilters.validEaf(filterLog, append = true)).
+          filter(DataRowFilters.validMaf(filterLog, append = true)).
+          filter(DataRowFilters.validPValue(filterLog, append = true)).
+          map(DataRowTransforms.clampPValues).
+          write(forceLocal = true).
           tag(s"process-real-data").
           in(sourceStore)
           

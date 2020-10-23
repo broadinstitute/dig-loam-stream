@@ -6,6 +6,7 @@ import loamstream.loam.intake.CsvRow
 import loamstream.loam.intake.aggregator
 import loamstream.loam.intake.flip.FlipDetector
 import loamstream.util.Fold
+import loamstream.loam.intake.aggregator.DataRow
 
 
 /**
@@ -13,33 +14,28 @@ import loamstream.util.Fold
  * Mar 27, 2020
  */
 object Metric {
-  def countGreaterThan(column: ColumnName)(threshold: Double): Metric[Int] = {
-    val columnAsDouble = column.asDouble
-    
-    Fold.countIf[CsvRow](row => columnAsDouble(row) > threshold)
+  def countGreaterThan(column: DataRow => Double)(threshold: Double): Metric[Int] = {
+    Fold.countIf[aggregator.DataRow](row => column(row) > threshold)
   }
   
-  def fractionGreaterThan(column: ColumnName)(threshold: Double): Metric[Double] = {
+  def fractionGreaterThan(column: DataRow => Double)(threshold: Double): Metric[Double] = {
     fractionOfTotal(countGreaterThan(column)(threshold))
   }
   
-  def countKnown(markerColumn: ColumnName, client: BioIndexClient): Metric[Int] = {
-    countKnownOrUnknown(markerColumn, client)(client.isKnown)
+  def countKnown(client: BioIndexClient): Metric[Int] = {
+    countKnownOrUnknown(client)(client.isKnown)
   }
   
-  def countUnknown(markerColumn: ColumnName, client: BioIndexClient): Metric[Int] = {
-    countKnownOrUnknown(markerColumn, client)(client.isUnknown)
+  def countUnknown(client: BioIndexClient): Metric[Int] = {
+    countKnownOrUnknown(client)(client.isUnknown)
   }
   
-  private def countKnownOrUnknown(
-      markerColumn: ColumnName, 
-      client: BioIndexClient)(p: String => Boolean): Metric[Int] = {
-    
-    Fold.countIf(row => p(markerColumn.eval(row)))
+  private def countKnownOrUnknown(client: BioIndexClient)(p: String => Boolean): Metric[Int] = {
+    Fold.countIf(row => p(row.marker))
   }
   
-  def fractionUnknown(markerColumn: ColumnName, client: BioIndexClient): Metric[Double] = {
-    fractionOfTotal(countUnknown(markerColumn, client))
+  def fractionUnknown(client: BioIndexClient): Metric[Double] = {
+    fractionOfTotal(countUnknown(client))
   }
   
   private def fractionOfTotal[A](numeratorMetric: Metric[A])(implicit ev: Numeric[A]): Metric[Double] = {
@@ -56,11 +52,7 @@ object Metric {
   }
   
   def countWithDisagreeingBetaStderrZscore(
-      flipDetector: FlipDetector)(
-      markerColumn: ColumnName = aggregator.ColumnNames.marker,
-      zscoreColumn: ColumnName = aggregator.ColumnNames.zscore,
-      betaColumn: ColumnName = aggregator.ColumnNames.beta,
-      stderrColumn: ColumnName = aggregator.ColumnNames.stderr,
+      flipDetector: FlipDetector,
       epsilon: Double = 1e-8d): Metric[Int] = {
     
     //z = beta / se  or  -(beta / se) if flipped
@@ -71,36 +63,37 @@ object Metric {
     
     def agreesFlip(z: Double, beta: Double, se: Double): Boolean = agrees(z, -(beta / se))
     
-    val isFlippedExpr: ColumnExpr[Boolean] = markerColumn.map(flipDetector.isFlipped)
-      
-    val agreesExpr: ColumnExpr[Boolean] = {
-      for {
-        isFlipped <- isFlippedExpr
-        z <- zscoreColumn.asDouble
-        se <- stderrColumn.asDouble
-        beta <- betaColumn.asDouble
-      } yield {
-        if(isFlipped) {
+    def isFlipped(marker: String): Boolean = flipDetector.isFlipped(marker).isFlipped
+    
+    val agreesFn: DataRow => Boolean = { 
+      case DataRow(marker, _, Some(z), Some(se), Some(beta), _, _, _, _) => {
+        if(isFlipped(marker)) {
           agrees(z, -(beta / se))
         } else {
           agrees(z, beta / se)
         }
       }
+      case _ => false
     }
     
-    def disagrees(row: CsvRow): Boolean = !agreesExpr(row)
+    def disagrees(row: DataRow): Boolean = !agreesFn(row)
     
     Fold.countIf(disagrees)
   }
   
-  def mean(columnExpr: ColumnExpr[_]): Metric[Double] = {
-    val columnAsDouble = columnExpr.asString.asDouble
+  def fractionWithDisagreeingBetaStderrZscore(
+      flipDetector: FlipDetector, 
+      epsilon: Double = 1e-8d): Metric[Double] = {
     
-    val sumFold: Fold[CsvRow, Double, Double] = Fold(0.0, _ + columnAsDouble(_), identity)
-    val countFold: Fold[CsvRow, Int, Int] = Fold.count
+    fractionOfTotal(countWithDisagreeingBetaStderrZscore(flipDetector, epsilon))
+  }
+  
+  def mean[N](column: DataRow => N)(implicit ev: Numeric[N]): Metric[Double] = {
+    val sumFold: Fold[DataRow, N, N] = Fold.sum(column)
+    val countFold: Fold[DataRow, Int, Int] = Fold.count
     
     Fold.combine(sumFold, countFold).map {
-      case (sum, count) => sum / count.toDouble
+      case (sum, count) => ev.toDouble(sum) / count.toDouble
     }
   }
 }

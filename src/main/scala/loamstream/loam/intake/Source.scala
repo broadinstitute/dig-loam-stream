@@ -23,6 +23,8 @@ import loamstream.loam.intake.flip.FlipDetector
  * Dec 17, 2019
  */
 sealed trait Source[R] {
+  def +:[RR >: R](newHead: RR): Source[RR] = Source.FromIterator(Iterator(newHead) ++ records)
+  
   def records: Iterator[R]
   
   def take(n: Int): Source[R] = fromCombinator(_.take(n))
@@ -48,11 +50,17 @@ sealed trait Source[R] {
     lazy val actualFlipDetector = flipDetector
     
     this.map(ev).map { row =>
-      val marker = markerDef.expr.apply(row)
+      val originalMarker = markerDef.expr.apply(row)
     
-      val isFlipped = actualFlipDetector.isFlipped(marker)
+      val disposition = actualFlipDetector.isFlipped(originalMarker)
     
-      CsvRow.TaggedCsvRow(row, marker, isFlipped)
+      val v = Variant.from(originalMarker).flipIf(disposition.isFlipped).complementIf(disposition.isComplementStrand)
+      
+      CsvRow.TaggedCsvRow(
+          delegate = row, 
+          marker = v.underscoreDelimited,
+          originalMarker = originalMarker, 
+          disposition = disposition)
     }
   }
   

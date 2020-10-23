@@ -1,5 +1,7 @@
 package loamstream.loam.intake
 
+import loamstream.loam.intake.flip.Complement
+
 /**
  * @author clint
  * Apr 1, 2020
@@ -10,15 +12,23 @@ final case class Variant(chrom: String, pos: Int, ref: String, alt: String) {
 
   def colonDelimited: String = delimitedBy(':')
   
+  def complement: Variant = copy(ref = Complement(ref), alt = Complement(alt))
+  
+  def complementIf(shouldBeComplemented: Boolean): Variant = if(shouldBeComplemented) complement else this
+  
   def flip: Variant = copy(ref = alt, alt = ref)
   
-  def flipped: String = s"${chrom}:${pos}:${alt}:${ref}"
+  def flipIf(shouldBeFlipped: Boolean): Variant = if(shouldBeFlipped) flip else this
+  
+  def flipped: String = flip.colonDelimited
   
   def delimitedBy(delimiter: Char): String = s"${chrom}${delimiter}${pos}${delimiter}${ref}${delimiter}${alt}"
   
   def asBioIndexCoord: String = s"chr${chrom}:${pos}"
   
   def asFullBioIndexCoord: String = s"chr${colonDelimited}"
+  
+  def toUpperCase: Variant = copy(chrom = chrom.toUpperCase, ref = ref.toUpperCase, alt = alt.toUpperCase)
 }
   
 object Variant {

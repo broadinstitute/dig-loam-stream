@@ -1,13 +1,15 @@
 package loamstream.loam.intake.aggregator
 
+import loamstream.loam.intake.Variant
+import loamstream.model.Store
 import loamstream.util.LogContext
-import loamstream.loam.intake.CsvRow
+import loamstream.loam.intake.IntakeSyntax
 
 /**
  * @author clint
  * Oct 14, 2020
  */
-object RowTransforms {
+trait RowTransforms { self: IntakeSyntax =>
   /*
    * automatically skip variants with missing values in any used column
    * 0 < eaf < 1
@@ -17,12 +19,29 @@ object RowTransforms {
    * return 1.0 if beta == 0 else -numpy.divide(abs(beta), scipy.stats.norm.ppf(p / 2))
    *
    */
-  
-  def clampPValues(implicit logCtx: LogContext): DataRowTransform = { row =>
-    import row.pvalue
+  object DataRowTransforms {
+    def clampPValues(logStore: Store, append: Boolean = false): DataRowTransform = {
+      clampPValues(Log.toFile(logStore, append))
+    }
     
-    val mungedPValue = if(pvalue == 0.0) Double.MinPositiveValue else pvalue
+    def clampPValues(implicit logCtx: LogContext): DataRowTransform = { row =>
+      import row.pvalue
+      
+      val mungedPValue = if(pvalue == 0.0) Double.MinPositiveValue else pvalue
+      
+      row.copy(pvalue = mungedPValue)
+    }
     
-    row.copy(pvalue = mungedPValue)
+    def upperCaseAlleles(logStore: Store, append: Boolean = false): DataRowTransform = { 
+      clampPValues(Log.toFile(logStore, append))
+    }
+    
+    def upperCaseAlleles: DataRowTransform = { row =>
+      import row.marker
+      
+      val variant = Variant.from(marker)
+      
+      row.copy(marker = variant.toUpperCase.underscoreDelimited)
+    }
   }
 }

@@ -29,8 +29,6 @@ sealed abstract class ColumnExpr[A : TypeTag] extends
   
   def isDefinedAt(row: CsvRow): Boolean = true
   
-  final def dataType: DataType = DataType.fromTypeTag(typeTag[A])
-  
   final def render(row: CsvRow): String = eval(row).toString
   
   final def map[B: TypeTag](f: A => B): ColumnExpr[B] = MappedColumnExpr(f, this)
@@ -176,6 +174,12 @@ object ColumnExpr {
       override def toFloat(a: A): Float = ev.toFloat(a)
       override def toDouble(a: A): Double = ev.toDouble(a)
     }
+  }
+  
+  def asDouble(column: ColumnExpr[_]): ColumnExpr[Double] = column match {
+    case ColumnExpr.Double(expr) => expr
+    case ColumnExpr.String(expr) => expr.asDouble
+    case _ => column.asString.asDouble
   }
   
   import scala.language.implicitConversions

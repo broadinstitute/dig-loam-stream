@@ -30,6 +30,4 @@ package object intake {
       result
     }
   }
-  
-  type ParseFn = (String, NamedColumnDef[_], CsvRow) => DataRow
 }

@@ -8,29 +8,29 @@ import org.scalatest.FunSuite
  */
 final class N2CTest extends FunSuite {
   test("apply") {
-    assert(N2C("A") === "T")
-    assert(N2C("C") === "G")
-    assert(N2C("T") === "A")
-    assert(N2C("G") === "C")
+    assert(Complement("A") === "T")
+    assert(Complement("C") === "G")
+    assert(Complement("T") === "A")
+    assert(Complement("G") === "C")
     
     intercept[Exception] {
-      N2C("B")
+      Complement("B")
     }
     
     intercept[Exception] {
-      N2C("D")
+      Complement("D")
     }
     
     intercept[Exception] {
-      N2C("Z")
+      Complement("Z")
     }
     
     intercept[Exception] {
-      N2C("")
+      Complement("")
     }
     
     intercept[Exception] {
-      N2C("asdf")
+      Complement("asdf")
     }
   }
 }

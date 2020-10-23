@@ -355,8 +355,6 @@ final class ColumnExprTest extends FunSuite {
     
     val doubleExpr = lifted(intExpr)
     
-    assert(doubleExpr.dataType === DataType.Float)
-    
     assert(doubleExpr(row) === 42.0)
   }
   
@@ -372,8 +370,6 @@ final class ColumnExprTest extends FunSuite {
     
     val doubleExpr = lifted(aExpr, bExpr)
     
-    assert(doubleExpr.dataType === DataType.Float)
-    
     assert(doubleExpr(row) === 21.0)
   }
   
@@ -384,8 +380,6 @@ final class ColumnExprTest extends FunSuite {
     
     val rowInDomain = Helpers.csvRow("bar" -> "foo", "baz" -> "42", "foo" -> "lol")
     val rowNotInDomain = Helpers.csvRow("bar" -> "glerg", "baz" -> "42", "foo" -> "lol")
-    
-    assert(pexpr.dataType === DataType.Int)
     
     assert(pexpr.isDefinedAt(rowInDomain) === true)
     assert(pexpr.isDefinedAt(rowNotInDomain) === false)
@@ -398,7 +392,6 @@ final class ColumnExprTest extends FunSuite {
     val a = LiteralColumnExpr(42)
 
     assert(a.value === 42)
-    assert(a.dataType === DataType.Int)
     assert(a.asString(nullRow) === "42")
     assert(a(nullRow) === 42)
     assert(a.toString === "42")
@@ -416,7 +409,6 @@ final class ColumnExprTest extends FunSuite {
 
     val row = Helpers.csvRow("bar" -> "42", "baz" -> "asdf", "foo" -> "lol")
     
-    assert(cn.dataType === DataType.String)
     assert(cn.asString(row) === "lol")
     assert(cn(row) === "lol")
   }

@@ -11,6 +11,11 @@ import loamstream.model.execute.DrmSettings
 import loamstream.util.Files
 import loamstream.util.Loggable
 import loamstream.util.TimeUtils
+import loamstream.loam.intake.metrics.Metric
+import loamstream.util.Fold
+import loamstream.util.CanBeClosed
+import loamstream.loam.intake.aggregator.RowFilters
+import loamstream.loam.intake.aggregator.RowTransforms
 
 
 /**
@@ -19,7 +24,7 @@ import loamstream.util.TimeUtils
  */
 object IntakeSyntax extends IntakeSyntax
 
-trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunctions {
+trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTransforms with GraphFunctions {
   type ColumnName = loamstream.loam.intake.ColumnName
   val ColumnName = loamstream.loam.intake.ColumnName
   
@@ -40,14 +45,23 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
   
   type Row = loamstream.loam.intake.Row
   
-  type HeaderRow = loamstream.loam.intake.HeaderRow
-  val HeaderRow = loamstream.loam.intake.HeaderRow
+  type HeaderRow = loamstream.loam.intake.LiteralRow
+  val HeaderRow = loamstream.loam.intake.LiteralRow
   
-  type DataRow = loamstream.loam.intake.DataRow
-  val DataRow = loamstream.loam.intake.DataRow
+  //TODO
+  type DataRow = loamstream.loam.intake.aggregator.DataRow
+  val DataRow = loamstream.loam.intake.aggregator.DataRow
   
   type CsvRow = loamstream.loam.intake.CsvRow
   val CsvRow = loamstream.loam.intake.CsvRow
+  
+  object Log {
+    def toFile(store: Store, append: Boolean = false): ToFileLogContext = {
+      require(store.isPathStore)
+      
+      new ToFileLogContext(store.path, append)
+    }
+  }
   
   private def doLocally[A](body: => A)(implicit scriptContext: LoamScriptContext): NativeTool = {
     LoamPredef.local {
@@ -71,6 +85,10 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
     }
   }
   
+  private[intake] def headerRowFrom(columnDefs: Seq[NamedColumnDef[_]]): HeaderRow = {
+    HeaderRow(columnDefs.sortBy(_.name.index).map(_.name.name))
+  }
+  
   implicit final class ColumnNameOps(val s: String) {
     def asColumnName: ColumnName = ColumnName(s)
   }
@@ -88,45 +106,71 @@ trait IntakeSyntax extends Interpolators with CsvTransformations with GraphFunct
       rows: Source[CsvRow],
       flipDetector: => FlipDetector) extends Loggable {
     
-    def via(expr: aggregator.RowExpr): MapFilterAndGoTarget = {
+    def filter(p: RowPredicate): ViaTarget = new ViaTarget(dest, rows.filter(p), flipDetector)
+    
+    def filter(ps: Iterable[RowPredicate]): ViaTarget = {
+      val filteredRows = ps.foldLeft(rows)(_.filter(_))
+      
+      new ViaTarget(dest, filteredRows, flipDetector)
+    }
+    
+    def via(expr: aggregator.RowExpr): MapFilterAndGoTarget[Unit] = {
       val dataRows = rows.tagFlips(expr.markerDef, flipDetector).map(expr)
       
       val headerRow = headerRowFrom(expr.columnDefs)
       
-      new MapFilterAndGoTarget(dest, headerRow, dataRows)
+      val pseudoMetric: Metric[Unit] = Fold.foreach(_ => ()) // TODO
+      
+      new MapFilterAndGoTarget(dest, headerRow, dataRows, pseudoMetric)
     }
   }
   
-  final class MapFilterAndGoTarget(
+  final class MapFilterAndGoTarget[A](
       dest: Store, 
       headerRow: HeaderRow,
-      rows: Source[aggregator.DataRow]) extends Loggable {
+      rows: Source[aggregator.DataRow],
+      metric: Metric[A]) extends Loggable {
+    
+    import loamstream.loam.intake.metrics.MetricOps
     
     def copy(
         dest: Store = this.dest, 
         headerRow: HeaderRow = this.headerRow,
-        rows: Source[aggregator.DataRow] = this.rows): MapFilterAndGoTarget = {
+        rows: Source[aggregator.DataRow] = this.rows): MapFilterAndGoTarget[A] = {
       
-      new MapFilterAndGoTarget(dest, headerRow, rows)
+      new MapFilterAndGoTarget(dest, headerRow, rows, metric)
     }
     
-    def filter(predicate: aggregator.DataRow => Boolean): MapFilterAndGoTarget = copy(rows = rows.filter(predicate))
+    def withMetric[B](m: Metric[B]): MapFilterAndGoTarget[(A, B)] = {
+      new MapFilterAndGoTarget[(A, B)](dest, headerRow, rows, metric combine m)
+    }
     
-    def map(transform: aggregator.DataRow => aggregator.DataRow): MapFilterAndGoTarget = copy(rows = rows.map(transform))
+    def filter(predicate: aggregator.DataRow => Boolean): MapFilterAndGoTarget[A] = copy(rows = rows.filter(predicate))
+    
+    def map(transform: aggregator.DataRow => aggregator.DataRow): MapFilterAndGoTarget[A] = {
+      copy(rows = rows.map(transform))
+    }
     
     //TODO: better name
-    def go(forceLocal: Boolean = false)(implicit scriptContext: LoamScriptContext): Tool = {
+    def write(forceLocal: Boolean = false)(implicit scriptContext: LoamScriptContext): Tool = {
+      require(dest.isPathStore)
+      
+      val sink: RowSink = RowSink.ToFile(dest.path)
+      
+      val writeLines: Metric[Unit] = Fold.foreach(sink.accept)
+      
+      val m: Metric[(A, Unit)] = metric.combine(writeLines)
+      
       //TODO: How to wire up inputs (if any)?
       val tool: Tool = nativeTool(forceLocal) {
         TimeUtils.time(s"Producing ${dest.path}", info(_)) {
-          //TODO
-          val csvFormat = Source.Defaults.csvFormat
+          CanBeClosed.enclosed(sink) { _ =>
+            sink.accept(headerRow)
           
-          val renderer = Renderer.CommonsCsv(csvFormat)
-          
-          val rowsToWrite: Iterator[Row] = Iterator(headerRow) ++ rows.records.map(_.toIntakeRow)
-          
-          Files.writeLinesTo(dest.path)(rowsToWrite.map(renderer.render))
+            val (metricResults, _) = m.process(rows)
+            
+            //TODO: What to do with metricResults?
+          }
         }
       }
       

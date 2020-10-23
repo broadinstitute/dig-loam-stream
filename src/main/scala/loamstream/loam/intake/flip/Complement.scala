@@ -6,7 +6,7 @@ package loamstream.loam.intake.flip
  * 
  * Ported from Marcin's Perl code
  */
-object N2C extends (String => String) {
+object Complement extends (String => String) {
   override def apply(s: String): String = s match {
     case "A" => "T"
     case "C" => "G"

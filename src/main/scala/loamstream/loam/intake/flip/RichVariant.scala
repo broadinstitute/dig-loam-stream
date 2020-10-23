@@ -21,7 +21,7 @@ final case class RichVariant(
   
   def toKey: String = s"${chrom}_${position}_${reference}_${alt}"
   
-  def toKeyMunged: String = s"${chrom}_${position}_${N2C(reference)}_${N2C(alt)}"
+  def toKeyMunged: String = s"${chrom}_${position}_${Complement(reference)}_${Complement(alt)}"
   
   def isIn26k: Boolean = variantsFrom26k.contains(this.toKey)
   

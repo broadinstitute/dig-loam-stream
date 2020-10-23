@@ -2,6 +2,7 @@ package loamstream.loam.intake.aggregator
 
 import loamstream.loam.intake.ColumnExpr
 import loamstream.loam.intake.LiteralRow
+import loamstream.loam.intake.Row
 
 /**
  * @author clint
@@ -16,9 +17,7 @@ final case class DataRow(
   oddsRatio: Option[Double] = None,
   eaf: Option[Double] = None,
   maf: Option[Double] = None,
-  n: Option[Double] = None) {
+  n: Option[Double] = None) extends Row {
   
-  def toIntakeRow: loamstream.loam.intake.Row = {
-    LiteralRow(???)
-  }
+  override def values: Seq[String] = ???
 }

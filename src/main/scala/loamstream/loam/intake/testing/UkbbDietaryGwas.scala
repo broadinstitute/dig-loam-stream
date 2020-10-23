@@ -11,6 +11,7 @@ import loamstream.loam.intake.aggregator.AggregatorIntakeConfig
 import loamstream.loam.intake.aggregator.Metadata
 import loamstream.loam.intake.aggregator.SourceColumns
 import loamstream.loam.intake.aggregator.ColumnDefs
+import loamstream.loam.intake.RowSink
 
 /**
  * @author clint
@@ -75,23 +76,34 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
     
     require(sourceStore.isPathStore)
     
-    val dest: Store = destOpt.getOrElse(store(Paths.workDir / s"ready-for-intake-${phenotype}.tsv"))
+    val destPath = Paths.workDir / s"ready-for-intake-${phenotype}.tsv"
+    
+    val dest: Store = destOpt.getOrElse(store(destPath))
     
     val csvFormat = org.apache.commons.csv.CSVFormat.DEFAULT.withDelimiter(' ').withFirstRecordAsHeader
     
     val source = Source.fromCommandLine(s"zcat ${sourceStore.path}", csvFormat)
     
+    val filterLog: Store = store(path(s"${dest.path.toString}.filtered-rows"))
+    val unknownToBioIndexFile: Store = store(path(s"${dest.path.toString}.unknown-to-bio-index"))
+    val disagreeingZBetaStdErrFile: Store = store(path(s"${dest.path.toString}.disagreeing-z-Beta-stderr"))
+    
     produceCsv(dest).
         from(source).
         using(flipDetector).
         via(toAggregatorRows).
-        filter(aggregator.RowFilters.validEaf).
-        filter(aggregator.RowFilters.validMaf).
-        filter(aggregator.RowFilters.validPValue).
-        map(aggregator.RowTransforms.clampPValues).
-        go().
+        filter(DataRowFilters.validEaf(filterLog, append = true)).
+        filter(DataRowFilters.validMaf(filterLog, append = true)).
+        map(DataRowTransforms.clampPValues).
+        filter(DataRowFilters.validPValue).
+        withMetric(Metrics.fractionUnknownToBioIndex(unknownToBioIndexFile)).
+        withMetric(Metrics.fractionUnknownToBioIndex(disagreeingZBetaStdErrFile)).
+        write().
         tag(s"process-phenotype-$phenotype").
-        in(sourceStore)
+        in(sourceStore).
+        out(dest).
+        out(unknownToBioIndexFile).
+        out(disagreeingZBetaStdErrFile)
        
     dest
   }

@@ -25,23 +25,5 @@ trait ColumnDef[A] extends (CsvRow.WithFlipTag => A) {
   
   def exprWhenFlipped: Option[ColumnExpr[A]]
   
-  final def dataType: DataType = expr.dataType
-  final def dataTypeFlipped: Option[DataType] = exprWhenFlipped.map(_.dataType)
-  
-  final def getTypedValueFromSource: RowParser[TypedData] = { row =>
-    val rawValue = expr(row)
-    
-    TypedData(rawValue.toString, dataType)
-  }
-  
-  final def getTypedValueFromSourceWhenFlipNeeded: RowParser[TypedData] = { row =>
-    val exprToInvoke: ColumnExpr[_] = exprWhenFlipped.getOrElse(expr)
-    
-    val rawValue = exprToInvoke(row).toString
-    val dt = dataTypeFlipped.getOrElse(dataType)
-    
-    TypedData(rawValue, dt)
-  }
-  
   def withName(name: ColumnName): NamedColumnDef[A] = NamedColumnDef(name, expr, exprWhenFlipped)
 }

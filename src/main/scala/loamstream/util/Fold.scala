@@ -32,6 +32,16 @@ object Fold {
     override def summarize(accumulated: A): R = doSummarize(accumulated)
   }
   
+  def foreach[E](op: E => Any): Fold[E, Unit, Unit] = {
+    def add(acc: Unit, elem: E): Unit = {
+      op(elem)
+      
+      ()
+    }
+    
+    Fold((), add, _ => ())
+  }
+  
   def fold[E, A, R](input: TraversableOnce[E])(f: Fold[E, A, R]): R = {
     val reduced = input.foldLeft(f.zero) { (acc, elem) =>
       f.add(acc, elem) 
@@ -62,6 +72,10 @@ object Fold {
   }
   
   def sum[E](implicit ev: Numeric[E]): Fold[E, E, E] = Fold(ev.zero, ev.plus, identity)
+  
+  def sum[E, F](field: E => F)(implicit ev: Numeric[F]): Fold[E, F, F] = {
+    Fold(ev.zero, (soFar, e) => ev.plus(soFar, field(e)), identity)
+  }
   
   def count[E]: Fold[E, Int, Int] = Fold(0, (acc, _) => acc + 1, identity)
   

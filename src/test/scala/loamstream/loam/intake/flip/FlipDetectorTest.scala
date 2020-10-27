@@ -11,30 +11,40 @@ import loamstream.util.TimeUtils
  */
 final class FlipDetectorTest extends FunSuite {
   private lazy val flipDetector: FlipDetector = FlipDetectorTest.makeFlipDetector
+
+  import Disposition._
+  
+  test("complement+flip case") {
+    assert(flipDetector.isFlipped("1_636285_G_A") === Disposition.FlippedComplementStrand)
+  }
+  
+  test("complement case") {
+    assert(flipDetector.isFlipped("1_636285_A_G") === Disposition.NotFlippedComplementStrand)
+  }
   
   test("Problematic variant: 1_636285_T_C") {
-    assert(flipDetector.isFlipped("1_636285_T_C").isFlipped === false)
-    assert(flipDetector.isFlipped("1_636285_C_T").isFlipped === true)
+    assert(flipDetector.isFlipped("1_636285_T_C") === Disposition.NotFlippedSameStrand)
+    assert(flipDetector.isFlipped("1_636285_C_T") === Disposition.FlippedSameStrand)
   }
   
   test("Problematic variant: 1_649192_T_A") {
-    assert(flipDetector.isFlipped("1_649192_T_A").isFlipped === true)
-    assert(flipDetector.isFlipped("1_649192_A_T").isFlipped === false)
+    assert(flipDetector.isFlipped("1_649192_T_A") === Disposition.FlippedSameStrand)
+    assert(flipDetector.isFlipped("1_649192_A_T") === Disposition.NotFlippedSameStrand)
   }
  
   test("Problematic variant: 1_612688_T_TCTC") {
-    assert(flipDetector.isFlipped("1_612688_T_TCTC").isFlipped === false)
-    assert(flipDetector.isFlipped("1_612688_TCTC_T").isFlipped === false)
+    assert(flipDetector.isFlipped("1_612688_T_TCTC") === Disposition.NotFlippedSameStrand)
+    assert(flipDetector.isFlipped("1_612688_TCTC_T") === Disposition.NotFlippedSameStrand)
   }
   
   test("Problematic variant: 1_746211_AG_A") {
-    assert(flipDetector.isFlipped("1_746211_AG_A").isFlipped === true)
-    assert(flipDetector.isFlipped("1_746211_A_AG").isFlipped === false)
+    assert(flipDetector.isFlipped("1_746211_AG_A") === Disposition.FlippedSameStrand)
+    assert(flipDetector.isFlipped("1_746211_A_AG") === Disposition.NotFlippedSameStrand)
   }
   
   test("Problematic variant: 1_738475_A_G") {
-    assert(flipDetector.isFlipped("1_738475_A_G").isFlipped === true)
-    assert(flipDetector.isFlipped("1_738475_G_A").isFlipped === false)
+    assert(flipDetector.isFlipped("1_738475_A_G") === Disposition.FlippedSameStrand)
+    assert(flipDetector.isFlipped("1_738475_G_A") === Disposition.NotFlippedSameStrand)
   }
   
   test("Problematic variants") {
@@ -42,11 +52,11 @@ final class FlipDetectorTest extends FunSuite {
       val v = Variant.from(variant)
       
       assert(
-          flipDetector.isFlipped(v.underscoreDelimited).isFlipped === true, 
+          flipDetector.isFlipped(v.underscoreDelimited) === Disposition.FlippedSameStrand, 
           s"Expected ${v.underscoreDelimited} to be flipped")
           
       assert(
-          flipDetector.isFlipped(v.flip.underscoreDelimited).isFlipped === false, 
+          flipDetector.isFlipped(v.flip.underscoreDelimited) === Disposition.NotFlippedSameStrand, 
           s"Expected ${v.underscoreDelimited} to NOT be flipped")
     }
     

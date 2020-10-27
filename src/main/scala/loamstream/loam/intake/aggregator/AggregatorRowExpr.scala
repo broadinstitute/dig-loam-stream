@@ -21,6 +21,7 @@ final case class RowExpr(
     nDef: Option[NamedColumnDef[Double]] = None) extends TaggedRowParser[DataRow] {
   
   def columnDefs: Seq[NamedColumnDef[_]] = {
+    //NB: Note that this order matters. :\ 
     markerDef +: 
     pvalueDef +: {
       (zscoreDef ++
@@ -29,8 +30,23 @@ final case class RowExpr(
       oddsRatioDef ++
       eafDef ++
       mafDef ++
-      nDef).toSeq.sortBy(_.name.index)
+      nDef).toSeq
     }
+  }
+  
+  def sourceColumns: SourceColumns = {
+    def nameOf(columnDef: NamedColumnDef[_]) = columnDef.name.mapName(_.toLowerCase)
+    
+    SourceColumns(
+      marker = nameOf(markerDef), 
+      pvalue = nameOf(pvalueDef),
+      zscore = zscoreDef.map(nameOf),
+      stderr = stderrDef.map(nameOf),
+      beta = betaDef.map(nameOf),
+      oddsRatio = oddsRatioDef.map(nameOf),
+      eaf = eafDef.map(nameOf),
+      maf = mafDef.map(nameOf),
+      n = nDef.map(nameOf))
   }
   
   override def apply(row: CsvRow.WithFlipTag): DataRow = DataRow(

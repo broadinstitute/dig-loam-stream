@@ -98,40 +98,58 @@ object FlipDetector extends Loggable {
       import Disposition._
       
       //TODO: IS THIS RIGHT??
-      if(variant.flip.isIn26k) { FlippedSameStrand }
-      else if(variant.flip.isIn26kMunged) { FlippedComplementStrand }
+      if(variant.flip.isIn26k) { println("IN 26k") ; FlippedSameStrand }
+      else if(variant.isIn26kComplemented) { println(println("COMPLEMENT IN 26k")) ; NotFlippedComplementStrand }
+      else if(variant.flip.isIn26kComplemented) { println("FLIPPED-COMPLEMENT IN 26k") ; FlippedComplementStrand }
       else {
-        variant.refChar.map(_.toString).filter(_ != reference) match {
-          case Some(ref) if ref == alt => FlippedSameStrand
-          case Some(ref) if ref == Complement(alt) => FlippedComplementStrand
+        val refFromRefGenomeOpt = variant.refCharFromReferenceGenome.map(_.toString)
+        
+        implicit val v = variant
+        
+        refFromRefGenomeOpt match {
+          case RefMatchesAltInstead() => FlippedSameStrand
+          case RefMatchesAltComplementInstead() => FlippedComplementStrand
+          case RefMatchesRefComplement() => NotFlippedComplementStrand
           case _ => NotFlippedSameStrand
         }
       }
     }
     
     private def handleMultiNucleotideVariant(variant: RichVariant): Disposition = {
-      def complement(s: String): String = {
-          s.replaceAll("A", "X")
-           .replaceAll("T", "A")
-           .replaceAll("X", "T")
-           .replaceAll("C", "X")
-           .replaceAll("G", "C")
-           .replaceAll("X", "G")
-        }
-        
       import variant.{ alt, reference }
       import loamstream.util.Options.Implicits._
       import Disposition._
       
       variant.refFromReferenceGenome.filter(_ != reference).zip(variant.altFromReferenceGenome) match {
         case Some((_, altFromRefGenome)) if altFromRefGenome == alt => FlippedSameStrand
-        case Some((_, altFromRefGenome)) if altFromRefGenome == complement(alt) => FlippedComplementStrand
+        case Some((_, altFromRefGenome)) if altFromRefGenome == Complement(alt) => FlippedComplementStrand
         case _ => NotFlippedSameStrand
       }
     }
     
     private def extractor(regex: Regex): RichVariant.Extractor = {
       RichVariant.Extractor(regex, referenceFiles, variantsFrom26k)
+    }
+  }
+  
+  private object RefMatchesAltInstead {
+    def unapply(refFromRefGenomeOpt: Option[String])(implicit v: RichVariant): Boolean = refFromRefGenomeOpt match {
+      case Some(refFromRefGenome) => refFromRefGenome != v.reference && refFromRefGenome == v.alt
+      case _ => false
+    }
+  }
+  
+  private object RefMatchesAltComplementInstead {
+    def unapply(refFromRefGenomeOpt: Option[String])(implicit v: RichVariant): Boolean = refFromRefGenomeOpt match {
+      case Some(refFromRefGenome) => refFromRefGenome != v.reference && refFromRefGenome == Complement(v.alt)
+      case _ => false
+    }
+  }
+  
+  private object RefMatchesRefComplement {
+    def unapply(refFromRefGenomeOpt: Option[String])(implicit v: RichVariant): Boolean = refFromRefGenomeOpt match {
+      case Some(refFromRefGenome) => refFromRefGenome == Complement(v.reference)
+      case _ => false
     }
   }
   

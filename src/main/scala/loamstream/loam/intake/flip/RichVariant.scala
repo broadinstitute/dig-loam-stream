@@ -19,15 +19,15 @@ final case class RichVariant(
   def alt: String = variant.alt 
   def reference: String = variant.ref
   
-  def toKey: String = s"${chrom}_${position}_${reference}_${alt}"
+  def toKey: String = variant.underscoreDelimited
   
-  def toKeyMunged: String = s"${chrom}_${position}_${Complement(reference)}_${Complement(alt)}"
+  def toKeyComplemented: String = variant.complement.underscoreDelimited
   
   def isIn26k: Boolean = variantsFrom26k.contains(this.toKey)
   
-  def isIn26kMunged: Boolean = variantsFrom26k.contains(this.toKeyMunged)
+  def isIn26kComplemented: Boolean = variantsFrom26k.contains(this.toKeyComplemented)
   
-  def refChar: Option[Char] = referenceFiles.getChar(chrom, position - 1) 
+  def refCharFromReferenceGenome: Option[Char] = referenceFiles.getChar(chrom, position - 1) 
   
   def refFromReferenceGenome: Option[String] = referenceFiles.getString(chrom, position - 1, reference.size)
   

@@ -49,7 +49,7 @@ final class ColumnDefsTest extends FunSuite {
       assert(passThruColumnDef.expr.apply(row) == expected)
     }
     
-    import ColumnDefs.PassThru._
+    import AggregatorColumnDefs.PassThru._
     
     doTest(beta(_), ColumnNames.beta, isDouble = true)
     doTest(eaf(_), ColumnNames.eaf, isDouble = true)
@@ -63,7 +63,7 @@ final class ColumnDefsTest extends FunSuite {
   }
   
   test("just") {
-    assert(ColumnDefs.just(blarg) === NamedColumnDef(blarg))
+    assert(AggregatorColumnDefs.just(blarg) === NamedColumnDef(blarg))
   }
   
   test("marker") {
@@ -72,7 +72,7 @@ final class ColumnDefsTest extends FunSuite {
     val baz = ColumnName("baz")
     val bip = ColumnName("bip")
     
-    val markerDef = ColumnDefs.marker(chromColumn = foo, posColumn = bar, refColumn = baz, altColumn = bip)
+    val markerDef = AggregatorColumnDefs.marker(chromColumn = foo, posColumn = bar, refColumn = baz, altColumn = bip)
     
     assert(markerDef.name === ColumnNames.marker)
     
@@ -85,7 +85,7 @@ final class ColumnDefsTest extends FunSuite {
   test("pvalue") {
     val baz = ColumnName("baz")
     
-    val pvalueDef = ColumnDefs.pvalue(baz)
+    val pvalueDef = AggregatorColumnDefs.pvalue(baz)
     
     assert(pvalueDef.name === ColumnNames.pvalue)
     
@@ -97,7 +97,7 @@ final class ColumnDefsTest extends FunSuite {
   test("stderr") {
     val baz = ColumnName("baz")
     
-    val stderrDef = ColumnDefs.stderr(baz)
+    val stderrDef = AggregatorColumnDefs.stderr(baz)
     
     assert(stderrDef.name === ColumnNames.stderr)
     
@@ -109,7 +109,7 @@ final class ColumnDefsTest extends FunSuite {
   test("zscore") {
     val baz = ColumnName("baz").asDouble
     
-    val zscoreDef = ColumnDefs.zscore(baz)
+    val zscoreDef = AggregatorColumnDefs.zscore(baz)
     
     assert(zscoreDef.name === ColumnNames.zscore)
     
@@ -122,7 +122,7 @@ final class ColumnDefsTest extends FunSuite {
     val baz = ColumnName("baz")
     val bip = ColumnName("bip")
     
-    val zscoreDef = ColumnDefs.zscoreFrom(betaColumn = baz, stderrColumn = bip)
+    val zscoreDef = AggregatorColumnDefs.zscoreFrom(betaColumn = baz, stderrColumn = bip)
     
     assert(zscoreDef.name === ColumnNames.zscore)
     
@@ -135,7 +135,7 @@ final class ColumnDefsTest extends FunSuite {
   test("beta") {
     val baz = ColumnName("baz")
     
-    val betaDef = ColumnDefs.beta(baz)
+    val betaDef = AggregatorColumnDefs.beta(baz)
     
     assert(betaDef.name === ColumnNames.beta)
     
@@ -148,7 +148,7 @@ final class ColumnDefsTest extends FunSuite {
   test("eaf") {
     val baz = ColumnName("baz")
     
-    val eafDef = ColumnDefs.eaf(baz)
+    val eafDef = AggregatorColumnDefs.eaf(baz)
     
     assert(eafDef.name === ColumnNames.eaf)
     
@@ -161,7 +161,7 @@ final class ColumnDefsTest extends FunSuite {
   test("oddsRatio") {
     val baz = ColumnName("baz")
     
-    val oddsRatioDef = ColumnDefs.oddsRatio(baz)
+    val oddsRatioDef = AggregatorColumnDefs.oddsRatio(baz)
     
     assert(oddsRatioDef.name === ColumnNames.odds_ratio)
     

@@ -10,7 +10,7 @@ import loamstream.loam.intake.aggregator
 import loamstream.loam.intake.aggregator.AggregatorIntakeConfig
 import loamstream.loam.intake.aggregator.Metadata
 import loamstream.loam.intake.aggregator.SourceColumns
-import loamstream.loam.intake.aggregator.ColumnDefs
+import loamstream.loam.intake.aggregator.AggregatorColumnDefs
 import loamstream.loam.intake.RowSink
 
 /**
@@ -36,7 +36,7 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
 
   val toAggregatorRows: aggregator.RowExpr = {
     import ColumnNames._
-    import ColumnDefs._
+    import AggregatorColumnDefs._
     
     aggregator.RowExpr(
       markerDef = marker(chromColumn = CHR, posColumn = BP, refColumn = ALLELE1, altColumn = ALLELE0),

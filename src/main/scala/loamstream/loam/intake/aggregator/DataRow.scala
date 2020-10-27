@@ -3,6 +3,8 @@ package loamstream.loam.intake.aggregator
 import loamstream.loam.intake.ColumnExpr
 import loamstream.loam.intake.LiteralRow
 import loamstream.loam.intake.Row
+import loamstream.util.TimeUtils
+import scala.collection.mutable.ArrayBuffer
 
 /**
  * @author clint
@@ -19,5 +21,26 @@ final case class DataRow(
   maf: Option[Double] = None,
   n: Option[Double] = None) extends Row {
   
-  override def values: Seq[String] = ???
+  //NB: Profiler-informed optimization: adding to a Buffer is 2x faster than ++ or .flatten
+  override def values: Seq[String] = {
+    val buffer = new ArrayBuffer[String](10)
+    
+    def add(o: Option[Double]): Unit = o match {
+      case Some(d) => buffer += d.toString
+      case None => ()
+    }
+    
+    buffer += marker
+    buffer += pvalue.toString
+    
+    add(zscore)
+    add(stderr)
+    add(beta)
+    add(oddsRatio)
+    add(eaf)
+    add(maf)
+    add(n)
+    
+    buffer //TODO: ORDERING
+  }
 }

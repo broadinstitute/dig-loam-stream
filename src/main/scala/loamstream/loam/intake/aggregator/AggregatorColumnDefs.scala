@@ -6,7 +6,7 @@ import loamstream.loam.intake.IntakeSyntax
  * @author clint
  * Apr 17, 2020
  */
-object ColumnDefs {
+object AggregatorColumnDefs {
  
   import IntakeSyntax._
   import ColumnExpr.asDouble

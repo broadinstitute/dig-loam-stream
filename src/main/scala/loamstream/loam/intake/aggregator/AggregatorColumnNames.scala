@@ -2,6 +2,7 @@ package loamstream.loam.intake.aggregator
 
 import loamstream.loam.intake.IntakeSyntax
 import loamstream.loam.intake.ColumnName
+import loamstream.loam.intake.NamedColumnDef
 
 /**
  * @author clint

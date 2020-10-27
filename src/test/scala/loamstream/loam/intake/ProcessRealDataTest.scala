@@ -6,7 +6,7 @@ import loamstream.TestHelpers
 import loamstream.util.Files
 import loamstream.util.TimeUtils
 import scala.util.control.NonFatal
-import loamstream.loam.intake.aggregator.ColumnDefs
+import loamstream.loam.intake.aggregator.AggregatorColumnDefs
 import loamstream.loam.LoamSyntax
 import loamstream.util.Loggable
 import loamstream.compiler.LoamEngine
@@ -38,7 +38,7 @@ final class ProcessRealDataTest extends FunSuite with Loggable {
     }
     
     import ColumnNames._
-    import ColumnDefs._
+    import AggregatorColumnDefs._
   
     val toAggregatorRows: aggregator.RowExpr = {
       aggregator.RowExpr(
@@ -99,20 +99,36 @@ final class ProcessRealDataTest extends FunSuite with Loggable {
       
       val actual = Source.fromFile(actualDataPath)
       
+      println(s"%%%%%%%%%%%%%% wrote lines to $actualDataPath")
+      
       val expectations: Iterable[(String, (String, String) => Unit)] = {
-        val asDouble: (String, String) => Unit = { (lhs, rhs) => compareWithEpsilon(lhs.toDouble, rhs.toDouble) }
-        val asString: (String, String) => Unit = _ == _
+        def asDouble(fieldName: String): (String, (String, String) => Unit) = { 
+          fieldName -> { (lhs, rhs) => 
+            compareWithEpsilon(fieldName, lhs.toDouble, rhs.toDouble)
+          }
+        }
+        
+        def asString(fieldName: String): (String, (String, String) => Unit) = { 
+          fieldName ->  { (lhs, rhs) => 
+            assert(lhs == rhs, s"Field '$fieldName' didn't match")
+          }
+        }
         
         Seq(
-          VAR_ID.name -> asString,
-          EAF_PH.name -> asDouble,
-          MAF_PH.name -> asDouble,
-          BETA.name -> asDouble,
-          SE.name -> asDouble,
-          P_VALUE.name -> asDouble)
+          asString(VAR_ID.name),
+          asDouble(P_VALUE.name),
+          asDouble(SE.name),
+          asDouble(BETA.name),
+          asDouble(EAF_PH.name),
+          asDouble(MAF_PH.name))
       }
         
-      actual.records.zip(expected.records).foreach { case (lhs, rhs) => assertSame(lhs, rhs, expectations) }
+      val actualRecords = actual.records.toList
+      val expectedRecords = expected.records.toList
+      
+      actualRecords.zip(expectedRecords).foreach { case (lhs, rhs) => assertSame(lhs, rhs, expectations) }
+      
+      assert(actualRecords.size === expectedRecords.size)
     }
   }
   
@@ -130,7 +146,7 @@ final class ProcessRealDataTest extends FunSuite with Loggable {
         val msg = {
           def mkString(row: CsvRow): String = row.values.mkString(" ")
           
-          s"Rows didn't match: \nactual: '${mkString(lhs)}'\nexpected: '${mkString(rhs)}'"
+          s"Rows didn't match: \nactual: '${mkString(lhs)}'\nexpected: '${mkString(rhs)}', '$lhs' != '$rhs'"
         }
         
         throw new Exception(msg, e)
@@ -147,10 +163,10 @@ final class ProcessRealDataTest extends FunSuite with Loggable {
   
   private implicit val doubleEq = org.scalactic.TolerantNumerics.tolerantDoubleEquality(epsilon)
   
-  private def compareWithEpsilon(a: Double, b: Double): Unit = {
+  private def compareWithEpsilon(fieldName: String, a: Double, b: Double): Unit = {
     //import ProcessRealDataTest.Implicits._
     
-    assert(a === b)
+    assert(a === b, s"Field '$fieldName' didn't match")
   }
 }
 

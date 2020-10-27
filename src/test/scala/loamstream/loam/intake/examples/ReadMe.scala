@@ -118,7 +118,7 @@ object ReadMe extends loamstream.LoamFile with AggregatorCommands {
   }
   
   //Helpers that encode common patterns 
-  import loamstream.loam.intake.aggregator.ColumnDefs.{marker, eaf, beta, just, pvalue, stderr}
+  import loamstream.loam.intake.aggregator.AggregatorColumnDefs.{marker, eaf, beta, just, pvalue, stderr}
   import ColumnNames._
   
   //Use aggregator-default column names to make things easier

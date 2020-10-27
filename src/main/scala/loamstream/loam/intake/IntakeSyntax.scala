@@ -86,7 +86,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
   }
   
   private[intake] def headerRowFrom(columnDefs: Seq[NamedColumnDef[_]]): HeaderRow = {
-    HeaderRow(columnDefs.sortBy(_.name.index).map(_.name.name))
+    HeaderRow(columnDefs.map(_.name.name))
   }
   
   implicit final class ColumnNameOps(val s: String) {

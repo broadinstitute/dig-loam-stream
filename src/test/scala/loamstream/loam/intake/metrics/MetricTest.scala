@@ -9,6 +9,9 @@ import loamstream.loam.intake.ColumnDef
 import loamstream.loam.intake.aggregator.RowExpr
 import loamstream.loam.intake.aggregator.AggregatorColumnDefs
 import loamstream.loam.intake.flip.Disposition
+import loamstream.loam.intake.Variant
+import loamstream.loam.intake.aggregator.Phenotype
+import loamstream.loam.intake.aggregator.Dataset
 
 
 /**
@@ -227,7 +230,15 @@ final class MetricTest extends FunSuite {
 
 object MetricTest {
   private final class MockBioIndexClient(knownVariants: Set[String]) extends BioIndexClient {
-    override def isKnown(varId: String): Boolean = knownVariants.contains(varId)
+    override def isKnown(variant: Variant): Boolean = knownVariants.contains(variant.colonDelimited)
+    
+    override def isKnown(dataset: Dataset): Boolean = ???
+  
+    override def isKnown(phenotype: Phenotype): Boolean = ???
+    
+    override def findClosestMatch(dataset: Dataset): Option[Dataset] = ???
+  
+    override def findClosestMatch(phenotype: Phenotype): Option[Phenotype] = ???
   }
   
   private final class MockFlipDetector(flippedVariants: Set[String]) extends FlipDetector {

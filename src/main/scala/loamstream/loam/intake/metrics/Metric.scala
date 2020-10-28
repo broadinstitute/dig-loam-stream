@@ -7,6 +7,7 @@ import loamstream.loam.intake.aggregator
 import loamstream.loam.intake.flip.FlipDetector
 import loamstream.util.Fold
 import loamstream.loam.intake.aggregator.DataRow
+import loamstream.loam.intake.Variant
 
 
 /**
@@ -30,8 +31,8 @@ object Metric {
     countKnownOrUnknown(client)(client.isUnknown)
   }
   
-  private def countKnownOrUnknown(client: BioIndexClient)(p: String => Boolean): Metric[Int] = {
-    Fold.countIf(row => p(row.marker))
+  private def countKnownOrUnknown(client: BioIndexClient)(p: Variant => Boolean): Metric[Int] = {
+    Fold.countIf(row => p(Variant.from(row.marker)))
   }
   
   def fractionUnknown(client: BioIndexClient): Metric[Double] = {

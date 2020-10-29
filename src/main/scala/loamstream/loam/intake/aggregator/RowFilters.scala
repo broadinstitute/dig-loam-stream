@@ -78,7 +78,7 @@ trait RowFilters { self: IntakeSyntax =>
           val valid = (eaf > 0.0) && (eaf < 1.0)
       
           if(!valid) {
-            logCtx.warn(s"Row has invalid EAF (${eaf}): '${row}'")
+            logCtx.warn(s"Variant ${row.marker} has invalid EAF (${eaf}): '${row}'")
           }
           
           valid
@@ -95,7 +95,7 @@ trait RowFilters { self: IntakeSyntax =>
           val valid = (maf > 0.0) && (maf <= 0.5)
       
           if(!valid) {
-            logCtx.warn(s"Row has invalid MAF (${maf}): '${row}'")
+            logCtx.warn(s"Variant ${row.marker} has invalid MAF (${maf}): '${row}'")
           }
           
           valid
@@ -113,7 +113,7 @@ trait RowFilters { self: IntakeSyntax =>
       val valid = (pvalue > 0.0) && (pvalue < 1.0)
       
       if(!valid) {
-        logCtx.warn(s"Row has invalid P-value (${pvalue}): '${row}'")
+        logCtx.warn(s"Variant ${row.marker} has invalid P-value (${pvalue}): '${row}'")
       }
       
       valid

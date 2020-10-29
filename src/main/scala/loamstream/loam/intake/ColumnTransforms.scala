@@ -4,7 +4,7 @@ package loamstream.loam.intake
  * @author clint
  * Oct 19, 2020
  */
-object Transforms {
+object ColumnTransforms {
   def ensureAlphabeticChromNames(baseChromExpr: ColumnExpr[String]): ColumnExpr[String] = {
     baseChromExpr.map(_.trim).map {
       case "23" => "X"

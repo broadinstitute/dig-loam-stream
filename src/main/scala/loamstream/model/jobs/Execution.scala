@@ -42,6 +42,7 @@ final case class Execution(
       
   def isSuccess: Boolean = status.isSuccess
   def isFailure: Boolean = status.isFailure
+  def isSkipped: Boolean = status.isSkipped
   
   private def environmentAndResourcesMatch: Boolean = (envType, resources) match {
     case (_, None) => true
@@ -85,6 +86,13 @@ object Execution extends Loggable {
     def outputs: Set[StoreRecord]
     def jobDir: Option[Path]
     def terminationReason: Option[TerminationReason]
+  }
+  
+  object WithSkippedResult {
+    def unapply(e: Execution): Option[CommandResult] = e.status match {
+      case JobStatus.Skipped => Some(CommandResult(0))
+      case _ => None
+    }
   }
   
   object WithCommandResult {

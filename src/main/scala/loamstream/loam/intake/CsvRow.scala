@@ -21,8 +21,8 @@ trait CsvRow {
 
 object CsvRow {
   abstract class WithFlipTag(
-      val marker: String, 
-      val originalMarker: String, 
+      val marker: Variant, 
+      val originalMarker: Variant, 
       val disposition: Disposition) extends CsvRow {
     
     final def isFlipped: Boolean = disposition.isFlipped
@@ -44,8 +44,8 @@ object CsvRow {
   
   final case class TaggedCsvRow(
       delegate: CsvRow,
-      override val marker: String,
-      override val originalMarker: String,
+      override val marker: Variant,
+      override val originalMarker: Variant,
       override val disposition: Disposition) extends CsvRow.WithFlipTag(marker, originalMarker, disposition) {
     
     override def getFieldByName(name: String): String = delegate.getFieldByName(name)

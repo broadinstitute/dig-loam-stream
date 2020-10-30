@@ -35,7 +35,7 @@ final case class RichVariant(
 }
   
 object RichVariant {
-  final case class Extractor(regex: Regex, referenceFiles: ReferenceFiles, variantsFrom26k: java.util.Set[String]) {
+  final case class Extracto2(regex: Regex, referenceFiles: ReferenceFiles, variantsFrom26k: java.util.Set[String]) {
     def unapply(s: String): Option[RichVariant] = s match {
       case regex(c, p, r, a) => {
         Some(new RichVariant(referenceFiles, variantsFrom26k, Variant(chrom = c, pos = p.toInt, ref = r, alt = a)))

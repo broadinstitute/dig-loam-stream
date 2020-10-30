@@ -30,10 +30,12 @@ final class VarIdTransformationTest extends FunSuite {
     val varIdColumnName = ColumnName("VAR_ID")
     val pvalueColumnName = ColumnName("P_VALUE")
     
+    val variantExpr = varIdColumnName.map(Variant.from)
+    
     val varIdDef = NamedColumnDef(
         varIdColumnName, 
-        varIdColumnName, 
-        varIdColumnName.map(Variant.from(_).flip.underscoreDelimited))
+        variantExpr, 
+        variantExpr.map(_.flip))
     
     val toAggregatorRow: RowExpr = RowExpr(
         markerDef = varIdDef,
@@ -46,7 +48,7 @@ final class VarIdTransformationTest extends FunSuite {
     actualVarIds.records.zip(inputsAndExpectedOutputs.iterator).foreach { case (actual, (input, expected)) =>
       def msg = {
         s"Actual '$input' should have been turned to '$expected' but got '$actual'. " + 
-        s"Input flipped? ${flipDetector.isFlipped(input)}"
+        s"Input flipped? ${flipDetector.isFlipped(Variant.from(input))}"
       }
       
       assert(actual == expected, msg)

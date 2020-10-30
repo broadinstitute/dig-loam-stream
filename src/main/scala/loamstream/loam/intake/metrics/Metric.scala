@@ -32,7 +32,7 @@ object Metric {
   }
   
   private def countKnownOrUnknown(client: BioIndexClient)(p: Variant => Boolean): Metric[Int] = {
-    Fold.countIf(row => p(Variant.from(row.marker)))
+    Fold.countIf(row => p(row.marker))
   }
   
   def fractionUnknown(client: BioIndexClient): Metric[Double] = {
@@ -64,7 +64,7 @@ object Metric {
     
     def agreesFlip(z: Double, beta: Double, se: Double): Boolean = agrees(z, -(beta / se))
     
-    def isFlipped(marker: String): Boolean = flipDetector.isFlipped(marker).isFlipped
+    def isFlipped(marker: Variant): Boolean = flipDetector.isFlipped(marker).isFlipped
     
     val agreesFn: DataRow => Boolean = { 
       case DataRow(marker, _, Some(z), Some(se), Some(beta), _, _, _, _) => {

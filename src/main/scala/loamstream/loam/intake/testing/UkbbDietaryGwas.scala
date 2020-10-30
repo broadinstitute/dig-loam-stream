@@ -39,7 +39,11 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
     import AggregatorColumnDefs._
     
     aggregator.RowExpr(
-      markerDef = marker(chromColumn = CHR, posColumn = BP, refColumn = ALLELE1, altColumn = ALLELE0),
+      markerDef = markerVariant(
+          chromColumn = CHR, 
+          posColumn = BP, 
+          refColumn = ALLELE1, 
+          altColumn = ALLELE0),
       pvalueDef = pvalue(P_BOLT_LMM),
       zscoreDef = Some(zscore(BETA, SE)),
       stderrDef = Some(stderr(SE)),

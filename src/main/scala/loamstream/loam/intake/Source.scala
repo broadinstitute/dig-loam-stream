@@ -44,7 +44,7 @@ sealed trait Source[R] {
   }
   
   def tagFlips(
-      markerDef: ColumnDef[String], 
+      markerDef: ColumnDef[Variant], 
       flipDetector: => FlipDetector)(implicit ev: R <:< CsvRow): Source[CsvRow.WithFlipTag] = {
     
     lazy val actualFlipDetector = flipDetector
@@ -54,11 +54,11 @@ sealed trait Source[R] {
     
       val disposition = actualFlipDetector.isFlipped(originalMarker)
     
-      val v = Variant.from(originalMarker).flipIf(disposition.isFlipped).complementIf(disposition.isComplementStrand)
+      val newMarker = originalMarker.flipIf(disposition.isFlipped).complementIf(disposition.isComplementStrand)
       
       CsvRow.TaggedCsvRow(
           delegate = row, 
-          marker = v.underscoreDelimited,
+          marker = newMarker,
           originalMarker = originalMarker, 
           disposition = disposition)
     }

@@ -1,6 +1,7 @@
 package loamstream.loam.intake
 
 import loamstream.util.Sequence
+import scala.reflect.runtime.universe.TypeTag
 
 
 /**

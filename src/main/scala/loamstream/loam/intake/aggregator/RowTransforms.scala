@@ -39,9 +39,9 @@ trait RowTransforms { self: IntakeSyntax =>
     def upperCaseAlleles: DataRowTransform = { row =>
       import row.marker
       
-      val variant = Variant.from(marker)
+      val variant = marker
       
-      row.copy(marker = variant.toUpperCase.underscoreDelimited)
+      row.copy(marker = variant.toUpperCase)
     }
   }
 }

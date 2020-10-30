@@ -7,6 +7,7 @@ import loamstream.loam.intake.flip.FlipDetector
 import loamstream.loam.intake.Helpers
 import loamstream.loam.intake.ColumnExpr
 import loamstream.loam.intake.flip.Disposition
+import loamstream.loam.intake.Variant
 
 /**
  * @author clint
@@ -17,11 +18,11 @@ final class ColumnDefsTest extends FunSuite {
   
   private object FlipDetectors {
     val alwaysFlipped: FlipDetector = new FlipDetector {
-      override def isFlipped(variantId: String): Disposition = Disposition.FlippedSameStrand
+      override def isFlipped(variantId: Variant): Disposition = Disposition.FlippedSameStrand
     }
     
     val neverFlipped: FlipDetector = new FlipDetector {
-      override def isFlipped(variantId: String): Disposition = Disposition.NotFlippedSameStrand
+      override def isFlipped(variantId: Variant): Disposition = Disposition.NotFlippedSameStrand
     }
   }
   

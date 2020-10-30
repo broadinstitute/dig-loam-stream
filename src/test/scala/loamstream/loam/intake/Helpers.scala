@@ -6,6 +6,8 @@ package loamstream.loam.intake
  */
 object Helpers {
   def csvRow(columnNamesToValues: (String, String)*)(implicit discriminator: Int = 1): CsvRow = new CsvRow {
+    override def toString: String = columnNamesToValues.toString
+    
     override def getFieldByName(name: String): String = {
       columnNamesToValues.collectFirst { case (n, v) if name == n => v }.get
     }

@@ -11,6 +11,26 @@ object AggregatorColumnDefs {
   import IntakeSyntax._
   import ColumnExpr.asDouble
   
+  def markerVariant(
+      chromColumn: ColumnExpr[_],
+      posColumn: ColumnExpr[_],
+      refColumn: ColumnExpr[_],
+      altColumn: ColumnExpr[_],
+      destColumn: ColumnName = ColumnNames.marker): NamedColumnDef[Variant] = {
+    
+    val asString = marker(
+        chromColumn = chromColumn,
+        posColumn = posColumn,
+        refColumn = refColumn,
+        altColumn = altColumn,
+        destColumn = destColumn)
+      
+    NamedColumnDef(
+        asString.name, 
+        asString.expr.map(Variant.from), 
+        asString.exprWhenFlipped.map(_.map(Variant.from)))
+  }
+  
   def marker(
       chromColumn: ColumnExpr[_],
       posColumn: ColumnExpr[_],

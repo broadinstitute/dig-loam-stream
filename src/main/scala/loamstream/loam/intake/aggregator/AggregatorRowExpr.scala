@@ -4,13 +4,14 @@ import loamstream.loam.intake.ColumnExpr
 import loamstream.loam.intake.CsvRow
 import loamstream.loam.intake.ColumnDef
 import loamstream.loam.intake.NamedColumnDef
+import loamstream.loam.intake.Variant
 
 /**
  * @author clint
  * Oct 14, 2020
  */
 final case class RowExpr(
-    markerDef: NamedColumnDef[String],
+    markerDef: NamedColumnDef[Variant],
     pvalueDef: NamedColumnDef[Double],
     zscoreDef: Option[NamedColumnDef[Double]] = None,
     stderrDef: Option[NamedColumnDef[Double]] = None,

@@ -42,7 +42,7 @@ final class ProcessRealDataTest extends FunSuite with Loggable {
   
     val toAggregatorRows: aggregator.RowExpr = {
       aggregator.RowExpr(
-        markerDef = marker(
+        markerDef = markerVariant(
                       chromColumn = CHR, 
                       posColumn = BP, 
                       refColumn = ALLELE0, 

@@ -9,7 +9,6 @@ import loamstream.loam.intake.ColumnDef
 import loamstream.loam.intake.aggregator.RowExpr
 import loamstream.loam.intake.aggregator.AggregatorColumnDefs
 import loamstream.loam.intake.flip.Disposition
-import loamstream.loam.intake.Variant
 import loamstream.loam.intake.aggregator.Phenotype
 import loamstream.loam.intake.aggregator.Dataset
 
@@ -44,12 +43,15 @@ final class MetricTest extends FunSuite {
   private val source = Source.fromString(csvData, Source.Formats.spaceDelimitedWithHeader)
 
   private val markerDef = NamedColumnDef(ColumnNames.marker, Marker, Marker)
+  private val markerVariantDef = NamedColumnDef(ColumnNames.marker, Marker.map(Variant.from), Marker.map(Variant.from))
   
   private val defaultRowExpr: RowExpr = RowExpr(
-        markerDef = markerDef,
+        markerDef = markerVariantDef,
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue))
   
-  private val rowsNoFlips = source.tagFlips(markerDef, new MetricTest.MockFlipDetector(Set.empty)).map(defaultRowExpr)
+  private val rowsNoFlips = {
+    source.tagFlips(markerVariantDef, new MetricTest.MockFlipDetector(Set.empty)).map(defaultRowExpr)
+  }
   
   test("countGreaterThan") {
     val gt2 = Metric.countGreaterThan(_.pvalue)(2)
@@ -107,7 +109,7 @@ final class MetricTest extends FunSuite {
     val flipDetector = new MetricTest.MockFlipDetector(Set.empty)
                       
     val toAggregatorFormat: RowExpr = RowExpr(
-        markerDef = NamedColumnDef(marker, marker),
+        markerDef = NamedColumnDef(marker, marker.map(Variant.from)),
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
         zscoreDef = Some(AggregatorColumnDefs.zscore(zscore)),
         stderrDef = Some(AggregatorColumnDefs.stderr(stderr)),
@@ -133,16 +135,16 @@ final class MetricTest extends FunSuite {
   
     val source = Source.fromString(csvData, Source.Formats.spaceDelimitedWithHeader)
     
-    val flipDetector = new MetricTest.MockFlipDetector(Set(Vars.y, Vars.a, Vars.b))
+    val flipDetector = new MetricTest.MockFlipDetector(Set(Vars.y, Vars.a, Vars.b).map(Variant.from))
     
     val toAggregatorFormat: RowExpr = RowExpr(
-        markerDef = markerDef,
+        markerDef = markerVariantDef,
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
         zscoreDef = Some(AggregatorColumnDefs.zscore(zscore)),
         stderrDef = Some(AggregatorColumnDefs.stderr(stderr)),
         betaDef = Some(AggregatorColumnDefs.beta(beta)))
                       
-    val rows = source.tagFlips(markerDef, flipDetector).map(toAggregatorFormat)
+    val rows = source.tagFlips(markerVariantDef, flipDetector).map(toAggregatorFormat)
                       
     val countDisagreements = Metric.countWithDisagreeingBetaStderrZscore(flipDetector)
                       
@@ -168,7 +170,7 @@ final class MetricTest extends FunSuite {
     val flipDetector = new MetricTest.MockFlipDetector(Set.empty)
     
     val toAggregatorFormat: RowExpr = RowExpr(
-        markerDef = NamedColumnDef(Marker, marker, marker),
+        markerDef = NamedColumnDef(Marker, marker.map(Variant.from), marker.map(Variant.from)),
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
         zscoreDef = Some(AggregatorColumnDefs.zscore(zscore)),
         stderrDef = Some(AggregatorColumnDefs.stderr(stderr)),
@@ -197,7 +199,7 @@ final class MetricTest extends FunSuite {
   
     val source = Source.fromString(csvData, Source.Formats.spaceDelimitedWithHeader)
     
-    val markerDef = NamedColumnDef(ColumnNames.marker, marker, marker)
+    val markerDef = NamedColumnDef(ColumnNames.marker, marker.map(Variant.from), marker.map(Variant.from))
     
     val toAggregatorFormat: RowExpr = RowExpr(
         markerDef = markerDef,
@@ -206,7 +208,7 @@ final class MetricTest extends FunSuite {
         stderrDef = Some(AggregatorColumnDefs.stderr(stderr)),
         betaDef = Some(AggregatorColumnDefs.beta(beta)))
     
-    val flipDetector = new MetricTest.MockFlipDetector(Set(Vars.y, Vars.a, Vars.b))
+    val flipDetector = new MetricTest.MockFlipDetector(Set(Vars.y, Vars.a, Vars.b).map(Variant.from))
         
     val rows = source.tagFlips(markerDef, flipDetector).map(toAggregatorFormat)
     
@@ -229,6 +231,8 @@ final class MetricTest extends FunSuite {
 }
 
 object MetricTest {
+  import loamstream.loam.intake.Variant
+  
   private final class MockBioIndexClient(knownVariants: Set[String]) extends BioIndexClient {
     override def isKnown(variant: Variant): Boolean = knownVariants.contains(variant.colonDelimited)
     
@@ -241,8 +245,8 @@ object MetricTest {
     override def findClosestMatch(phenotype: Phenotype): Option[Phenotype] = ???
   }
   
-  private final class MockFlipDetector(flippedVariants: Set[String]) extends FlipDetector {
-    override def isFlipped(variantId: String): Disposition = {
+  private final class MockFlipDetector(flippedVariants: Set[Variant]) extends FlipDetector {
+    override def isFlipped(variantId: Variant): Disposition = {
       if(flippedVariants.contains(variantId)) Disposition.FlippedSameStrand else Disposition.NotFlippedSameStrand
     }
   }

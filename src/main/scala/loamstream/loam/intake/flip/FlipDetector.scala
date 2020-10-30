@@ -7,6 +7,7 @@ import scala.util.matching.Regex
 import loamstream.util.Loggable
 import loamstream.util.TimeUtils
 import loamstream.loam.intake.Source
+import loamstream.loam.intake.Variant
 
 /**
  * Tests variants for allele-flipping. 
@@ -14,7 +15,7 @@ import loamstream.loam.intake.Source
  * A fairly direct port of one of Marcin's Perl scripts. 
  */
 trait FlipDetector {
-  def isFlipped(variantId: String): Disposition
+  def isFlipped(variantId: Variant): Disposition
 }
 
 object FlipDetector extends Loggable {
@@ -36,20 +37,20 @@ object FlipDetector extends Loggable {
     
     import Regexes.{ singleNucleotide, multiNucleotide }
     
-    private val singleNucleotideExtractor = extractor(singleNucleotide)
-    private val multiNucleotideExtractor = extractor(multiNucleotide)
-    
-    override def isFlipped(variantId: String): Disposition = {
-      val isValidVariantId: Boolean = !variantsFrom26k.contains(variantId) && !variantId.contains(",")
+    override def isFlipped(variantId: Variant): Disposition = {
+      val isValidVariantId: Boolean = !variantsFrom26k.contains(variantId) && 
+                                      !variantId.ref.contains(",") &&
+                                      !variantId.alt.contains(",")
       
       import Disposition.NotFlippedSameStrand
       
       if(isValidVariantId) {
-        variantId match {
-          case singleNucleotideExtractor(variant) => handleSingleNucleotideVariant(variant)
-          case multiNucleotideExtractor(variant) => handleMultiNucleotideVariant(variant)
-          case _ => NotFlippedSameStrand
-        }
+        val richVariant = RichVariant(referenceFiles, variantsFrom26k, variantId)
+        
+        if(variantId.isSingleNucleotide) { handleSingleNucleotideVariant(richVariant) } 
+        else if(variantId.isMultiNucleotide) { handleSingleNucleotideVariant(richVariant) }
+        else { NotFlippedSameStrand } //TODO: Something else?  Getting here is arguably an error
+        
       } else {
         NotFlippedSameStrand  
       }
@@ -125,10 +126,6 @@ object FlipDetector extends Loggable {
         case Some((_, altFromRefGenome)) if altFromRefGenome == Complement(alt) => FlippedComplementStrand
         case _ => NotFlippedSameStrand
       }
-    }
-    
-    private def extractor(regex: Regex): RichVariant.Extractor = {
-      RichVariant.Extractor(regex, referenceFiles, variantsFrom26k)
     }
   }
   

@@ -8,6 +8,9 @@ import loamstream.loam.intake.flip.Complement
  */
 final case class Variant(chrom: String, pos: Int, ref: String, alt: String) {
    
+  require(ref.nonEmpty)
+  require(alt.nonEmpty)
+  
   def underscoreDelimited: String = delimitedBy('_')
 
   def colonDelimited: String = delimitedBy(':')
@@ -29,6 +32,10 @@ final case class Variant(chrom: String, pos: Int, ref: String, alt: String) {
   def asFullBioIndexCoord: String = s"chr${colonDelimited}"
   
   def toUpperCase: Variant = copy(chrom = chrom.toUpperCase, ref = ref.toUpperCase, alt = alt.toUpperCase)
+  
+  def isSingleNucleotide: Boolean = ref.size == 1 && alt.size == 1
+  
+  def isMultiNucleotide: Boolean = ref.size > 1 || alt.size > 1
 }
   
 object Variant {

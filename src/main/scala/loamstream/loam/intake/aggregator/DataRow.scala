@@ -5,13 +5,14 @@ import loamstream.loam.intake.LiteralRow
 import loamstream.loam.intake.Row
 import loamstream.util.TimeUtils
 import scala.collection.mutable.ArrayBuffer
+import loamstream.loam.intake.Variant
 
 /**
  * @author clint
  * Oct 14, 2020
  */
 final case class DataRow(
-  marker: String,
+  marker: Variant,
   pvalue: Double,
   zscore: Option[Double] = None,
   stderr: Option[Double] = None,
@@ -30,7 +31,7 @@ final case class DataRow(
       case None => ()
     }
     
-    buffer += marker
+    buffer += marker.underscoreDelimited
     buffer += pvalue.toString
     
     add(zscore)

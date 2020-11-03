@@ -93,12 +93,6 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       val firstExecution = executions(firstJob)
       val secondExecution = executions(secondJob)
       
-      def compareResultsAndStatuses(actual: Execution.Persisted, expected: Execution.Persisted): Unit = {
-        assert(actual.status === expected.status)
-
-        assert(actual.result === expected.result)
-      }
-      
       assert(firstExecution.status === expectedExecutions(0).status)
       assert(firstExecution.result === expectedExecutions(0).result)
       
@@ -107,38 +101,24 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       
       assert(executions.size === 2)
 
-      //If the jobs were run, we should have written an Execution for the job.
-      //If the job was skipped, we should have left the one from the previous successful run alone.
-      {
-        val persistedExecution0 = findExecution(updatedOutput0).get
+      def testPersisted(output: StoreRecord, expected: Execution.Persisted): Unit = {
+        val persistedExecution = findExecution(output).get
       
-        assert(persistedExecution0.status === expectedExecutions(0).status)
+        assert(persistedExecution.status === expected.status)
 
         val expectedResult0: Option[JobResult] = {
-          if(persistedExecution0.status.isSkipped) { Some(CommandResult(0)) }
-          else { expectedExecutions(0).result }
+          if(persistedExecution.status.isSkipped) Some(CommandResult(0)) else expected.result
         }
         
-        assert(findExecution(updatedOutput0).get.result === expectedResult0)
-        
-        assert(persistedExecution0.outputs === Set(updatedOutput0))
-      }
+        assert(findExecution(output).get.result === expectedResult0)
 
-      {
-        val persistedExecution1 = findExecution(updatedOutput1).get
-        
-        assert(persistedExecution1.status === expectedExecutions(1).status)
-        
-        val expectedResult1: Option[JobResult] = {
-          if(persistedExecution1.status.isSkipped) { Some(CommandResult(0)) }
-          else { expectedExecutions(1).result }
-        }
-        
-        assert(persistedExecution1.result === expectedResult1)
-        
-        assert(persistedExecution1.outputs === Set(updatedOutput1))
+        assert(persistedExecution.outputs === Set(output))
       }
-    }
+      
+      testPersisted(updatedOutput0, expectedExecutions(0))
+      testPersisted(updatedOutput1, expectedExecutions(1))
+    }        
+
     
     def doFirstPart(fileIn: Path, fileOut1: Path, fileOut2: Path): Unit = {
       val firstScript = copyAToB(fileIn, fileOut1) 

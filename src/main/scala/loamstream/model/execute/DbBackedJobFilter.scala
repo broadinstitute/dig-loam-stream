@@ -82,11 +82,23 @@ final class DbBackedJobFilter(
 
   private[execute] def hasNewCommandLine(job: LJob): Boolean = job match {
     case CommandLineJob.WithCommandLineAndOutputs(newCommandLine, outputs) if outputs.nonEmpty => {
-      val recordedCommandLine = findCommandLineInDb(outputs.head.location)
+      val firstOutputLocation = outputs.head.location
       
-      recordedCommandLine != Some(newCommandLine)
+      trace(s"Looking up job $job based on output ${firstOutputLocation}")
+      
+      val recordedCommandLine = findCommandLineInDb(firstOutputLocation)
+      
+      val result = recordedCommandLine != Some(newCommandLine)
+      
+      trace(s"For job $job, ${recordedCommandLine} != ${Some(newCommandLine)}? $result")
+      
+      result
     }
-    case _ => false
+    case _ => {
+      trace(s"Job $job is not a CommandLineJob; not determining if its command-line changed")
+      
+      false
+    }
   }
   
   private[execute] def lastFailureStatus(job: LJob): Option[JobStatus] = {

@@ -1,5 +1,6 @@
 package loamstream.db.slick
 
+
 /**
  * @author clint
  * Apr 22, 2020

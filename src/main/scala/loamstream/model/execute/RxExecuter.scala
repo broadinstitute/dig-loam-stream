@@ -146,7 +146,7 @@ final case class RxExecuter(
       jobOracle: JobOracle): Observable[(LJob, Execution)] = {
     
     val (jobsToMaybeRun, skippedJobs) = notFinishedJobs.map(_.job).partition(jobFilter.shouldRun)
-      
+    
     val (jobsToCancel, jobsToRun) = jobsToMaybeRun.partition(jobCanceler.shouldCancel)
     
     handleSkipped(skippedJobs)
@@ -155,12 +155,14 @@ final case class RxExecuter(
     
     record(jobOracle, cancelledJobTuples)
     
-    val skippedResultTuples = toSkippedResultTuples(skippedJobs)
+    val skippedJobTuples = toSkippedJobTuples(skippedJobs)
+    
+    record(jobOracle, skippedJobTuples)
     
     logFinished(cancelledJobTuples)
-    logFinished(skippedResultTuples)
+    logFinished(skippedJobTuples)
     
-    val cancelledOrSkippedJobsObs = finish(executionState)(cancelledJobTuples ++ skippedResultTuples)
+    val cancelledOrSkippedJobsObs = finish(executionState)(cancelledJobTuples ++ skippedJobTuples)
     
     val actuallyRunJobsObs = runJobs(jobsToRun, jobOracle).flatMap { executionTupleOpt =>
       record(jobOracle, executionTupleOpt)
@@ -226,7 +228,7 @@ final case class RxExecuter(
     }
   }
   
-  private def toSkippedResultTuples(skippedJobs: Iterable[LJob]): Iterable[(LJob, Execution)] = {
+  private def toSkippedJobTuples(skippedJobs: Iterable[LJob]): Iterable[(LJob, Execution)] = {
     skippedJobs.map(job => job -> Execution.from(job, JobStatus.Skipped, terminationReason = None))
   }
 }

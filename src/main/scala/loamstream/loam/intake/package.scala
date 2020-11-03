@@ -30,4 +30,10 @@ package object intake {
       result
     }
   }
+  
+  type DataRowParser[A] = DataRow => A
+  
+  type DataRowPredicate = DataRowParser[Boolean]
+  
+  type DataRowTransform = DataRowParser[DataRow]
 }

@@ -1,6 +1,7 @@
-package loamstream.loam.intake.aggregator
+package loamstream.loam.intake
 
-import loamstream.loam.intake.IntakeSyntax
+import loamstream.loam.intake.ColumnExpr.ExprOps
+import scala.reflect.api.materializeTypeTag
 
 /**
  * @author clint
@@ -16,7 +17,7 @@ object AggregatorColumnDefs {
       posColumn: ColumnExpr[_],
       refColumn: ColumnExpr[_],
       altColumn: ColumnExpr[_],
-      destColumn: ColumnName = ColumnNames.marker): NamedColumnDef[Variant] = {
+      destColumn: ColumnName = AggregatorColumnNames.marker): NamedColumnDef[Variant] = {
     
     val asString = marker(
         chromColumn = chromColumn,
@@ -36,7 +37,7 @@ object AggregatorColumnDefs {
       posColumn: ColumnExpr[_],
       refColumn: ColumnExpr[_],
       altColumn: ColumnExpr[_],
-      destColumn: ColumnName = ColumnNames.marker): NamedColumnDef[String] = {
+      destColumn: ColumnName = AggregatorColumnNames.marker): NamedColumnDef[String] = {
     
     NamedColumnDef(
       destColumn,
@@ -50,14 +51,14 @@ object AggregatorColumnDefs {
   
   def pvalue(
       sourceColumn: ColumnExpr[_], 
-      destColumn: ColumnName = ColumnNames.pvalue): NamedColumnDef[Double] = {
+      destColumn: ColumnName = AggregatorColumnNames.pvalue): NamedColumnDef[Double] = {
     
     simpleDoubleColumn(sourceColumn, destColumn) 
   }
   
   def stderr(
       sourceColumn: ColumnExpr[_], 
-      destColumn: ColumnName = ColumnNames.stderr): NamedColumnDef[Double] = {
+      destColumn: ColumnName = AggregatorColumnNames.stderr): NamedColumnDef[Double] = {
     
     simpleDoubleColumn(sourceColumn, destColumn)
   }
@@ -65,7 +66,7 @@ object AggregatorColumnDefs {
   def zscoreFrom(
       betaColumn: ColumnExpr[_], 
       stderrColumn: ColumnExpr[_], 
-      destColumn: ColumnName = ColumnNames.zscore): NamedColumnDef[Double] = {
+      destColumn: ColumnName = AggregatorColumnNames.zscore): NamedColumnDef[Double] = {
     
     val expr = asDouble(betaColumn) / asDouble(stderrColumn)
     
@@ -74,19 +75,19 @@ object AggregatorColumnDefs {
   
   def zscore(
       sourceColumn: ColumnExpr[_], 
-      destColumn: ColumnName = ColumnNames.zscore): NamedColumnDef[Double] = {
+      destColumn: ColumnName = AggregatorColumnNames.zscore): NamedColumnDef[Double] = {
     
     negateIfFlipped(sourceColumn, destColumn)
   }
   
   def beta(
       sourceColumn: ColumnExpr[_], 
-      destColumn: ColumnName = ColumnNames.beta): NamedColumnDef[Double] = {
+      destColumn: ColumnName = AggregatorColumnNames.beta): NamedColumnDef[Double] = {
     
     negateIfFlipped(sourceColumn, destColumn)
   }
   
-  def eaf(sourceColumn: ColumnExpr[_], destColumn: ColumnName = ColumnNames.eaf): NamedColumnDef[Double] = {
+  def eaf(sourceColumn: ColumnExpr[_], destColumn: ColumnName = AggregatorColumnNames.eaf): NamedColumnDef[Double] = {
     val expr = asDouble(sourceColumn)
     
     NamedColumnDef(destColumn, expr, 1.0 - expr)
@@ -94,7 +95,7 @@ object AggregatorColumnDefs {
   
   def oddsRatio(
       sourceColumn: ColumnExpr[_], 
-      destColumn: ColumnName = ColumnNames.odds_ratio): NamedColumnDef[Double] = {
+      destColumn: ColumnName = AggregatorColumnNames.odds_ratio): NamedColumnDef[Double] = {
     
     val expr = asDouble(sourceColumn)
 
@@ -104,55 +105,55 @@ object AggregatorColumnDefs {
   object PassThru {
     def marker(
         sourceColumn: ColumnExpr[String], 
-        destColumn: ColumnName = ColumnNames.marker): NamedColumnDef[String] = {
+        destColumn: ColumnName = AggregatorColumnNames.marker): NamedColumnDef[String] = {
       
       NamedColumnDef(destColumn, sourceColumn)
     }
     
     def pvalue(
         sourceColumn: ColumnExpr[_], 
-        destColumn: ColumnName = ColumnNames.pvalue): NamedColumnDef[Double] = {
+        destColumn: ColumnName = AggregatorColumnNames.pvalue): NamedColumnDef[Double] = {
       
       NamedColumnDef(destColumn, asDouble(sourceColumn))
     }
     
     def zscore(
         sourceColumn: ColumnExpr[_], 
-        destColumn: ColumnName = ColumnNames.zscore): NamedColumnDef[Double] = {
+        destColumn: ColumnName = AggregatorColumnNames.zscore): NamedColumnDef[Double] = {
       
       NamedColumnDef(destColumn, asDouble(sourceColumn))
     }
     
     def stderr(
         sourceColumn: ColumnExpr[_], 
-        destColumn: ColumnName = ColumnNames.stderr): NamedColumnDef[Double] = {
+        destColumn: ColumnName = AggregatorColumnNames.stderr): NamedColumnDef[Double] = {
       
       NamedColumnDef(destColumn, asDouble(sourceColumn))
     }
     
     def beta(
         sourceColumn: ColumnExpr[_], 
-        destColumn: ColumnName = ColumnNames.beta): NamedColumnDef[Double] = {
+        destColumn: ColumnName = AggregatorColumnNames.beta): NamedColumnDef[Double] = {
       
       NamedColumnDef(destColumn, asDouble(sourceColumn))
     }
     
     def oddsRatio(
         sourceColumn: ColumnExpr[_], 
-        destColumn: ColumnName = ColumnNames.odds_ratio): NamedColumnDef[Double] = {
+        destColumn: ColumnName = AggregatorColumnNames.odds_ratio): NamedColumnDef[Double] = {
       
       NamedColumnDef(destColumn, asDouble(sourceColumn))
     }
     
-    def eaf(sourceColumn: ColumnExpr[_], destColumn: ColumnName = ColumnNames.eaf): NamedColumnDef[Double] = {
+    def eaf(sourceColumn: ColumnExpr[_], destColumn: ColumnName = AggregatorColumnNames.eaf): NamedColumnDef[Double] = {
       NamedColumnDef(destColumn, asDouble(sourceColumn))
     }
     
-    def maf(sourceColumn: ColumnExpr[_], destColumn: ColumnName = ColumnNames.maf): NamedColumnDef[Double] = {
+    def maf(sourceColumn: ColumnExpr[_], destColumn: ColumnName = AggregatorColumnNames.maf): NamedColumnDef[Double] = {
       NamedColumnDef(destColumn, asDouble(sourceColumn))
     }
     
-    def n(sourceColumn: ColumnExpr[_], destColumn: ColumnName = ColumnNames.n): NamedColumnDef[Double] = {
+    def n(sourceColumn: ColumnExpr[_], destColumn: ColumnName = AggregatorColumnNames.n): NamedColumnDef[Double] = {
       NamedColumnDef(destColumn, asDouble(sourceColumn))
     }
   }

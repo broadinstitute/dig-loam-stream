@@ -1,13 +1,9 @@
 package loamstream.loam.intake.metrics
 
-import loamstream.loam.intake.ColumnExpr
-import loamstream.loam.intake.ColumnName
-import loamstream.loam.intake.CsvRow
-import loamstream.loam.intake.aggregator
+import loamstream.loam.intake.Variant
+import loamstream.loam.intake.DataRow
 import loamstream.loam.intake.flip.FlipDetector
 import loamstream.util.Fold
-import loamstream.loam.intake.aggregator.DataRow
-import loamstream.loam.intake.Variant
 
 
 /**
@@ -16,7 +12,7 @@ import loamstream.loam.intake.Variant
  */
 object Metric {
   def countGreaterThan(column: DataRow => Double)(threshold: Double): Metric[Int] = {
-    Fold.countIf[aggregator.DataRow](row => column(row) > threshold)
+    Fold.countIf[DataRow](row => column(row) > threshold)
   }
   
   def fractionGreaterThan(column: DataRow => Double)(threshold: Double): Metric[Double] = {

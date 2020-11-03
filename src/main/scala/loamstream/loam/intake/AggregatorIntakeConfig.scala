@@ -1,4 +1,4 @@
-package loamstream.loam.intake.aggregator
+package loamstream.loam.intake
 
 import java.nio.file.Path
 import loamstream.conf.ConfigParser

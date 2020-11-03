@@ -6,7 +6,6 @@ import org.apache.commons.csv.CSVFormat
 import java.io.Writer
 import java.nio.file.Files
 import java.nio.charset.StandardCharsets
-import aggregator.{DataRow => AggDataRow }
 
 /**
  * @author clint

@@ -1,6 +1,5 @@
-package loamstream.loam.intake.metrics
+package loamstream.util
 
-import loamstream.util.Loggable
 import sttp.client.HttpURLConnectionBackend
 import sttp.client.basicRequest
 import sttp.client.UriContext

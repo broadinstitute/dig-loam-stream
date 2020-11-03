@@ -2,12 +2,14 @@ package loamstream.loam.intake.metrics
 
 import loamstream.util.Loggable
 import loamstream.loam.intake.Variant
-import loamstream.loam.intake.aggregator.Dataset
-import loamstream.loam.intake.aggregator.Phenotype
+import loamstream.loam.intake.Dataset
+import loamstream.loam.intake.Phenotype
 import org.json4s.jackson.JsonMethods.parse
 import org.json4s._
 import loamstream.util.Iterators
-import loamstream.loam.intake.aggregator.HasName
+import loamstream.loam.intake.HasName
+import loamstream.util.HttpClient
+import loamstream.util.SttpHttpClient
 
 /**
  * @author clint

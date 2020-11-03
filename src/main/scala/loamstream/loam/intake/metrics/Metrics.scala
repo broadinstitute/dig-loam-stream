@@ -1,12 +1,8 @@
-package loamstream.loam.intake
+package loamstream.loam.intake.metrics
 
 import loamstream.model.Store
-import loamstream.loam.intake.metrics.Metric
-import loamstream.loam.intake.metrics.MetricOps
-import loamstream.loam.intake.metrics.BioIndexClient
 import loamstream.util.Files
 import loamstream.util.Fold
-import loamstream.loam.intake.aggregator.DataRow
 import loamstream.loam.intake.flip.FlipDetector
 
 /**

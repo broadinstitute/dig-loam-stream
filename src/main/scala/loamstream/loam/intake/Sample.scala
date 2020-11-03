@@ -1,7 +1,5 @@
-package loamstream.loam.intake.metrics
+package loamstream.loam.intake
 
-import loamstream.loam.intake.Source
-import loamstream.loam.intake.CsvRow
 import loamstream.util.Iterators
 
 /**
@@ -17,7 +15,7 @@ object Sample {
     }
   }
   
-  private[metrics] def randomIndices[A](source: Source[A], howMany: Int): Seq[Int] = {
+  private[intake] def randomIndices[A](source: Source[A], howMany: Int): Seq[Int] = {
     val size = source.records.size
     
     require(howMany >= 0, s"Expected howMany to be >= 0, but got $howMany")

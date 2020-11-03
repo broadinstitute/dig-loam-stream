@@ -1,4 +1,4 @@
-package loamstream.loam.intake.metrics
+package loamstream.util
 
 /**
  * @author clint

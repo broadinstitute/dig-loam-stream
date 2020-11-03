@@ -1,10 +1,10 @@
-package loamstream.loam.intake.aggregator
+package loamstream.loam.intake
 
 /**
  * @author clint
  * Feb 12, 2020
  */
-object VarIdFormat {
+object AggregatorVarIdFormat {
   def isValid(stringRep: String): Boolean = all4.unapplySeq(stringRep) match {
     case Some(groups) => groups.sorted == Component.names
     case _ => false

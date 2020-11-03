@@ -1,16 +1,10 @@
-package loamstream.loam.intake.aggregator
-
-import loamstream.loam.intake.ColumnExpr
-import loamstream.loam.intake.CsvRow
-import loamstream.loam.intake.ColumnDef
-import loamstream.loam.intake.NamedColumnDef
-import loamstream.loam.intake.Variant
+package loamstream.loam.intake
 
 /**
  * @author clint
  * Oct 14, 2020
  */
-final case class RowExpr(
+final case class AggregatorRowExpr(
     markerDef: NamedColumnDef[Variant],
     pvalueDef: NamedColumnDef[Double],
     zscoreDef: Option[NamedColumnDef[Double]] = None,

@@ -1,20 +1,16 @@
-package loamstream.loam.intake.aggregator
+package loamstream.loam.intake
 
 import scala.util.Try
-
 import com.typesafe.config.Config
-
 import Metadata.Defaults
 import loamstream.conf.ConfigParser
-import scala.util.Success
-import loamstream.util.Tries
 import loamstream.util.Options
 
 /**
  * @author clint
  * Feb 11, 2020
  */
-final case class Metadata(
+final case class AggregatorMetadata(
     dataset: String,
     phenotype: String,
     varIdFormat: String = Defaults.varIdFormat,
@@ -24,7 +20,7 @@ final case class Metadata(
     quantitative: Option[Metadata.Quantitative],
     properties: Seq[(String, String)] = Nil) {
     
-  require(VarIdFormat.isValid(varIdFormat))
+  require(AggregatorVarIdFormat.isValid(varIdFormat))
   
   def subjects: Option[Int] = quantitative.map(_.subjects)
   
@@ -52,7 +48,7 @@ final case class Metadata(
   }
 }
 
-object Metadata extends ConfigParser[Metadata] {
+object Metadata extends ConfigParser[AggregatorMetadata] {
 
   /**
    * Wrap strings containing whitespace in double quotes, escaping any existing double-quote characters.
@@ -101,11 +97,11 @@ object Metadata extends ConfigParser[Metadata] {
       case _ => None
     }
     
-    def toMetadata: Try[Metadata] = {
+    def toMetadata: Try[AggregatorMetadata] = {
       for {
         ph <- Options.toTry(phenotype)("Expected phenotype to be present")
       } yield {
-        Metadata(
+        AggregatorMetadata(
           dataset = dataset,
           phenotype = ph,
           varIdFormat = varIdFormat,
@@ -136,7 +132,7 @@ object Metadata extends ConfigParser[Metadata] {
     }
   }
   
-  override def fromConfig(config: Config): Try[Metadata] = {
+  override def fromConfig(config: Config): Try[AggregatorMetadata] = {
     import net.ceedubs.ficus.Ficus._
     import net.ceedubs.ficus.readers.ArbitraryTypeReader._
     
@@ -158,8 +154,8 @@ object Metadata extends ConfigParser[Metadata] {
       tech: String,
       quantitative: Option[Quantitative]) {
     
-    def toMetadata(phenotype: String): Metadata = {
-      Metadata(
+    def toMetadata(phenotype: String): AggregatorMetadata = {
+      AggregatorMetadata(
           dataset, 
           phenotype, 
           varIdFormat, 
@@ -188,8 +184,8 @@ object Metadata extends ConfigParser[Metadata] {
       author: Option[String],
       tech: String) {
     
-    def toMetadata(phenotype: String, quantitative: Option[Quantitative]): Metadata = {
-      Metadata(
+    def toMetadata(phenotype: String, quantitative: Option[Quantitative]): AggregatorMetadata = {
+      AggregatorMetadata(
           dataset, 
           phenotype, 
           varIdFormat, 

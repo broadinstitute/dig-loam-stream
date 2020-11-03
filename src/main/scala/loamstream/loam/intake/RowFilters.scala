@@ -1,13 +1,7 @@
-package loamstream.loam.intake.aggregator
+package loamstream.loam.intake
 
 import loamstream.util.LogContext
-import loamstream.loam.intake.CsvRow
-import loamstream.util.Options
-import java.nio.file.Path
 import loamstream.model.Store
-import loamstream.loam.intake.RowPredicate
-import loamstream.loam.intake.ColumnExpr
-import loamstream.loam.intake.IntakeSyntax
 
 /**
  * @author clint

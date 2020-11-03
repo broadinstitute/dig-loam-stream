@@ -6,12 +6,12 @@ import com.typesafe.config.ConfigFactory
 import loamstream.conf.LoamConfig
 import loamstream.loam.LoamProjectContext
 import loamstream.loam.LoamScriptContext
-import loamstream.loam.intake.aggregator
-import loamstream.loam.intake.aggregator.AggregatorIntakeConfig
-import loamstream.loam.intake.aggregator.Metadata
-import loamstream.loam.intake.aggregator.SourceColumns
-import loamstream.loam.intake.aggregator.AggregatorColumnDefs
+import loamstream.loam.intake.AggregatorIntakeConfig
+import loamstream.loam.intake.Metadata
+import loamstream.loam.intake.SourceColumns
+import loamstream.loam.intake.AggregatorColumnDefs
 import loamstream.loam.intake.RowSink
+import loamstream.loam.intake.AggregatorCommands.upload
 
 /**
  * @author clint
@@ -34,11 +34,11 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
     val VARID = "VARID".asColumnName
   }
 
-  val toAggregatorRows: aggregator.RowExpr = {
+  val toAggregatorRows: AggregatorRowExpr = {
     import ColumnNames._
     import AggregatorColumnDefs._
     
-    aggregator.RowExpr(
+    AggregatorRowExpr(
       markerDef = markerVariant(
           chromColumn = CHR, 
           posColumn = BP, 
@@ -135,9 +135,7 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
     intakeTypesafeConfig.as[Map[String, PhenotypeConfig]](key)
   }
   
-  import loamstream.loam.intake.aggregator.AggregatorCommands.upload
-  
-  def toMetadata(phenotypeConfigTuple: (String, PhenotypeConfig)): Metadata = {
+  def toMetadata(phenotypeConfigTuple: (String, PhenotypeConfig)): AggregatorMetadata = {
     val (phenotype, PhenotypeConfig(_, subjects)) = phenotypeConfigTuple
     
     generalMetadata.toMetadata(phenotype, Some(Metadata.Quantitative.Subjects(subjects)))

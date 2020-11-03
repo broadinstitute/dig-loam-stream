@@ -1,11 +1,8 @@
-package loamstream.loam.intake.aggregator
+package loamstream.loam.intake
 
-import loamstream.model.Store
 import loamstream.loam.LoamScriptContext
-import loamstream.loam.LoamSyntax
-import loamstream.loam.LoamCmdSyntax
-import loamstream.loam.intake.IntakeSyntax
 import java.nio.file.Paths
+import loamstream.loam.LoamSyntax
 
 /**
  * @author clint
@@ -19,7 +16,7 @@ trait AggregatorCommands {
   
   def upload(
       aggregatorIntakeConfig: AggregatorIntakeConfig,
-      metadata: Metadata, 
+      metadata: AggregatorMetadata, 
       csvFile: Store, 
       sourceColumnMapping: SourceColumns,
       workDir: Path = Paths.get("."),
@@ -31,7 +28,7 @@ trait AggregatorCommands {
       workDir.resolve(s"aggregator-intake-${metadata.dataset}-${metadata.phenotype}.conf")
     }
     
-    val configData = ConfigData(metadata, sourceColumnMapping, csvFile.path)      
+    val configData = AggregatorConfigData(metadata, sourceColumnMapping, csvFile.path)      
         
     val aggregatorConfigFile = store(aggregatorConfigFileName)
     

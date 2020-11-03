@@ -1,14 +1,11 @@
-package loamstream.loam.intake.aggregator
+package loamstream.loam.intake
 
-import loamstream.loam.intake.IntakeSyntax
-import loamstream.loam.intake.ColumnName
-import loamstream.loam.intake.NamedColumnDef
 
 /**
  * @author clint
  * Feb 11, 2020
  */
-object ColumnNames {
+object AggregatorColumnNames {
   import IntakeSyntax.ColumnNameOps
   
   val marker: ColumnName =     "marker".asColumnName

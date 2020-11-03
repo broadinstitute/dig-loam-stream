@@ -14,8 +14,7 @@ import loamstream.util.TimeUtils
 import loamstream.loam.intake.metrics.Metric
 import loamstream.util.Fold
 import loamstream.util.CanBeClosed
-import loamstream.loam.intake.aggregator.RowFilters
-import loamstream.loam.intake.aggregator.RowTransforms
+import loamstream.loam.intake.metrics.Metrics
 
 
 /**
@@ -49,11 +48,17 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
   val HeaderRow = loamstream.loam.intake.LiteralRow
   
   //TODO
-  type DataRow = loamstream.loam.intake.aggregator.DataRow
-  val DataRow = loamstream.loam.intake.aggregator.DataRow
+  type DataRow = loamstream.loam.intake.DataRow
+  val DataRow = loamstream.loam.intake.DataRow
   
   type CsvRow = loamstream.loam.intake.CsvRow
   val CsvRow = loamstream.loam.intake.CsvRow
+  
+  type AggregatorMetadata = loamstream.loam.intake.AggregatorMetadata
+  val AggregatorMetadata = loamstream.loam.intake.AggregatorMetadata
+  
+  type AggregatorRowExpr = loamstream.loam.intake.AggregatorRowExpr
+  val AggregatorRowExpr = loamstream.loam.intake.AggregatorRowExpr
   
   object Log {
     def toFile(store: Store, append: Boolean = false): ToFileLogContext = {
@@ -114,7 +119,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       new ViaTarget(dest, filteredRows, flipDetector)
     }
     
-    def via(expr: aggregator.RowExpr): MapFilterAndGoTarget[Unit] = {
+    def via(expr: AggregatorRowExpr): MapFilterAndGoTarget[Unit] = {
       val dataRows = rows.tagFlips(expr.markerDef, flipDetector).map(expr)
       
       val headerRow = headerRowFrom(expr.columnDefs)
@@ -128,7 +133,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
   final class MapFilterAndGoTarget[A](
       dest: Store, 
       headerRow: HeaderRow,
-      rows: Source[aggregator.DataRow],
+      rows: Source[DataRow],
       metric: Metric[A]) extends Loggable {
     
     import loamstream.loam.intake.metrics.MetricOps
@@ -136,7 +141,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     def copy(
         dest: Store = this.dest, 
         headerRow: HeaderRow = this.headerRow,
-        rows: Source[aggregator.DataRow] = this.rows): MapFilterAndGoTarget[A] = {
+        rows: Source[DataRow] = this.rows): MapFilterAndGoTarget[A] = {
       
       new MapFilterAndGoTarget(dest, headerRow, rows, metric)
     }
@@ -145,9 +150,9 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       new MapFilterAndGoTarget[(A, B)](dest, headerRow, rows, metric combine m)
     }
     
-    def filter(predicate: aggregator.DataRow => Boolean): MapFilterAndGoTarget[A] = copy(rows = rows.filter(predicate))
+    def filter(predicate: DataRow => Boolean): MapFilterAndGoTarget[A] = copy(rows = rows.filter(predicate))
     
-    def map(transform: aggregator.DataRow => aggregator.DataRow): MapFilterAndGoTarget[A] = {
+    def map(transform: DataRow => DataRow): MapFilterAndGoTarget[A] = {
       copy(rows = rows.map(transform))
     }
     
@@ -181,7 +186,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
   }
 
   final class AggregatorIntakeConfigFileTarget(dest: Store) {
-    def from(configData: aggregator.ConfigData)(implicit scriptContext: LoamScriptContext): Tool = {
+    def from(configData: AggregatorConfigData)(implicit scriptContext: LoamScriptContext): Tool = {
       //TODO: How to wire up inputs (if any)?
       val tool: Tool = nativeTool() {
         Files.writeTo(dest.path)(configData.asConfigFileContents)

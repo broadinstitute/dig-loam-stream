@@ -1,9 +1,7 @@
-package loamstream.loam.intake.aggregator
+package loamstream.loam.intake
 
-import loamstream.loam.intake.Variant
 import loamstream.model.Store
 import loamstream.util.LogContext
-import loamstream.loam.intake.IntakeSyntax
 
 /**
  * @author clint

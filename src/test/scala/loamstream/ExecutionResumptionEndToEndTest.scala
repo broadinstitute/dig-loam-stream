@@ -37,6 +37,8 @@ import loamstream.model.jobs.PseudoExecution
 import loamstream.model.jobs.JobOracle
 import loamstream.model.execute.Run
 import loamstream.conf.LsSettings
+import loamstream.model.jobs.JobStatus
+import loamstream.model.jobs.JobResult
 
 
 
@@ -57,7 +59,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       val in = LoamPredef.store(fileIn).asInput
       val out = LoamPredef.store(fileOut)
       
-      cmd"cp $in $out"
+      cmd"cp $in $out".in(in).out(out)
     }
     
     def copyAToBToC(fileIn: Path, fileOut1: Path, fileOut2: Path): LoamGraph = {
@@ -68,8 +70,8 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
         val out1 = LoamPredef.store(fileOut1)
         val out2 = LoamPredef.store(fileOut2)
         
-        cmd"cp $in $out1"
-        cmd"cp $out1 $out2"
+        cmd"cp $in $out1".in(in).out(out1)
+        cmd"cp $out1 $out2".in(out1).out(out2)
       }
     }
     
@@ -77,12 +79,12 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
     def run(
         secondScript: LoamGraph,
         fileOut1: Path,
-        fileOut2: Path)(expectedStatuses: Seq[Execution.Persisted]): Unit = {
+        fileOut2: Path)(expectedExecutions: Seq[Execution.Persisted]): Unit = {
       
       val (executable, executions) = compileAndRun(secondScript)
 
-      val updatedOutput1 = StoreRecord(PathHandle(fileOut1))
-      val updatedOutput2 = StoreRecord(PathHandle(fileOut2))
+      val updatedOutput0 = StoreRecord(PathHandle(fileOut1))
+      val updatedOutput1 = StoreRecord(PathHandle(fileOut2))
 
       //Jobs and results come back as an unordered map, so we need to find the jobs we're looking for. 
       val firstJob = jobThatWritesTo(executable)(fileOut1).get
@@ -97,25 +99,45 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
         assert(actual.result === expected.result)
       }
       
-      compareResultsAndStatuses(firstExecution, expectedStatuses(0))
-      compareResultsAndStatuses(secondExecution, expectedStatuses(1))
+      assert(firstExecution.status === expectedExecutions(0).status)
+      assert(firstExecution.result === expectedExecutions(0).result)
+      
+      assert(secondExecution.status === expectedExecutions(1).status)
+      assert(secondExecution.result === expectedExecutions(1).result)
       
       assert(executions.size === 2)
 
       //If the jobs were run, we should have written an Execution for the job.
       //If the job was skipped, we should have left the one from the previous successful run alone.
-
-      compareResultsAndStatuses(
-          findExecution(updatedOutput1).get,
-          TestHelpers.executionFromResult(CommandResult(0)))
+      {
+        val persistedExecution0 = findExecution(updatedOutput0).get
       
-      assert(findExecution(updatedOutput1).get.outputs === Set(updatedOutput1))
+        assert(persistedExecution0.status === expectedExecutions(0).status)
 
-      compareResultsAndStatuses(
-          findExecution(updatedOutput2).get,
-        TestHelpers.executionFromResult(CommandResult(0)))
-      
-      assert(findExecution(updatedOutput2).get.outputs === Set(updatedOutput2))
+        val expectedResult0: Option[JobResult] = {
+          if(persistedExecution0.status.isSkipped) { Some(CommandResult(0)) }
+          else { expectedExecutions(0).result }
+        }
+        
+        assert(findExecution(updatedOutput0).get.result === expectedResult0)
+        
+        assert(persistedExecution0.outputs === Set(updatedOutput0))
+      }
+
+      {
+        val persistedExecution1 = findExecution(updatedOutput1).get
+        
+        assert(persistedExecution1.status === expectedExecutions(1).status)
+        
+        val expectedResult1: Option[JobResult] = {
+          if(persistedExecution1.status.isSkipped) { Some(CommandResult(0)) }
+          else { expectedExecutions(1).result }
+        }
+        
+        assert(persistedExecution1.result === expectedResult1)
+        
+        assert(persistedExecution1.outputs === Set(updatedOutput1))
+      }
     }
     
     def doFirstPart(fileIn: Path, fileOut1: Path, fileOut2: Path): Unit = {
@@ -167,12 +189,15 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
         run(secondScript, fileOut1, fileOut2)(expectedStatuses)
       }
       
+      def skippedExecution = executionFrom(Skipped, result = None)
+      def ranSuccessfullyExecution = executionFromResult(CommandResult(0))
+      
       //Run the second script a few times.  The first time, we expect the first job to be skipped, and the second one
       //to be run.  We expect both jobs to be skipped in all subsequent runs.
-      doRun(Seq(executionFrom(Skipped), executionFromResult(CommandResult(0))))
-      doRun(Seq(Skipped, Skipped).map(executionFrom(_)))
-      doRun(Seq(Skipped, Skipped).map(executionFrom(_)))
-      doRun(Seq(Skipped, Skipped).map(executionFrom(_)))
+      doRun(Seq(executionFrom(Skipped, result = None), ranSuccessfullyExecution))
+      doRun(Seq(skippedExecution, skippedExecution))
+      doRun(Seq(skippedExecution, skippedExecution))
+      doRun(Seq(skippedExecution, skippedExecution))
     }
     
     val fileIn = Paths.get("src", "test", "resources", "a.txt")
@@ -188,26 +213,25 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       }
     }
   }
-
+  
   test("Single failed job's exit status is recorded properly") {
-    
-    val fileIn = Paths.get("src", "test", "resources", "a.txt")
+    val validInputFile = Paths.get("src", "test", "resources", "a.txt")
     
     val bogusCommandName = "asdfasdf"
     
     //Loam for a single invocation of a bogus command:
-    def makeScript(fileOut1: Path): LoamGraph = TestHelpers.makeGraph { implicit context =>
+    def makeGraph(fileOut1: Path): LoamGraph = TestHelpers.makeGraph { implicit context =>
       import loamstream.loam.LoamSyntax._
       
-      val in = LoamPredef.store(fileIn).asInput
+      val in = LoamPredef.store(validInputFile).asInput
       val out1 = LoamPredef.store(fileOut1)
       
-      cmd"$bogusCommandName $in $out1"
+      cmd"$bogusCommandName $in $out1".in(in).out(out1)
     }
     
     //Run the script and validate the results
     def run(fileOut1: Path): Unit = {
-      val (executable, executions) = compileAndRun(makeScript(fileOut1))
+      val (executable, executions) = compileAndRun(makeGraph(fileOut1))
 
       val allJobs = allJobsFrom(executable)
 
@@ -217,22 +241,17 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
       val onlyExecution = executions.values.head
 
-      val exitCode = 127
       val onlyResultOpt = onlyExecution.result
 
       assert(onlyResultOpt.nonEmpty)
 
       val onlyResult = onlyResultOpt.get
 
-      {
-        import org.scalatest.Matchers._
-
-        executions should have size 1
-        onlyExecution.resources.get.isInstanceOf[LocalResources] shouldBe true
-        onlyResult.asInstanceOf[CommandResult].exitCode shouldEqual exitCode
-        onlyResult.isFailure shouldBe true
-      }
-
+      assert(executions.size === 1)
+      assert(onlyExecution.resources.get.isInstanceOf[LocalResources] === true)
+      assert(onlyResult.asInstanceOf[CommandResult].exitCode === 127)
+      assert(onlyResult.isFailure === true)
+      
       val output1 = StoreRecord(fileOut1)
       val recordOpt = dao.findStoreRecord(output1)
 
@@ -257,40 +276,36 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
   }
 
   test("Exit status of failed jobs are recorded properly") {
-    val fileIn = Paths.get("src", "test", "resources", "a.txt")
+    val validInputFile = Paths.get("src", "test", "resources", "a.txt")
     
     val bogusCommandName = "asdfasdf"
     
-    def makeScript(fileOut1: Path, fileOut2: Path): LoamGraph = TestHelpers.makeGraph { implicit context =>
+    def makeGraph(fileOut1: Path, fileOut2: Path): LoamGraph = TestHelpers.makeGraph { implicit context =>
       import loamstream.loam.LoamSyntax._
 
-      val in = LoamPredef.store(fileIn).asInput
+      val in = LoamPredef.store(validInputFile).asInput
       val out1 = LoamPredef.store(fileOut1)
       val out2 = LoamPredef.store(fileOut2)
       
-      cmd"$bogusCommandName $in $out1"
-      cmd"$bogusCommandName $out1 $out2"
+      cmd"$bogusCommandName $in $out1".in(in).out(out1)
+      cmd"$bogusCommandName $out1 $out2".in(out1).out(out2)
     }
     
     //Run the script and validate the results
     def run(fileOut1: Path, fileOut2: Path): Unit = {
-      val (executable, executions) = compileAndRun(makeScript(fileOut1, fileOut2))
+      val (executable, executions) = compileAndRun(makeGraph(fileOut1, fileOut2))
 
       val firstJob = jobThatWritesTo(executable)(fileOut1).get
       val secondJob = jobThatWritesTo(executable)(fileOut2).get
 
-      {
-        import org.scalatest.Matchers._
+      assert(executions(firstJob).result.get.asInstanceOf[CommandResult].exitCode === 127)
+        
+      assert(executions(firstJob).resources.get.isInstanceOf[LocalResources] === true)
+      assert(executions.contains(secondJob) === false)
 
-        val exitCode = 127
-        executions(firstJob).result.get.asInstanceOf[CommandResult].exitCode shouldEqual exitCode
-        executions(firstJob).resources.get.isInstanceOf[LocalResources] shouldBe true
-        executions.contains(secondJob) shouldBe false
+      assert(executions(firstJob).result.get.isFailure === true)
 
-        executions(firstJob).result.get.isFailure shouldBe true
-
-        executions should have size 1
-      }
+      assert(executions.size === 1)
 
       val output1 = StoreRecord(fileOut1)
       val output2 = StoreRecord(fileOut2)
@@ -347,6 +362,8 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
     val executable = LoamEngine.toExecutable(graph)
 
+    
+    
     val executions = engine.executer.execute(executable, JobOracle.fromExecutable(engine.config.executionConfig, _))
 
     (executable, executions)

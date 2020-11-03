@@ -107,19 +107,17 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps wit
   }
   
   private def requireCommandExecution(executions: Iterable[Execution]): Unit = {
-    def firstNonCommandExecution: Execution = executions.find(!_.isCommandExecution).get
+    def firstNonPersistableExecution: Execution = executions.find(_.notPersistable).get
 
     require(
-      //TODO: Repeating this predicate here and in DbBackedExecutionRecorder is error-prone
-      executions.forall(e => e.isSkipped || e.isCommandExecution), 
-      s"We only know how to record command executions, but we got $firstNonCommandExecution")
+      executions.forall(_.isPersistable), 
+      s"We only know how to record skipped and command executions, but we got $firstNonPersistableExecution")
 
     trace(s"INSERTING: $executions")
   }
   
   private def insertableExecutions(executions: Iterable[Execution]): Iterable[(Execution, CommandResult)] = {
     executions.collect {
-      case e @ Execution.WithSkippedResult(cr) => e -> cr
       case e @ Execution.WithCommandResult(cr) => e -> cr
       //NB: Allow storing the failure to invoke a command; give this case DummyExitCode
       case e @ Execution.WithCommandInvocationFailure(cif) => {

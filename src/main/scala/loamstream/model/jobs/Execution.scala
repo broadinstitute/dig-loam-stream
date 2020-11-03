@@ -54,11 +54,14 @@ final case class Execution(
     case _ => false
   }
   
+  def isPersistable: Boolean = (isSkipped || isCommandExecution) && cmd.isDefined
+  def notPersistable: Boolean = !isPersistable
+  
   //NB :(
   //We're a command execution if we wrap a CommandResult or CommandInvocationFailure, and a
   //command-line string is defined.
-  def isCommandExecution: Boolean = result.exists {
-    case _: JobResult.CommandResult | _: JobResult.CommandInvocationFailure => cmd.isDefined
+  private def isCommandExecution: Boolean = result.exists {
+    case _: JobResult.CommandResult | _: JobResult.CommandInvocationFailure => true
     case _ => false
   }
 
@@ -88,24 +91,16 @@ object Execution extends Loggable {
     def terminationReason: Option[TerminationReason]
   }
   
-  object WithSkippedResult {
+  object WithCommandResult {
     def unapply(e: Execution): Option[CommandResult] = e.status match {
       case JobStatus.Skipped => Some(CommandResult(0))
-      case _ => None
-    }
-  }
-  
-  object WithCommandResult {
-    def unapply(e: Execution): Option[CommandResult] = e.result match {
-      case Some(cr: CommandResult) => Some(cr)
-      case _ => None
+      case _ => e.result.collect { case cr: CommandResult => cr }
     }
   }
   
   object WithCommandInvocationFailure {
-    def unapply(e: Execution): Option[JobResult.CommandInvocationFailure] = e.result match {
-      case Some(cif: JobResult.CommandInvocationFailure) => Some(cif)
-      case _ => None
+    def unapply(e: Execution): Option[JobResult.CommandInvocationFailure] = e.result.collect {
+      case cif: JobResult.CommandInvocationFailure => cif
     }
   }
   

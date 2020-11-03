@@ -74,7 +74,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
             outputs = Set.empty[StoreRecord],
             terminationReason = None)
 
-        assert(e.isCommandExecution === false)
+        assert(e.isPersistable === false)
         
         recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
   

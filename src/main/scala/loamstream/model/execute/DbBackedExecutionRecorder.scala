@@ -13,11 +13,10 @@ import loamstream.model.jobs.JobOracle
 final class DbBackedExecutionRecorder(val dao: LoamDao) extends ExecutionRecorder {
   
   override def record(jobOracle: JobOracle, executionTuples: Iterable[(LJob, Execution)]): Unit = {
-    //NB: We can only insert command executions (UGER or command-line jobs, anything with an in exit status code)
-    //for now
-    def isInsertable(e: Execution): Boolean = e.isSkipped || e.isCommandExecution
+    //NB: We can only insert skipped executions and command executions (UGER or command-line jobs, 
+    //anything with an in exit status code) for now
     
-    val insertableExecutions = executionTuples.collect { case (_, e) if isInsertable(e) => e }
+    val insertableExecutions = executionTuples.collect { case (_, e) if e.isPersistable => e }
 
     dao.insertExecutions(insertableExecutions)
   }

@@ -46,24 +46,31 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     
     val job = MockJob(JobStatus.Succeeded)
     
-    def withResult(rOpt: Option[JobResult]): Execution = {
-      Execution.from(job = job, status = job.toReturn.jobStatus, result = rOpt, terminationReason = None)
+    def withResult(rOpt: Option[JobResult], status: JobStatus): Execution = {
+      Execution.from(job = job, status = status, result = rOpt, terminationReason = None)
     }
     
-    def doTest(rOpt: Option[JobResult], expected: Option[JobResult]): Unit = {
-      assert(Execution.WithCommandResult.unapply(withResult(rOpt)) === expected)
+    def doTest(
+        rOpt: Option[JobResult],
+        status: JobStatus = job.toReturn.jobStatus,
+        expected: Option[JobResult]): Unit = {
+      
+      assert(Execution.WithCommandResult.unapply(withResult(rOpt, status)) === expected)
     }
     
     val ex = new Exception with scala.util.control.NoStackTrace
     
-    doTest(None, None)
-    doTest(Some(JobResult.CommandInvocationFailure(ex)), None)
-    doTest(Some(JobResult.FailureWithException(ex)), None)
-    doTest(Some(JobResult.Success), None)
-    doTest(Some(JobResult.Failure), None)
+    doTest(None, expected = None)
+    doTest(Some(JobResult.CommandInvocationFailure(ex)), expected = None)
+    doTest(Some(JobResult.FailureWithException(ex)), expected = None)
+    doTest(Some(JobResult.Success), expected = None)
+    doTest(Some(JobResult.Failure), expected = None)
     
-    doTest(Some(commandResult0), Some(commandResult0))
-    doTest(Some(commandResult1), Some(commandResult1))
+    doTest(Some(commandResult0), expected = Some(commandResult0))
+    doTest(Some(commandResult1), expected = Some(commandResult1))
+    doTest(Some(commandResult1), expected = Some(commandResult1))
+    
+    doTest(rOpt = None, status = JobStatus.Skipped, expected = Some(commandResult0))
   }
   
   test("WithCommandInvocationFailure") {
@@ -234,59 +241,69 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     //TODO: Check settings field once it's no longer a placeholder
   }
 
-  test("isCommandExecution") {
-    def assertIsCommandExecution(result: JobResult, cmd: Option[String] = Option(mockCmd)): Unit = {
+  test("isPersistable") {
+    def assertIsPersistable(
+        result: Option[JobResult], 
+        statusOpt: Option[JobStatus] = None, 
+        cmd: Option[String] = Option(mockCmd)): Unit = {
+      
       val execution = Execution(
           settings = mockUgerSettings,
           cmd = cmd, 
-          status = result.toJobStatus,
-          result = Option(result),
+          status = statusOpt.getOrElse(result.get.toJobStatus),
+          result = result,
           resources = None,
           jobDir = Option(dummyJobDir),
           outputs = Set.empty,
           terminationReason = None)
       
-      assert(execution.isCommandExecution)
+      assert(execution.isPersistable)
     }
     
-    def assertIsNOTCommandExecution(result: JobResult, cmd: Option[String] = Option(mockCmd)): Unit = {
+    def assertIsNOTPersistable(
+        result: Option[JobResult], 
+        statusOpt: Option[JobStatus] = None, 
+        cmd: Option[String] = Option(mockCmd)): Unit = {
+      
       val execution = Execution(
           settings = mockUgerSettings,
           cmd = cmd, 
-          status = result.toJobStatus,
-          result = Option(result),
+          status = statusOpt.getOrElse(result.get.toJobStatus),
+          result = result,
           resources = None,
           jobDir = Option(dummyJobDir),
           outputs = Set.empty,
           terminationReason = None)
       
-      assert(!execution.isCommandExecution)
+      assert(!execution.isPersistable)
     }
 
     val e = new Exception
     
     import JobResult._
     
-    assertIsCommandExecution(CommandResult(0))
-    assertIsCommandExecution(CommandResult(1))
-    assertIsCommandExecution(CommandResult(-1))
-    assertIsCommandExecution(CommandResult(42))
+    assertIsPersistable(result = None, statusOpt = Some(JobStatus.Skipped))
+    assertIsPersistable(Some(CommandResult(0)))
+    assertIsPersistable(Some(CommandResult(1)))
+    assertIsPersistable(Some(CommandResult(-1)))
+    assertIsPersistable(Some(CommandResult(42)))
+    assertIsPersistable(Some(CommandInvocationFailure(e)))
 
-    assertIsCommandExecution(CommandInvocationFailure(e))
-
-    assertIsNOTCommandExecution(CommandResult(0), None)
-    assertIsNOTCommandExecution(CommandResult(1), None)
-    assertIsNOTCommandExecution(CommandResult(-1), None)
-    assertIsNOTCommandExecution(CommandResult(42), None)
-
-    assertIsNOTCommandExecution(CommandInvocationFailure(e), None)
+    assertIsNOTPersistable(result = None, statusOpt = Some(JobStatus.Skipped), cmd = None)
     
-    assertIsNOTCommandExecution(Success)
-    assertIsNOTCommandExecution(Failure)
-    assertIsNOTCommandExecution(FailureWithException(e))
+    assertIsNOTPersistable(Some(CommandResult(0)), cmd = None)
+    assertIsNOTPersistable(Some(CommandResult(1)), cmd = None)
+    assertIsNOTPersistable(Some(CommandResult(-1)), cmd = None)
+    assertIsNOTPersistable(Some(CommandResult(42)), cmd = None)
 
-    assertIsNOTCommandExecution(Success, None)
-    assertIsNOTCommandExecution(Failure, None)
-    assertIsNOTCommandExecution(FailureWithException(e), None)
+    assertIsNOTPersistable(Some(CommandInvocationFailure(e)), cmd = None)
+    
+    assertIsNOTPersistable(Some(Success))
+    assertIsNOTPersistable(Some(Failure))
+    assertIsNOTPersistable(Some(FailureWithException(e)))
+
+    assertIsNOTPersistable(Some(Success), cmd = None)
+    assertIsNOTPersistable(Some(Failure), cmd = None)
+    assertIsNOTPersistable(Some(FailureWithException(e)), cmd = None)
   }
 }

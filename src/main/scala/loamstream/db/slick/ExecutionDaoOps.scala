@@ -107,11 +107,11 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps wit
   }
   
   private def requireCommandExecution(executions: Iterable[Execution]): Unit = {
-    def firstNonCommandExecution: Execution = executions.find(!_.isCommandExecution).get
+    def firstNonPersistableExecution: Execution = executions.find(_.notPersistable).get
 
     require(
-      executions.forall(_.isCommandExecution),
-      s"We only know how to record command executions, but we got $firstNonCommandExecution")
+      executions.forall(_.isPersistable), 
+      s"We only know how to record skipped and command executions, but we got $firstNonPersistableExecution")
 
     trace(s"INSERTING: $executions")
   }

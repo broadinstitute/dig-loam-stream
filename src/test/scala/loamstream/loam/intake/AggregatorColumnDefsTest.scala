@@ -1,15 +1,9 @@
-package loamstream.loam.intake.aggregator
+package loamstream.loam.intake
 
 import org.scalatest.FunSuite
-import loamstream.loam.intake.NamedColumnDef
-import loamstream.loam.intake.ColumnName
 import loamstream.loam.intake.flip.FlipDetector
-import loamstream.loam.intake.Helpers
-import loamstream.loam.intake.ColumnExpr
 import loamstream.loam.intake.flip.Disposition
-import loamstream.loam.intake.Variant
-import loamstream.loam.intake.AggregatorColumnDefs
-import loamstream.loam.intake.AggregatorColumnNames
+import org.scalactic.source.Position.apply
 
 /**
  * @author clint

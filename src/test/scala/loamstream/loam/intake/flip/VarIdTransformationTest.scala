@@ -7,6 +7,7 @@ import loamstream.loam.intake.LiteralColumnExpr
 import loamstream.loam.intake.IntakeSyntax
 
 
+
 /**
  * @author clint
  * Apr 3, 2020
@@ -23,7 +24,7 @@ final class VarIdTransformationTest extends FunSuite {
     def inputVarIds = inputsAndExpectedOutputs.iterator.collect { case (i, _) => i }
     
     val source: Source[CsvRow] = Source.FromIterator {
-      inputVarIds.map(i => LiteralCsvRow("VAR_ID", i)) 
+      inputVarIds.map(i => LiteralCsvRow("VAR_ID", i.underscoreDelimited)) 
     }
     
     val varIdColumnName = ColumnName("VAR_ID")
@@ -47,14 +48,16 @@ final class VarIdTransformationTest extends FunSuite {
     actualVarIds.records.zip(inputsAndExpectedOutputs.iterator).foreach { case (actual, (input, expected)) =>
       def msg = {
         s"Actual '$input' should have been turned to '$expected' but got '$actual'. " + 
-        s"Input flipped? ${flipDetector.isFlipped(Variant.from(input))}"
+        s"Input flipped? ${flipDetector.isFlipped(input)}"
       }
       
       assert(actual == expected, msg)
     }
   }
   
-  private val inputsAndExpectedOutputs: Seq[(String, String)] = Seq(
+  import loamstream.loam.intake.Variant
+  
+  private val inputsAndExpectedOutputs: Seq[(Variant, Variant)] = Seq(
     ("1_612688_T_TCTC","1_612688_T_TCTC"),
     ("1_636285_C_T","1_636285_T_C"),
     ("1_649192_T_A","1_649192_A_T"),
@@ -153,7 +156,7 @@ final class VarIdTransformationTest extends FunSuite {
     ("1_752721_G_A","1_752721_A_G"),
     ("1_752894_C_T","1_752894_T_C"),
     ("1_753405_A_C","1_753405_C_A"),
-    ("1_753425_C_T","1_753425_T_C"))
+    ("1_753425_C_T","1_753425_T_C")).map { case (i, e) => (Variant.from(i), Variant.from(e)) }
 }
 
 object VarIdTransformationTest {

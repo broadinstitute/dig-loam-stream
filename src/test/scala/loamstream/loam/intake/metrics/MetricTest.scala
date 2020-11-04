@@ -231,7 +231,7 @@ object MetricTest {
   import loamstream.loam.intake.Variant
   
   private final class MockBioIndexClient(knownVariants: Set[String]) extends BioIndexClient {
-    override def isKnown(variant: Variant): Boolean = knownVariants.contains(variant.colonDelimited)
+    override def isKnown(variant: Variant): Boolean = knownVariants.contains(variant.underscoreDelimited)
     
     override def isKnown(dataset: Dataset): Boolean = ???
   

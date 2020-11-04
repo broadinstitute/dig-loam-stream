@@ -1,7 +1,8 @@
-package loamstream.loam.intake.aggregator
+package loamstream.loam.intake
 
 import org.scalatest.FunSuite
-import loamstream.loam.intake.AggregatorMetadata
+import org.scalactic.source.Position.apply
+import scala.collection.Seq
 
 /**
  * @author clint

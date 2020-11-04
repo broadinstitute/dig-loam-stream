@@ -45,7 +45,7 @@ final case class AggregatorRowExpr(
   }
   
   override def apply(row: CsvRow.WithFlipTag): DataRow = DataRow(
-    marker = if(row.notFlipped) row.marker else markerDef.apply(row),
+    marker = row.marker,
     pvalue = pvalueDef.apply(row),
     zscore = zscoreDef.map(_.apply(row)),
     stderr = stderrDef.map(_.apply(row)),

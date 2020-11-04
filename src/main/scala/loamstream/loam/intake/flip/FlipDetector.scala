@@ -35,8 +35,6 @@ object FlipDetector extends Loggable {
       isVarDataType: Boolean = Defaults.isVarDataType,
       pathTo26kMap: Path = Defaults.pathTo26kMap) extends FlipDetector with Loggable {
     
-    import Regexes.{ singleNucleotide, multiNucleotide }
-    
     override def isFlipped(variantId: Variant): Disposition = {
       val isValidVariantId: Boolean = !variantsFrom26k.contains(variantId) && 
                                       !variantId.ref.contains(",") &&
@@ -48,7 +46,7 @@ object FlipDetector extends Loggable {
         val richVariant = RichVariant(referenceFiles, variantsFrom26k, variantId)
         
         if(variantId.isSingleNucleotide) { handleSingleNucleotideVariant(richVariant) } 
-        else if(variantId.isMultiNucleotide) { handleSingleNucleotideVariant(richVariant) }
+        else if(variantId.isMultiNucleotide) { handleMultiNucleotideVariant(richVariant) }
         else { NotFlippedSameStrand } //TODO: Something else?  Getting here is arguably an error
         
       } else {
@@ -124,6 +122,7 @@ object FlipDetector extends Loggable {
       variant.refFromReferenceGenome.filter(_ != reference).zip(variant.altFromReferenceGenome) match {
         case Some((_, altFromRefGenome)) if altFromRefGenome == alt => FlippedSameStrand
         case Some((_, altFromRefGenome)) if altFromRefGenome == Complement(alt) => FlippedComplementStrand
+        //case Some((refFromRefGenome, _)) if refFromRefGenome == Complement(reference) => NotFlippedComplementStrand
         case _ => NotFlippedSameStrand
       }
     }
@@ -148,10 +147,5 @@ object FlipDetector extends Loggable {
       case Some(refFromRefGenome) => refFromRefGenome == Complement(v.reference)
       case _ => false
     }
-  }
-  
-  private object Regexes {
-    val singleNucleotide: Regex = """^(.+)_([0-9]+)_([ATGC])_([ATGC])$""".r
-    val multiNucleotide: Regex = """^(.+)_([0-9]+)_([ATGC]+)_([ATGC]+)$""".r
   }
 }

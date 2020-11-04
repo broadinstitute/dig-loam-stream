@@ -1,11 +1,10 @@
 package loamstream.loam.intake.flip
 
 import org.scalatest.FunSuite
-import loamstream.loam.intake.IntakeSyntax
+
 import loamstream.loam.intake.CsvRow
-import loamstream.loam.intake.aggregator.RowExpr
-import loamstream.loam.intake.aggregator.ColumnNames
 import loamstream.loam.intake.LiteralColumnExpr
+import loamstream.loam.intake.IntakeSyntax
 
 
 /**
@@ -37,9 +36,9 @@ final class VarIdTransformationTest extends FunSuite {
         variantExpr, 
         variantExpr.map(_.flip))
     
-    val toAggregatorRow: RowExpr = RowExpr(
+    val toAggregatorRow: AggregatorRowExpr = AggregatorRowExpr(
         markerDef = varIdDef,
-        pvalueDef = NamedColumnDef(ColumnNames.pvalue, LiteralColumnExpr(42.0)))
+        pvalueDef = NamedColumnDef(AggregatorColumnNames.pvalue, LiteralColumnExpr(42.0)))
         
     val dataRows = source.tagFlips(varIdDef, flipDetector).map(toAggregatorRow)
       

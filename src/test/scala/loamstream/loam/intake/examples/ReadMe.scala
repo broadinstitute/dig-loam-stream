@@ -6,10 +6,9 @@ import loamstream.loam.LoamScriptContext
 import loamstream.loam.LoamProjectContext
 import loamstream.loam.LoamSyntax
 import loamstream.conf.LoamConfig
-import loamstream.loam.intake.aggregator.AggregatorCommands
-import loamstream.loam.intake.aggregator.AggregatorIntakeConfig
-import loamstream.loam.intake.aggregator.Metadata
-import loamstream.loam.intake.aggregator.SourceColumns
+import loamstream.loam.intake.AggregatorCommands
+import loamstream.loam.intake.AggregatorIntakeConfig
+import loamstream.loam.intake.SourceColumns
 import loamstream.conf.LsSettings
 
 /**
@@ -118,8 +117,8 @@ object ReadMe extends loamstream.LoamFile with AggregatorCommands {
   }
   
   //Helpers that encode common patterns 
-  import loamstream.loam.intake.aggregator.AggregatorColumnDefs.{marker, eaf, beta, just, pvalue, stderr}
-  import ColumnNames._
+  import AggregatorColumnDefs.{marker, eaf, beta, just, pvalue, stderr}
+  import AggregatorColumnNames._
   
   //Use aggregator-default column names to make things easier
   //TODO: UPDATE
@@ -166,7 +165,7 @@ object ReadMe extends loamstream.LoamFile with AggregatorCommands {
     genomeReferenceDir = path("/path/to/dir/containing/reference/genome/files"),
     twentySixKIdMap = path("/paht/to/26k_id.map"))
 
-  val metadata: Metadata = Metadata(
+  val metadata: AggregatorMetadata = AggregatorMetadata(
     dataset = "dataset-name",
     phenotype = "some-phenotype",
     //See https://github.com/broadinstitute/dig-aggregator-intake
@@ -174,7 +173,7 @@ object ReadMe extends loamstream.LoamFile with AggregatorCommands {
     ancestry = "some-ancestry",
     author = Some("John Doe"),
     tech = "some-tech",
-    quantitative = Some(Metadata.Quantitative.Subjects(42))
+    quantitative = Some(AggregatorMetadata.Quantitative.Subjects(42))
     //or quantitative = Some(Metadata.Quantitative.CasesAndControls(cases = 42, controls = 99))
   )
   

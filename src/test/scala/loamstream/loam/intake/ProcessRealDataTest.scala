@@ -6,7 +6,6 @@ import loamstream.TestHelpers
 import loamstream.util.Files
 import loamstream.util.TimeUtils
 import scala.util.control.NonFatal
-import loamstream.loam.intake.aggregator.AggregatorColumnDefs
 import loamstream.loam.LoamSyntax
 import loamstream.util.Loggable
 import loamstream.compiler.LoamEngine
@@ -40,8 +39,8 @@ final class ProcessRealDataTest extends FunSuite with Loggable {
     import ColumnNames._
     import AggregatorColumnDefs._
   
-    val toAggregatorRows: aggregator.RowExpr = {
-      aggregator.RowExpr(
+    val toAggregatorRows: AggregatorRowExpr = {
+      AggregatorRowExpr(
         markerDef = markerVariant(
                       chromColumn = CHR, 
                       posColumn = BP, 

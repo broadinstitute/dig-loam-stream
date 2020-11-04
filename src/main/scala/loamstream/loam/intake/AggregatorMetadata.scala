@@ -1,8 +1,10 @@
 package loamstream.loam.intake
 
 import scala.util.Try
+
 import com.typesafe.config.Config
-import Metadata.Defaults
+
+import AggregatorMetadata.Defaults
 import loamstream.conf.ConfigParser
 import loamstream.util.Options
 
@@ -17,7 +19,7 @@ final case class AggregatorMetadata(
     ancestry: String,
     author: Option[String] = None,
     tech: String,
-    quantitative: Option[Metadata.Quantitative],
+    quantitative: Option[AggregatorMetadata.Quantitative],
     properties: Seq[(String, String)] = Nil) {
     
   require(AggregatorVarIdFormat.isValid(varIdFormat))
@@ -25,13 +27,13 @@ final case class AggregatorMetadata(
   def subjects: Option[Int] = quantitative.map(_.subjects)
   
   def asConfigFileContents: String = {
-    import Metadata.escape
+    import AggregatorMetadata.escape
     
     val authorPart = author.map(a => s"author ${escape(a)}").getOrElse("")
     
-    import Metadata.Quantitative.CasesAndControls
-    import Metadata.Quantitative.Subjects
-    import System.lineSeparator
+    import AggregatorMetadata.Quantitative.CasesAndControls
+    import AggregatorMetadata.Quantitative.Subjects
+    import java.lang.System.lineSeparator
 
     val quantitativePart = quantitative match {
       case Some(CasesAndControls(cases, controls)) => s"cases ${cases}${lineSeparator}controls ${controls}"
@@ -48,7 +50,7 @@ final case class AggregatorMetadata(
   }
 }
 
-object Metadata extends ConfigParser[AggregatorMetadata] {
+object AggregatorMetadata extends ConfigParser[AggregatorMetadata] {
 
   /**
    * Wrap strings containing whitespace in double quotes, escaping any existing double-quote characters.

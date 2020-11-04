@@ -1,16 +1,13 @@
 package loamstream.loam.intake.metrics
 
 import org.scalatest.FunSuite
+
 import loamstream.loam.intake.IntakeSyntax
+import loamstream.loam.intake.Dataset
+import loamstream.loam.intake.Phenotype
+import loamstream.loam.intake.flip.Disposition
 import loamstream.loam.intake.flip.FlipDetector
 import loamstream.util.Fold
-import loamstream.loam.intake.aggregator.ColumnNames
-import loamstream.loam.intake.ColumnDef
-import loamstream.loam.intake.aggregator.RowExpr
-import loamstream.loam.intake.aggregator.AggregatorColumnDefs
-import loamstream.loam.intake.flip.Disposition
-import loamstream.loam.intake.aggregator.Phenotype
-import loamstream.loam.intake.aggregator.Dataset
 
 
 /**
@@ -18,7 +15,7 @@ import loamstream.loam.intake.aggregator.Dataset
  * May 5, 2020
  */
 final class MetricTest extends FunSuite {
-  import IntakeSyntax._
+  import loamstream.loam.intake.IntakeSyntax._
   
   private val Marker = ColumnName("mrkr")
   private val Pvalue = ColumnName("p_value")
@@ -42,10 +39,10 @@ final class MetricTest extends FunSuite {
   
   private val source = Source.fromString(csvData, Source.Formats.spaceDelimitedWithHeader)
 
-  private val markerDef = NamedColumnDef(ColumnNames.marker, Marker, Marker)
-  private val markerVariantDef = NamedColumnDef(ColumnNames.marker, Marker.map(Variant.from), Marker.map(Variant.from))
+  private val markerDef = NamedColumnDef(AggregatorColumnNames.marker, Marker, Marker)
+  private val markerVariantDef = NamedColumnDef(AggregatorColumnNames.marker, Marker.map(Variant.from), Marker.map(Variant.from))
   
-  private val defaultRowExpr: RowExpr = RowExpr(
+  private val defaultRowExpr: AggregatorRowExpr = AggregatorRowExpr(
         markerDef = markerVariantDef,
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue))
   
@@ -94,7 +91,7 @@ final class MetricTest extends FunSuite {
   }
   
   test("countWithDisagreeingBetaStderrZscore - no flips") {
-    import _root_.loamstream.loam.intake.aggregator.ColumnNames._
+    import AggregatorColumnNames._
     
     val csvData = s"""|${marker.name} ${beta.name} ${stderr.name} ${zscore.name} ${Pvalue.name}
                       |${Vars.x} 4 2 2 99
@@ -108,7 +105,7 @@ final class MetricTest extends FunSuite {
     
     val flipDetector = new MetricTest.MockFlipDetector(Set.empty)
                       
-    val toAggregatorFormat: RowExpr = RowExpr(
+    val toAggregatorFormat: AggregatorRowExpr = AggregatorRowExpr(
         markerDef = NamedColumnDef(marker, marker.map(Variant.from)),
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
         zscoreDef = Some(AggregatorColumnDefs.zscore(zscore)),
@@ -123,7 +120,7 @@ final class MetricTest extends FunSuite {
   }
   
   test("countWithDisagreeingBetaStderrZscore - some flips") {
-    import _root_.loamstream.loam.intake.aggregator.ColumnNames._
+    import AggregatorColumnNames._
     
     val csvData = s"""|${Marker.name} ${beta.name} ${stderr.name} ${zscore.name} ${Pvalue.name}
                       |${Vars.x} 4 2 2 99
@@ -137,7 +134,7 @@ final class MetricTest extends FunSuite {
     
     val flipDetector = new MetricTest.MockFlipDetector(Set(Vars.y, Vars.a, Vars.b).map(Variant.from))
     
-    val toAggregatorFormat: RowExpr = RowExpr(
+    val toAggregatorFormat: AggregatorRowExpr = AggregatorRowExpr(
         markerDef = markerVariantDef,
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
         zscoreDef = Some(AggregatorColumnDefs.zscore(zscore)),
@@ -169,7 +166,7 @@ final class MetricTest extends FunSuite {
     
     val flipDetector = new MetricTest.MockFlipDetector(Set.empty)
     
-    val toAggregatorFormat: RowExpr = RowExpr(
+    val toAggregatorFormat: AggregatorRowExpr = AggregatorRowExpr(
         markerDef = NamedColumnDef(Marker, marker.map(Variant.from), marker.map(Variant.from)),
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
         zscoreDef = Some(AggregatorColumnDefs.zscore(zscore)),
@@ -199,9 +196,9 @@ final class MetricTest extends FunSuite {
   
     val source = Source.fromString(csvData, Source.Formats.spaceDelimitedWithHeader)
     
-    val markerDef = NamedColumnDef(ColumnNames.marker, marker.map(Variant.from), marker.map(Variant.from))
+    val markerDef = NamedColumnDef(AggregatorColumnNames.marker, marker.map(Variant.from), marker.map(Variant.from))
     
-    val toAggregatorFormat: RowExpr = RowExpr(
+    val toAggregatorFormat: AggregatorRowExpr = AggregatorRowExpr(
         markerDef = markerDef,
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
         zscoreDef = Some(AggregatorColumnDefs.zscore(zscore)),

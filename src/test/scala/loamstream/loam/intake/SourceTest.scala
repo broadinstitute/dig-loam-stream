@@ -4,8 +4,6 @@ import org.scalatest.FunSuite
 import loamstream.TestHelpers
 import loamstream.util.Files
 import java.io.StringReader
-import loamstream.loam.intake.aggregator.AggregatorColumnDefs
-import loamstream.loam.intake.aggregator.ColumnNames
 import loamstream.loam.intake.metrics.MetricTest.MockFlipDetector
 import loamstream.loam.intake.flip.FlipDetector
 import loamstream.loam.intake.flip.Disposition
@@ -129,7 +127,7 @@ final class SourceTest extends FunSuite {
     val foo = ColumnName("FOO")
     val bar = ColumnName("BAR")
     
-    val markerDef = NamedColumnDef(ColumnNames.marker, foo.map(Variant.from), foo.map(Variant.from))
+    val markerDef = NamedColumnDef(AggregatorColumnNames.marker, foo.map(Variant.from), foo.map(Variant.from))
     
     val flipDetector: FlipDetector = SourceTest.MockFlipDetector(Set.empty, Set.empty)
     
@@ -173,7 +171,7 @@ final class SourceTest extends FunSuite {
     val foo = ColumnName("FOO")
     val bar = ColumnName("BAR")
     
-    val markerDef = NamedColumnDef(ColumnNames.marker, foo.map(Variant.from), foo.map(Variant.from))
+    val markerDef = NamedColumnDef(AggregatorColumnNames.marker, foo.map(Variant.from), foo.map(Variant.from))
     
     val flippedVariants = Set(m0, m3)
     

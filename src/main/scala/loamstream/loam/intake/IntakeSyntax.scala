@@ -60,6 +60,10 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
   type AggregatorRowExpr = loamstream.loam.intake.AggregatorRowExpr
   val AggregatorRowExpr = loamstream.loam.intake.AggregatorRowExpr
   
+  val AggregatorColumnDefs = loamstream.loam.intake.AggregatorColumnDefs
+  
+  val AggregatorColumnNames = loamstream.loam.intake.AggregatorColumnNames
+  
   object Log {
     def toFile(store: Store, append: Boolean = false): ToFileLogContext = {
       require(store.isPathStore)

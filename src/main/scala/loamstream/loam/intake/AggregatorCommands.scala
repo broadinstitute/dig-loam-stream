@@ -1,7 +1,8 @@
 package loamstream.loam.intake
 
-import loamstream.loam.LoamScriptContext
 import java.nio.file.Paths
+
+import loamstream.loam.LoamScriptContext
 import loamstream.loam.LoamSyntax
 
 /**
@@ -11,8 +12,8 @@ import loamstream.loam.LoamSyntax
 object AggregatorCommands extends AggregatorCommands
 
 trait AggregatorCommands {
-  import LoamSyntax._
   import IntakeSyntax._
+  import loamstream.loam.LoamSyntax._
   
   def upload(
       aggregatorIntakeConfig: AggregatorIntakeConfig,

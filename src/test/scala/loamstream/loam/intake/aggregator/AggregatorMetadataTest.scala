@@ -1,14 +1,15 @@
 package loamstream.loam.intake.aggregator
 
 import org.scalatest.FunSuite
+import loamstream.loam.intake.AggregatorMetadata
 
 /**
  * @author clint
  * Jun 25, 2020
  */
-final class MetadataTest extends FunSuite {
+final class AggregatorMetadataTest extends FunSuite {
   test("escape") {
-    import Metadata.escape
+    import AggregatorMetadata.escape
     
     assert(escape("") === "")
     assert(escape("foo") === "foo")
@@ -25,7 +26,7 @@ final class MetadataTest extends FunSuite {
     def doTest(
         author: Option[String], 
         expectedAuthorString: String,
-        quantitative: Option[Metadata.Quantitative], 
+        quantitative: Option[AggregatorMetadata.Quantitative], 
         expectedQuantString: String): Unit = {
 
       val dataset = "some-dataset"
@@ -35,7 +36,7 @@ final class MetadataTest extends FunSuite {
       val tech = "some tech"
       val properties = Seq("x" -> "123", "a" -> "456")
     
-      val m = Metadata(
+      val m = AggregatorMetadata(
         dataset = dataset,
         phenotype = phenotype,
         varIdFormat = varIdFormat,
@@ -63,17 +64,18 @@ final class MetadataTest extends FunSuite {
     
     doTest(None, "", None, "")
     doTest(Some("some-author"), "author some-author", None, "")
-    doTest(None, "", Some(Metadata.Quantitative.Subjects(42)), "subjects 42")
-    doTest(Some("some-author"), "author some-author", Some(Metadata.Quantitative.Subjects(42)), "subjects 42")
+    doTest(None, "", Some(AggregatorMetadata.Quantitative.Subjects(42)), "subjects 42")
+    doTest(Some("some-author"), 
+        "author some-author", Some(AggregatorMetadata.Quantitative.Subjects(42)), "subjects 42")
     doTest(
         None, 
         "", 
-        Some(Metadata.Quantitative.CasesAndControls(42, 99)), 
+        Some(AggregatorMetadata.Quantitative.CasesAndControls(42, 99)), 
         s"cases 42${lineSeparator}controls 99")
     doTest(
         Some("some-author"), 
         "author some-author",
-        Some(Metadata.Quantitative.CasesAndControls(42, 99)), 
+        Some(AggregatorMetadata.Quantitative.CasesAndControls(42, 99)), 
         s"cases 42${lineSeparator}controls 99")
   }
 }

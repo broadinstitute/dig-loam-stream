@@ -7,9 +7,7 @@ import loamstream.conf.LoamConfig
 import loamstream.loam.LoamProjectContext
 import loamstream.loam.LoamScriptContext
 import loamstream.loam.intake.AggregatorIntakeConfig
-import loamstream.loam.intake.Metadata
 import loamstream.loam.intake.SourceColumns
-import loamstream.loam.intake.AggregatorColumnDefs
 import loamstream.loam.intake.RowSink
 import loamstream.loam.intake.AggregatorCommands.upload
 
@@ -116,8 +114,8 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
   
   private val intakeMetadataTypesafeConfig: Config = loadConfig("INTAKE_METADATA_CONF", "").config
   
-  val generalMetadata: Metadata.NoPhenotypeOrQuantitative = {
-    Metadata.NoPhenotypeOrQuantitative.fromConfig(intakeMetadataTypesafeConfig).get
+  val generalMetadata: AggregatorMetadata.NoPhenotypeOrQuantitative = {
+    AggregatorMetadata.NoPhenotypeOrQuantitative.fromConfig(intakeMetadataTypesafeConfig).get
   }
   
   val aggregatorIntakePipelineConfig: AggregatorIntakeConfig = {
@@ -138,7 +136,7 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
   def toMetadata(phenotypeConfigTuple: (String, PhenotypeConfig)): AggregatorMetadata = {
     val (phenotype, PhenotypeConfig(_, subjects)) = phenotypeConfigTuple
     
-    generalMetadata.toMetadata(phenotype, Some(Metadata.Quantitative.Subjects(subjects)))
+    generalMetadata.toMetadata(phenotype, Some(AggregatorMetadata.Quantitative.Subjects(subjects)))
   }
   
   val flipDetector: FlipDetector = new FlipDetector.Default(

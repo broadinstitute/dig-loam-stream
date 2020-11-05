@@ -73,10 +73,10 @@ final class AggregatorColumnDefsTest extends FunSuite {
     
     assert(markerDef.name === AggregatorColumnNames.marker)
     
-    val row = Helpers.csvRow("foo" -> "42", "bar" -> "asdf", "baz" -> "123", "bip" -> "456")
+    val row = Helpers.csvRow("foo" -> "42", "bar" -> "123456", "baz" -> "123", "bip" -> "456")
     
-    assert(markerDef.expr.apply(row) == "42_asdf_123_456") 
-    assert(markerDef.exprWhenFlipped.get.apply(row) == "42_asdf_456_123")
+    assert(markerDef.expr.apply(row) == Variant.from("42_123456_123_456"))
+    assert(markerDef.apply(row) == Variant.from("42_123456_123_456")) 
   }
   
   test("pvalue") {

@@ -12,39 +12,17 @@ object AggregatorColumnDefs {
   import IntakeSyntax._
   import ColumnExpr.asDouble
   
-  def markerVariant(
-      chromColumn: ColumnExpr[_],
-      posColumn: ColumnExpr[_],
-      refColumn: ColumnExpr[_],
-      altColumn: ColumnExpr[_],
-      destColumn: ColumnName = AggregatorColumnNames.marker): NamedColumnDef[Variant] = {
-    
-    val asString = marker(
-        chromColumn = chromColumn,
-        posColumn = posColumn,
-        refColumn = refColumn,
-        altColumn = altColumn,
-        destColumn = destColumn)
-      
-    NamedColumnDef(
-        asString.name, 
-        asString.expr.map(Variant.from), 
-        asString.exprWhenFlipped.map(_.map(Variant.from)))
-  }
-  
   def marker(
       chromColumn: ColumnExpr[_],
       posColumn: ColumnExpr[_],
       refColumn: ColumnExpr[_],
       altColumn: ColumnExpr[_],
-      destColumn: ColumnName = AggregatorColumnNames.marker): NamedColumnDef[String] = {
+      destColumn: ColumnName = AggregatorColumnNames.marker): MarkerColumnDef = {
     
-    NamedColumnDef(
-      destColumn,
-      //"{chrom}_{pos}_{ref}_{alt}"
-      strexpr"${chromColumn}_${posColumn}_${refColumn}_${altColumn}",
-      //"{chrom}_{pos}_{alt}_{ref}"
-      strexpr"${chromColumn}_${posColumn}_${altColumn}_${refColumn}")
+    //"{chrom}_{pos}_{ref}_{alt}"
+    val asString = strexpr"${chromColumn}_${posColumn}_${refColumn}_${altColumn}"
+      
+    MarkerColumnDef(destColumn, asString.map(Variant.from))
   }
   
   def just(columnName: ColumnName): NamedColumnDef[String] = NamedColumnDef(columnName)

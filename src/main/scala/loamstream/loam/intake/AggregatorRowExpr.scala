@@ -5,7 +5,7 @@ package loamstream.loam.intake
  * Oct 14, 2020
  */
 final case class AggregatorRowExpr(
-    markerDef: NamedColumnDef[Variant],
+    markerDef: MarkerColumnDef,
     pvalueDef: NamedColumnDef[Double],
     zscoreDef: Option[NamedColumnDef[Double]] = None,
     stderrDef: Option[NamedColumnDef[Double]] = None,
@@ -15,25 +15,26 @@ final case class AggregatorRowExpr(
     mafDef: Option[NamedColumnDef[Double]] = None,
     nDef: Option[NamedColumnDef[Double]] = None) extends TaggedRowParser[DataRow] {
   
-  def columnDefs: Seq[NamedColumnDef[_]] = {
+  def columnNames: Seq[ColumnName] = {
     //NB: Note that this order matters. :\ 
-    markerDef +: 
-    pvalueDef +: {
+    markerDef.name +: 
+    pvalueDef.name +: {
       (zscoreDef ++
       stderrDef ++
       betaDef ++
       oddsRatioDef ++
       eafDef ++
       mafDef ++
-      nDef).toSeq
+      nDef).map(_.name).toSeq
     }
   }
   
   def sourceColumns: SourceColumns = {
+    def nameOfMarker(columnDef: MarkerColumnDef) = columnDef.name.mapName(_.toLowerCase)
     def nameOf(columnDef: NamedColumnDef[_]) = columnDef.name.mapName(_.toLowerCase)
     
     SourceColumns(
-      marker = nameOf(markerDef), 
+      marker = nameOfMarker(markerDef), 
       pvalue = nameOf(pvalueDef),
       zscore = zscoreDef.map(nameOf),
       stderr = stderrDef.map(nameOf),

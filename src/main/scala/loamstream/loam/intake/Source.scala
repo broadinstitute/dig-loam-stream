@@ -44,13 +44,13 @@ sealed trait Source[R] {
   }
   
   def tagFlips(
-      markerDef: ColumnDef[Variant], 
+      markerDef: MarkerColumnDef, 
       flipDetector: => FlipDetector)(implicit ev: R <:< CsvRow): Source[CsvRow.WithFlipTag] = {
     
     lazy val actualFlipDetector = flipDetector
     
     this.map(ev).map { row =>
-      val originalMarker = markerDef.expr.apply(row)
+      val originalMarker = markerDef.apply(row)
     
       val disposition = actualFlipDetector.isFlipped(originalMarker)
     

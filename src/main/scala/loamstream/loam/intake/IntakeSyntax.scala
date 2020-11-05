@@ -36,6 +36,9 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
   type NamedColumnDef[A] = loamstream.loam.intake.NamedColumnDef[A]
   val NamedColumnDef = loamstream.loam.intake.NamedColumnDef
   
+  type MarkerColumnDef = loamstream.loam.intake.MarkerColumnDef
+  val MarkerColumnDef = loamstream.loam.intake.MarkerColumnDef
+  
   type Source[A] = loamstream.loam.intake.Source[A]
   val Source = loamstream.loam.intake.Source
   
@@ -94,8 +97,8 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     }
   }
   
-  private[intake] def headerRowFrom(columnDefs: Seq[NamedColumnDef[_]]): HeaderRow = {
-    HeaderRow(columnDefs.map(_.name.name))
+  private[intake] def headerRowFrom(columnDefs: Seq[ColumnName]): HeaderRow = {
+    HeaderRow(columnDefs.map(_.name))
   }
   
   implicit final class ColumnNameOps(val s: String) {
@@ -126,7 +129,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     def via(expr: AggregatorRowExpr): MapFilterAndGoTarget[Unit] = {
       val dataRows = rows.tagFlips(expr.markerDef, flipDetector).map(expr)
       
-      val headerRow = headerRowFrom(expr.columnDefs)
+      val headerRow = headerRowFrom(expr.columnNames)
       
       val pseudoMetric: Metric[Unit] = Fold.foreach(_ => ()) // TODO
       

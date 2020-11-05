@@ -28,6 +28,7 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
     val BETA = "BETA".asColumnName
     val SE = "SE".asColumnName
     val P_BOLT_LMM = "P_BOLT_LMM".asColumnName
+    val Z_SCORE = "Z_SCORE".asColumnName
     
     val VARID = "VARID".asColumnName
   }
@@ -37,13 +38,15 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
     import AggregatorColumnDefs._
     
     AggregatorRowExpr(
-      markerDef = markerVariant(
+      markerDef = marker(
           chromColumn = CHR, 
           posColumn = BP, 
           refColumn = ALLELE1, 
           altColumn = ALLELE0),
       pvalueDef = pvalue(P_BOLT_LMM),
-      zscoreDef = Some(zscore(BETA, SE)),
+      //zscoreDef = Some(zscore(BETA, SE)),
+      //zscoreDef = Some(zscore(Z_SCORE)),
+      zscoreDef = Some(PassThru.zscore(Z_SCORE)),
       stderrDef = Some(stderr(SE)),
       betaDef = Some(beta(BETA)),
       eafDef = Some(eaf(A1FREQ)))
@@ -97,9 +100,9 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
         filter(DataRowFilters.validEaf(filterLog, append = true)).
         filter(DataRowFilters.validMaf(filterLog, append = true)).
         map(DataRowTransforms.clampPValues).
-        filter(DataRowFilters.validPValue).
+        filter(DataRowFilters.validPValue(filterLog, append = true)).
         withMetric(Metrics.fractionUnknownToBioIndex(unknownToBioIndexFile)).
-        withMetric(Metrics.fractionUnknownToBioIndex(disagreeingZBetaStdErrFile)).
+        withMetric(Metrics.fractionWithDisagreeingBetaStderrZscore(disagreeingZBetaStdErrFile, flipDetector)).
         write().
         tag(s"process-phenotype-$phenotype").
         in(sourceStore).

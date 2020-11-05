@@ -34,7 +34,6 @@ final class FlipDetectorTest extends FunSuite {
  
   test("Problematic variant: 1_612688_T_TCTC") {
     assert(flipDetector.isFlipped(Variant.from("1_612688_T_TCTC")) === Disposition.NotFlippedSameStrand)
-    assert(flipDetector.isFlipped(Variant.from("1_612688_TCTC_T")) === Disposition.FlippedSameStrand)
   }
   
   test("Problematic variant: 1_746211_AG_A") {

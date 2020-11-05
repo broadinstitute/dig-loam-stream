@@ -40,7 +40,7 @@ final class MetricTest extends FunSuite {
   private val source = Source.fromString(csvData, Source.Formats.spaceDelimitedWithHeader)
 
   private val markerDef = NamedColumnDef(AggregatorColumnNames.marker, Marker, Marker)
-  private val markerVariantDef = NamedColumnDef(AggregatorColumnNames.marker, Marker.map(Variant.from), Marker.map(Variant.from))
+  private val markerVariantDef = MarkerColumnDef(AggregatorColumnNames.marker, Marker.map(Variant.from))
   
   private val defaultRowExpr: AggregatorRowExpr = AggregatorRowExpr(
         markerDef = markerVariantDef,
@@ -106,7 +106,7 @@ final class MetricTest extends FunSuite {
     val flipDetector = new MetricTest.MockFlipDetector(Set.empty)
                       
     val toAggregatorFormat: AggregatorRowExpr = AggregatorRowExpr(
-        markerDef = NamedColumnDef(marker, marker.map(Variant.from)),
+        markerDef = MarkerColumnDef(marker, marker.map(Variant.from)),
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
         zscoreDef = Some(AggregatorColumnDefs.zscore(zscore)),
         stderrDef = Some(AggregatorColumnDefs.stderr(stderr)),
@@ -167,7 +167,7 @@ final class MetricTest extends FunSuite {
     val flipDetector = new MetricTest.MockFlipDetector(Set.empty)
     
     val toAggregatorFormat: AggregatorRowExpr = AggregatorRowExpr(
-        markerDef = NamedColumnDef(Marker, marker.map(Variant.from), marker.map(Variant.from)),
+        markerDef = MarkerColumnDef(Marker, marker.map(Variant.from)),
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
         zscoreDef = Some(AggregatorColumnDefs.zscore(zscore)),
         stderrDef = Some(AggregatorColumnDefs.stderr(stderr)),
@@ -196,7 +196,7 @@ final class MetricTest extends FunSuite {
   
     val source = Source.fromString(csvData, Source.Formats.spaceDelimitedWithHeader)
     
-    val markerDef = NamedColumnDef(AggregatorColumnNames.marker, marker.map(Variant.from), marker.map(Variant.from))
+    val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, marker.map(Variant.from))
     
     val toAggregatorFormat: AggregatorRowExpr = AggregatorRowExpr(
         markerDef = markerDef,

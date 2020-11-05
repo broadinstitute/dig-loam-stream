@@ -127,7 +127,7 @@ final class SourceTest extends FunSuite {
     val foo = ColumnName("FOO")
     val bar = ColumnName("BAR")
     
-    val markerDef = NamedColumnDef(AggregatorColumnNames.marker, foo.map(Variant.from), foo.map(Variant.from))
+    val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, foo.map(Variant.from))
     
     val flipDetector: FlipDetector = SourceTest.MockFlipDetector(Set.empty, Set.empty)
     
@@ -171,7 +171,7 @@ final class SourceTest extends FunSuite {
     val foo = ColumnName("FOO")
     val bar = ColumnName("BAR")
     
-    val markerDef = NamedColumnDef(AggregatorColumnNames.marker, foo.map(Variant.from), foo.map(Variant.from))
+    val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, foo.map(Variant.from))
     
     val flippedVariants = Set(m0, m3)
     

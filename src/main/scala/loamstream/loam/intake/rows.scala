@@ -34,6 +34,7 @@ final case class DataRow(
   n: Option[Double] = None) extends Row {
   
   //NB: Profiler-informed optimization: adding to a Buffer is 2x faster than ++ or .flatten
+  //We expect this method to be called a lot - once per row being output.
   override def values: Seq[String] = {
     val buffer = new ArrayBuffer[String](10)
     
@@ -41,6 +42,8 @@ final case class DataRow(
       case Some(d) => buffer += d.toString
       case None => ()
     }
+    
+    //NB: ORDERING MATTERS :\
     
     buffer += marker.underscoreDelimited
     buffer += pvalue.toString
@@ -53,6 +56,6 @@ final case class DataRow(
     add(maf)
     add(n)
     
-    buffer //TODO: ORDERING
+    buffer 
   }
 }

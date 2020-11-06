@@ -46,9 +46,11 @@ object Variant {
     case _ => None
   }
   
-  def from(varId: String): Variant = {
+  def apply(varId: String): Variant = {
     unapply(varId).getOrElse(sys.error(s"Couldn't determine chromosome and position from variant ID '${varId}'"))
   }
+  
+  def from(varId: String): Variant = apply(varId)
   
   object Regexes {
     val underscoreDelimited= """^(.+?)_(\d+?)_(.+?)_(.+?)$""".r

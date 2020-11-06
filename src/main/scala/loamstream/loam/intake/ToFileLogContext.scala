@@ -42,5 +42,8 @@ final class ToFileLogContext(
       
       e.printStackTrace(writer)
     }
+    
+    //TODO: FIXME, it's probably better to call close() once at the end
+    writer.flush()
   }
 }

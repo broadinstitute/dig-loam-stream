@@ -28,7 +28,9 @@ trait RowTransforms { self: IntakeSyntax =>
       val mungedPValue = if(pvalue == 0.0) {
         val newPValue = Double.MinPositiveValue
         
-        logCtx.warn(s"${s"Variant ${row.marker} has invalid P-value (${pvalue}), clamped to '${newPValue}'"}")
+        logCtx.warn {
+          s"${s"Variant ${row.marker.underscoreDelimited} has invalid P-value (${pvalue}), clamped to '${newPValue}'"}"
+        }
         
         newPValue
       } else {

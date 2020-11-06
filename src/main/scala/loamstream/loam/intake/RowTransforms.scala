@@ -25,21 +25,21 @@ trait RowTransforms { self: IntakeSyntax =>
     def clampPValues(implicit logCtx: LogContext): DataRowTransform = { row =>
       import row.pvalue
       
-      val mungedPValue = if(pvalue == 0.0) Double.MinPositiveValue else pvalue
+      val mungedPValue = if(pvalue == 0.0) {
+        val newPValue = Double.MinPositiveValue
+        
+        logCtx.warn(s"${s"Variant ${row.marker} has invalid P-value (${pvalue}), clamped to '${newPValue}'"}")
+        
+        newPValue
+      } else {
+        pvalue
+      }
       
       row.copy(pvalue = mungedPValue)
     }
     
-    def upperCaseAlleles(logStore: Store, append: Boolean = false): DataRowTransform = { 
-      clampPValues(Log.toFile(logStore, append))
-    }
-    
     def upperCaseAlleles: DataRowTransform = { row =>
-      import row.marker
-      
-      val variant = marker
-      
-      row.copy(marker = variant.toUpperCase)
+      row.copy(marker = row.marker.toUpperCase)
     }
   }
 }

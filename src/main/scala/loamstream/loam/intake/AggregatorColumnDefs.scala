@@ -17,12 +17,21 @@ object AggregatorColumnDefs {
       posColumn: ColumnExpr[_],
       refColumn: ColumnExpr[_],
       altColumn: ColumnExpr[_],
-      destColumn: ColumnName = AggregatorColumnNames.marker): MarkerColumnDef = {
+      destColumn: ColumnName = AggregatorColumnNames.marker,
+      forceAlphabeticChromNames: Boolean = true): MarkerColumnDef = {
     
     //"{chrom}_{pos}_{ref}_{alt}"
     val asString = strexpr"${chromColumn}_${posColumn}_${refColumn}_${altColumn}"
       
-    MarkerColumnDef(destColumn, asString.map(Variant.from))
+    val variantExpr: ColumnExpr[Variant] = {
+      val strExpr = {
+        if(forceAlphabeticChromNames) ColumnTransforms.ensureAlphabeticChromNames(asString) else asString
+      }
+      
+      strExpr.map(Variant.from)
+    }
+    
+    MarkerColumnDef(destColumn, variantExpr)
   }
   
   def just(columnName: ColumnName): NamedColumnDef[String] = NamedColumnDef(columnName)

@@ -11,6 +11,12 @@ import loamstream.loam.intake.flip.FlipDetector
  */
 trait Metrics {
   object Metrics {
+    def count(dest: Store): Metric[Unit] = {
+      require(dest.isPathStore)
+      
+      Fold.count.map(c => Files.writeTo(dest.path)(s"Produced ${c} variants"))
+    }
+    
     def fractionUnknownToBioIndex(dest: Store, client: BioIndexClient = new BioIndexClient.Default()): Metric[Unit] = {
       require(dest.isPathStore)
       

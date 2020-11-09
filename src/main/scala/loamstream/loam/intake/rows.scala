@@ -15,7 +15,7 @@ trait Row {
 final case class LiteralRow(values: Seq[String]) extends Row
 
 object LiteralRow {
-  def apply(values: String*)(implicit discriminator: Int = 42): LiteralRow = new LiteralRow(values) 
+  def apply(values: String*)(implicit discriminator: Int = 0): LiteralRow = new LiteralRow(values) 
 }
 
 /**
@@ -36,7 +36,7 @@ final case class DataRow(
   //NB: Profiler-informed optimization: adding to a Buffer is 2x faster than ++ or .flatten
   //We expect this method to be called a lot - once per row being output.
   override def values: Seq[String] = {
-    val buffer = new ArrayBuffer[String](10)
+    val buffer = new ArrayBuffer[String](10) //scalastyle:ignore magic.number
     
     def add(o: Option[Double]): Unit = o match {
       case Some(d) => buffer += d.toString

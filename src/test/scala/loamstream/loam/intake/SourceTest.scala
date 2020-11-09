@@ -136,8 +136,6 @@ final class SourceTest extends FunSuite {
     val untaggedExpectedRows = Helpers.csvRows(rowData.head, rowData.tail: _*)
         
     val expectedRows = untaggedExpectedRows.map { r =>
-      println(s"%%%%%%%%%%%% $r")
-      
       val marker = Variant.from(r.getFieldByName("FOO"))
       
       CsvRow.TaggedCsvRow(r, marker, marker, Disposition.NotFlippedSameStrand)

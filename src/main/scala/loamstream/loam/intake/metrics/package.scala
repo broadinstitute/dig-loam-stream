@@ -25,7 +25,7 @@ package object metrics {
       Fold.combine(this.f, that.f.map(ev)).map { case (a, (b, c)) => (a, b, c) } 
     }
     
-    def |+|[C, A1, B1](that: Metric[C])(implicit ev: A =:= (A1, B1), discriminator: Int = 42): Metric[(A1, B1, C)] = {
+    def |+|[C, A1, B1](that: Metric[C])(implicit ev: A =:= (A1, B1), discriminator: Int = 0): Metric[(A1, B1, C)] = {
       Fold.combine(this.f.map(ev), that.f).map { case ((a, b), c) => (a, b, c) } 
     }
     //scalastyle:on method.name

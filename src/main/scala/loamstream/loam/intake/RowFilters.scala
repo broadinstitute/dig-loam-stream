@@ -72,7 +72,8 @@ trait RowFilters { self: IntakeSyntax =>
      * 0 < eaf < 1
      * 0 < maf <= 0.5
      * 0 <= p <= 1 (reset p values of 0 to minimum representable value)
-     * warning resulting from p-values of 1: /humgen/diabetes2/users/ryank/software/dig-aggregator-intake/processors/variants.py:22: RuntimeWarning: divide by zero encountered in true_divide
+     * warning resulting from p-values of 1: dig-aggregator-intake/processors/variants.py:22: 
+     * RuntimeWarning: divide by zero encountered in true_divide
      * return 1.0 if beta == 0 else -numpy.divide(abs(beta), scipy.stats.norm.ppf(p / 2))
      *
      */

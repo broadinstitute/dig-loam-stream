@@ -86,7 +86,8 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     }
   }
   
-  private def nativeTool[A](forceLocal: Boolean = false)(body: => A)(implicit scriptContext: LoamScriptContext): Tool = { 
+  private def nativeTool[A](
+      forceLocal: Boolean = false)(body: => A)(implicit scriptContext: LoamScriptContext): Tool = { 
     if(forceLocal || scriptContext.lsSettings.thisInstanceIsAWorker) {
       doLocally(body) 
     } else {

@@ -9,6 +9,7 @@ import java.nio.file.StandardOpenOption
 import java.time.LocalDateTime
 import java.io.PrintWriter
 import scala.collection.Seq
+import loamstream.util.IoUtils
 
 /**
  * @author clint
@@ -35,10 +36,10 @@ final class ToFileLogContext(
   private def doLog(level: Level, s: => String, eOpt: Option[Throwable]): Unit = {
     def prefix = s"[${level}][${LocalDateTime.now}]"
     
-    writer.println(s"${prefix} ${s}")
+    IoUtils.printTo(writer)(s"${prefix} ${s}")
     
     eOpt.foreach { e =>
-      writer.println(s"${prefix} ${e}")
+      IoUtils.printTo(writer)(s"${prefix} ${e}")
       
       e.printStackTrace(writer)
     }

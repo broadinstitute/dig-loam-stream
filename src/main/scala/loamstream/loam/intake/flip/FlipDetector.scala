@@ -97,9 +97,9 @@ object FlipDetector extends Loggable {
       import Disposition._
       
       //TODO: IS THIS RIGHT??
-      if(variant.flip.isIn26k) { println("IN 26k") ; FlippedSameStrand }
-      else if(variant.isIn26kComplemented) { println(println("COMPLEMENT IN 26k")) ; NotFlippedComplementStrand }
-      else if(variant.flip.isIn26kComplemented) { println("FLIPPED-COMPLEMENT IN 26k") ; FlippedComplementStrand }
+      if(variant.flip.isIn26k) { FlippedSameStrand }
+      else if(variant.isIn26kComplemented) { NotFlippedComplementStrand }
+      else if(variant.flip.isIn26kComplemented) { FlippedComplementStrand }
       else {
         val refFromRefGenomeOpt = variant.refCharFromReferenceGenome.map(_.toString)
         

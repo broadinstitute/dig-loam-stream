@@ -64,32 +64,31 @@ final case class SourceColumns(
   }
   
   def validate(): Unit = {
+    def eafColumn = AggregatorColumnNames.eaf.name
+    def mafColumn = AggregatorColumnNames.maf.name
+    def betaColumn = AggregatorColumnNames.beta.name
+    def oddsRatioColumn = AggregatorColumnNames.odds_ratio.name
+    def stderrColumn = AggregatorColumnNames.stderr.name
+    def zscoreColumn = AggregatorColumnNames.zscore.name
+    
     if(maf.isEmpty) {
-      require(eaf.isDefined, s"If ${AggregatorColumnNames.maf} column is not provided, then ${AggregatorColumnNames.eaf} must be.")
+      require(eaf.isDefined, s"If ${mafColumn} column is not provided, then ${eafColumn} must be.")
     }
     
     if(beta.isEmpty) {
-      require(
-          oddsRatio.isDefined, 
-          s"If ${AggregatorColumnNames.beta} column is not provided, then ${AggregatorColumnNames.odds_ratio} must be.")
+      require(oddsRatio.isDefined, s"If ${betaColumn} column is not provided, then ${oddsRatioColumn} must be.")
     }
     
     if(oddsRatio.isEmpty) {
-      require(
-          beta.isDefined,
-          s"If ${AggregatorColumnNames.odds_ratio} column is not provided, then ${AggregatorColumnNames.beta} must be.")
+      require(beta.isDefined, s"If ${oddsRatioColumn} column is not provided, then ${betaColumn} must be.")
     }
     
     if(stderr.isEmpty) {
-      require(
-          beta.isDefined,
-          s"If ${AggregatorColumnNames.stderr} column is not provided, then ${AggregatorColumnNames.beta} must be.")
+      require(beta.isDefined, s"If ${stderrColumn} column is not provided, then ${betaColumn} must be.")
     }
     
     if(zscore.isEmpty) {
-      def msg = {
-        s"If ${AggregatorColumnNames.zscore} column is not provided, then ${AggregatorColumnNames.beta} and ${AggregatorColumnNames.stderr} must be."
-      }
+      def msg = s"If ${zscoreColumn} column is not provided, then ${betaColumn} and ${stderrColumn} must be."
       
       require(beta.isDefined, msg)
       require(stderr.isDefined, msg)

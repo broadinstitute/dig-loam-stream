@@ -98,8 +98,6 @@ final class ProcessRealDataTest extends FunSuite with Loggable {
       
       val actual = Source.fromFile(actualDataPath)
       
-      println(s"%%%%%%%%%%%%%% wrote lines to $actualDataPath")
-      
       val expectations: Iterable[(String, (String, String) => Unit)] = {
         def asDouble(fieldName: String): (String, (String, String) => Unit) = { 
           fieldName -> { (lhs, rhs) => 

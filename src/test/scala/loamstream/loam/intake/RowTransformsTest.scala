@@ -16,6 +16,10 @@ final class RowTransformsTest extends FunSuite {
   private val v1 = Variant("2_34567_T_c")
   private val v2 = Variant("3_45678_g_T")
   
+  import Helpers.withLogStore
+  import Helpers.linesFrom
+  import Helpers.Implicits.LogFileOps
+  
   test("upperCaseAlleles") {
     val rows = Seq(
         DataRow(marker = v0, pvalue = 42.0),
@@ -43,28 +47,20 @@ final class RowTransformsTest extends FunSuite {
         DataRow(marker = v1, pvalue = 42.0),
         DataRow(marker = v2, pvalue = Double.MinPositiveValue))
         
-    TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
-      TestHelpers.withScriptContext { implicit context =>
-        import LoamSyntax._
-        
-        val logFile = workDir.resolve("foo.log")
-        
-        val logStore = store(logFile)
-        
-        val actual = rows.map(Transforms.DataRowTransforms.clampPValues(logStore, append = true))
-        
-        assert(actual === expected)
-        
-        val loggedLines = {
-          import scala.collection.JavaConverters._
-          
-          Files.readAllLines(logFile).asScala.toList
-        }
-        
-        assert(loggedLines.count(_.contains(v0.underscoreDelimited)) === 1)
-        assert(loggedLines.count(_.contains(v2.underscoreDelimited)) === 1)
-        assert(loggedLines.size == 2)
-      }
+    withLogStore { logStore =>
+      val transform = Transforms.DataRowTransforms.clampPValues(logStore, append = true)
+      
+      val actual = rows.map(transform)
+      
+      transform.close()
+      
+      assert(actual === expected)
+      
+      val loggedLines = linesFrom(logStore.path)
+      
+      assert(loggedLines.containsOnce(v0.underscoreDelimited))
+      assert(loggedLines.containsOnce(v2.underscoreDelimited))
+      assert(loggedLines.size == 2)
     }
   }
 }

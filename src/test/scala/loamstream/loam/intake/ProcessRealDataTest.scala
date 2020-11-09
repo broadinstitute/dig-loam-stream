@@ -82,7 +82,7 @@ final class ProcessRealDataTest extends FunSuite with Loggable {
           filter(DataRowFilters.validEaf(filterLog, append = true)).
           filter(DataRowFilters.validMaf(filterLog, append = true)).
           filter(DataRowFilters.validPValue(filterLog, append = true)).
-          map(DataRowTransforms.clampPValues).
+          map(DataRowTransforms.clampPValues(filterLog, append = true)).
           write(forceLocal = true).
           tag(s"process-real-data").
           in(sourceStore)

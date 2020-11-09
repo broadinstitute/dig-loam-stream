@@ -2,6 +2,7 @@ package loamstream.loam.intake
 
 import loamstream.model.Store
 import loamstream.util.LogContext
+import java.io.Closeable
 
 /**
  * @author clint
@@ -18,30 +19,46 @@ trait RowTransforms { self: IntakeSyntax =>
    *
    */
   object DataRowTransforms {
-    def clampPValues(logStore: Store, append: Boolean = false): DataRowTransform = {
+    def clampPValues(logStore: Store, append: Boolean = false): CloseableDataRowTransform = {
       clampPValues(Log.toFile(logStore, append))
     }
     
-    def clampPValues(implicit logCtx: LogContext): DataRowTransform = { row =>
-      import row.pvalue
-      
-      val mungedPValue = if(pvalue == 0.0) {
-        val newPValue = Double.MinPositiveValue
+    def clampPValues(implicit logCtx: ToFileLogContext): CloseableDataRowTransform = {
+      RowTransforms.ConcreteCloseableTransform[DataRow](logCtx) { row =>
+        import row.pvalue
         
-        logCtx.warn {
-          s"${s"Variant ${row.marker.underscoreDelimited} has invalid P-value (${pvalue}), clamped to '${newPValue}'"}"
+        val mungedPValue = if(pvalue == 0.0) {
+          val newPValue = Double.MinPositiveValue
+          
+          logCtx.warn {
+            s"${s"Variant ${row.marker.underscoreDelimited} has invalid P-value (${pvalue}), clamped to '${newPValue}'"}"
+          }
+          
+          newPValue
+        } else {
+          pvalue
         }
         
-        newPValue
-      } else {
-        pvalue
+        row.copy(pvalue = mungedPValue)
       }
-      
-      row.copy(pvalue = mungedPValue)
     }
     
     def upperCaseAlleles: DataRowTransform = { row =>
       row.copy(marker = row.marker.toUpperCase)
+    }
+  }
+}
+
+object RowTransforms {
+  final class ConcreteCloseableTransform[A](toClose: Closeable)(t: Transform[A]) extends Transform[A] with Closeable {
+    override def apply(a: A): A = t(a)
+    
+    override def close(): Unit = toClose.close()
+  }
+  
+  object ConcreteCloseableTransform {
+    def apply[A](toClose: Closeable)(p: Transform[A]): ConcreteCloseableTransform[A] = {
+      new ConcreteCloseableTransform(toClose)(p)
     }
   }
 }

@@ -1,5 +1,11 @@
 package loamstream.loam.intake
 
+import loamstream.loam.LoamScriptContext
+import loamstream.TestHelpers
+import java.nio.file.Path
+import loamstream.loam.LoamSyntax
+import loamstream.model.Store
+
 /**
  * @author clint
  * Feb 10, 2020
@@ -23,5 +29,33 @@ object Helpers {
     val rows = values.map(rowValues => columnNames.zip(rowValues))
     
     rows.map(row => csvRow(row: _*))
+  }
+  
+  def withLogStore[A](f: Store => A): A = {
+    TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
+      TestHelpers.withScriptContext { implicit context =>
+        f(logStoreIn(workDir))
+      }
+    }
+  }
+  
+  def logStoreIn(workDir: Path, name: String = "blarg.log")(implicit ctx: LoamScriptContext): Store = {
+    val file = workDir.resolve(name)
+    
+    import LoamSyntax._
+    
+    store(file)
+  }
+  
+  def linesFrom(path: Path): Seq[String] = {
+    import scala.collection.JavaConverters._
+    
+    java.nio.file.Files.readAllLines(path).asScala.toSeq
+  }
+  
+  object Implicits {
+    final implicit class LogFileOps(val lines: Seq[String]) extends AnyVal {
+      def containsOnce(s: String): Boolean = lines.count(_.contains(s)) == 1
+    }
   }
 }

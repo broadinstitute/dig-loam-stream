@@ -22,7 +22,9 @@ final class RowFiltersTest extends FunSuite {
   private val v1 = Variant("2_34567_T_c")
   private val v2 = Variant("3_45678_g_T")
   
-  import RowFiltersTest.LogFileOps
+  import Helpers.Implicits.LogFileOps
+  import Helpers.withLogStore
+  import Helpers.linesFrom
   
   test("noDsNorIs") {
     withLogStore { logStore =>
@@ -240,34 +242,6 @@ final class RowFiltersTest extends FunSuite {
       assert(logLines.containsOnce("(100.0)"))
       assert(logLines.containsOnce("(-10.0)"))
     }
-  }
-  
-  private def withLogStore[A](f: Store => A): A = {
-    TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
-      TestHelpers.withScriptContext { implicit context =>
-        f(logStoreIn(workDir))
-      }
-    }
-  }
-  
-  private def logStoreIn(workDir: Path, name: String = "blarg.log")(implicit ctx: LoamScriptContext): Store = {
-    val file = workDir.resolve(name)
-    
-    import LoamSyntax._
-    
-    store(file)
-  }
-  
-  private def linesFrom(path: Path): Seq[String] = {
-    import scala.collection.JavaConverters._
-    
-    Files.readAllLines(path).asScala.toSeq
-  }
-}
-
-object RowFiltersTest {
-  private final implicit class LogFileOps(val lines: Seq[String]) extends AnyVal {
-    def containsOnce(s: String): Boolean = lines.count(_.contains(s)) == 1
   }
 }
 

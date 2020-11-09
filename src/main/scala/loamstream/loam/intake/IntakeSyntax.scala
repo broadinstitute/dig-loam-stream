@@ -116,17 +116,30 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     def using(flipDetector: => FlipDetector): ViaTarget = new ViaTarget(dest, rows, flipDetector)
   }
   
+  private def asCloseable[A](a: AnyRef): Seq[Closeable] = Option(a).collect { case c: Closeable => c }.toSeq
+  
   final class ViaTarget(
       dest: Store, 
       rows: Source[CsvRow],
-      flipDetector: => FlipDetector) extends Loggable {
+      flipDetector: => FlipDetector,
+      toBeClosed: Seq[Closeable] = Nil) extends Loggable {
     
-    def filter(p: RowPredicate): ViaTarget = new ViaTarget(dest, rows.filter(p), flipDetector)
+    def copy(
+      dest: Store = this.dest, 
+      rows: Source[CsvRow] = this.rows,
+      flipDetector: => FlipDetector = this.flipDetector,
+      toBeClosed: Seq[Closeable] = this.toBeClosed): ViaTarget = new ViaTarget(dest, rows, flipDetector, toBeClosed) 
+    
+    def filter(p: RowPredicate): ViaTarget = {
+      copy(rows = rows.filter(p), toBeClosed = asCloseable(p) ++ toBeClosed)
+    }
     
     def filter(ps: Iterable[RowPredicate]): ViaTarget = {
       val filteredRows = ps.foldLeft(rows)(_.filter(_))
       
-      new ViaTarget(dest, filteredRows, flipDetector)
+      val psToBeClosed = ps.collect { case c: Closeable => c }.toSeq
+      
+      copy(rows = filteredRows, toBeClosed = psToBeClosed ++ toBeClosed)
     }
     
     def via(expr: AggregatorRowExpr): MapFilterAndWriteTarget[Unit] = {
@@ -134,9 +147,9 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       
       val headerRow = headerRowFrom(expr.columnNames)
       
-      val pseudoMetric: Metric[Unit] = Fold.foreach(_ => ()) // TODO
+      val pseudoMetric: Metric[Unit] = Fold.foreach(_ => ()) // TODO :(
       
-      new MapFilterAndWriteTarget(dest, headerRow, dataRows, pseudoMetric)
+      new MapFilterAndWriteTarget(dest, headerRow, dataRows, pseudoMetric, toBeClosed)
     }
   }
   
@@ -145,7 +158,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       headerRow: HeaderRow,
       rows: Source[DataRow],
       metric: Metric[A],
-      toBeClosed: Seq[Closeable] = Nil) extends Loggable {
+      toBeClosed: Seq[Closeable]) extends Loggable {
     
     import loamstream.loam.intake.metrics.MetricOps
     
@@ -153,27 +166,24 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
         dest: Store = this.dest, 
         headerRow: HeaderRow = this.headerRow,
         rows: Source[DataRow] = this.rows,
+        metric: Metric[A] = this.metric,
         toBeClosed: Seq[Closeable] = this.toBeClosed): MapFilterAndWriteTarget[A] = {
       
-      new MapFilterAndWriteTarget(dest, headerRow, rows, metric)
+      new MapFilterAndWriteTarget(dest, headerRow, rows, metric, toBeClosed)
     }
     
     def withMetric[B](m: Metric[B]): MapFilterAndWriteTarget[(A, B)] = {
-      new MapFilterAndWriteTarget[(A, B)](dest, headerRow, rows, metric combine m)
-    }
-    
-    def filter(predicate: Predicate[DataRow]): MapFilterAndWriteTarget[A] = copy(rows = rows.filter(predicate))
-    
-    def filter(
-        predicate: CloseablePredicate[DataRow])(implicit discriminator: Int = 42): MapFilterAndWriteTarget[A] = {
+      val newMetric = metric combine m
       
-      copy(rows = rows.filter(predicate), toBeClosed = (predicate +: toBeClosed))
+      new MapFilterAndWriteTarget[(A, B)](dest, headerRow, rows, newMetric, toBeClosed)
     }
     
-    def map(transform: Transform[DataRow]): MapFilterAndWriteTarget[A] = copy(rows = rows.map(transform))
+    def filter(predicate: Predicate[DataRow]): MapFilterAndWriteTarget[A] = {
+      copy(rows = rows.filter(predicate), toBeClosed = asCloseable(predicate) ++ toBeClosed)
+    }
     
-    def map(transform: CloseableTransform[DataRow])(implicit discriminator: Int = 42): MapFilterAndWriteTarget[A] = {
-      copy(rows = rows.map(transform), toBeClosed = (transform +: toBeClosed))
+    def map(transform: Transform[DataRow]): MapFilterAndWriteTarget[A] = {
+      copy(rows = rows.map(transform), toBeClosed = asCloseable(transform) ++ toBeClosed)
     }
     
     //TODO: better name
@@ -209,9 +219,9 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     }
     
     private def closeEverything(): Unit = {
-      val blocks: Seq[() => Any] = toBeClosed.map(closeable => () => closeable.close())
+      val doCloseBlocks: Seq[() => Any] = toBeClosed.map(closeable => () => closeable.close())
       
-      val exceptions = Throwables.collectFailures(blocks: _*)
+      val exceptions = Throwables.collectFailures(doCloseBlocks: _*)
       
       if(exceptions.nonEmpty) {
         throw new CompositeException(exceptions)

@@ -15,6 +15,9 @@ import loamstream.loam.intake.metrics.Metric
 import loamstream.util.Fold
 import loamstream.util.CanBeClosed
 import loamstream.loam.intake.metrics.Metrics
+import java.io.Closeable
+import loamstream.util.Throwables
+import loamstream.util.CompositeException
 
 
 /**
@@ -126,41 +129,51 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       new ViaTarget(dest, filteredRows, flipDetector)
     }
     
-    def via(expr: AggregatorRowExpr): MapFilterAndGoTarget[Unit] = {
+    def via(expr: AggregatorRowExpr): MapFilterAndWriteTarget[Unit] = {
       val dataRows = rows.tagFlips(expr.markerDef, flipDetector).map(expr)
       
       val headerRow = headerRowFrom(expr.columnNames)
       
       val pseudoMetric: Metric[Unit] = Fold.foreach(_ => ()) // TODO
       
-      new MapFilterAndGoTarget(dest, headerRow, dataRows, pseudoMetric)
+      new MapFilterAndWriteTarget(dest, headerRow, dataRows, pseudoMetric)
     }
   }
   
-  final class MapFilterAndGoTarget[A](
+  final class MapFilterAndWriteTarget[A](
       dest: Store, 
       headerRow: HeaderRow,
       rows: Source[DataRow],
-      metric: Metric[A]) extends Loggable {
+      metric: Metric[A],
+      toBeClosed: Seq[Closeable] = Nil) extends Loggable {
     
     import loamstream.loam.intake.metrics.MetricOps
     
     def copy(
         dest: Store = this.dest, 
         headerRow: HeaderRow = this.headerRow,
-        rows: Source[DataRow] = this.rows): MapFilterAndGoTarget[A] = {
+        rows: Source[DataRow] = this.rows,
+        toBeClosed: Seq[Closeable] = this.toBeClosed): MapFilterAndWriteTarget[A] = {
       
-      new MapFilterAndGoTarget(dest, headerRow, rows, metric)
+      new MapFilterAndWriteTarget(dest, headerRow, rows, metric)
     }
     
-    def withMetric[B](m: Metric[B]): MapFilterAndGoTarget[(A, B)] = {
-      new MapFilterAndGoTarget[(A, B)](dest, headerRow, rows, metric combine m)
+    def withMetric[B](m: Metric[B]): MapFilterAndWriteTarget[(A, B)] = {
+      new MapFilterAndWriteTarget[(A, B)](dest, headerRow, rows, metric combine m)
     }
     
-    def filter(predicate: DataRow => Boolean): MapFilterAndGoTarget[A] = copy(rows = rows.filter(predicate))
+    def filter(predicate: Predicate[DataRow]): MapFilterAndWriteTarget[A] = copy(rows = rows.filter(predicate))
     
-    def map(transform: DataRow => DataRow): MapFilterAndGoTarget[A] = {
-      copy(rows = rows.map(transform))
+    def filter(
+        predicate: CloseablePredicate[DataRow])(implicit discriminator: Int = 42): MapFilterAndWriteTarget[A] = {
+      
+      copy(rows = rows.filter(predicate), toBeClosed = (predicate +: toBeClosed))
+    }
+    
+    def map(transform: Transform[DataRow]): MapFilterAndWriteTarget[A] = copy(rows = rows.map(transform))
+    
+    def map(transform: CloseableTransform[DataRow])(implicit discriminator: Int = 42): MapFilterAndWriteTarget[A] = {
+      copy(rows = rows.map(transform), toBeClosed = (transform +: toBeClosed))
     }
     
     //TODO: better name
@@ -177,11 +190,15 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       val tool: Tool = nativeTool(forceLocal) {
         TimeUtils.time(s"Producing ${dest.path}", info(_)) {
           CanBeClosed.enclosed(sink) { _ =>
-            sink.accept(headerRow)
-          
-            val (metricResults, _) = m.process(rows)
+            try {
+              sink.accept(headerRow)
+              
+              val (metricResults, _) = m.process(rows)
             
-            //TODO: What to do with metricResults?
+              //TODO: What to do with metricResults?
+            } finally {
+              closeEverything()
+            }
           }
         }
       }
@@ -189,6 +206,16 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       addToGraph(tool)
       
       tool.out(dest)
+    }
+    
+    private def closeEverything(): Unit = {
+      val blocks: Seq[() => Any] = toBeClosed.map(closeable => () => closeable.close())
+      
+      val exceptions = Throwables.collectFailures(blocks: _*)
+      
+      if(exceptions.nonEmpty) {
+        throw new CompositeException(exceptions)
+      }
     }
   }
 

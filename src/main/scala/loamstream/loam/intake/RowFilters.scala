@@ -2,6 +2,8 @@ package loamstream.loam.intake
 
 import loamstream.util.LogContext
 import loamstream.model.Store
+import java.io.Closeable
+import RowFilters.ConcreteCloseablePredicate
 
 /**
  * @author clint
@@ -15,13 +17,13 @@ trait RowFilters { self: IntakeSyntax =>
         refColumn: ColumnExpr[String], 
         altColumn: ColumnExpr[String],
         logStore: Store,
-        append: Boolean = false): RowPredicate = noDsNorIs(refColumn, altColumn)(Log.toFile(logStore, append))
+        append: Boolean = false): CloseableRowPredicate = noDsNorIs(refColumn, altColumn)(Log.toFile(logStore, append))
     
     def noDsNorIs(
         refColumn: ColumnExpr[String], 
-        altColumn: ColumnExpr[String])(implicit logCtx: LogContext): RowPredicate = {
+        altColumn: ColumnExpr[String])(implicit logCtx: ToFileLogContext): CloseableRowPredicate = {
       
-      filterRefAndAlt(refColumn, altColumn, di)
+      filterRefAndAlt(refColumn, altColumn, di)(logCtx)
     }
     
     def filterRefAndAlt(
@@ -29,7 +31,7 @@ trait RowFilters { self: IntakeSyntax =>
         altColumn: ColumnExpr[String],
         disallowed: Set[String],
         logStore: Store,
-        append: Boolean = false): RowPredicate = {
+        append: Boolean = false): CloseableRowPredicate = {
       
       filterRefAndAlt(refColumn, altColumn, disallowed)(Log.toFile(logStore, append))
     }
@@ -37,21 +39,32 @@ trait RowFilters { self: IntakeSyntax =>
     def filterRefAndAlt(
         refColumn: ColumnExpr[String], 
         altColumn: ColumnExpr[String],
-        disallowed: Set[String])(implicit logCtx: LogContext): RowPredicate = {
+        disallowed: Set[String])(implicit logCtx: ToFileLogContext): CloseableRowPredicate = {
       
       def isAllowed(s: String): Boolean = !disallowed.contains(s)
       
-      row => isAllowed(refColumn(row)) && isAllowed(altColumn(row))
+      ConcreteCloseablePredicate[CsvRow](logCtx) { row =>  
+        val valid = isAllowed(refColumn(row)) && isAllowed(altColumn(row))
+        
+        if(!valid) {
+          logCtx.warn {
+            s"Row ${row.values.mkString(",")} contains a disallowed value from ${disallowed} " +
+            s"in ${refColumn(row)} or ${altColumn(row)}"
+          }
+        }
+        
+        valid
+      }
     }
     
-    def logToFile(store: Store, append: Boolean = false)(p: RowPredicate): RowPredicate = { 
-      doLogToFile[CsvRow](store, append)(p)
+    def logToFile(store: Store, append: Boolean = false)(p: RowPredicate): CloseableRowPredicate = { 
+      doLogToFile[CsvRow](store, append)(p)(RowFilters.HasValues.CsvRowsHaveValues)
     }
   }
   
   object DataRowFilters {
-    def logToFile(store: Store, append: Boolean = false)(p: DataRowPredicate): DataRowPredicate = { 
-      doLogToFile[DataRow](store, append)(p)
+    def logToFile(store: Store, append: Boolean = false)(p: DataRowPredicate): CloseableDataRowPredicate = { 
+      doLogToFile[DataRow](store, append)(p)(RowFilters.HasValues.DataRowsHaveValues)
     }
     
     /*
@@ -64,66 +77,89 @@ trait RowFilters { self: IntakeSyntax =>
      *
      */
     
-    def validEaf(logTo: Store, append: Boolean = false): DataRowPredicate = validEaf(Log.toFile(logTo, append))
+    def validEaf(logTo: Store, append: Boolean = false): CloseableDataRowPredicate = {
+      validEaf(Log.toFile(logTo, append))
+    }
     
-    def validEaf(implicit logCtx: LogContext): DataRowPredicate = { row =>
-      row.eaf match {
-        case Some(eaf) => {
-          val valid = (eaf > 0.0) && (eaf < 1.0)
-      
-          if(!valid) {
-            logCtx.warn(s"Variant ${row.marker} has invalid EAF (${eaf}): '${row}'")
+    def validEaf(implicit logCtx: ToFileLogContext): CloseableDataRowPredicate = { 
+      ConcreteCloseablePredicate[DataRow](logCtx) { row =>
+        row.eaf match {
+          case Some(eaf) => {
+            val valid = (eaf > 0.0) && (eaf < 1.0)
+        
+            if(!valid) {
+              logCtx.warn(s"Variant ${row.marker.underscoreDelimited} has invalid EAF (${eaf}): '${row}'")
+            }
+            
+            valid
           }
-          
-          valid
+          case None => true //TODO ???
         }
-        case None => true //TODO ???
       }
     }
     
-    def validMaf(logTo: Store, append: Boolean = false): DataRowPredicate = validMaf(Log.toFile(logTo, append))
+    def validMaf(logTo: Store, append: Boolean = false): CloseableDataRowPredicate = {
+      validMaf(Log.toFile(logTo, append))
+    }
     
-    def validMaf(implicit logCtx: LogContext): DataRowPredicate = { row =>
-      row.maf match {
-        case Some(maf) => {
-          val valid = (maf > 0.0) && (maf <= 0.5)
-      
-          if(!valid) {
-            logCtx.warn(s"Variant ${row.marker} has invalid MAF (${maf}): '${row}'")
+    def validMaf(implicit logCtx: ToFileLogContext): CloseableDataRowPredicate = {
+      ConcreteCloseablePredicate[DataRow](logCtx) { row =>
+        row.maf match {
+          case Some(maf) => {
+            val valid = (maf > 0.0) && (maf <= 0.5)
+        
+            if(!valid) {
+              logCtx.warn(s"Variant ${row.marker.underscoreDelimited} has invalid MAF (${maf}): '${row}'")
+            }
+            
+            valid
           }
-          
-          valid
+          case None => true //TODO ???
         }
-        case None => true //TODO ???
       }
     }
     
-    def validPValue(logTo: Store, append: Boolean = false): DataRowPredicate = validPValue(Log.toFile(logTo, append))
+    def validPValue(logTo: Store, append: Boolean = false): CloseableDataRowPredicate = {
+      validPValue(Log.toFile(logTo, append))
+    }
     
-    def validPValue(implicit logCtx: LogContext): DataRowPredicate = { row =>
-      import row.pvalue
+    def validPValue(implicit logCtx: ToFileLogContext): CloseableDataRowPredicate = {
+      ConcreteCloseablePredicate[DataRow](logCtx) { row =>
+        import row.pvalue
       
-      //TODO: Is 1.0 valid?  Is 0.0?
-      val valid = (pvalue > 0.0) && (pvalue < 1.0)
-      
-      if(!valid) {
-        logCtx.warn(s"Variant ${row.marker} has invalid P-value (${pvalue}): '${row}'")
+        //TODO: Is 1.0 valid?  Is 0.0?
+        val valid = (pvalue > 0.0) && (pvalue < 1.0)
+        
+        if(!valid) {
+          logCtx.warn(s"Variant ${row.marker.underscoreDelimited} has invalid P-value (${pvalue}): '${row}'")
+        }
+        
+        valid
       }
-      
-      valid
     }
   }
   
-  private def defaultMessage[R](r: R): String = s"Skipping row '${r}'"
+  private def defaultMessage[R](r: R)(implicit ev: RowFilters.HasValues[R]): String = {
+    val values = ev.values(r)
+    
+    s"Skipping row '${values.mkString(",")}'"
+  }
   
   private def doLogToFile[R](
       store: Store, 
-      append: Boolean = false,
-      makeMessage: R => String = defaultMessage(_: R))(p: R => Boolean): R => Boolean = {
+      append: Boolean = false)(p: R => Boolean)(implicit ev: RowFilters.HasValues[R]): CloseablePredicate[R] = {
+   
+    doLogToFile(store, append, defaultMessage(_: R)(ev))(p)
+  }
+        
+  private def doLogToFile[R](
+      store: Store, 
+      append: Boolean,
+      makeMessage: R => String)(p: R => Boolean): CloseablePredicate[R] = {
         
     val logCtx = Log.toFile(store, append)
-      
-    row => {
+    
+    ConcreteCloseablePredicate[R](logCtx) { row =>
       val result = p(row)
       
       if(!result) {
@@ -131,6 +167,34 @@ trait RowFilters { self: IntakeSyntax =>
       }
       
       result
+    }
+  }
+}
+
+object RowFilters {
+  final class ConcreteCloseablePredicate[A](toClose: Closeable)(p: Predicate[A]) extends Predicate[A] with Closeable {
+    override def apply(a: A): Boolean = p(a)
+    
+    override def close(): Unit = toClose.close()
+  }
+  
+  object ConcreteCloseablePredicate {
+    def apply[A](toClose: Closeable)(p: Predicate[A]): ConcreteCloseablePredicate[A] = {
+      new ConcreteCloseablePredicate(toClose)(p)
+    }
+  }
+  
+  trait HasValues[R] {
+    def values(r: R): Seq[String]
+  }
+  
+  object HasValues {
+    implicit object DataRowsHaveValues extends HasValues[DataRow] {
+      override def values(r: DataRow): Seq[String] = r.values  
+    }
+    
+    implicit object CsvRowsHaveValues extends HasValues[CsvRow] {
+      override def values(r: CsvRow): Seq[String] = r.values.toIndexedSeq
     }
   }
 }

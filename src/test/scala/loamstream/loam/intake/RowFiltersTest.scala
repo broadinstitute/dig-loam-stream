@@ -1,0 +1,180 @@
+package loamstream.loam.intake
+
+import org.scalatest.FunSuite
+import loamstream.TestHelpers
+import loamstream.loam.LoamSyntax
+import java.nio.file.Path
+import java.nio.file.Files
+import loamstream.model.Store
+import loamstream.loam.LoamScriptContext
+
+/**
+ * @author clint
+ * Nov 6, 2020
+ */
+final class RowFiltersTest extends FunSuite {
+  private object Filters extends IntakeSyntax with RowFilters
+  
+  import Filters.CsvRowFilters
+  import Filters.DataRowFilters
+  
+  private val v0 = Variant("1_12345_a_t")
+  private val v1 = Variant("2_34567_T_c")
+  private val v2 = Variant("3_45678_g_T")
+  
+  import RowFiltersTest.LogFileOps
+  
+  test("noDsNorIs") {
+    TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
+      TestHelpers.withScriptContext { implicit context =>
+        import LoamSyntax._
+        import Filters.CsvRowFilters
+        
+        val REF = ColumnName("REF")
+        val ALT = ColumnName("ALT")
+        
+        val rows = Helpers.csvRows(
+            Seq(REF.name, ALT.name, "FOO"),
+            Seq("D", "T", "42"),
+            Seq("G", "C", "42"),
+            Seq("D", "I", "42"),
+            Seq("A", "I", "42"),
+            Seq("A", "T", "42"))
+        
+        val logStore = logStoreIn(workDir, "blah.log")
+            
+        val predicate = CsvRowFilters.noDsNorIs(refColumn = REF, altColumn = ALT, logStore = logStore, append = true)
+        
+        val filtered = rows.filter(predicate)
+        
+        val actual = filtered.map(_.values.toIndexedSeq)
+        
+        val expected = Seq(
+            Seq("G", "C", "42"),
+            Seq("A", "T", "42"))
+       
+        assert(actual === expected)
+        
+        predicate.close()
+        
+        val logLines = linesFrom(logStore.path)
+        
+        assert(logLines.size === 3)
+        assert(logLines.containsOnce("D,T,42"))
+        assert(logLines.containsOnce("D,I,42"))
+        assert(logLines.containsOnce("A,I,42"))
+      }
+    }
+  }
+  
+  test("filterRefAndAlt") {
+    TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
+      TestHelpers.withScriptContext { implicit context =>
+        import LoamSyntax._
+        
+        val REF = ColumnName("X")
+        val ALT = ColumnName("Y")
+        
+        val rows = Helpers.csvRows(
+            Seq(REF.name, ALT.name, "FOO"),
+            Seq("U", "T", "42"),
+            Seq("G", "C", "42"),
+            Seq("U", "V", "42"),
+            Seq("A", "V", "42"),
+            Seq("A", "T", "42"))
+        
+        val logStore = logStoreIn(workDir)
+            
+        val predicate = CsvRowFilters.filterRefAndAlt(
+                                    refColumn = REF, 
+                                    altColumn = ALT,
+                                    disallowed = Set("U", "V"),
+                                    logStore = logStore, 
+                                    append = true)
+        
+        val filtered = rows.filter(predicate)
+        
+        val actual = filtered.map(_.values.toIndexedSeq)
+        
+        val expected = Seq(
+            Seq("G", "C", "42"),
+            Seq("A", "T", "42"))
+       
+        assert(actual === expected)
+        
+        predicate.close()
+        
+        val logLines = linesFrom(logStore.path)
+        
+        assert(logLines.size === 3)
+        assert(logLines.containsOnce("U,T,42"))
+        assert(logLines.containsOnce("U,V,42"))
+        assert(logLines.containsOnce("A,V,42"))
+      }
+    }
+  }
+  
+  test("logToFile") {
+    TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
+      TestHelpers.withScriptContext { implicit context =>
+        import LoamSyntax._
+        
+        val logStore = logStoreIn(workDir)
+        
+        val FOO = ColumnName("FOO")
+        
+        val fooIsEven = FOO.asInt.map(_ % 2 == 0)
+        
+        val predicate = CsvRowFilters.logToFile(logStore, append = true)(fooIsEven)
+        
+        val rows = Helpers.csvRows(
+            Seq(FOO.name, "BAR"),
+            Seq("1", "42"),
+            Seq("2", "42"),
+            Seq("3", "42"),
+            Seq("6", "42"),
+            Seq("7", "42"))
+            
+        val filtered = rows.filter(predicate)
+        
+        val actual = filtered.map(_.values.mkString(" ")).toIndexedSeq
+        
+        val expected = Seq(
+            "2 42",
+            "6 42")
+            
+        assert(actual === expected)
+        
+        predicate.close()
+        
+        val logLines = linesFrom(logStore.path)
+        
+        assert(logLines.size === 3)
+        assert(logLines.containsOnce("1,42"))
+        assert(logLines.containsOnce("3,42"))
+        assert(logLines.containsOnce("7,42"))
+      }
+    }
+  }
+  
+  private def logStoreIn(workDir: Path, name: String = "blarg.log")(implicit ctx: LoamScriptContext): Store = {
+    val file = workDir.resolve(name)
+    
+    import LoamSyntax._
+    
+    store(file)
+  }
+  
+  private def linesFrom(path: Path): Seq[String] = {
+    import scala.collection.JavaConverters._
+    
+    Files.readAllLines(path).asScala.toSeq
+  }
+}
+
+object RowFiltersTest {
+  private final implicit class LogFileOps(val lines: Seq[String]) extends AnyVal {
+    def containsOnce(s: String): Boolean = lines.count(_.contains(s)) == 1
+  }
+}
+

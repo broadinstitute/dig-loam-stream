@@ -5,35 +5,43 @@ package loamstream.loam
  * Dec 17, 2019
  */
 package object intake {
+  type Predicate[A] = A => Boolean
+  
+  type Transform[A] = A => A
+  
+  type CloseablePredicate[A] = Predicate[A] with java.io.Closeable
+  
+  type CloseableTransform[A] = Transform[A] with java.io.Closeable
+  
   type PartialRowParser[A] = PartialFunction[CsvRow, A]
   
   type RowParser[A] = CsvRow => A
   
-  type RowPredicate = RowParser[Boolean]
+  type RowPredicate = Predicate[CsvRow]
   
-  type RowTransform = RowParser[CsvRow]
+  type CloseableRowPredicate = CloseablePredicate[CsvRow]
+  
+  type RowTransform = Transform[CsvRow]
+  
+  type CloseableRowTransform = CloseableTransform[CsvRow]
   
   type TaggedRowParser[A] = CsvRow.WithFlipTag => A
   
-  type TaggedRowPredicate = TaggedRowParser[Boolean]
+  type TaggedRowPredicate = Predicate[CsvRow.WithFlipTag]
   
-  type TaggedRowTransform = TaggedRowParser[CsvRow]
+  type CloseableTaggedRowPredicate = CloseablePredicate[CsvRow.WithFlipTag]
   
-  implicit final class RowPredicateOps(val p: RowPredicate) extends AnyVal {
-    def ifFailure[A](body: RowParser[A]): RowPredicate = { row =>
-      val result = p(row)
-      
-      if(!result) {
-        body(row)
-      }
-      
-      result
-    }
-  }
+  type TaggedRowTransform = Transform[CsvRow.WithFlipTag]
   
+  type CloseableTaggedRowTransform = CloseableTransform[CsvRow.WithFlipTag] 
+    
   type DataRowParser[A] = DataRow => A
   
-  type DataRowPredicate = DataRowParser[Boolean]
+  type DataRowPredicate = Predicate[DataRow]
   
-  type DataRowTransform = DataRowParser[DataRow]
+  type CloseableDataRowPredicate = CloseablePredicate[DataRow]
+  
+  type DataRowTransform = Transform[DataRow]
+  
+  type CloseableDataRowTransform = CloseableTransform[DataRow]
 }

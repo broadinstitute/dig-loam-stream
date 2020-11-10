@@ -4,6 +4,8 @@ import loamstream.loam.intake.Variant
 import loamstream.loam.intake.DataRow
 import loamstream.loam.intake.flip.FlipDetector
 import loamstream.util.Fold
+import loamstream.loam.intake.RowTuple
+import loamstream.loam.intake.CsvRow
 
 
 /**
@@ -11,11 +13,11 @@ import loamstream.util.Fold
  * Mar 27, 2020
  */
 object Metric {
-  def countGreaterThan(column: DataRow => Double)(threshold: Double): Metric[Int] = {
-    Fold.countIf[DataRow](row => column(row) > threshold)
+  def countGreaterThan(column: RowTuple => Double)(threshold: Double): Metric[Int] = {
+    Fold.countIf[RowTuple](row => column(row) > threshold)
   }
   
-  def fractionGreaterThan(column: DataRow => Double)(threshold: Double): Metric[Double] = {
+  def fractionGreaterThan(column: RowTuple => Double)(threshold: Double): Metric[Double] = {
     fractionOfTotal(countGreaterThan(column)(threshold))
   }
   
@@ -28,7 +30,7 @@ object Metric {
   }
   
   private def countKnownOrUnknown(client: BioIndexClient)(p: Variant => Boolean): Metric[Int] = {
-    Fold.countIf(row => p(row.marker))
+    Fold.countIf { case (_, dataRow) => p(dataRow.marker) }
   }
   
   def fractionUnknown(client: BioIndexClient): Metric[Double] = {
@@ -48,10 +50,7 @@ object Metric {
     }
   }
   
-  def countWithDisagreeingBetaStderrZscore(
-      flipDetector: FlipDetector,
-      epsilon: Double = 1e-8d): Metric[Int] = {
-    
+  def countWithDisagreeingBetaStderrZscore(epsilon: Double = 1e-8d): Metric[Int] = {
     //z = beta / se  or  -(beta / se) if flipped
     
     def agrees(expected: Double, actual: Double): Boolean = scala.math.abs(expected - actual) < epsilon
@@ -60,11 +59,11 @@ object Metric {
     
     def agreesFlip(z: Double, beta: Double, se: Double): Boolean = agrees(z, -(beta / se))
     
-    def isFlipped(marker: Variant): Boolean = flipDetector.isFlipped(marker).isFlipped
+    def isFlipped(sourceRow: CsvRow.WithFlipTag): Boolean = sourceRow.disposition.isFlipped
     
-    val agreesFn: DataRow => Boolean = { 
-      case DataRow(marker, _, Some(z), Some(se), Some(beta), _, _, _, _) => {
-        if(isFlipped(marker)) {
+    val agreesFn: RowTuple => Boolean = { 
+      case (sourceRow, DataRow(marker, _, Some(z), Some(se), Some(beta), _, _, _, _)) => {
+        if(isFlipped(sourceRow)) {
           agrees(z, -(beta / se))
         } else {
           agrees(z, beta / se)
@@ -73,21 +72,18 @@ object Metric {
       case _ => false
     }
     
-    def disagrees(row: DataRow): Boolean = !agreesFn(row)
+    def disagrees(row: RowTuple): Boolean = !agreesFn(row)
     
     Fold.countIf(disagrees)
   }
   
-  def fractionWithDisagreeingBetaStderrZscore(
-      flipDetector: FlipDetector, 
-      epsilon: Double = 1e-8d): Metric[Double] = {
-    
-    fractionOfTotal(countWithDisagreeingBetaStderrZscore(flipDetector, epsilon))
+  def fractionWithDisagreeingBetaStderrZscore(epsilon: Double = 1e-8d): Metric[Double] = {
+    fractionOfTotal(countWithDisagreeingBetaStderrZscore(epsilon))
   }
   
-  def mean[N](column: DataRow => N)(implicit ev: Numeric[N]): Metric[Double] = {
-    val sumFold: Fold[DataRow, N, N] = Fold.sum(column)
-    val countFold: Fold[DataRow, Int, Int] = Fold.count
+  def mean[N](column: RowTuple => N)(implicit ev: Numeric[N]): Metric[Double] = {
+    val sumFold: Fold[RowTuple, N, N] = Fold.sum(column)
+    val countFold: Fold[RowTuple, Int, Int] = Fold.count
     
     Fold.combine(sumFold, countFold).map {
       case (sum, count) => ev.toDouble(sum) / count.toDouble

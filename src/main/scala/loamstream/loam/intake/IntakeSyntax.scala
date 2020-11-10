@@ -157,7 +157,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
   final class MapFilterAndWriteTarget[A](
       dest: Store, 
       headerRow: HeaderRow,
-      rows: Source[DataRow],
+      rows: Source[(CsvRow.WithFlipTag, DataRow)],
       metric: Metric[A],
       toBeClosed: Seq[Closeable]) extends Loggable {
     
@@ -166,7 +166,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     def copy(
         dest: Store = this.dest, 
         headerRow: HeaderRow = this.headerRow,
-        rows: Source[DataRow] = this.rows,
+        rows: Source[(CsvRow.WithFlipTag, DataRow)] = this.rows,
         metric: Metric[A] = this.metric,
         toBeClosed: Seq[Closeable] = this.toBeClosed): MapFilterAndWriteTarget[A] = {
       
@@ -180,11 +180,15 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     }
     
     def filter(predicate: Predicate[DataRow]): MapFilterAndWriteTarget[A] = {
-      copy(rows = rows.filter(predicate), toBeClosed = asCloseable(predicate) ++ toBeClosed)
+      def dataRowPredicate(tuple: (CsvRow.WithFlipTag, DataRow)) = predicate(tuple._2)
+      
+      copy(rows = rows.filter(dataRowPredicate), toBeClosed = asCloseable(predicate) ++ toBeClosed)
     }
     
     def map(transform: Transform[DataRow]): MapFilterAndWriteTarget[A] = {
-      copy(rows = rows.map(transform), toBeClosed = asCloseable(transform) ++ toBeClosed)
+      def dataRowTransform(tuple: (CsvRow.WithFlipTag, DataRow)) = tuple.copy(_2 = transform(tuple._2))
+      
+      copy(rows = rows.map(dataRowTransform), toBeClosed = asCloseable(transform) ++ toBeClosed)
     }
     
     //TODO: better name
@@ -193,7 +197,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       
       val sink: RowSink = RowSink.ToFile(dest.path)
       
-      val writeLines: Metric[Unit] = Fold.foreach(sink.accept)
+      val writeLines: Metric[Unit] = Fold.foreach { case (_, dataRow) => sink.accept(dataRow) }
       
       val m: Metric[(A, Unit)] = metric.combine(writeLines)
       

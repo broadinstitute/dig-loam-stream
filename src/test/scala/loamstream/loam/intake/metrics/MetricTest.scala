@@ -51,16 +51,16 @@ final class MetricTest extends FunSuite {
   }
   
   test("countGreaterThan") {
-    val gt2 = Metric.countGreaterThan(_.pvalue)(2)
-    val gt4 = Metric.countGreaterThan(_.pvalue)(4)
+    val gt2 = Metric.countGreaterThan(_._2.pvalue)(2)
+    val gt4 = Metric.countGreaterThan(_._2.pvalue)(4)
     
     doMetricTest(gt4, expected = 2)(rowsNoFlips)
     doMetricTest(gt2, expected = 4)(rowsNoFlips)
   }
   
   test("fractionGreaterThan") {
-    val fracGt2 = Metric.fractionGreaterThan(_.pvalue)(2)
-    val fracGt4 = Metric.fractionGreaterThan(_.pvalue)(4)
+    val fracGt2 = Metric.fractionGreaterThan(_._2.pvalue)(2)
+    val fracGt4 = Metric.fractionGreaterThan(_._2.pvalue)(4)
     
     doMetricTest(fracGt4, expected = (2d / 6d))(rowsNoFlips)
     doMetricTest(fracGt2, expected = (4d / 6d))(rowsNoFlips)
@@ -114,7 +114,7 @@ final class MetricTest extends FunSuite {
     
     val rows = source.tagFlips(toAggregatorFormat.markerDef, flipDetector).map(toAggregatorFormat)
         
-    val countDisagreements = Metric.countWithDisagreeingBetaStderrZscore(flipDetector)
+    val countDisagreements = Metric.countWithDisagreeingBetaStderrZscore()
                       
     doMetricTest(countDisagreements, expected = 2)(rows)
   }
@@ -123,7 +123,7 @@ final class MetricTest extends FunSuite {
     import AggregatorColumnNames._
     
     val csvData = s"""|${Marker.name} ${beta.name} ${stderr.name} ${zscore.name} ${Pvalue.name}
-                      |${Vars.x} 4 2 2 99
+                      |${Vars.x} 4 2 2 99   
                       |${Vars.y} 8 2 -4 99
                       |${Vars.z} 8 4 42 99
                       |${Vars.a} 5 2.5 42 99
@@ -143,7 +143,7 @@ final class MetricTest extends FunSuite {
                       
     val rows = source.tagFlips(markerVariantDef, flipDetector).map(toAggregatorFormat)
                       
-    val countDisagreements = Metric.countWithDisagreeingBetaStderrZscore(flipDetector)
+    val countDisagreements = Metric.countWithDisagreeingBetaStderrZscore()
                       
     doMetricTest(countDisagreements, expected = 2)(rows)
   }
@@ -175,7 +175,7 @@ final class MetricTest extends FunSuite {
                       
     val rows = source.tagFlips(toAggregatorFormat.markerDef, flipDetector).map(toAggregatorFormat)
                       
-    val countDisagreements = Metric.countWithDisagreeingBetaStderrZscore(flipDetector)
+    val countDisagreements = Metric.countWithDisagreeingBetaStderrZscore()
                       
     doMetricTest(countDisagreements, expected = 2)(rows)
   }
@@ -209,18 +209,18 @@ final class MetricTest extends FunSuite {
         
     val rows = source.tagFlips(markerDef, flipDetector).map(toAggregatorFormat)
     
-    val countDisagreements = Metric.countWithDisagreeingBetaStderrZscore(flipDetector)
+    val countDisagreements = Metric.countWithDisagreeingBetaStderrZscore()
                       
     doMetricTest(countDisagreements, expected = 2)(rows)
   }
   
   test("mean") {
-    val mean = Metric.mean(_.pvalue)
+    val mean = Metric.mean(_._2.pvalue)
     
     doMetricTest(mean, expected = (1 + 2 + 3 + 4 + 5 + 6) / 6.0)(rowsNoFlips)
   }
   
-  private def doMetricTest[A](metric: Metric[A], expected: A)(rows: Source[DataRow]): Unit = {
+  private def doMetricTest[A](metric: Metric[A], expected: A)(rows: Source[(CsvRow.WithFlipTag, DataRow)]): Unit = {
     assert(Fold.fold(rows.records)(metric) === expected)
     
     assert(Fold.fold(rows.records.toList)(metric) === expected)

@@ -13,7 +13,7 @@ final case class AggregatorRowExpr(
     oddsRatioDef: Option[NamedColumnDef[Double]] = None,
     eafDef: Option[NamedColumnDef[Double]] = None,
     mafDef: Option[NamedColumnDef[Double]] = None,
-    nDef: Option[NamedColumnDef[Double]] = None) extends TaggedRowParser[DataRow] {
+    nDef: Option[NamedColumnDef[Double]] = None) extends TaggedRowParser[(CsvRow.WithFlipTag, DataRow)] {
   
   def columnNames: Seq[ColumnName] = {
     //NB: Note that this order matters. :\ 
@@ -45,7 +45,7 @@ final case class AggregatorRowExpr(
       n = nDef.map(nameOf))
   }
   
-  override def apply(row: CsvRow.WithFlipTag): DataRow = DataRow(
+  override def apply(row: CsvRow.WithFlipTag): (CsvRow.WithFlipTag, DataRow) = row -> DataRow(
     marker = row.marker,
     pvalue = pvalueDef.apply(row),
     zscore = zscoreDef.map(_.apply(row)),

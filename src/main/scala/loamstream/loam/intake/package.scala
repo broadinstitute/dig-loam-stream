@@ -5,6 +5,8 @@ package loamstream.loam
  * Dec 17, 2019
  */
 package object intake {
+  type RowTuple = (CsvRow.WithFlipTag, DataRow)
+  
   type Predicate[A] = A => Boolean
   
   type Transform[A] = A => A

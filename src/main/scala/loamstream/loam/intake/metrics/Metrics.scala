@@ -35,7 +35,7 @@ trait Metrics {
       val count: Metric[Int] = Fold.count
       
       val percentDisagreeing: Metric[Double] = {
-        Metric.fractionWithDisagreeingBetaStderrZscore(flipDetector).map(_ * 100.0)
+        Metric.fractionWithDisagreeingBetaStderrZscore().map(_ * 100.0)
       }
       
       (count.combine(percentDisagreeing)).map {

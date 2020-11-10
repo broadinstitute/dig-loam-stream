@@ -235,9 +235,12 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
   }
 
   final class AggregatorIntakeConfigFileTarget(dest: Store) {
-    def from(configData: AggregatorConfigData)(implicit scriptContext: LoamScriptContext): Tool = {
+    def from(
+        configData: AggregatorConfigData, 
+        forceLocal: Boolean = false)(implicit scriptContext: LoamScriptContext): Tool = {
+      
       //TODO: How to wire up inputs (if any)?
-      val tool: Tool = nativeTool() {
+      val tool: Tool = nativeTool(forceLocal) {
         Files.writeTo(dest.path)(configData.asConfigFileContents)
       }
       

@@ -69,7 +69,7 @@ object Metric {
           agrees(z, beta / se)
         }
       }
-      case _ => false
+      case _ => true
     }
     
     def disagrees(row: RowTuple): Boolean = !agreesFn(row)

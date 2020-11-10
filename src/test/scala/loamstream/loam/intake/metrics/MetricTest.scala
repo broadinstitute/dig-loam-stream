@@ -214,6 +214,34 @@ final class MetricTest extends FunSuite {
     doMetricTest(countDisagreements, expected = 2)(rows)
   }
   
+  test("countWithDisagreeingBetaStderrZscore - missing fields counds as agreement") {
+    val marker = ColumnName("lalala")
+    
+    val csvData = s"""|${marker.name} ${Pvalue.name}
+                      |${Vars.x} 99
+                      |${Vars.y} 99
+                      |${Vars.z} 99
+                      |${Vars.a} 99
+                      |${Vars.b} 99
+                      |${Vars.c} 99""".stripMargin
+  
+    val source = Source.fromString(csvData, Source.Formats.spaceDelimitedWithHeader)
+    
+    val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, marker.map(Variant.from))
+    
+    val toAggregatorFormat: AggregatorRowExpr = AggregatorRowExpr(
+        markerDef = markerDef,
+        pvalueDef = AggregatorColumnDefs.pvalue(Pvalue))
+    
+    val flipDetector = new MetricTest.MockFlipDetector(Set(Vars.y, Vars.a, Vars.b).map(Variant.from))
+        
+    val rows = source.tagFlips(markerDef, flipDetector).map(toAggregatorFormat)
+    
+    val countDisagreements = Metric.countWithDisagreeingBetaStderrZscore()
+                      
+    doMetricTest(countDisagreements, expected = 0)(rows)
+  }
+  
   test("mean") {
     val mean = Metric.mean(_._2.pvalue)
     

@@ -45,8 +45,6 @@ final class SourceTest extends FunSuite {
     assert(actualRows.size === expectedRows.size)
   }
   
-  
-  
   test("fromString") {
     doCsvSourceRecordsTest(Source.fromString(rowDataAsString))
   }
@@ -114,13 +112,18 @@ final class SourceTest extends FunSuite {
     doCsvSourceRecordsTest(source, expectedRows)
   }
   
+  private val m0 = Variant.from("1_1_A_T")
+  private val m1 = Variant.from("1_2_G_C")
+  private val m2 = Variant.from("2_1_T_C")
+  private val m3 = Variant.from("2_2_C_G")
+  
   test("tagFlips - no flips, no complements") {
     val rowData: Seq[Seq[String]] = Seq(
         /* 0 */ Seq("FOO", "BAR", "BAZ"),
-        /* 1 */ Seq("1_1_X_Y",   "2",   "3"),
-        /* 2 */ Seq("1_2_A_B",   "8",   "7"),
-        /* 3 */ Seq("2_1_U_V",   "9",   "17"),
-        /* 4 */ Seq("2_2_Q_R",   "10",   "27"))
+        /* 1 */ Seq(m0.underscoreDelimited, "2",  "3"),
+        /* 2 */ Seq(m1.underscoreDelimited, "8",  "7"),
+        /* 3 */ Seq(m2.underscoreDelimited, "9",  "17"),
+        /* 4 */ Seq(m3.underscoreDelimited, "10", "27"))
     
     val reader = new StringReader(rowDataToString(rowData))
     
@@ -152,17 +155,12 @@ final class SourceTest extends FunSuite {
   }
   
   test("tagFlips - some flips, no complements") {
-    val m0 = Variant.from("1_1_X_Y")
-    val m1 = Variant.from("1_2_A_B")
-    val m2 = Variant.from("2_1_U_V")
-    val m3 = Variant.from("2_2_Q_R")
-    
     val rowData: Seq[Seq[String]] = Seq(
       /* 0 */ Seq("FOO", "BAR", "BAZ"),
-      /* 1 */ Seq(m0.underscoreDelimited,   "2",   "3"),
-      /* 2 */ Seq(m1.underscoreDelimited,   "8",   "7"),
-      /* 3 */ Seq(m2.underscoreDelimited,   "9",   "17"),
-      /* 4 */ Seq(m3.underscoreDelimited,   "10",   "27"))
+      /* 1 */ Seq(m0.underscoreDelimited, "2",  "3"),
+      /* 2 */ Seq(m1.underscoreDelimited, "8",  "7"),
+      /* 3 */ Seq(m2.underscoreDelimited, "9",  "17"),
+      /* 4 */ Seq(m3.underscoreDelimited, "10", "27"))
     
     val reader = new StringReader(rowDataToString(rowData))
     
@@ -212,11 +210,121 @@ final class SourceTest extends FunSuite {
   }
   
   test("tagFlips - some flips, some complements") {
-    fail("TODO")
+    val rowData: Seq[Seq[String]] = Seq(
+      /* 0 */ Seq("FOO", "BAR", "BAZ"),
+      /* 1 */ Seq(m0.underscoreDelimited, "2",  "3"),
+      /* 2 */ Seq(m1.underscoreDelimited, "8",  "7"),
+      /* 3 */ Seq(m2.underscoreDelimited, "9",  "17"),
+      /* 4 */ Seq(m3.underscoreDelimited, "10", "27"))
+    
+    val reader = new StringReader(rowDataToString(rowData))
+    
+    val foo = ColumnName("FOO")
+    val bar = ColumnName("BAR")
+    
+    val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, foo.map(Variant.from))
+    
+    val complementedVariants = Set(m0, m3)
+    val flippedVariants = Set(m2)
+    
+    val flipDetector: FlipDetector = {
+      SourceTest.MockFlipDetector(flippedVariants = flippedVariants, complementedVariants = complementedVariants)
+    }
+    
+    val source = Source.fromReader(reader).tagFlips(markerDef, flipDetector)
+    
+    val untaggedExpectedRows = Helpers.csvRows(rowData.head, rowData.tail: _*)
+      
+    def marker(r: CsvRow) = Variant.from(r.getFieldByName("FOO"))
+    
+    def makeTaggedRow(i: Int, disp: Disposition) = {
+      val mrkr = marker(untaggedExpectedRows(1))
+      
+      CsvRow.TaggedCsvRow(untaggedExpectedRows(i), mrkr, mrkr, disp)
+    }
+    
+    val expectedRows = Seq(
+      makeTaggedRow(0, Disposition.NotFlippedComplementStrand),
+      makeTaggedRow(1, Disposition.NotFlippedSameStrand),
+      makeTaggedRow(2, Disposition.FlippedSameStrand),
+      makeTaggedRow(3, Disposition.NotFlippedComplementStrand))
+        
+    val actualRows = source.records.toIndexedSeq
+    
+    def shouldBeComplemented(r: CsvRow.TaggedCsvRow): Boolean = complementedVariants.contains(r.originalMarker) 
+    def shouldBeFlipped(r: CsvRow.TaggedCsvRow): Boolean = flippedVariants.contains(r.originalMarker)
+    def shouldBeUntouched(r: CsvRow.TaggedCsvRow): Boolean = !shouldBeComplemented(r) && !shouldBeFlipped(r)
+    
+    val shouldBeComplementedRows = expectedRows.filter(shouldBeComplemented)
+    val shouldBeFlippedRows = expectedRows.filter(shouldBeFlipped)
+    val shouldBeUntouchedRows = expectedRows.filter(shouldBeUntouched)
+    
+    shouldBeComplementedRows.forall(r => r.marker === r.originalMarker.complement)
+    shouldBeFlippedRows.forall(r => r.marker === r.originalMarker.flip)
+    shouldBeUntouchedRows.forall(r => r.marker === r.originalMarker)
+    
+    shouldBeComplementedRows.forall(_.disposition === Disposition.NotFlippedComplementStrand)
+    shouldBeFlippedRows.forall(_.disposition === Disposition.FlippedSameStrand)
+    shouldBeUntouchedRows.forall(_.disposition === Disposition.NotFlippedSameStrand)
+    
+    val rawActualRows = actualRows.map(_.asInstanceOf[CsvRow.TaggedCsvRow].delegate)
+    
+    doCsvSourceRecordsTest(rawActualRows, expectedRows)
   }
   
   test("tagFlips - no flips, some complements") {
-    fail("TODO")
+    val rowData: Seq[Seq[String]] = Seq(
+      /* 0 */ Seq("FOO", "BAR", "BAZ"),
+      /* 1 */ Seq(m0.underscoreDelimited, "2",  "3"),
+      /* 2 */ Seq(m1.underscoreDelimited, "8",  "7"),
+      /* 3 */ Seq(m2.underscoreDelimited, "9",  "17"),
+      /* 4 */ Seq(m3.underscoreDelimited, "10", "27"))
+    
+    val reader = new StringReader(rowDataToString(rowData))
+    
+    val foo = ColumnName("FOO")
+    val bar = ColumnName("BAR")
+    
+    val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, foo.map(Variant.from))
+    
+    val complementedVariants = Set(m0, m3)
+    
+    val flipDetector: FlipDetector = SourceTest.MockFlipDetector(Set.empty, complementedVariants = complementedVariants)
+    
+    val source = Source.fromReader(reader).tagFlips(markerDef, flipDetector)
+    
+    val untaggedExpectedRows = Helpers.csvRows(rowData.head, rowData.tail: _*)
+      
+    def marker(r: CsvRow) = Variant.from(r.getFieldByName("FOO"))
+    
+    def makeTaggedRow(i: Int, disp: Disposition) = {
+      val mrkr = marker(untaggedExpectedRows(1))
+      
+      CsvRow.TaggedCsvRow(untaggedExpectedRows(i), mrkr, mrkr, disp)
+    }
+    
+    val expectedRows = Seq(
+      makeTaggedRow(0, Disposition.NotFlippedComplementStrand),
+      makeTaggedRow(1, Disposition.NotFlippedSameStrand),
+      makeTaggedRow(2, Disposition.NotFlippedSameStrand),
+      makeTaggedRow(3, Disposition.NotFlippedComplementStrand))
+        
+    val actualRows = source.records.toIndexedSeq
+    
+    def shouldBeComplemented(r: CsvRow.TaggedCsvRow): Boolean = complementedVariants.contains(r.originalMarker)
+    
+    val shouldBeComplementedRows = expectedRows.filter(shouldBeComplemented)
+    val shouldNOTBeComplementedRows = expectedRows.filterNot(shouldBeComplemented)
+    
+    shouldBeComplementedRows.forall(r => r.marker === r.originalMarker.complement)
+    shouldNOTBeComplementedRows.forall(r => r.marker === r.originalMarker)
+    
+    shouldBeComplementedRows.forall(_.disposition === Disposition.NotFlippedComplementStrand)
+    shouldNOTBeComplementedRows.forall(_.disposition === Disposition.NotFlippedSameStrand)
+    
+    val rawActualRows = actualRows.map(_.asInstanceOf[CsvRow.TaggedCsvRow].delegate)
+    
+    doCsvSourceRecordsTest(rawActualRows, expectedRows)
   }
 }
 

@@ -227,7 +227,7 @@ final class RowFiltersTest extends FunSuite {
       
       val actual = filtered.map(_.pvalue)
       
-      val expected = Seq(0.99, 0.25)
+      val expected = Seq(1.0, 0.99, 0.25)
           
       assert(actual === expected)
       
@@ -235,8 +235,7 @@ final class RowFiltersTest extends FunSuite {
       
       val logLines = linesFrom(logStore.path)
       
-      assert(logLines.size === 5)
-      assert(logLines.containsOnce("(1.0)"))
+      assert(logLines.size === 4)
       assert(logLines.containsOnce("(0.0)"))
       assert(logLines.containsOnce("(-1.0)"))
       assert(logLines.containsOnce("(100.0)"))

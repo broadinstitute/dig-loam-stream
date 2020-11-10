@@ -128,8 +128,7 @@ trait RowFilters { self: IntakeSyntax =>
       ConcreteCloseablePredicate[DataRow](logCtx) { row =>
         import row.pvalue
       
-        //TODO: Is 1.0 valid?  Is 0.0?
-        val valid = (pvalue > 0.0) && (pvalue < 1.0)
+        val valid = (pvalue > 0.0) && (pvalue <= 1.0)
         
         if(!valid) {
           logCtx.warn(s"Variant ${row.marker.underscoreDelimited} has invalid P-value (${pvalue}): '${row}'")

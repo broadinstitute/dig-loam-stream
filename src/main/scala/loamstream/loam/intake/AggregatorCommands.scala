@@ -23,6 +23,7 @@ trait AggregatorCommands {
       workDir: Path = Paths.get("."),
       logFile: Option[Path] = None,
       skipValidation: Boolean = false,
+      forceLocal: Boolean = false,
       yes: Boolean = false)(implicit scriptContext: LoamScriptContext): Tool = {
     
     val aggregatorConfigFileName: Path = {
@@ -34,7 +35,7 @@ trait AggregatorCommands {
     val aggregatorConfigFile = store(aggregatorConfigFileName)
     
     produceAggregatorIntakeConfigFile(aggregatorConfigFile).
-        from(configData).
+        from(configData, forceLocal).
         tag(s"make-aggregator-conf-${metadata.dataset}-${metadata.phenotype}").
         in(csvFile)
     
@@ -56,7 +57,14 @@ trait AggregatorCommands {
       
     val logfilePart: String = logFile.map(lf => s"2>&1 | tee ${lf}").getOrElse("")
       
-    cmd"""${aggregatorIntakeCondaEnvPart}python ${mainPyPart} variants ${yesForcePart} ${skipValidationPart} ${aggregatorConfigFile} ${logfilePart}""". // scalastyle:ignore line.size.limit
+    def command = cmd"""${aggregatorIntakeCondaEnvPart}python ${mainPyPart} variants ${yesForcePart} ${skipValidationPart} ${aggregatorConfigFile} ${logfilePart}""". // scalastyle:ignore line.size.limit
         in(aggregatorConfigFile, csvFile)
+        
+    //TODO: HACK
+    if(forceLocal) {
+      local { command }
+    } else {
+      command
+    }
   }
 }

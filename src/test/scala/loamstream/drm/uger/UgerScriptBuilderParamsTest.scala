@@ -18,7 +18,7 @@ final class UgerScriptBuilderParamsTest extends FunSuite {
   test("drmIndexVarExpr") {
     val params = new UgerScriptBuilderParams(someDir, someEnv)
 
-    assert(params.drmIndexVarExpr === "$JOB_ID.$TASK_ID")
+    assert(params.drmIndexVarExpr === "$TASK_ID")
   }
 
   test("preamble") {

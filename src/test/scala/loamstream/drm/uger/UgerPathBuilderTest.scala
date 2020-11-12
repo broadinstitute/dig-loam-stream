@@ -50,7 +50,7 @@ final class UgerPathBuilderTest extends FunSuite {
     
     val pathBuilder = new UgerPathBuilder(params)
     
-    val expected = workDir.resolve("blarg-blahblah.$JOB_ID.$TASK_ID.stdout")
+    val expected = workDir.resolve("blarg-blahblah.$TASK_ID.stdout")
     
     doPathTemplateTest(pathBuilder.stdOutPathTemplate, expected.render)
   }
@@ -60,7 +60,7 @@ final class UgerPathBuilderTest extends FunSuite {
     
     val pathBuilder = new UgerPathBuilder(params)
     
-    val expected = workDir.resolve("blarg-blahblah.$JOB_ID.$TASK_ID.stderr")
+    val expected = workDir.resolve("blarg-blahblah.$TASK_ID.stderr")
     
     doPathTemplateTest(pathBuilder.stdErrPathTemplate, expected.render)
   }

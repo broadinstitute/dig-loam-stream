@@ -37,10 +37,7 @@ final case class RunData(
   
   def withResources(r: Resources): RunData = copy(resourcesOpt = Some(r))
   
-  private[jobs] def cmdOpt: Option[String] = job match { 
-    case clj: CommandLineJob => Some(clj.commandLineString)
-    case _ => None
-  }
+  private[jobs] def cmdOpt: Option[String] = Identifier.from(job)
   
   //NB: This is lazy, to allow waiting to hash outputs (done by `job.outputs.map(_.toOutputRecord)`) 
   //until they're ready, and to only do that once.

@@ -57,7 +57,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
         command: Option[String], 
         status: JobStatus, 
         result: Option[JobResult] = None): Unit = {
-      createTablesAndThen {
+      registerRunAndThen(run) {
         val recorder = new DbBackedExecutionRecorder(dao)
   
         assert(executions === Nil)
@@ -74,10 +74,10 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
             outputs = Set.empty[StoreRecord],
             terminationReason = None)
 
-        assert(e.isPersistable === false)
+        assert(e.isPersistable === (status.isSkipped || command.isDefined))
         
         recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
-  
+        
         assert(executions === Nil)
       }
     }
@@ -85,8 +85,6 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
     doTest(None, JobStatus.Succeeded, Option(CommandResult(0)))
     doTest(None, JobStatus.Failed, Option(JobResult.Failure))
     doTest(None, JobStatus.Succeeded)
-    doTest(Some(mockCmd), JobStatus.Failed)
-    doTest(Some(mockCmd), JobStatus.Succeeded)
   }
 
   test("record() - successful command-Execution, no outputs") {
@@ -114,6 +112,36 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
       recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
 
       assertEqualFieldsFor(executions, Seq(e))
+    }
+  }
+  
+  test("record() - skipped command-Execution, no outputs") {
+    registerRunAndThen(run) {
+      val recorder = new DbBackedExecutionRecorder(dao)
+
+      assert(executions === Nil)
+
+      val cr = JobResult.Success
+
+      assert(cr.isSuccess)
+
+      val job = MockJob(cr.toJobStatus)
+      
+      val e = Execution(
+          settings = mockUgerSettings,
+          cmd = Option(mockCmd), 
+          status = JobStatus.Skipped, 
+          result = Option(cr), 
+          resources = Option(mockResources),
+          jobDir = Some(dummyJobDir),
+          outputs = Set.empty[StoreRecord],
+          terminationReason = None)
+
+      recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
+      
+      val expected = e.copy(result = Some(CommandResult(0)))
+
+      assertEqualFieldsFor(executions, Seq(expected))
     }
   }
 
@@ -166,6 +194,30 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
       assertEqualFieldsFor(executions, Seq(withHashedOutputs))
     }
   }
+  
+  test("record() - skipped command-Execution, some outputs") {
+    registerRunAndThen(run) {
+      val recorder = new DbBackedExecutionRecorder(dao)
+
+      assert(executions === Nil)
+
+      val cr = JobResult.Success
+
+      assert(cr.isSuccess)
+
+      val job = MockJob(JobStatus.Skipped)
+      
+      val e = Execution.fromOutputs(mockUgerSettings, mockCmd, cr, dummyJobDir, Set(o0, o1, o2))
+
+      recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
+
+      val withHashedOutputs = e.withStoreRecords(Set(cachedOutput0, cachedOutput1, cachedOutput2))
+      
+      val expected = withHashedOutputs.copy(result = Some(CommandResult(0)))
+      
+      assertEqualFieldsFor(executions, Seq(expected))
+    }
+  }
 
   test("record() - failed command-Execution, some outputs") {
     registerRunAndThen(run) {
@@ -189,6 +241,69 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
               cmd = mockCmd, 
               result = CommandResult(42),
               jobDir = e.jobDir.get,
+              outputs = failedOutput0, failedOutput1, failedOutput2))
+      
+      assertEqualFieldsFor(executions, expected)
+    }
+  }
+  
+  test("record() - successful native job Execution, some outputs") {
+    registerRunAndThen(run) {
+      val recorder = new DbBackedExecutionRecorder(dao)
+
+      assert(executions === Nil)
+
+      val cr = JobResult.Success
+
+      assert(cr.isSuccess)
+
+      val job = MockJob(cr.toJobStatus)
+      
+      val e = Execution.fromOutputs(
+          settings = LocalSettings, 
+          cmd = "native-job-name", 
+          result = JobResult.CommandResult(0), 
+          jobDir = dummyJobDir, 
+          outputs = Set(o0, o1, o2))
+          
+      assert(e.isPersistable)
+
+      val expected = e.withStoreRecords(Set(cachedOutput0, cachedOutput1, cachedOutput2))
+
+      recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
+      
+      assertEqualFieldsFor(executions, Seq(expected))
+    }
+  }
+  
+  test("record() - failed native job Execution, some outputs") {
+    registerRunAndThen(run) {
+      val recorder = new DbBackedExecutionRecorder(dao)
+
+      assert(executions === Nil)
+
+      val cr = {
+        val e = new Exception with scala.util.control.NoStackTrace
+        
+        JobResult.FailureWithException(e)
+      }
+
+      assert(cr.isFailure)
+
+      val job = MockJob(cr.toJobStatus)
+      
+      val execution = Execution.fromOutputs(mockUgerSettings, mockCmd, cr, dummyJobDir, Set[DataHandle](o0, o1, o2))
+
+      assert(execution.isPersistable)
+      
+      recorder.record(TestHelpers.DummyJobOracle, Seq(job -> execution))
+
+      val expected = Seq(
+          Execution(
+              settings = mockUgerSettings, 
+              cmd = mockCmd, 
+              result = CommandResult(JobResult.DummyExitCode),
+              jobDir = execution.jobDir.get,
               outputs = failedOutput0, failedOutput1, failedOutput2))
       
       assertEqualFieldsFor(executions, expected)

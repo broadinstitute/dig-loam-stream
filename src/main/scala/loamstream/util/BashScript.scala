@@ -26,7 +26,12 @@ object BashScript extends Loggable {
   }
 
   /** Characters that should be escaped by prefixing with backslash */
-  private val charsToBeEscaped: Set[Char] = Set('\\', '\'', '\"', '\n', '\r', '\t', '\b', '\f', ' ')
+  //NB: Profiler-guided optimization: pattern-matching is almost 2x faster than using a Set, and this method gets 
+  //called _a lot_.
+  private def shouldBeEscaped(ch: Char): Boolean = ch match {
+    case '\\' | '\'' | '\"' | '\n' | '\r' | '\t' | '\b' | '\f' | ' ' => true
+    case _ => false
+  }
 
   /**
    * Escapes string for Bash.
@@ -38,7 +43,7 @@ object BashScript extends Loggable {
     val builder = new StringBuilder(string.length * 2)
 
     string.foreach { c =>
-      if (charsToBeEscaped(c)) {
+      if (shouldBeEscaped(c)) {
         builder.append('\\')
       }
 

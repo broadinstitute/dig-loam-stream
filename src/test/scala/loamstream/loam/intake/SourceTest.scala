@@ -2,6 +2,7 @@ package loamstream.loam.intake
 
 import org.scalatest.FunSuite
 import loamstream.TestHelpers
+import loamstream.TestHelpers.path
 import loamstream.util.Files
 import java.io.StringReader
 import loamstream.loam.intake.metrics.MetricTest.MockFlipDetector
@@ -43,6 +44,22 @@ final class SourceTest extends FunSuite {
     }
     
     assert(actualRows.size === expectedRows.size)
+  }
+  
+  test("Reading zipped input as unzipped should fail") {
+    intercept[Exception] {
+      Source.fromFile(
+          path("src/test/resources/intake/real-input-data.tsv.gz"), 
+          Source.Formats.spaceDelimitedWithHeader)
+    }
+  }
+  
+  test("Reading unzipped input as zipped should fail") {
+    intercept[Exception] {
+      Source.fromGzippedFile(
+          path("src/test/resources/intake/real-input-data.tsv"), 
+          Source.Formats.spaceDelimitedWithHeader)
+    }
   }
   
   test("fromString") {

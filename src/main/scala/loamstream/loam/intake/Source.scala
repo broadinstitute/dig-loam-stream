@@ -94,10 +94,17 @@ object Source extends Loggable {
   private[intake] object FromIterator {
     def apply[R](iterator: => Iterator[R]): FromIterator[R] = new FromIterator(iterator)
   }
+  
+  def fromIterable[R](rs: Iterable[R]): Source[R] = FromIterator(rs.iterator)
 
+  private def isGzipped(path: Path): Boolean = path.getFileName.toString.endsWith(".gz")
+  private def notGzipped(path: Path): Boolean = !isGzipped(path)
+  
   def fromFile(
       path: Path, 
       csvFormat: CSVFormat = Defaults.csvFormat): Source[CsvRow] = {
+    
+    require(notGzipped(path), s"Expected an unzipped file, but got one with a .gz extension")
     
     fromReader(new FileReader(path.toFile), csvFormat)
   }
@@ -105,6 +112,8 @@ object Source extends Loggable {
   def fromGzippedFile(
       path: Path, 
       csvFormat: CSVFormat = Defaults.csvFormat): Source[CsvRow] = {
+    
+    require(isGzipped(path), s"Expected a gzipped file, but got one without a .gz extension")
     
     fromReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(path.toFile))), csvFormat)
   }

@@ -5,6 +5,8 @@ import loamstream.TestHelpers
 import java.nio.file.Path
 import loamstream.loam.LoamSyntax
 import loamstream.model.Store
+import loamstream.loam.intake.flip.FlipDetector
+import loamstream.loam.intake.flip.Disposition
 
 /**
  * @author clint
@@ -56,6 +58,12 @@ object Helpers {
   object Implicits {
     final implicit class LogFileOps(val lines: Seq[String]) extends AnyVal {
       def containsOnce(s: String): Boolean = lines.count(_.contains(s)) == 1
+    }
+  }
+  
+  object FlipDetectors {
+    object NoFlipsEver extends FlipDetector {
+      override def isFlipped(variantId: Variant): Disposition = Disposition.NotFlippedSameStrand
     }
   }
 }

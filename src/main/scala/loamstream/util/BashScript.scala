@@ -35,11 +35,13 @@ object BashScript extends Loggable {
 
   /**
    * Escapes string for Bash.
-   * Note new StringBuilder-oriented approach, which is significantly faster than the previous one that relied on
-   * String.flatMap.  Somewhat surprisingly, this method was a significant component of the graph-validation code's
-   * running time before switching to the StringBuilder approach.
    */
   def escapeString(string: String): String = {
+    /*
+     * Note new StringBuilder-oriented approach, which is significantly faster than the previous one that relied on
+     * String.flatMap.  Somewhat surprisingly, this method was a significant component of the graph-validation code's
+     * running time before switching to the StringBuilder approach. 
+     */
     val builder = new StringBuilder(string.length * 2)
 
     string.foreach { c =>

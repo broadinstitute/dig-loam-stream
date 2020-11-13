@@ -44,6 +44,8 @@ object BioIndexClient {
       baseUrl: String = Defaults.baseUrl,
       httpClient: HttpClient = Defaults.httpClient) extends BioIndexClient with Loggable {
     
+    debug(s"Instantiating default BioIndexClient pointing at '$baseUrl'")
+    
     private val variantsBaseUrl = s"${baseUrl}/query/Variants"
     private val datasetsBaseUrl = s"${baseUrl}/portal/datasets"
     private val phenotypesBaseUrl = s"${baseUrl}/portal/phenotypes"

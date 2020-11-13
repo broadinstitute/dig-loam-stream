@@ -18,13 +18,18 @@ import loamstream.loam.intake.metrics.Metrics
 import java.io.Closeable
 import loamstream.util.Throwables
 import loamstream.util.CompositeException
+import loamstream.loam.intake.metrics.BioIndexClient
 
 
 /**
  * @author clint
  * Dec 20, 2019
  */
-object IntakeSyntax extends IntakeSyntax
+object IntakeSyntax extends IntakeSyntax {
+  object Defaults {
+    val bioIndexClient: BioIndexClient = new BioIndexClient.Default()
+  }
+}
 
 trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTransforms with GraphFunctions {
   type ColumnName = loamstream.loam.intake.ColumnName
@@ -98,6 +103,40 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
               s"Intake jobs can only run locally with --worker or on a DRM system, but settings were $settings")
         }
       }
+    }
+  }
+  
+  def requireKnownPhenotype(
+      phenotype: Phenotype, 
+      bioIndexClient: BioIndexClient = IntakeSyntax.Defaults.bioIndexClient): Unit = {
+    
+    require(bioIndexClient.isKnown(phenotype), s"Phenotype '${phenotype.name}' was not known to the BioIndex")
+  }
+ 
+  def requireKnownDataset(
+      dataset: Dataset, 
+      bioIndexClient: BioIndexClient = IntakeSyntax.Defaults.bioIndexClient): Unit = {
+    
+    require(bioIndexClient.isKnown(dataset), s"Dataset '${dataset.name}' was not known to the BioIndex")
+  }
+  
+  def fixPhenotypeCase(
+      phenotype: Phenotype, 
+      bioIndexClient: BioIndexClient = IntakeSyntax.Defaults.bioIndexClient): Phenotype = {
+    
+    bioIndexClient.findClosestMatch(phenotype).getOrElse {
+      val msg = s"Couldn't find any case-insensitive matches for phenotype '${phenotype.name}' in the BioIndex"
+      
+      throw new Exception(msg)
+    }
+  }
+  
+  def fixDatasetCase(
+      dataset: Dataset, 
+      bioIndexClient: BioIndexClient = IntakeSyntax.Defaults.bioIndexClient): Dataset = {
+    
+    bioIndexClient.findClosestMatch(dataset).getOrElse {
+      throw new Exception(s"Couldn't find any case-insensitive matches for dataset '${dataset.name}' in the BioIndex")
     }
   }
   

@@ -11,15 +11,17 @@ final class ColumnTransformsTest extends FunSuite {
     val a = "A"
     val b = "B"
     
+    val inputChromNames = (1 to 26).map(_.toString) ++ Seq("M", "m")
+    
     val rows = Helpers.csvRows(
         Seq("A", "B"),
-        (1 to 26).map(c => Seq(c.toString, "foo")): _*)
+        inputChromNames.map(c => Seq(c.toString, "foo")): _*)
         
     val expr = ColumnTransforms.ensureAlphabeticChromNames(ColumnName("A"))
     
     val actual = rows.map(expr)
     
-    val expected = (1 to 22).map(_.toString) ++ Seq("X", "Y", "XY", "MT")
+    val expected = (1 to 22).map(_.toString) ++ Seq("X", "Y", "XY", "MT", "MT", "MT")
     
     assert(actual === expected)
   }

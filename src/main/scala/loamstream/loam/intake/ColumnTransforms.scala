@@ -10,7 +10,7 @@ object ColumnTransforms {
       case "23" => "X"
       case "24" => "Y"
       case "25" => "XY"
-      case "26" => "MT"
+      case "26" | "M" | "m" => "MT"
       case rawChrom => rawChrom
     }
   }

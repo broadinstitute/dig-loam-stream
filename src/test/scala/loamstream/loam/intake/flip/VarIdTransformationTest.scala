@@ -43,7 +43,7 @@ final class VarIdTransformationTest extends FunSuite {
     val dataRows = rows.tagFlips(varIdDef, flipDetector).map(toAggregatorRow).records.toIndexedSeq
     
     assert(dataRows.size === 1)
-    assert(dataRows.head.dataRow.marker === v)
+    assert(dataRows.head.dataRowOpt.get.marker === v)
   }
   
   test("Var ids are transformed properly when flips are detected") {
@@ -57,7 +57,7 @@ final class VarIdTransformationTest extends FunSuite {
     
     val dataRows = source.tagFlips(varIdDef, flipDetector).map(toAggregatorRow)
       
-    val actualVarIds = dataRows.map(_.dataRow.marker)
+    val actualVarIds = dataRows.map(_.dataRowOpt.get.marker)
       
     actualVarIds.records.zip(inputsAndExpectedOutputs.iterator).foreach { case (actual, (input, expected)) =>
       def msg = {

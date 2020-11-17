@@ -20,18 +20,6 @@ trait CsvRow {
 }
 
 object CsvRow {
-  abstract class WithFlipTag(
-      val marker: Variant, 
-      val originalMarker: Variant, 
-      val disposition: Disposition) extends CsvRow {
-    
-    final def isFlipped: Boolean = disposition.isFlipped
-    final def notFlipped: Boolean = disposition.notFlipped
-    
-    final def isSameStrand: Boolean = disposition.isSameStrand
-    final def isComplementStrand: Boolean = disposition.isComplementStrand
-  }
-  
   final case class CommonsCsvRow(delegate: CSVRecord) extends CsvRow {
     override def getFieldByName(name: String): String = delegate.get(name)
     
@@ -44,10 +32,16 @@ object CsvRow {
   
   final case class TaggedCsvRow(
       delegate: CsvRow,
-      override val marker: Variant,
-      override val originalMarker: Variant,
-      override val disposition: Disposition,
-      skipped: Boolean = false) extends CsvRow.WithFlipTag(marker, originalMarker, disposition) {
+      marker: Variant,
+      originalMarker: Variant,
+      disposition: Disposition,
+      skipped: Boolean = false) extends CsvRow {
+    
+    def isFlipped: Boolean = disposition.isFlipped
+    def notFlipped: Boolean = disposition.notFlipped
+    
+    def isSameStrand: Boolean = disposition.isSameStrand
+    def isComplementStrand: Boolean = disposition.isComplementStrand
     
     override def getFieldByName(name: String): String = delegate.getFieldByName(name)
     
@@ -58,5 +52,52 @@ object CsvRow {
     override def recordNumber: Long = delegate.recordNumber
     
     def skip: TaggedCsvRow = copy(skipped = true)
+  }
+  
+  sealed trait Parsed extends CsvRow {
+    val derivedFrom: TaggedCsvRow
+    
+    def dataRowOpt: Option[DataRow]
+    
+    def skipped: Boolean
+    
+    def skip: Parsed
+    
+    def transform(f: DataRow => DataRow): Parsed
+    
+    final def isFlipped: Boolean = derivedFrom.isFlipped
+    final def notFlipped: Boolean = derivedFrom.notFlipped
+    
+    final def isSameStrand: Boolean = derivedFrom.isSameStrand
+    final def isComplementStrand: Boolean = derivedFrom.isComplementStrand
+    
+    override def getFieldByName(name: String): String = derivedFrom.getFieldByName(name)
+    
+    override def getFieldByIndex(i: Int): String = derivedFrom.getFieldByIndex(i)
+    
+    override def size: Int = derivedFrom.size
+    
+    override def recordNumber: Long = derivedFrom.recordNumber
+  }
+  
+  final case class Transformed(
+      derivedFrom: TaggedCsvRow,
+      dataRow: DataRow) extends Parsed {
+    
+    override def dataRowOpt: Option[DataRow] = Some(dataRow)
+    
+    override def skipped: Boolean = false
+    
+    override def skip: Skipped = Skipped(derivedFrom, dataRowOpt)
+    
+    override def transform(f: DataRow => DataRow): Transformed = copy(dataRow = f(dataRow))
+  }
+  
+  final case class Skipped(derivedFrom: TaggedCsvRow, dataRowOpt: Option[DataRow]) extends Parsed {
+    override def skipped: Boolean = true
+    
+    override def skip: Skipped = this
+    
+    override def transform(f: DataRow => DataRow): Skipped = this
   }
 }

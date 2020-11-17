@@ -15,11 +15,14 @@ import loamstream.loam.intake.flip.Disposition
  * Mar 27, 2020
  */
 object Metric {
-  def countGreaterThan(column: RowTuple => Double)(threshold: Double): Metric[Int] = {
-    Fold.countIf[RowTuple](row => column(row) > threshold)
+  def countGreaterThan(column: CsvRow.Transformed => Double)(threshold: Double): Metric[Int] = {
+    Fold.countIf[CsvRow.Parsed] {
+      case _: CsvRow.Skipped => false
+      case row: CsvRow.Transformed => column(row) > threshold
+    }
   }
   
-  def fractionGreaterThan(column: RowTuple => Double)(threshold: Double): Metric[Double] = {
+  def fractionGreaterThan(column: CsvRow.Transformed => Double)(threshold: Double): Metric[Double] = {
     fractionOfTotal(countGreaterThan(column)(threshold))
   }
   
@@ -32,7 +35,10 @@ object Metric {
   }
   
   private def countKnownOrUnknown(client: BioIndexClient)(p: Variant => Boolean): Metric[Int] = {
-    Fold.countIf { case RowTuple(_, dataRow) => p(dataRow.marker) }
+    Fold.countIf { 
+      case CsvRow.Transformed(_, dataRow) => p(dataRow.marker) 
+      case _ => false
+    }
   }
   
   def fractionUnknown(client: BioIndexClient): Metric[Double] = {
@@ -63,8 +69,8 @@ object Metric {
     
     def isFlipped(sourceRow: CsvRow.TaggedCsvRow): Boolean = sourceRow.disposition.isFlipped
     
-    val agreesFn: RowTuple => Boolean = { 
-      case RowTuple(sourceRow, DataRow(marker, _, Some(z), Some(se), Some(beta), _, _, _, _)) => {
+    val agreesFn: CsvRow.Parsed => Boolean = { 
+      case CsvRow.Transformed(sourceRow, DataRow(marker, _, Some(z), Some(se), Some(beta), _, _, _, _)) => {
         if(isFlipped(sourceRow)) {
           agrees(z, -(beta / se))
         } else {
@@ -74,7 +80,7 @@ object Metric {
       case _ => true
     }
     
-    def disagrees(row: RowTuple): Boolean = !agreesFn(row)
+    def disagrees(row: CsvRow.Parsed): Boolean = !agreesFn(row)
     
     Fold.countIf(disagrees)
   }
@@ -83,9 +89,12 @@ object Metric {
     fractionOfTotal(countWithDisagreeingBetaStderrZscore(epsilon))
   }
   
-  def mean[N](column: RowTuple => N)(implicit ev: Numeric[N]): Metric[Double] = {
-    val sumFold: Fold[RowTuple, N, N] = Fold.sum(column)
-    val countFold: Fold[RowTuple, Int, Int] = Fold.count
+  def mean[N](column: CsvRow.Transformed => N)(implicit ev: Numeric[N]): Metric[Double] = {
+    val sumFold: Fold[CsvRow.Parsed, N, N] = Fold.sum {
+      case _: CsvRow.Skipped => ev.zero
+      case t: CsvRow.Transformed => column(t)
+    }
+    val countFold: Fold[CsvRow.Parsed, Int, Int] = Fold.count
     
     Fold.combine(sumFold, countFold).map {
       case (sum, count) => ev.toDouble(sum) / count.toDouble
@@ -95,8 +104,8 @@ object Metric {
   def countVariantsByChromosome: Metric[Map[String, Int]] = {
     type Counts = Map[String, Int]
     
-    def doAdd(acc: Counts, elem: RowTuple): Counts = {
-      import elem.rawRow.marker.chrom
+    def doAdd(acc: Counts, elem: CsvRow.Parsed): Counts = {
+      import elem.derivedFrom.marker.chrom
       
       val newCount = acc.get(chrom) match {
         case Some(count) => count + 1
@@ -108,7 +117,7 @@ object Metric {
     
     def startingCounts: Counts = Map.empty ++ Chromosomes.names.iterator.map(_ -> 0) 
     
-    Fold.apply[RowTuple, Counts, Counts](startingCounts, doAdd, identity)
+    Fold.apply[CsvRow.Parsed, Counts, Counts](startingCounts, doAdd, identity)
   }
   
   def chromosomesWithNoVariants: Metric[Set[String]] = {
@@ -116,7 +125,7 @@ object Metric {
   }
   
   private def countVariantsWithDisposition(p: Disposition => Boolean): Metric[Int] = {
-    Fold.countIf(rowTuple => p(rowTuple.rawRow.disposition))
+    Fold.countIf(rowTuple => p(rowTuple.derivedFrom.disposition))
   }
   
   def countFlippedVariants: Metric[Int] = countVariantsWithDisposition(_.isFlipped)

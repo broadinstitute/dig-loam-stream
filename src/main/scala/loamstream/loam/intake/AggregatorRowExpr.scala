@@ -15,7 +15,7 @@ final case class AggregatorRowExpr(
     oddsRatioDef: Option[NamedColumnDef[Double]] = None,
     eafDef: Option[NamedColumnDef[Double]] = None,
     mafDef: Option[NamedColumnDef[Double]] = None,
-    nDef: Option[NamedColumnDef[Double]] = None) extends TaggedRowParser[RowTuple] {
+    nDef: Option[NamedColumnDef[Double]] = None) extends TaggedRowParser[CsvRow.Parsed] {
   
   def columnNames: Seq[ColumnName] = {
     //NB: Note that this order matters. :\ 
@@ -47,15 +47,17 @@ final case class AggregatorRowExpr(
       n = nDef.map(nameOf))
   }
   
-  override def apply(row: CsvRow.TaggedCsvRow): RowTuple = RowTuple(row, DataRow(
-    marker = row.marker,
-    pvalue = pvalueDef.apply(row),
-    zscore = zscoreDef.map(_.apply(row)),
-    stderr = stderrDef.map(_.apply(row)),
-    beta = betaDef.map(_.apply(row)),
-    oddsRatio = oddsRatioDef.map(_.apply(row)),
-    eaf = eafDef.map(_.apply(row)),
-    maf = mafDef.map(_.apply(row)),
-    n = nDef.map(_.apply(row))))
+  override def apply(row: CsvRow.TaggedCsvRow): CsvRow.Parsed = CsvRow.Transformed(
+      derivedFrom = row, 
+      dataRow = DataRow(
+        marker = row.marker,
+        pvalue = pvalueDef.apply(row),
+        zscore = zscoreDef.map(_.apply(row)),
+        stderr = stderrDef.map(_.apply(row)),
+        beta = betaDef.map(_.apply(row)),
+        oddsRatio = oddsRatioDef.map(_.apply(row)),
+        eaf = eafDef.map(_.apply(row)),
+        maf = mafDef.map(_.apply(row)),
+        n = nDef.map(_.apply(row))))
 }
 

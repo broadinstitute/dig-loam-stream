@@ -8,6 +8,7 @@ import loamstream.loam.intake.Phenotype
 import loamstream.loam.intake.flip.Disposition
 import loamstream.loam.intake.flip.FlipDetector
 import loamstream.util.Fold
+import loamstream.loam.intake.RowTuple
 
 
 /**
@@ -51,16 +52,16 @@ final class MetricTest extends FunSuite {
   }
   
   test("countGreaterThan") {
-    val gt2 = Metric.countGreaterThan(_._2.pvalue)(2)
-    val gt4 = Metric.countGreaterThan(_._2.pvalue)(4)
+    val gt2 = Metric.countGreaterThan(_.dataRow.pvalue)(2)
+    val gt4 = Metric.countGreaterThan(_.dataRow.pvalue)(4)
     
     doMetricTest(gt4, expected = 2)(rowsNoFlips)
     doMetricTest(gt2, expected = 4)(rowsNoFlips)
   }
   
   test("fractionGreaterThan") {
-    val fracGt2 = Metric.fractionGreaterThan(_._2.pvalue)(2)
-    val fracGt4 = Metric.fractionGreaterThan(_._2.pvalue)(4)
+    val fracGt2 = Metric.fractionGreaterThan(_.dataRow.pvalue)(2)
+    val fracGt4 = Metric.fractionGreaterThan(_.dataRow.pvalue)(4)
     
     doMetricTest(fracGt4, expected = (2d / 6d))(rowsNoFlips)
     doMetricTest(fracGt2, expected = (4d / 6d))(rowsNoFlips)
@@ -243,12 +244,12 @@ final class MetricTest extends FunSuite {
   }
   
   test("mean") {
-    val mean = Metric.mean(_._2.pvalue)
+    val mean = Metric.mean(_.dataRow.pvalue)
     
     doMetricTest(mean, expected = (1 + 2 + 3 + 4 + 5 + 6) / 6.0)(rowsNoFlips)
   }
   
-  private def doMetricTest[A](metric: Metric[A], expected: A)(rows: Source[(CsvRow.WithFlipTag, DataRow)]): Unit = {
+  private def doMetricTest[A](metric: Metric[A], expected: A)(rows: Source[RowTuple]): Unit = {
     assert(Fold.fold(rows.records)(metric) === expected)
     
     assert(Fold.fold(rows.records.toList)(metric) === expected)

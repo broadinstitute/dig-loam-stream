@@ -61,7 +61,7 @@ object Metric {
     
     def agreesFlip(z: Double, beta: Double, se: Double): Boolean = agrees(z, -(beta / se))
     
-    def isFlipped(sourceRow: CsvRow.WithFlipTag): Boolean = sourceRow.disposition.isFlipped
+    def isFlipped(sourceRow: CsvRow.TaggedCsvRow): Boolean = sourceRow.disposition.isFlipped
     
     val agreesFn: RowTuple => Boolean = { 
       case RowTuple(sourceRow, DataRow(marker, _, Some(z), Some(se), Some(beta), _, _, _, _)) => {

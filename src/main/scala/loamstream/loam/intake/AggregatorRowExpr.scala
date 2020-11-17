@@ -47,7 +47,7 @@ final case class AggregatorRowExpr(
       n = nDef.map(nameOf))
   }
   
-  override def apply(row: CsvRow.WithFlipTag): RowTuple = RowTuple(row, DataRow(
+  override def apply(row: CsvRow.TaggedCsvRow): RowTuple = RowTuple(row, DataRow(
     marker = row.marker,
     pvalue = pvalueDef.apply(row),
     zscore = zscoreDef.map(_.apply(row)),

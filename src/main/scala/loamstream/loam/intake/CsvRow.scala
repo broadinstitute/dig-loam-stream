@@ -46,7 +46,8 @@ object CsvRow {
       delegate: CsvRow,
       override val marker: Variant,
       override val originalMarker: Variant,
-      override val disposition: Disposition) extends CsvRow.WithFlipTag(marker, originalMarker, disposition) {
+      override val disposition: Disposition,
+      skipped: Boolean = false) extends CsvRow.WithFlipTag(marker, originalMarker, disposition) {
     
     override def getFieldByName(name: String): String = delegate.getFieldByName(name)
     
@@ -55,5 +56,7 @@ object CsvRow {
     override def size: Int = delegate.size
     
     override def recordNumber: Long = delegate.recordNumber
+    
+    def skip: TaggedCsvRow = copy(skipped = true)
   }
 }

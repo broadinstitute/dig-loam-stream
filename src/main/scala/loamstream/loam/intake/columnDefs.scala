@@ -7,9 +7,9 @@ import scala.reflect.runtime.universe.TypeTag
  * @author clint
  * Oct 15, 2020
  */
-trait ColumnDef[A] extends (CsvRow.WithFlipTag => A) {
+trait ColumnDef[A] extends (CsvRow.TaggedCsvRow => A) {
   
-  override def apply(row: CsvRow.WithFlipTag): A = {
+  override def apply(row: CsvRow.TaggedCsvRow): A = {
     val exprToInvoke: ColumnExpr[A] = {
       def whenFlipped: ColumnExpr[A] = exprWhenFlipped match {
         case Some(e) => e

@@ -46,7 +46,7 @@ sealed trait Source[R] {
   
   def tagFlips(
       markerDef: MarkerColumnDef, 
-      flipDetector: => FlipDetector)(implicit ev: R <:< CsvRow): Source[CsvRow.WithFlipTag] = {
+      flipDetector: => FlipDetector)(implicit ev: R <:< CsvRow): Source[CsvRow.TaggedCsvRow] = {
     
     lazy val actualFlipDetector = flipDetector
     

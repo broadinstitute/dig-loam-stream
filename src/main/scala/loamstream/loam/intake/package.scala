@@ -25,15 +25,15 @@ package object intake {
   
   type CloseableRowTransform = CloseableTransform[CsvRow]
   
-  type TaggedRowParser[A] = CsvRow.WithFlipTag => A
+  type TaggedRowParser[A] = CsvRow.TaggedCsvRow => A
   
-  type TaggedRowPredicate = Predicate[CsvRow.WithFlipTag]
+  type TaggedRowPredicate = Predicate[CsvRow.TaggedCsvRow]
   
-  type CloseableTaggedRowPredicate = CloseablePredicate[CsvRow.WithFlipTag]
+  type CloseableTaggedRowPredicate = CloseablePredicate[CsvRow.TaggedCsvRow]
   
-  type TaggedRowTransform = Transform[CsvRow.WithFlipTag]
+  type TaggedRowTransform = Transform[CsvRow.TaggedCsvRow]
   
-  type CloseableTaggedRowTransform = CloseableTransform[CsvRow.WithFlipTag] 
+  type CloseableTaggedRowTransform = CloseableTransform[CsvRow.TaggedCsvRow] 
     
   type DataRowParser[A] = DataRow => A
   

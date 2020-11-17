@@ -1,5 +1,7 @@
 package loamstream.loam.intake
 
+import scala.util.Try
+
 /**
  * @author clint
  * Oct 14, 2020
@@ -13,7 +15,7 @@ final case class AggregatorRowExpr(
     oddsRatioDef: Option[NamedColumnDef[Double]] = None,
     eafDef: Option[NamedColumnDef[Double]] = None,
     mafDef: Option[NamedColumnDef[Double]] = None,
-    nDef: Option[NamedColumnDef[Double]] = None) extends TaggedRowParser[(CsvRow.WithFlipTag, DataRow)] {
+    nDef: Option[NamedColumnDef[Double]] = None) extends TaggedRowParser[RowTuple] {
   
   def columnNames: Seq[ColumnName] = {
     //NB: Note that this order matters. :\ 
@@ -45,7 +47,7 @@ final case class AggregatorRowExpr(
       n = nDef.map(nameOf))
   }
   
-  override def apply(row: CsvRow.WithFlipTag): (CsvRow.WithFlipTag, DataRow) = row -> DataRow(
+  override def apply(row: CsvRow.WithFlipTag): RowTuple = RowTuple(row, DataRow(
     marker = row.marker,
     pvalue = pvalueDef.apply(row),
     zscore = zscoreDef.map(_.apply(row)),
@@ -54,6 +56,6 @@ final case class AggregatorRowExpr(
     oddsRatio = oddsRatioDef.map(_.apply(row)),
     eaf = eafDef.map(_.apply(row)),
     maf = mafDef.map(_.apply(row)),
-    n = nDef.map(_.apply(row)))
+    n = nDef.map(_.apply(row))))
 }
 

@@ -6,6 +6,8 @@ import loamstream.loam.intake.flip.FlipDetector
 import loamstream.util.Fold
 import loamstream.loam.intake.RowTuple
 import loamstream.loam.intake.CsvRow
+import loamstream.loam.intake.Chromosomes
+import loamstream.loam.intake.flip.Disposition
 
 
 /**
@@ -30,7 +32,7 @@ object Metric {
   }
   
   private def countKnownOrUnknown(client: BioIndexClient)(p: Variant => Boolean): Metric[Int] = {
-    Fold.countIf { case (_, dataRow) => p(dataRow.marker) }
+    Fold.countIf { case RowTuple(_, dataRow) => p(dataRow.marker) }
   }
   
   def fractionUnknown(client: BioIndexClient): Metric[Double] = {
@@ -62,7 +64,7 @@ object Metric {
     def isFlipped(sourceRow: CsvRow.WithFlipTag): Boolean = sourceRow.disposition.isFlipped
     
     val agreesFn: RowTuple => Boolean = { 
-      case (sourceRow, DataRow(marker, _, Some(z), Some(se), Some(beta), _, _, _, _)) => {
+      case RowTuple(sourceRow, DataRow(marker, _, Some(z), Some(se), Some(beta), _, _, _, _)) => {
         if(isFlipped(sourceRow)) {
           agrees(z, -(beta / se))
         } else {
@@ -89,4 +91,35 @@ object Metric {
       case (sum, count) => ev.toDouble(sum) / count.toDouble
     }
   }
+  
+  def countVariantsByChromosome: Metric[Map[String, Int]] = {
+    type Counts = Map[String, Int]
+    
+    def doAdd(acc: Counts, elem: RowTuple): Counts = {
+      import elem.rawRow.marker.chrom
+      
+      val newCount = acc.get(chrom) match {
+        case Some(count) => count + 1
+        case None => 1
+      }
+      
+      acc + (chrom -> newCount)
+    }
+    
+    def startingCounts: Counts = Map.empty ++ Chromosomes.names.iterator.map(_ -> 0) 
+    
+    Fold.apply[RowTuple, Counts, Counts](startingCounts, doAdd, identity)
+  }
+  
+  def chromosomesWithNoVariants: Metric[Set[String]] = {
+    countVariantsByChromosome.map(_.collect { case (chrom, count) if count == 0 => chrom }.toSet)
+  }
+  
+  private def countVariantsWithDisposition(p: Disposition => Boolean): Metric[Int] = {
+    Fold.countIf(rowTuple => p(rowTuple.rawRow.disposition))
+  }
+  
+  def countFlippedVariants: Metric[Int] = countVariantsWithDisposition(_.isFlipped)
+  
+  def countComplementedVariants: Metric[Int] = countVariantsWithDisposition(_.isComplementStrand)
 }

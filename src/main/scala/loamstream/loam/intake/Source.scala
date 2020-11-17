@@ -17,6 +17,7 @@ import java.util.zip.GZIPInputStream
 import java.io.FileInputStream
 import java.io.StringReader
 import loamstream.loam.intake.flip.FlipDetector
+import scala.util.Try
 
 /**
  * @author clint
@@ -65,6 +66,8 @@ sealed trait Source[R] {
   }
   
   def map[S](f: R => S): Source[S] = fromCombinator(_.map(f))
+  
+  
   
   def flatMap[S](f: R => Source[S]): Source[S] = fromCombinator(_.flatMap(f(_).records))
 }

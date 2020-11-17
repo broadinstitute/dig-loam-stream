@@ -47,7 +47,7 @@ final case class AggregatorRowExpr(
       n = nDef.map(nameOf))
   }
   
-  override def apply(row: CsvRow.TaggedCsvRow): CsvRow.Parsed = CsvRow.Transformed(
+  override def apply(row: CsvRow.Tagged): CsvRow.Parsed = CsvRow.Transformed(
       derivedFrom = row, 
       dataRow = DataRow(
         marker = row.marker,

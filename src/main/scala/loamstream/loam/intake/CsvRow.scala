@@ -30,7 +30,7 @@ object CsvRow {
     override def recordNumber: Long = delegate.getRecordNumber
   }
   
-  final case class TaggedCsvRow(
+  final case class Tagged(
       delegate: CsvRow,
       marker: Variant,
       originalMarker: Variant,
@@ -51,11 +51,11 @@ object CsvRow {
     
     override def recordNumber: Long = delegate.recordNumber
     
-    def skip: TaggedCsvRow = copy(skipped = true)
+    def skip: Tagged = copy(skipped = true)
   }
   
   sealed trait Parsed extends CsvRow {
-    val derivedFrom: TaggedCsvRow
+    val derivedFrom: Tagged
     
     def dataRowOpt: Option[DataRow]
     
@@ -81,7 +81,7 @@ object CsvRow {
   }
   
   final case class Transformed(
-      derivedFrom: TaggedCsvRow,
+      derivedFrom: Tagged,
       dataRow: DataRow) extends Parsed {
     
     override def dataRowOpt: Option[DataRow] = Some(dataRow)
@@ -93,7 +93,7 @@ object CsvRow {
     override def transform(f: DataRow => DataRow): Transformed = copy(dataRow = f(dataRow))
   }
   
-  final case class Skipped(derivedFrom: TaggedCsvRow, dataRowOpt: Option[DataRow]) extends Parsed {
+  final case class Skipped(derivedFrom: Tagged, dataRowOpt: Option[DataRow]) extends Parsed {
     override def skipped: Boolean = true
     
     override def skip: Skipped = this

@@ -4,7 +4,6 @@ import loamstream.loam.intake.Variant
 import loamstream.loam.intake.DataRow
 import loamstream.loam.intake.flip.FlipDetector
 import loamstream.util.Fold
-import loamstream.loam.intake.RowTuple
 import loamstream.loam.intake.CsvRow
 import loamstream.loam.intake.Chromosomes
 import loamstream.loam.intake.flip.Disposition

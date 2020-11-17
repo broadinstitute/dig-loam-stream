@@ -8,7 +8,6 @@ import loamstream.loam.intake.Phenotype
 import loamstream.loam.intake.flip.Disposition
 import loamstream.loam.intake.flip.FlipDetector
 import loamstream.util.Fold
-import loamstream.loam.intake.RowTuple
 
 
 /**

@@ -170,16 +170,22 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       flipDetector: => FlipDetector = this.flipDetector,
       toBeClosed: Seq[Closeable] = this.toBeClosed): ViaTarget = new ViaTarget(dest, rows, flipDetector, toBeClosed) 
     
+    private def toFilterTransform(p: RowPredicate): CsvRow => CsvRow = { row =>
+      if(p(row)) row else CsvRow.SkippedRaw(derivedFrom = row)
+    }
+    
     def filter(p: RowPredicate): ViaTarget = {
-      copy(rows = rows.filter(p), toBeClosed = asCloseable(p) ++ toBeClosed)
+      copy(rows = rows.map(toFilterTransform(p)), toBeClosed = asCloseable(p) ++ toBeClosed)
     }
     
     def filter(ps: Iterable[RowPredicate]): ViaTarget = {
-      val filteredRows = ps.foldLeft(rows)(_.filter(_))
+      val filterTransforms = ps.map(toFilterTransform)
+      
+      val transformedRows = filterTransforms.foldLeft(rows)(_.map(_))
       
       val psToBeClosed = ps.collect { case c: Closeable => c }.toSeq
       
-      copy(rows = filteredRows, toBeClosed = psToBeClosed ++ toBeClosed)
+      copy(rows = transformedRows, toBeClosed = psToBeClosed ++ toBeClosed)
     }
     
     def via(expr: AggregatorRowExpr): MapFilterAndWriteTarget[Unit] = {
@@ -219,16 +225,16 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     }
     
     def filter(predicate: Predicate[DataRow]): MapFilterAndWriteTarget[A] = {
-      def dataRowPredicate(tuple: CsvRow.Parsed) = tuple match {
-        case CsvRow.Transformed(_, dataRow) => predicate(dataRow)
-        case _ => false
+      def filterTransform(row: CsvRow.Parsed): CsvRow.Parsed = row match {
+        case t @ CsvRow.Transformed(_, dataRow) => if(predicate(dataRow)) t else t.skip
+        case r: CsvRow.Skipped  => r
       }
       
-      copy(rows = rows.filter(dataRowPredicate), toBeClosed = asCloseable(predicate) ++ toBeClosed)
+      copy(rows = rows.map(filterTransform), toBeClosed = asCloseable(predicate) ++ toBeClosed)
     }
     
     def map(transform: Transform[DataRow]): MapFilterAndWriteTarget[A] = {
-      def dataRowTransform(tuple: CsvRow.Parsed): CsvRow.Parsed = tuple.transform(transform)
+      def dataRowTransform(row: CsvRow.Parsed): CsvRow.Parsed = row.transform(transform)
       
       copy(rows = rows.map(dataRowTransform), toBeClosed = asCloseable(transform) ++ toBeClosed)
     }

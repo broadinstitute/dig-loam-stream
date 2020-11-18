@@ -171,7 +171,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       toBeClosed: Seq[Closeable] = this.toBeClosed): ViaTarget = new ViaTarget(dest, rows, flipDetector, toBeClosed) 
     
     private def toFilterTransform(p: RowPredicate): CsvRow => CsvRow = { row =>
-      if(p(row)) row else CsvRow.SkippedRaw(derivedFrom = row)
+      if(p(row)) row else row.skip
     }
     
     def filter(p: RowPredicate): ViaTarget = {

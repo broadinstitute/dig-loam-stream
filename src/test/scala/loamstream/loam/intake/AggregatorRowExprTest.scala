@@ -48,4 +48,30 @@ final class AggregatorRowExprTest extends FunSuite {
     doTest(failFast = true)
     doTest(failFast = false)
   }
+  
+  test("Skipped input isn't transformed") {
+    //Actual expr doesn't matter
+    val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, LiteralColumnExpr("1_123_A_T").map(Variant.from))
+    
+    val expr = AggregatorRowExpr(
+      failFast = true,
+      markerDef = markerDef,
+      pvalueDef = AggregatorColumnDefs.pvalue(LiteralColumnExpr(42.0))) //actual expr doesn't matter
+      
+    val input: Seq[CsvRow] = Helpers.csvRows(
+          Seq(AggregatorColumnNames.marker.name, AggregatorColumnNames.pvalue.name),
+          Seq("1_1_A_T", "42"),
+          Seq("1_2_A_T", "42"),
+          Seq("1_3_A_T", "42"))
+          
+    val skippedDataRows = Source.
+                            fromIterable(input).
+                            tagFlips(markerDef, Helpers.FlipDetectors.NoFlipsEver).
+                            map(_.skip).
+                            map(expr).
+                            records.
+                            toList
+                            
+    assert(skippedDataRows.map(_.isSkipped) === Seq(true, true, true))
+  }
 }

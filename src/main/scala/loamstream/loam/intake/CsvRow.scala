@@ -18,16 +18,14 @@ trait CsvRow {
   def values: Iterator[String] = (0 until size).iterator.map(getFieldByIndex)
   
   def recordNumber: Long
+  
+  def isSkipped: Boolean
+  
+  def skip: CsvRow
 }
 
 object CsvRow {
-  sealed trait Raw extends CsvRow {
-    def isSkipped: Boolean
-    
-    def skip: Raw
-  }
-  
-  final case class CommonsCsvRow(delegate: CSVRecord) extends Raw {
+  final case class CommonsCsvRow(delegate: CSVRecord, isSkipped: Boolean = false) extends CsvRow {
     override def getFieldByName(name: String): String = delegate.get(name)
     
     override def getFieldByIndex(i: Int): String = delegate.get(i)
@@ -36,34 +34,17 @@ object CsvRow {
     
     override def recordNumber: Long = delegate.getRecordNumber
     
-    override def isSkipped: Boolean = false
-    
-    override def skip: Raw = SkippedRaw(this)
-  }
-  
-  final case class SkippedRaw(derivedFrom: CsvRow) extends Raw {
-    override def getFieldByName(name: String): String = derivedFrom.getFieldByName(name)
-    
-    override def getFieldByIndex(i: Int): String = derivedFrom.getFieldByIndex(i)
-    
-    override def size: Int = derivedFrom.size
-    
-    override def recordNumber: Long = derivedFrom.recordNumber
-    
-    override def isSkipped: Boolean = true
-    
-    override def skip: Raw = this
+    override def skip: CommonsCsvRow = copy(isSkipped = true)
   }
   
   final case class Tagged(
       delegate: CsvRow,
       marker: Variant,
       originalMarker: Variant,
-      disposition: Disposition) extends Raw {
+      disposition: Disposition,
+      isSkipped: Boolean = false) extends CsvRow {
     
-    override def isSkipped: Boolean = false
-    
-    override def skip: Raw = SkippedRaw(this)
+    override def skip: Tagged = copy(isSkipped = true)
     
     def isFlipped: Boolean = disposition.isFlipped
     def notFlipped: Boolean = disposition.notFlipped

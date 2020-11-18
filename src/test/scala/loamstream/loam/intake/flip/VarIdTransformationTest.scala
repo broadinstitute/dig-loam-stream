@@ -190,5 +190,9 @@ object VarIdTransformationTest {
     override def size: Int = 1
     
     override def recordNumber: Long = ???
+    
+    override def isSkipped: Boolean = false
+    
+    override def skip: CsvRow = ???
   }
 }

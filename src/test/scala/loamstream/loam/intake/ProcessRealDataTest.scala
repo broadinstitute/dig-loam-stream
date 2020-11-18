@@ -129,9 +129,6 @@ final class ProcessRealDataTest extends FunSuite with Loggable {
       actualRecords.zip(expectedRecords).foreach { case (lhs, rhs) => assertSame(lhs, rhs, expectations) }
       
       assert(actualRecords.size === expectedRecords.size)
-      
-      //TODO: XXX
-      println(s"SUMMARY STATS: '${loamstream.util.Files.readFrom(path(s"${actualDataPath}.summary"))}'")
     }
   }
   

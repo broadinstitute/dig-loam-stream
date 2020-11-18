@@ -21,6 +21,8 @@ trait CsvRow {
   
   def isSkipped: Boolean
   
+  final def notSkipped: Boolean = !isSkipped
+  
   def skip: CsvRow
 }
 
@@ -68,7 +70,7 @@ object CsvRow {
     
     def isSkipped: Boolean
     
-    def skip: Parsed
+    override def skip: Parsed
     
     def transform(f: DataRow => DataRow): Parsed
     

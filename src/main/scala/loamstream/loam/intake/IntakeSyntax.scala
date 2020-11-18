@@ -218,6 +218,12 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       new MapFilterAndWriteTarget(dest, headerRow, rows, metric, toBeClosed)
     }
     
+    def writeSummaryStatsTo(store: Store): MapFilterAndWriteTarget[(A, Unit)] = {
+      require(store.isPathStore)
+      
+      withMetric(Metric.writeSummaryStatsTo(store.path))
+    }
+    
     def withMetric[B](m: Metric[B]): MapFilterAndWriteTarget[(A, B)] = {
       val newMetric = metric combine m
       
@@ -245,7 +251,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       
       val sink: RowSink = RowSink.ToFile(dest.path)
       
-      val writeLines: Metric[Unit] = Fold.foreach(_.dataRowOpt.foreach(sink.accept))
+      val writeLines: Metric[Unit] = Metric.writeValidVariantsTo(sink)
       
       val m: Metric[(A, Unit)] = metric.combine(writeLines)
       

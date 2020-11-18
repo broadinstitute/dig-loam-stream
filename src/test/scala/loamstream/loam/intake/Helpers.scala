@@ -25,6 +25,10 @@ object Helpers {
     override def size: Int = columnNamesToValues.size
     
     override def recordNumber: Long = 1337
+    
+    override def isSkipped: Boolean = false
+    
+    override def skip: loamstream.loam.intake.CsvRow = this
   }
   
   def csvRows(columnNames: Seq[String], values: Seq[String]*)(implicit discriminator: Int = 1): Seq[CsvRow] = {

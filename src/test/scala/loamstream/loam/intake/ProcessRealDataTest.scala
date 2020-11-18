@@ -75,6 +75,8 @@ final class ProcessRealDataTest extends FunSuite with Loggable {
         
         val filterLog: Store = store(path(s"${dest.path.toString}.filtered-rows"))
         
+        val summaryStatsFile: Store = store(path(s"${dest.path.toString}.summary"))
+        
         produceCsv(dest).
           from(source).
           using(flipDetector).
@@ -83,6 +85,7 @@ final class ProcessRealDataTest extends FunSuite with Loggable {
           filter(DataRowFilters.validMaf(filterLog, append = true)).
           filter(DataRowFilters.validPValue(filterLog, append = true)).
           map(DataRowTransforms.clampPValues(filterLog, append = true)).
+          writeSummaryStatsTo(summaryStatsFile).
           write(forceLocal = true).
           tag(s"process-real-data").
           in(sourceStore)
@@ -126,6 +129,9 @@ final class ProcessRealDataTest extends FunSuite with Loggable {
       actualRecords.zip(expectedRecords).foreach { case (lhs, rhs) => assertSame(lhs, rhs, expectations) }
       
       assert(actualRecords.size === expectedRecords.size)
+      
+      //TODO: XXX
+      println(s"SUMMARY STATS: '${loamstream.util.Files.readFrom(path(s"${actualDataPath}.summary"))}'")
     }
   }
   

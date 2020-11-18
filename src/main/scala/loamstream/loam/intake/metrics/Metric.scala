@@ -7,6 +7,9 @@ import loamstream.util.Fold
 import loamstream.loam.intake.CsvRow
 import loamstream.loam.intake.Chromosomes
 import loamstream.loam.intake.flip.Disposition
+import java.nio.file.Path
+import loamstream.util.Files
+import loamstream.loam.intake.RowSink
 
 
 /**
@@ -100,7 +103,7 @@ object Metric {
     }
   }
   
-  def countVariantsByChromosome: Metric[Map[String, Int]] = {
+  def countByChromosome: Metric[Map[String, Int]] = {
     type Counts = Map[String, Int]
     
     def doAdd(acc: Counts, elem: CsvRow.Parsed): Counts = {
@@ -119,15 +122,29 @@ object Metric {
     Fold.apply[CsvRow.Parsed, Counts, Counts](startingCounts, doAdd, identity)
   }
   
-  def chromosomesWithNoVariants: Metric[Set[String]] = {
-    countVariantsByChromosome.map(_.collect { case (chrom, count) if count == 0 => chrom }.toSet)
+  def countFlipped: Metric[Int] = Fold.countIf(_.isFlipped)
+  
+  def countComplemented: Metric[Int] = Fold.countIf(_.isComplementStrand)
+  
+  def countSkipped: Metric[Int] = Fold.countIf(_.isSkipped)
+  
+  def countNOTSkipped: Metric[Int] = Fold.countIf(_.notSkipped)
+  
+  def summaryStats: Metric[SummaryStats] = {
+    val fields: Metric[(Int, Int, Int, Int, Map[String, Int])] = {
+      (countNOTSkipped |+| countSkipped |+| countFlipped |+| countComplemented |+| countByChromosome).map { 
+        case ((((a, b), c), d), e) => (a, b, c, d, e) 
+      }
+    }
+    
+    fields.map(SummaryStats.tupled)
   }
   
-  private def countVariantsWithDisposition(p: Disposition => Boolean): Metric[Int] = {
-    Fold.countIf(rowTuple => p(rowTuple.derivedFrom.disposition))
+  def writeSummaryStatsTo(file: Path): Metric[Unit] = summaryStats.map(_.toFileContents).map(Files.writeTo(file))
+  
+  def writeValidVariantsTo(sink: RowSink): Metric[Unit] = Fold.foreach { row =>
+    if(row.notSkipped) {
+      row.dataRowOpt.foreach(sink.accept)
+    }
   }
-  
-  def countFlippedVariants: Metric[Int] = countVariantsWithDisposition(_.isFlipped)
-  
-  def countComplementedVariants: Metric[Int] = countVariantsWithDisposition(_.isComplementStrand)
 }

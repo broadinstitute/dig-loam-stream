@@ -18,17 +18,23 @@ object AggregatorColumnDefs {
       refColumn: ColumnExpr[_],
       altColumn: ColumnExpr[_],
       destColumn: ColumnName = AggregatorColumnNames.marker,
-      forceAlphabeticChromNames: Boolean = true): MarkerColumnDef = {
+      forceAlphabeticChromNames: Boolean = true,
+      uppercaseAlleles: Boolean = true): MarkerColumnDef = {
+    
+    val chromExpr = {
+      val chromStringColumn = chromColumn.asString
+      
+      if(forceAlphabeticChromNames) { ColumnTransforms.ensureAlphabeticChromNames(chromStringColumn) }
+      else { chromStringColumn }
+    }
     
     //"{chrom}_{pos}_{ref}_{alt}"
-    val asString = strexpr"${chromColumn}_${posColumn}_${refColumn}_${altColumn}"
+    val asString = strexpr"${chromExpr}_${posColumn}_${refColumn}_${altColumn}"
       
     val variantExpr: ColumnExpr[Variant] = {
-      val strExpr = {
-        if(forceAlphabeticChromNames) ColumnTransforms.ensureAlphabeticChromNames(asString) else asString
-      }
+      val variantExpr = asString.map(Variant.from)
       
-      strExpr.map(Variant.from)
+      if(uppercaseAlleles) variantExpr.map(_.toUpperCase) else variantExpr
     }
     
     MarkerColumnDef(destColumn, variantExpr)

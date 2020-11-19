@@ -73,10 +73,63 @@ final class AggregatorColumnDefsTest extends FunSuite {
     
     assert(markerDef.name === AggregatorColumnNames.marker)
     
-    val row = Helpers.csvRow("foo" -> "42", "bar" -> "123456", "baz" -> "123", "bip" -> "456")
+    val row = Helpers.csvRow("foo" -> "17", "bar" -> "123456", "baz" -> "A", "bip" -> "T")
     
-    assert(markerDef.expr.apply(row) == Variant.from("42_123456_123_456"))
-    assert(markerDef.apply(row) == Variant.from("42_123456_123_456")) 
+    assert(markerDef(row) == Variant.from("17_123456_A_T")) 
+  }
+  
+  test("marker - force alphabetic chrom names") {
+    val foo = ColumnName("foo")
+    val bar = ColumnName("bar")
+    val baz = ColumnName("baz")
+    val bip = ColumnName("bip")
+    
+    def doTest(ensureAlphabeticChromNames: Boolean): Unit = {
+      val markerDef = AggregatorColumnDefs.marker(
+          chromColumn = foo, 
+          posColumn = bar, 
+          refColumn = baz, 
+          altColumn = bip,
+          forceAlphabeticChromNames = ensureAlphabeticChromNames)
+      
+      assert(markerDef.name === AggregatorColumnNames.marker)
+      
+      val row = Helpers.csvRow("foo" -> "26", "bar" -> "123456", "baz" -> "A", "bip" -> "T")
+      
+      val expectedString = if(ensureAlphabeticChromNames) "MT_123456_A_T" else "26_123456_A_T" 
+      
+      assert(markerDef(row) == Variant.from(expectedString))
+    }
+    
+    doTest(true)
+    doTest(false)
+  }
+  
+  test("marker - upper-case alleles") {
+    val foo = ColumnName("foo")
+    val bar = ColumnName("bar")
+    val baz = ColumnName("baz")
+    val bip = ColumnName("bip")
+    
+    def doTest(uppercaseAlleles: Boolean): Unit = {
+      val markerDef = AggregatorColumnDefs.marker(
+          chromColumn = foo, 
+          posColumn = bar, 
+          refColumn = baz, 
+          altColumn = bip,
+          uppercaseAlleles = uppercaseAlleles)
+      
+      assert(markerDef.name === AggregatorColumnNames.marker)
+      
+      val row = Helpers.csvRow("foo" -> "17", "bar" -> "123456", "baz" -> "a", "bip" -> "t")
+      
+      val expectedString = if(uppercaseAlleles) "17_123456_A_T" else "17_123456_a_t" 
+      
+      assert(markerDef(row) == Variant.from(expectedString))
+    }
+    
+    doTest(true)
+    doTest(false)
   }
   
   test("pvalue") {

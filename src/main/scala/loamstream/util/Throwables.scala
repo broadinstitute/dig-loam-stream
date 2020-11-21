@@ -9,7 +9,7 @@ import scala.util.Try
  */
 object Throwables {
   def collectFailures(blocks: (() => Any)*): Seq[Throwable] = {
-    blocks.flatMap(b => failureOption(b()))
+    blocks.flatMap(b => failureOption(b.apply()))
   }
   
   def failureOption(f: => Any): Option[Throwable] = Try(f).failed.toOption

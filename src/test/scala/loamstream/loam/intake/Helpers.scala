@@ -13,7 +13,10 @@ import loamstream.loam.intake.flip.Disposition
  * Feb 10, 2020
  */
 object Helpers {
-  def csvRow(columnNamesToValues: (String, String)*)(implicit discriminator: Int = 1): CsvRow = new CsvRow {
+  private final case class SkippableMockCsvRow(
+      isSkipped: Boolean, 
+      columnNamesToValues: (String, String)*) extends CsvRow {
+    
     override def toString: String = columnNamesToValues.toString
     
     override def getFieldByName(name: String): String = {
@@ -26,15 +29,19 @@ object Helpers {
     
     override def recordNumber: Long = 1337
     
-    override def isSkipped: Boolean = false
-    
-    override def skip: loamstream.loam.intake.CsvRow = this
+    override def skip: CsvRow = SkippableMockCsvRow(isSkipped = true, columnNamesToValues: _*)
   }
   
-  def csvRows(columnNames: Seq[String], values: Seq[String]*)(implicit discriminator: Int = 1): Seq[CsvRow] = {
+  def csvRow(columnNamesToValues: (String, String)*): CsvRow = SkippableMockCsvRow(false, columnNamesToValues: _*)
+  
+  def csvRows(columnNames: Seq[String], values: Seq[String]*): Seq[CsvRow] = {
     val rows = values.map(rowValues => columnNames.zip(rowValues))
     
     rows.map(row => csvRow(row: _*))
+  }
+  
+  def sourceProducing(columnNames: Seq[String], values: Seq[String]*): Source[CsvRow] = {
+    Source.fromIterable(csvRows(columnNames, values: _*))
   }
   
   def withLogStore[A](f: Store => A): A = {

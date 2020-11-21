@@ -19,6 +19,7 @@ import java.io.Closeable
 import loamstream.util.Throwables
 import loamstream.util.CompositeException
 import loamstream.loam.intake.metrics.BioIndexClient
+import loamstream.util.Terminable
 
 
 /**
@@ -140,8 +141,8 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     }
   }
   
-  private[intake] def headerRowFrom(columnDefs: Seq[ColumnName]): HeaderRow = {
-    HeaderRow(columnDefs.map(_.name))
+  private[intake] def headerRowFrom(columnNames: Seq[ColumnName]): HeaderRow = {
+    HeaderRow(columnNames.map(_.name))
   }
   
   implicit final class ColumnNameOps(val s: String) {
@@ -156,13 +157,13 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     def using(flipDetector: => FlipDetector): ViaTarget = new ViaTarget(dest, rows, flipDetector)
   }
   
-  private def asCloseable[A](a: AnyRef): Seq[Closeable] = Option(a).collect { case c: Closeable => c }.toSeq
+  private[intake] def asCloseable[A](a: AnyRef): Seq[Closeable] = Option(a).collect { case c: Closeable => c }.toSeq
   
   final class ViaTarget(
       dest: Store, 
-      rows: Source[CsvRow],
+      private[intake] val rows: Source[CsvRow],
       flipDetector: => FlipDetector,
-      toBeClosed: Seq[Closeable] = Nil) extends Loggable {
+      private[intake] val toBeClosed: Seq[Closeable] = Nil) extends Loggable {
     
     def copy(
       dest: Store = this.dest, 
@@ -171,21 +172,16 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       toBeClosed: Seq[Closeable] = this.toBeClosed): ViaTarget = new ViaTarget(dest, rows, flipDetector, toBeClosed) 
     
     private def toFilterTransform(p: RowPredicate): CsvRow => CsvRow = { row =>
-      if(p(row)) row else row.skip
+      if(row.isSkipped || p(row)) { row } else { row.skip }
     }
     
     def filter(p: RowPredicate): ViaTarget = {
       copy(rows = rows.map(toFilterTransform(p)), toBeClosed = asCloseable(p) ++ toBeClosed)
     }
     
-    def filter(ps: Iterable[RowPredicate]): ViaTarget = {
-      val filterTransforms = ps.map(toFilterTransform)
-      
-      val transformedRows = filterTransforms.foldLeft(rows)(_.map(_))
-      
-      val psToBeClosed = ps.collect { case c: Closeable => c }.toSeq
-      
-      copy(rows = transformedRows, toBeClosed = psToBeClosed ++ toBeClosed)
+    def filter(pOpt: Option[RowPredicate]): ViaTarget = pOpt match {
+      case Some(p) => filter(p)  
+      case None => this
     }
     
     def via(expr: AggregatorRowExpr): MapFilterAndWriteTarget[Unit] = {
@@ -202,9 +198,9 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
   final class MapFilterAndWriteTarget[A](
       dest: Store, 
       headerRow: HeaderRow,
-      rows: Source[CsvRow.Parsed],
-      metric: Metric[A],
-      toBeClosed: Seq[Closeable]) extends Loggable {
+      private[intake] val rows: Source[CsvRow.Parsed],
+      private[intake] val metric: Metric[A],
+      private[intake] val toBeClosed: Seq[Closeable]) extends Loggable {
     
     import loamstream.loam.intake.metrics.MetricOps
     
@@ -240,6 +236,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     }
     
     def map(transform: Transform[DataRow]): MapFilterAndWriteTarget[A] = {
+      //NB: row.transform() is a no-op for skipped rows
       def dataRowTransform(row: CsvRow.Parsed): CsvRow.Parsed = row.transform(transform)
       
       copy(rows = rows.map(dataRowTransform), toBeClosed = asCloseable(transform) ++ toBeClosed)
@@ -255,21 +252,25 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       
       val m: Metric[(A, Unit)] = metric.combine(writeLines)
       
-      //TODO: How to wire up inputs (if any)?
-      val tool: Tool = nativeTool(forceLocal) {
-        TimeUtils.time(s"Producing ${dest.path}", info(_)) {
-          CanBeClosed.enclosed(sink) { _ =>
-            try {
-              sink.accept(headerRow)
-              
-              val (metricResults, _) = m.process(rows)
-            
-              //TODO: What to do with metricResults?
-            } finally {
-              closeEverything()
+      def toolBody[A](f: => A): Tool = {
+        nativeTool(forceLocal) {
+          TimeUtils.time(s"Producing ${dest.path}", info(_)) {
+            CanBeClosed.enclosed(sink) { _ =>
+              CanBeClosed.enclosed(everythingToClose) { _ =>
+                f
+              }
             }
           }
         }
+      }
+      
+      //TODO: How to wire up inputs (if any)?
+      val tool: Tool = toolBody {
+        sink.accept(headerRow)
+        
+        val (metricResults, _) = m.process(rows)
+      
+        //TODO: What to do with metricResults?
       }
       
       addToGraph(tool)
@@ -277,8 +278,8 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       tool.out(dest)
     }
     
-    private def closeEverything(): Unit = {
-      val doCloseBlocks: Seq[() => Any] = toBeClosed.map(closeable => () => closeable.close())
+    private def everythingToClose: Terminable = Terminable {
+      val doCloseBlocks: Seq[() => Unit] = toBeClosed.map(closeable => () => closeable.close())
       
       val exceptions = Throwables.collectFailures(doCloseBlocks: _*)
       

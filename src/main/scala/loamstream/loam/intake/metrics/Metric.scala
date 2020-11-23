@@ -103,18 +103,22 @@ object Metric {
     }
   }
   
-  def countByChromosome: Metric[Map[String, Int]] = {
+  def countByChromosome(countSkipped: Boolean = true): Metric[Map[String, Int]] = {
     type Counts = Map[String, Int]
     
     def doAdd(acc: Counts, elem: CsvRow.Parsed): Counts = {
-      import elem.derivedFrom.marker.chrom
-      
-      val newCount = acc.get(chrom) match {
-        case Some(count) => count + 1
-        case None => 1
+      if(elem.notSkipped || countSkipped) {
+        import elem.derivedFrom.marker.chrom
+        
+        val newCount = acc.get(chrom) match {
+          case Some(count) => count + 1
+          case None => 1
+        }
+        
+        acc + (chrom -> newCount)
+      } else {
+        acc
       }
-      
-      acc + (chrom -> newCount)
     }
     
     def startingCounts: Counts = Map.empty ++ Chromosomes.names.iterator.map(_ -> 0) 
@@ -132,7 +136,9 @@ object Metric {
   
   def summaryStats: Metric[SummaryStats] = {
     val fields: Metric[(Int, Int, Int, Int, Map[String, Int])] = {
-      (countNOTSkipped |+| countSkipped |+| countFlipped |+| countComplemented |+| countByChromosome).map { 
+      (countNOTSkipped |+| countSkipped |+| countFlipped |+| 
+       countComplemented |+| countByChromosome(countSkipped = false)).map {
+        
         case ((((a, b), c), d), e) => (a, b, c, d, e) 
       }
     }

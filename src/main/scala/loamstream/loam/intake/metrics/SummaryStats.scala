@@ -1,7 +1,7 @@
 package loamstream.loam.intake.metrics
 
 final case class SummaryStats(
-    validVariants: Int,
+    validVariants: Int, //valid, ie, not skipped
     skippedVariants: Int,
     flippedVariants: Int,
     complementedVariants: Int,

@@ -34,10 +34,15 @@ final case class SummaryStats(
   }
   
   def toFileContents: String = {
-    def padChromName(chrom: String): String = chrom.size match {
-      case 1 => s"00${chrom}"
-      case 2 => s"0${chrom}"
-      case _ => chrom
+    def padChromName(chrom: String): String = chrom match {
+      case "X" => "23"
+      case "Y" => "24"
+      case "XY" => "25"
+      case "MT" => "26"
+      case _ => chrom.size match {
+        case 1 => s"0${chrom}"
+        case _ => chrom
+      }
     }
     
     def paddedChromName(t: (String, Int)): String = t match {

@@ -43,5 +43,11 @@ trait Metrics {
           Files.writeTo(dest.path)(s"Out of ${c} variants, ${p}% had disagreeing z, stderr, and beta values")
       }
     }
+    
+    def writeSummaryStatsTo(dest: Store): Metric[Unit] = {
+      require(dest.isPathStore)
+      
+      Metric.writeSummaryStatsTo(dest.path)
+    }
   }
 }

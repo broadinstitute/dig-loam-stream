@@ -8,6 +8,8 @@ import loamstream.loam.intake.Phenotype
 import loamstream.loam.intake.flip.Disposition
 import loamstream.loam.intake.flip.FlipDetector
 import loamstream.util.Fold
+import loamstream.loam.intake.Helpers
+import loamstream.loam.intake.Chromosomes
 
 
 /**
@@ -248,6 +250,125 @@ final class MetricTest extends FunSuite {
     doMetricTest(mean, expected = (1 + 2 + 3 + 4 + 5 + 6) / 6.0)(rowsNoFlips)
   }
   
+  test("countByChromosome") {
+    val marker = ColumnName("lalala")
+    
+    val csvData = s"""|${marker.name} ${Pvalue.name}
+                      |1_123_A_T 99
+                      |2_123_A_T 99
+                      |1_123_A_T 99
+                      |11_123_A_T 99
+                      |11_123_A_T 99
+                      |1_123_A_T 99
+                      |MT_123_A_T 99""".stripMargin
+  
+    val source = Source.fromString(csvData, Source.Formats.spaceDelimitedWithHeader)
+    
+    val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, marker.map(Variant.from))
+    
+    val toAggregatorFormat: AggregatorRowExpr = AggregatorRowExpr(
+        markerDef = markerDef,
+        pvalueDef = AggregatorColumnDefs.pvalue(Pvalue))
+    
+    val flipDetector = Helpers.FlipDetectors.NoFlipsEver
+        
+    val rows = source.tagFlips(markerDef, flipDetector).map(toAggregatorFormat)
+    
+    val m = Metric.countByChromosome
+    
+    val expected: Map[String, Int] = {
+      Chromosomes.names.map(_ -> 0).toMap ++ Seq("1" -> 3, "2" -> 1, "11" -> 2, "MT" -> 1)
+    }
+    
+    doMetricTest(m, expected)(rows)
+  }
+  
+  private def doFlippedComplementedTest(
+      metric: Metric[Int],
+      expected: Int,
+      flipped: Set[Variant], 
+      complemented: Set[Variant]): Unit = {
+    val marker = ColumnName("lalala")
+    
+    val csvData = s"""|${marker.name} ${Pvalue.name}
+                      |${Vars.x} 99
+                      |${Vars.y} 99
+                      |${Vars.z} 99
+                      |${Vars.a} 99
+                      |${Vars.b} 99
+                      |${Vars.c} 99""".stripMargin
+  
+    val source = Source.fromString(csvData, Source.Formats.spaceDelimitedWithHeader)
+    
+    val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, marker.map(Variant.from))
+    
+    val toAggregatorFormat: AggregatorRowExpr = AggregatorRowExpr(
+        markerDef = markerDef,
+        pvalueDef = AggregatorColumnDefs.pvalue(Pvalue))
+    
+    val flipDetector = MetricTest.MockFlipDetector(flippedVariants = flipped, complementedVariants = complemented)
+        
+    val rows = source.tagFlips(markerDef, flipDetector).map(toAggregatorFormat)
+    
+    doMetricTest(metric, expected)(rows)
+  }
+  
+  test("countFlipped") {
+    val flipped = Set(Vars.x, Vars.z, Vars.a).map(Variant.from)
+    
+    doFlippedComplementedTest(Metric.countFlipped, flipped.size, flipped = flipped, complemented = Set.empty)
+  }
+  
+  test("countComplemented") {
+    val complemented = Set(Vars.x, Vars.z, Vars.a).map(Variant.from)
+    
+    doFlippedComplementedTest(
+        Metric.countComplemented, complemented.size, flipped = Set.empty, complemented = complemented)
+  }
+  
+  private def doSkippedTest(
+      metric: Metric[Int],
+      expected: Int,
+      skipped: Set[Variant]): Unit = {
+    val marker = ColumnName("lalala")
+    
+    val csvData = s"""|${marker.name} ${Pvalue.name}
+                      |${Vars.x} 99
+                      |${Vars.y} 99
+                      |${Vars.z} 99
+                      |${Vars.a} 99
+                      |${Vars.b} 99
+                      |${Vars.c} 99""".stripMargin
+  
+    val source = Source.fromString(csvData, Source.Formats.spaceDelimitedWithHeader)
+    
+    val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, marker.map(Variant.from))
+    
+    val toAggregatorFormat: AggregatorRowExpr = AggregatorRowExpr(
+        markerDef = markerDef,
+        pvalueDef = AggregatorColumnDefs.pvalue(Pvalue))
+    
+    val flipDetector = Helpers.FlipDetectors.NoFlipsEver
+    
+    val parsedRows = source.tagFlips(markerDef, flipDetector).map(toAggregatorFormat)
+    
+    val withSomeSkips = parsedRows.map { row =>
+      if(skipped.contains(row.dataRowOpt.get.marker)) row.skip else row
+    }
+    
+    doMetricTest(metric, expected = expected)(withSomeSkips)
+  }
+  
+  test("countSkipped / countNOTSkipped") {
+    doSkippedTest(Metric.countSkipped, 3, Set(Vars.x, Vars.z, Vars.a).map(Variant.from))
+    
+    doSkippedTest(Metric.countNOTSkipped, 4, Set(Vars.x, Vars.a).map(Variant.from))
+  }
+  
+  test("summaryStats") {
+    fail("TODO")
+  }
+  
   private def doMetricTest[A](metric: Metric[A], expected: A)(rows: Source[CsvRow.Parsed]): Unit = {
     assert(Fold.fold(rows.records)(metric) === expected)
     
@@ -270,9 +391,20 @@ object MetricTest {
     override def findClosestMatch(phenotype: Phenotype): Option[Phenotype] = ???
   }
   
-  private final class MockFlipDetector(flippedVariants: Set[Variant]) extends FlipDetector {
+  private final case class MockFlipDetector(
+      flippedVariants: Set[Variant] = Set.empty,
+      complementedVariants: Set[Variant] = Set.empty) extends FlipDetector {
+    
     override def isFlipped(variantId: Variant): Disposition = {
-      if(flippedVariants.contains(variantId)) Disposition.FlippedSameStrand else Disposition.NotFlippedSameStrand
+      val flipped = flippedVariants.contains(variantId)
+      val complemented = complementedVariants.contains(variantId)
+      
+      (flipped, complemented) match {
+        case (true, true) => Disposition.FlippedComplementStrand
+        case (false, true) => Disposition.NotFlippedComplementStrand
+        case (true, false) => Disposition.FlippedSameStrand
+        case (false, false) => Disposition.NotFlippedSameStrand
+      }
     }
   }
 }

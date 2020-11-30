@@ -87,7 +87,7 @@ object LoamGraphValidation {
   object eachToolsInputStoresArePresent extends LoamToolRule[Set[Store]] {
     override def apply(graph: LoamGraph, tool: Tool): Seq[LoamToolIssue[Set[Store]]] = {
       //NB: Use hashSetDiff because `--` had O(n^2) running time :( 
-      val missingInputs = Sets.hashSetDiff(graph.toolInputs.getOrElse(tool, Set.empty), graph.stores)
+      val missingInputs = Sets.hashSetDiff(graph.toolInputs.getOrElse(tool, Set.empty), graph.stores.toSet)
       
       issueIf(missingInputs.nonEmpty,
         newBulkIssue[Tool, Set[Store]](graph, this, tool, missingInputs, Severity.Warning,
@@ -98,7 +98,7 @@ object LoamGraphValidation {
   object eachToolsOutputStoresArePresent extends LoamToolRule[Set[Store]] {
     override def apply(graph: LoamGraph, tool: Tool): Seq[LoamToolIssue[Set[Store]]] = {
       //NB: Use hashSetDiff because `--` had O(n^2) running time :(
-      val missingOutputs = Sets.hashSetDiff(graph.toolOutputs.getOrElse(tool, Set.empty), graph.stores)
+      val missingOutputs = Sets.hashSetDiff(graph.toolOutputs.getOrElse(tool, Set.empty), graph.stores.toSet)
       
       issueIf(missingOutputs.nonEmpty,
         newBulkIssue[Tool, Set[Store]](graph, this, tool, missingOutputs, Severity.Warning,
@@ -165,7 +165,7 @@ object LoamGraphValidation {
           connectedTools ++= front
           front = front.flatMap(nearestNeighbours(graph, _)) -- connectedTools
         }
-        val disconnectedTools = graph.tools -- connectedTools
+        val disconnectedTools = graph.tools.toSet -- connectedTools
         if (disconnectedTools.nonEmpty) {
           val tool2 = disconnectedTools.head
           val issue =
@@ -187,13 +187,15 @@ object LoamGraphValidation {
       var makingProgress = true
       while (tools.nonEmpty && makingProgress) {
         val toolsNew = {
-          tools.intersect(tools.flatMap(graph.toolsPreceding)).intersect(tools.flatMap(graph.toolsSucceeding))
+          val toolSet = tools.toSet
+          
+          toolSet.intersect(toolSet.flatMap(graph.toolsPreceding)).intersect(toolSet.flatMap(graph.toolsSucceeding))
         }
         makingProgress = toolsNew.size < tools.size
         tools = toolsNew
       }
       issueIf(tools.nonEmpty,
-        newIssue[Set[Tool]](graph, this, tools, Severity.Warning,
+        newIssue[Set[Tool]](graph, this, tools.toSet, Severity.Warning,
           s"Graph contains one or more cycles including tools ${tools.mkString(", ")}"))
     }
   }

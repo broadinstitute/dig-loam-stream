@@ -22,13 +22,15 @@ import loamstream.util.StringUtils
  */
 final case class LoamCmdTool private (
     val id: LId, 
-    val tokens: Seq[LoamToken])(implicit val scriptContext: LoamScriptContext) extends Tool {
+    /*val tokens: Seq[LoamToken]*/
+    commandLine: String,
+    defaultStores: DefaultStores)(implicit val scriptContext: LoamScriptContext) extends Tool {
 
   /** Input and output stores before any are specified using in or out */
-  override def defaultStores: DefaultStores = AllStores(LoamToken.storesFromTokens(tokens))
+  //override def defaultStores: DefaultStores = AllStores(LoamToken.storesFromTokens(tokens))
 
   /** Constructs the command line string */
-  def commandLine: String = LoamCmdTool.toString(tokens)
+  //def commandLine: String = LoamCmdTool.toString(tokens)
 }
 
 object LoamCmdTool {
@@ -60,7 +62,8 @@ object LoamCmdTool {
 
     val merged = LoamToken.mergeStringTokens(tokens)
 
-    LoamCmdTool(LId.newAnonId, merged)
+    //LoamCmdTool(LId.newAnonId, merged)
+    LoamCmdTool(LId.newAnonId, LoamCmdTool.toString(tokens), AllStores(LoamToken.storesFromTokens(tokens)))
   }
   
   private[loam] def toToken(arg: Any): LoamToken = {
@@ -93,7 +96,9 @@ object LoamCmdTool {
       val preambleToken = StringToken(s"${preamble} (")
       val closeParenToken = StringToken(")")
   
-      orig.copy(tokens = preambleToken +: orig.tokens :+ closeParenToken)
+      //orig.copy(tokens = preambleToken +: orig.tokens :+ closeParenToken)
+      //TODO: XXX
+      ???
     }
   }
 }

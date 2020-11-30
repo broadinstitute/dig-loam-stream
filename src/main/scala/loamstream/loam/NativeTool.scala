@@ -12,7 +12,7 @@ import loamstream.util.Functions
  */
 final class NativeTool private (
     val body: () => Any)
-   (implicit override val scriptContext: LoamScriptContext) extends Tool with LId.IdBasedEquality {
+   (implicit override val scriptContext: LoamScriptContext) extends Tool {
   
   /** Input and output stores before any are specified using in or out */
   override def defaultStores: DefaultStores = DefaultStores.empty

@@ -89,8 +89,8 @@ object LocalJobStrategy extends Loggable {
     val commandLineString = job.commandLineString
     
     val exitCodeAttempt = for {
-      _ <- Try(JFiles.createDirectories(job.workDir))
-      processBuilder = BashScript.fromCommandLineString(commandLineString).processBuilder(job.workDir)
+      _ <- Try(JFiles.createDirectories(job.workDirOpt.get))
+      processBuilder = BashScript.fromCommandLineString(commandLineString).processBuilder(job.workDirOpt.get)
     } yield processBuilder.!(processLogger)
     
     if(isTraceEnabled) {

@@ -6,17 +6,24 @@ import loamstream.util.Sequence
   * LoamStream
   * Created by oliverr on 2/26/2016.
   */
-sealed trait LId {
+sealed trait LId extends Any {
   def name: String
 }
 
 object LId {
 
-  trait HasId {
+  trait HasId extends java.lang.Comparable[HasId] {
     def id: LId
+    
+    override def compareTo(other: HasId): Int = {
+      (this.id, other.id) match {
+        case (LAnonId(a), LAnonId(b)) => (b - a).toInt
+        case (a, b) => a.toString.compareTo(b.toString)
+      }
+    }
   }
 
-  final case class LNamedId(name: String) extends LId {
+  final class LNamedId(override val name: String) extends LId {
     override def toString = name 
   }
 
@@ -34,7 +41,7 @@ object LId {
   
   def fromName(name: String): LId = name match {
     case anonIdNameRegex(id) => LAnonId(id.toLong)
-    case _ => LNamedId(name)
+    case _ => new LNamedId(name)
   }
   
   private val ids: Sequence[Long] = Sequence()

@@ -28,6 +28,7 @@ import loamstream.model.jobs.LocalJob
 import loamstream.model.jobs.JobNode
 import java.nio.file.Paths
 import loamstream.model.execute.Settings
+import loamstream.util.ExitCodes
 
 /**
  * LoamStream
@@ -35,16 +36,14 @@ import loamstream.model.execute.Settings
  *
  * A job based on a command line definition
  */
-final case class CommandLineJob(
-    commandLineString: String,
-    workDir: Path = Paths.get("."),
-    initialSettings: Settings,
-    override val dependencies: Set[JobNode] = Set.empty,
-    protected override val successorsFn: () => Set[JobNode] = () => Set.empty,
-    inputs: Set[DataHandle] = Set.empty,
-    outputs: Set[DataHandle] = Set.empty,
-    exitValueCheck: Int => Boolean = CommandLineJob.defaultExitValueChecker,
-    private val nameOpt: Option[String] = None) extends HasCommandLine with JobNode.LazySucessors with Loggable {
+abstract class CommandLineJob(
+    override val commandLineString: String,
+    //val workDir: Path = Paths.get("."),
+    override val initialSettings: Settings,
+    //protected override val successorsFn: () => Set[JobNode] = () => Set.empty,
+    //override val inputs: Set[DataHandle] = Set.empty,
+    //override val outputs: Set[DataHandle] = Set.empty,
+    override val name: String) extends HasCommandLine with JobNode /*.LazySucessors */ with Loggable {
 
   override def equals(other: Any): Boolean = other match {
     case that: CommandLineJob => this.id == that.id
@@ -53,13 +52,13 @@ final case class CommandLineJob(
   
   override def hashCode: Int = id.hashCode
 
-  override def name: String = nameOpt.getOrElse(id.toString)
+  //override def name: String = id.toString
 
-  def withCommandLineString(newCmd: String): CommandLineJob = copy(commandLineString = newCmd)
+  //def withCommandLineString(newCmd: String): CommandLineJob = copy(commandLineString = newCmd)
 
-  override def workDirOpt: Option[Path] = Some(workDir)
+  override def workDirOpt: Option[Path] = Some(Paths.get("."))//Some(workDir)
 
-  def exitValueIsOk(exitValue: Int): Boolean = exitValueCheck(exitValue)
+  def exitValueIsOk(exitValue: Int): Boolean = ExitCodes.isSuccess(exitValue)
 
   override def toString: String = s"${getClass.getSimpleName}#${id}('${commandLineString}', ...)"
 }

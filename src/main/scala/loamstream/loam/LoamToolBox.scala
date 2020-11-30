@@ -29,22 +29,43 @@ import loamstream.util.jvm.SysPropNames
  */
 final class LoamToolBox(client: Option[CloudStorageClient] = None) extends Loggable {
 
-  @volatile private[this] var loamJobs: Map[Tool, JobNode] = Map.empty
+  @volatile private[this] var loamJobs: java.util.Map[Tool, JobNode] = new java.util.HashMap
 
   private[this] val lock = new AnyRef
 
+  private def clear(): Unit = lock.synchronized { 
+    loamJobs.clear()
+    
+    loamJobs = null
+  }
+  
   def createExecutable(graph: LoamGraph, executionConfig: ExecutionConfig = ExecutionConfig.default): Executable = {
     val oracle = LoamToolBox.makeDirOracle(executionConfig, graph)
     
-    Executable(toJobs(graph, oracle, graph.finalTools))
+    try {
+      Executable(toJobs(graph, oracle, graph.finalTools))
+    } finally {
+      clear()
+    }
   }
 
-  private[loam] def toJobs(graph: LoamGraph, oracle: DirOracle[Tool], finalTools: Set[Tool]): Set[JobNode] = {
-    finalTools.flatMap(getJob(graph, oracle))
+  private[loam] def toJobs(graph: LoamGraph, oracle: DirOracle[Tool], finalTools: Iterable[Tool]): Set[JobNode] = {
+    finalTools.flatMap(getJob(graph, oracle)).toSet
   }
   
   def getJob(graph: LoamGraph, oracle: DirOracle[Tool])(tool: Tool): Option[JobNode] = lock.synchronized {
-    loamJobs.get(tool) match {
+    if(loamJobs.containsKey(tool)) { Option(loamJobs.get(tool)) }
+    else { 
+      val newJobOpt = newJob(graph, oracle, tool)
+        
+      newJobOpt.foreach { job =>
+        loamJobs.put(tool, job)
+      }
+      
+      newJobOpt
+    }
+    
+    /*loamJobs.get(tool) match {
       case s @ Some(_) => s
       case None => {
         val newJobOpt = newJob(graph, oracle, tool)
@@ -57,7 +78,7 @@ final class LoamToolBox(client: Option[CloudStorageClient] = None) extends Logga
         
         newJobOpt
       }
-    }
+    }*/
   }
   
   private[loam] def newJob(graph: LoamGraph, oracle: DirOracle[Tool], tool: Tool): Option[JobNode] = {
@@ -85,36 +106,39 @@ final class LoamToolBox(client: Option[CloudStorageClient] = None) extends Logga
 
   private final class NewJobParams(graph: LoamGraph, oracle: DirOracle[Tool], tool: Tool) {
     
-    private val workDir: Path = graph.workDirOpt(tool).getOrElse(Paths.get("."))
+    //private val workDir: Path = graph.workDirOpt(tool).getOrElse(Paths.get("."))
 
-    private val settings: Settings = graph.settingsOpt(tool).getOrElse(LocalSettings)
+    //private val settings: Settings = graph.settingsOpt(tool).getOrElse(LocalSettings)
 
-    private val dependencyJobs = toJobs(graph, oracle, graph.toolsPreceding(tool))
-    private def successorJobs = toJobs(graph, oracle, graph.toolsSucceeding(tool))
+    //private val dependencyJobs = toJobs(graph, oracle, graph.toolsPreceding(tool))
+    //private def successorJobs = toJobs(graph, oracle, graph.toolsSucceeding(tool))
 
-    private val inputs = LoamToolBox.inputsFor(graph, tool, client)
-    private val outputs = LoamToolBox.outputsFor(graph, tool, client)
+    //private val inputs = LoamToolBox.inputsFor(graph, tool, client)
+    //private val outputs = LoamToolBox.outputsFor(graph, tool, client)
 
-    private val toolNameOpt = graph.nameOf(tool)
+    //private val toolNameOpt = graph.nameOf(tool)
     
-    def commandLineJob(commandLine: String, initialSettings: Settings = settings): CommandLineJob = CommandLineJob(
+    def commandLineJob(commandLine: String, initialSettings: Settings = graph.settingsOpt(tool).getOrElse(LocalSettings)): CommandLineJob = new CommandLineJob(
       commandLineString = commandLine, 
-      workDir = workDir, 
+      //workDir = workDir, 
       initialSettings = initialSettings, 
-      dependencies = dependencyJobs,
-      successorsFn = () => successorJobs, 
-      inputs = inputs,
-      outputs = outputs, 
-      nameOpt = toolNameOpt)
+      name = graph.nameOf(tool).get) {
+
+      override def dependencies: Set[JobNode] = toJobs(graph, oracle, graph.toolsPreceding(tool))
+      override def successors: Set[JobNode] = toJobs(graph, oracle, graph.toolsSucceeding(tool))
+      
+      override def inputs: Set[DataHandle] = LoamToolBox.inputsFor(graph, tool, client)
+      override def outputs: Set[DataHandle] = LoamToolBox.outputsFor(graph, tool, client)
+    }
       
     def nativeJob(nativeTool: NativeTool): NativeJob = NativeJob(
         body = nativeTool.body,
         initialSettings = LocalSettings, 
-        dependencies = dependencyJobs,
-        successorsFn = () => successorJobs, 
-        inputs = inputs,
-        outputs = outputs, 
-        nameOpt = toolNameOpt)
+        dependencies = toJobs(graph, oracle, graph.toolsPreceding(tool)),
+        successorsFn = () => toJobs(graph, oracle, graph.toolsSucceeding(tool)), 
+        inputs = LoamToolBox.inputsFor(graph, tool, client),
+        outputs = LoamToolBox.outputsFor(graph, tool, client), 
+        nameOpt = graph.nameOf(tool))
   }
   
   

@@ -10,7 +10,6 @@ import scala.tools.reflect.ReflectGlobal
 import loamstream.compiler.Issue.Severity
 import loamstream.compiler.LoamCompiler.CompilerReporter
 import loamstream.conf.LoamConfig
-import loamstream.loam.GraphPrinter
 import loamstream.loam.LoamGraph
 import loamstream.loam.LoamGraphValidation
 import loamstream.loam.LoamProjectContext
@@ -216,8 +215,7 @@ final class LoamCompiler(
   settings: LoamCompiler.Settings = LoamCompiler.Settings.default) extends Loggable {
 
   private val targetDirectoryName = "target"
-  private val targetDirectoryParentOption = None
-  private val targetDirectory = new VirtualDirectory(targetDirectoryName, targetDirectoryParentOption)
+  private val targetDirectory = new VirtualDirectory(targetDirectoryName, None)
   private val scalaCompilerSettings = LoamCompiler.makeScalaCompilerSettings(targetDirectory)
   private val reporter = new CompilerReporter
 
@@ -228,7 +226,7 @@ final class LoamCompiler(
     val classLoader = new LoamClassLoader(getClass.getClassLoader)
     new ReflectGlobal(scalaCompilerSettings, reporter, classLoader)
   }
-
+  
   private def soManyIssues: String = {
     val soManyErrors = StringUtils.soMany(reporter.errorCount, "error")
     val soManyWarnings = StringUtils.soMany(reporter.warningCount, "warning")
@@ -277,17 +275,6 @@ final class LoamCompiler(
     }
 
     result
-  }
-
-  private def reportCompilation(project: LoamProject, graph: LoamGraph): Unit = {
-    val lengthOfLine = 100
-    val graphPrinter = GraphPrinter.byLine(lengthOfLine)
-
-    logScripts(LogContext.Level.Trace, project)
-
-    trace(s"""|[Start Graph]
-              |${graphPrinter.print(graph)}
-              |[End Graph]""".stripMargin)
   }
 
   private def withRun[A](f: compiler.Run => A): A = {
@@ -346,18 +333,18 @@ final class LoamCompiler(
           val classLoader = new AbstractFileClassLoader(targetDirectory, getClass.getClassLoader)
 
           val scriptBoxes = TimeUtils.time("Evaluating Loam code", debug(_)) {
+            debug("Evaluating Loam code...")
+            
             project.scripts.map(LoamCompiler.evaluateLoamScript(classLoader))
           }
 
           val graph = projectContext.graph
           
-          if (compilationConfig.shouldValidateGraph) {
+          /*if (compilationConfig.shouldValidateGraph) {
             TimeUtils.time("Validating graph", debug(_)) {
               validateGraph(graph)
             }
-          }
-
-          reportCompilation(project, graph)
+          }*/
 
           debug(s"Compilation finished.")
 

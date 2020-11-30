@@ -35,13 +35,14 @@ import loamstream.loam.ScalaLoamScript
 import loamstream.util.Files
 import loamstream.conf.LsSettings
 import loamstream.conf.ExecutionConfig
+import loamstream.util.TimeUtils
 
 
 /**
   * LoamStream
   * Created by oliverr on 7/5/2016.
   */
-object LoamEngine {
+object LoamEngine extends Loggable {
   def default(
       config: LoamConfig,
       settings: LsSettings,
@@ -59,7 +60,11 @@ object LoamEngine {
     
     val toolBox = new LoamToolBox(csClient)
 
-    toolBox.createExecutable(graph, executionConfig)
+    TimeUtils.time("Making Executable", debug(_)) {
+      debug("Making Executable...")
+      
+      toolBox.createExecutable(graph, executionConfig)
+    }
   }
 }
 

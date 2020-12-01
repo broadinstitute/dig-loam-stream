@@ -54,17 +54,19 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
   type FlipDetector = loamstream.loam.intake.flip.FlipDetector
   val FlipDetector = loamstream.loam.intake.flip.FlipDetector
   
-  type Row = loamstream.loam.intake.Row
+  type Row = loamstream.loam.intake.RenderableRow
   
   type HeaderRow = loamstream.loam.intake.LiteralRow
   val HeaderRow = loamstream.loam.intake.LiteralRow
   
   //TODO
-  type DataRow = loamstream.loam.intake.DataRow
-  val DataRow = loamstream.loam.intake.DataRow
+  type DataRow = loamstream.loam.intake.AggregatorVariantRow
+  val DataRow = loamstream.loam.intake.AggregatorVariantRow
   
   type CsvRow = loamstream.loam.intake.CsvRow
   val CsvRow = loamstream.loam.intake.CsvRow
+  
+  val VariantRow = loamstream.loam.intake.VariantRow
   
   type AggregatorMetadata = loamstream.loam.intake.AggregatorMetadata
   val AggregatorMetadata = loamstream.loam.intake.AggregatorMetadata
@@ -198,7 +200,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
   final class MapFilterAndWriteTarget[A](
       dest: Store, 
       headerRow: HeaderRow,
-      private[intake] val rows: Source[CsvRow.Parsed],
+      private[intake] val rows: Source[VariantRow.Parsed],
       private[intake] val metric: Metric[A],
       private[intake] val toBeClosed: Seq[Closeable]) extends Loggable {
     
@@ -207,7 +209,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     def copy(
         dest: Store = this.dest, 
         headerRow: HeaderRow = this.headerRow,
-        rows: Source[CsvRow.Parsed] = this.rows,
+        rows: Source[VariantRow.Parsed] = this.rows,
         metric: Metric[A] = this.metric,
         toBeClosed: Seq[Closeable] = this.toBeClosed): MapFilterAndWriteTarget[A] = {
       
@@ -226,18 +228,18 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       new MapFilterAndWriteTarget[(A, B)](dest, headerRow, rows, newMetric, toBeClosed)
     }
     
-    def filter(predicate: Predicate[DataRow]): MapFilterAndWriteTarget[A] = {
-      def filterTransform(row: CsvRow.Parsed): CsvRow.Parsed = row match {
-        case t @ CsvRow.Transformed(_, dataRow) => if(predicate(dataRow)) t else t.skip
-        case r: CsvRow.Skipped  => r
+    def filter(predicate: Predicate[AggregatorVariantRow]): MapFilterAndWriteTarget[A] = {
+      def filterTransform(row: VariantRow.Parsed): VariantRow.Parsed = row match {
+        case t @ VariantRow.Transformed(_, dataRow) => if(predicate(dataRow)) t else t.skip
+        case r: VariantRow.Skipped  => r
       }
       
       copy(rows = rows.map(filterTransform), toBeClosed = asCloseable(predicate) ++ toBeClosed)
     }
     
-    def map(transform: Transform[DataRow]): MapFilterAndWriteTarget[A] = {
+    def map(transform: Transform[AggregatorVariantRow]): MapFilterAndWriteTarget[A] = {
       //NB: row.transform() is a no-op for skipped rows
-      def dataRowTransform(row: CsvRow.Parsed): CsvRow.Parsed = row.transform(transform)
+      def dataRowTransform(row: VariantRow.Parsed): VariantRow.Parsed = row.transform(transform)
       
       copy(rows = rows.map(dataRowTransform), toBeClosed = asCloseable(transform) ++ toBeClosed)
     }

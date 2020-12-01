@@ -15,6 +15,7 @@ import loamstream.util.Files
 import scala.collection.mutable.Buffer
 import scala.collection.mutable.ArrayBuffer
 import loamstream.loam.intake.RowSink
+import loamstream.loam.intake.RenderableRow
 
 
 /**
@@ -520,10 +521,10 @@ final class MetricTest extends FunSuite {
                     DataRow(Variant(Vars.b), 99),
                     DataRow(Variant(Vars.c), 99))
     
-    val written: Buffer[Row] = new ArrayBuffer                       
+    val written: Buffer[RenderableRow] = new ArrayBuffer                       
       
     val sink: RowSink = new RowSink {
-      override def accept(row: Row): Unit = written += row
+      override def accept(row: RenderableRow): Unit = written += row
       
       override def close(): Unit = ()
     }
@@ -533,7 +534,7 @@ final class MetricTest extends FunSuite {
     assert(written === expected)
   }
   
-  private def doMetricTest[A](metric: Metric[A], expected: A)(rows: Source[CsvRow.Parsed]): Unit = {
+  private def doMetricTest[A](metric: Metric[A], expected: A)(rows: Source[VariantRow.Parsed]): Unit = {
     assert(Fold.fold(rows.records)(metric) === expected)
     
     assert(Fold.fold(rows.records.toList)(metric) === expected)

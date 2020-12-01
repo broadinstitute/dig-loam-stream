@@ -25,7 +25,7 @@ trait RowTransforms { self: IntakeSyntax =>
     }
     
     def clampPValues(implicit logCtx: ToFileLogContext): CloseableDataRowTransform = {
-      RowTransforms.ConcreteCloseableTransform[DataRow](logCtx) { row =>
+      RowTransforms.ConcreteCloseableTransform[AggregatorVariantRow](logCtx) { row =>
         import row.pvalue
         
         val mungedPValue = if(pvalue == 0.0) {

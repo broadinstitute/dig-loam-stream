@@ -13,7 +13,7 @@ import loamstream.util.ValueBox
  * Oct 13, 2020
  */
 trait RowSink extends Closeable {
-  def accept(row: Row): Unit
+  def accept(row: RenderableRow): Unit
 }
 
 object RowSink {
@@ -32,7 +32,7 @@ object RowSink {
     
     private val renderer: Renderer = Renderer.CommonsCsv(csvFormat)
     
-    override def accept(row: Row): Unit = {
+    override def accept(row: RenderableRow): Unit = {
       anythingWritten := true
       
       def addLineEndingIfNeeded(line: String) = if(line.endsWith(lineSeparator)) line else s"${line}${lineSeparator}"

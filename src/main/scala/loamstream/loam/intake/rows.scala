@@ -2,27 +2,51 @@ package loamstream.loam.intake
 
 import org.apache.commons.csv.CSVFormat
 import scala.collection.mutable.ArrayBuffer
+import loamstream.loam.intake.flip.Disposition
+import scala.util.Failure
 
 
 /**
  * @author clint
  * Dec 17, 2019
  */
-trait Row {
+trait RenderableRow {
   def values: Seq[String]
 }
 
-final case class LiteralRow(values: Seq[String]) extends Row
+final case class LiteralRow(values: Seq[String]) extends RenderableRow
 
 object LiteralRow {
   def apply(values: String*)(implicit discriminator: Int = 0): LiteralRow = new LiteralRow(values) 
+}
+
+trait SkippableRow[A <: SkippableRow[A]] { self: A =>
+  def isSkipped: Boolean
+  
+  final def notSkipped: Boolean = !isSkipped
+  
+  def skip: A
+}
+
+trait RowWithSize {
+  def size: Int
+}
+
+trait KeyedRow extends RowWithSize {
+  def getFieldByName(name: String): String
+}
+
+trait IndexedRow extends RowWithSize {
+  def getFieldByIndex(i: Int): String
+  
+  def values: Iterator[String] = (0 until size).iterator.map(getFieldByIndex)
 }
 
 /**
  * @author clint
  * Oct 14, 2020
  */
-final case class DataRow(
+final case class AggregatorVariantRow(
   marker: Variant,
   pvalue: Double,
   zscore: Option[Double] = None,
@@ -31,7 +55,7 @@ final case class DataRow(
   oddsRatio: Option[Double] = None,
   eaf: Option[Double] = None,
   maf: Option[Double] = None,
-  n: Option[Double] = None) extends Row {
+  n: Option[Double] = None) extends RenderableRow {
   
   //NB: Profiler-informed optimization: adding to a Buffer is 2x faster than ++ or .flatten
   //We expect this method to be called a lot - once per row being output.
@@ -59,3 +83,86 @@ final case class DataRow(
     buffer 
   }
 }
+
+/**
+ * @author clint
+ * Dec 1, 2020
+ */
+object VariantRow {
+    
+    final case class Tagged(
+        delegate: CsvRow,
+        marker: Variant,
+        originalMarker: Variant,
+        disposition: Disposition,
+        isSkipped: Boolean = false) extends CsvRow {
+      
+      override def skip: Tagged = copy(isSkipped = true)
+      
+      def isFlipped: Boolean = disposition.isFlipped
+      def notFlipped: Boolean = disposition.notFlipped
+      
+      def isSameStrand: Boolean = disposition.isSameStrand
+      def isComplementStrand: Boolean = disposition.isComplementStrand
+      
+      override def getFieldByName(name: String): String = delegate.getFieldByName(name)
+      
+      override def getFieldByIndex(i: Int): String = delegate.getFieldByIndex(i)
+      
+      override def size: Int = delegate.size
+      
+      override def recordNumber: Long = delegate.recordNumber
+    }
+    
+    sealed trait Parsed extends CsvRow {
+      val derivedFrom: Tagged
+      
+      def dataRowOpt: Option[AggregatorVariantRow]
+      
+      def isSkipped: Boolean
+      
+      override def skip: Parsed
+      
+      def transform(f: AggregatorVariantRow => AggregatorVariantRow): Parsed
+      
+      final def isFlipped: Boolean = derivedFrom.isFlipped
+      final def notFlipped: Boolean = derivedFrom.notFlipped
+      
+      final def isSameStrand: Boolean = derivedFrom.isSameStrand
+      final def isComplementStrand: Boolean = derivedFrom.isComplementStrand
+      
+      override def getFieldByName(name: String): String = derivedFrom.getFieldByName(name)
+      
+      override def getFieldByIndex(i: Int): String = derivedFrom.getFieldByIndex(i)
+      
+      override def size: Int = derivedFrom.size
+      
+      override def recordNumber: Long = derivedFrom.recordNumber
+    }
+    
+    final case class Transformed(
+        derivedFrom: Tagged,
+        dataRow: AggregatorVariantRow) extends Parsed {
+      
+      override def dataRowOpt: Option[AggregatorVariantRow] = Some(dataRow)
+      
+      override def isSkipped: Boolean = false
+      
+      override def skip: Skipped = Skipped(derivedFrom, dataRowOpt)
+      
+      override def transform(f: AggregatorVariantRow => AggregatorVariantRow): Transformed = copy(dataRow = f(dataRow))
+    }
+    
+    final case class Skipped(
+        derivedFrom: Tagged, 
+        dataRowOpt: Option[AggregatorVariantRow],
+        message: Option[String] = None,
+        cause: Option[Failure[Parsed]] = None) extends Parsed {
+      
+      override def isSkipped: Boolean = true
+      
+      override def skip: Skipped = this
+      
+      override def transform(f: AggregatorVariantRow => AggregatorVariantRow): Skipped = this
+    }
+  }

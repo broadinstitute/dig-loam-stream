@@ -22,30 +22,30 @@ final class RowTransformsTest extends FunSuite {
   
   test("upperCaseAlleles") {
     val rows = Seq(
-        DataRow(marker = v0, pvalue = 42.0),
-        DataRow(marker = v1, pvalue = 42.0),
-        DataRow(marker = v2, pvalue = 42.0))
+        AggregatorVariantRow(marker = v0, pvalue = 42.0),
+        AggregatorVariantRow(marker = v1, pvalue = 42.0),
+        AggregatorVariantRow(marker = v2, pvalue = 42.0))
         
     val actual = rows.map(Transforms.DataRowTransforms.upperCaseAlleles)
     
     val expected = Seq(
-        DataRow(marker = v0.toUpperCase, pvalue = 42.0),
-        DataRow(marker = v1.toUpperCase, pvalue = 42.0),
-        DataRow(marker = v2.toUpperCase, pvalue = 42.0))
+        AggregatorVariantRow(marker = v0.toUpperCase, pvalue = 42.0),
+        AggregatorVariantRow(marker = v1.toUpperCase, pvalue = 42.0),
+        AggregatorVariantRow(marker = v2.toUpperCase, pvalue = 42.0))
         
     assert(actual === expected)
   }
   
   test("clampPvalues") {
     val rows = Seq(
-        DataRow(marker = v0, pvalue = 0.0),
-        DataRow(marker = v1, pvalue = 42.0),
-        DataRow(marker = v2, pvalue = 0.0))
+        AggregatorVariantRow(marker = v0, pvalue = 0.0),
+        AggregatorVariantRow(marker = v1, pvalue = 42.0),
+        AggregatorVariantRow(marker = v2, pvalue = 0.0))
         
     val expected = Seq(
-        DataRow(marker = v0, pvalue = Double.MinPositiveValue),
-        DataRow(marker = v1, pvalue = 42.0),
-        DataRow(marker = v2, pvalue = Double.MinPositiveValue))
+        AggregatorVariantRow(marker = v0, pvalue = Double.MinPositiveValue),
+        AggregatorVariantRow(marker = v1, pvalue = 42.0),
+        AggregatorVariantRow(marker = v2, pvalue = Double.MinPositiveValue))
         
     withLogStore { logStore =>
       val transform = Transforms.DataRowTransforms.clampPValues(logStore, append = true)

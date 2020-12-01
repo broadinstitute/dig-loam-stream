@@ -9,12 +9,12 @@ import loamstream.util.Fold
  */
 package object metrics {
   
-  type Metric[A] = Fold[CsvRow.Parsed, _, A]
+  type Metric[A] = Fold[VariantRow.Parsed, _, A]
   
   implicit final class MetricOps[A](val f: Metric[A]) extends AnyVal {
-    def process(rows: Source[CsvRow.Parsed]): A = Fold.fold(rows.records)(f)
+    def process(rows: Source[VariantRow.Parsed]): A = Fold.fold(rows.records)(f)
   
-    def processSampled(howMany: Int)(rows: Source[CsvRow.Parsed]): A = {
+    def processSampled(howMany: Int)(rows: Source[VariantRow.Parsed]): A = {
       Fold.fold(Sample.random(howMany)(rows).records)(f)
     }
   

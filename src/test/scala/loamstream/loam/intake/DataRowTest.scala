@@ -18,7 +18,7 @@ final class DataRowTest extends FunSuite {
   private val n: Double = 16.17
   
   test("values - all fields supplied") {
-    val row = DataRow(
+    val row = AggregatorVariantRow(
       marker = marker,
       pvalue = pvalue,
       zscore = Some(zscore),
@@ -44,7 +44,7 @@ final class DataRowTest extends FunSuite {
   }
   
   test("values - some fields supplied") {
-    val row = DataRow(
+    val row = AggregatorVariantRow(
       marker = marker,
       pvalue = pvalue,
       zscore = Some(zscore),

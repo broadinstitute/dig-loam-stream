@@ -1,7 +1,7 @@
 package loamstream.loam.intake.metrics
 
 import loamstream.loam.intake.Variant
-import loamstream.loam.intake.DataRow
+import loamstream.loam.intake.AggregatorVariantRow
 import loamstream.loam.intake.flip.FlipDetector
 import loamstream.util.Fold
 import loamstream.loam.intake.CsvRow
@@ -10,6 +10,7 @@ import loamstream.loam.intake.flip.Disposition
 import java.nio.file.Path
 import loamstream.util.Files
 import loamstream.loam.intake.RowSink
+import loamstream.loam.intake.VariantRow
 
 
 /**
@@ -17,14 +18,14 @@ import loamstream.loam.intake.RowSink
  * Mar 27, 2020
  */
 object Metric {
-  def countGreaterThan(column: CsvRow.Transformed => Double)(threshold: Double): Metric[Int] = {
-    Fold.countIf[CsvRow.Parsed] {
-      case _: CsvRow.Skipped => false
-      case row: CsvRow.Transformed => column(row) > threshold
+  def countGreaterThan(column: VariantRow.Transformed => Double)(threshold: Double): Metric[Int] = {
+    Fold.countIf[VariantRow.Parsed] {
+      case _: VariantRow.Skipped => false
+      case row: VariantRow.Transformed => column(row) > threshold
     }
   }
   
-  def fractionGreaterThan(column: CsvRow.Transformed => Double)(threshold: Double): Metric[Double] = {
+  def fractionGreaterThan(column: VariantRow.Transformed => Double)(threshold: Double): Metric[Double] = {
     fractionOfTotal(countGreaterThan(column)(threshold))
   }
   
@@ -38,7 +39,7 @@ object Metric {
   
   private def countKnownOrUnknown(client: BioIndexClient)(p: Variant => Boolean): Metric[Int] = {
     Fold.countIf { 
-      case CsvRow.Transformed(_, dataRow) => p(dataRow.marker) 
+      case VariantRow.Transformed(_, dataRow) => p(dataRow.marker) 
       case _ => false
     }
   }
@@ -69,10 +70,10 @@ object Metric {
     
     def agreesFlip(z: Double, beta: Double, se: Double): Boolean = agrees(z, -(beta / se))
     
-    def isFlipped(sourceRow: CsvRow.Tagged): Boolean = sourceRow.disposition.isFlipped
+    def isFlipped(sourceRow: VariantRow.Tagged): Boolean = sourceRow.disposition.isFlipped
     
-    val agreesFn: CsvRow.Parsed => Boolean = { 
-      case CsvRow.Transformed(sourceRow, DataRow(marker, _, Some(z), Some(se), Some(beta), _, _, _, _)) => {
+    val agreesFn: VariantRow.Parsed => Boolean = { 
+      case VariantRow.Transformed(sourceRow, AggregatorVariantRow(marker, _, Some(z), Some(se), Some(beta), _, _, _, _)) => {
         if(isFlipped(sourceRow)) {
           agrees(z, -(beta / se))
         } else {
@@ -82,7 +83,7 @@ object Metric {
       case _ => true
     }
     
-    def disagrees(row: CsvRow.Parsed): Boolean = !agreesFn(row)
+    def disagrees(row: VariantRow.Parsed): Boolean = !agreesFn(row)
     
     Fold.countIf(disagrees)
   }
@@ -91,12 +92,12 @@ object Metric {
     fractionOfTotal(countWithDisagreeingBetaStderrZscore(epsilon))
   }
   
-  def mean[N](column: CsvRow.Transformed => N)(implicit ev: Numeric[N]): Metric[Double] = {
-    val sumFold: Fold[CsvRow.Parsed, N, N] = Fold.sum {
-      case _: CsvRow.Skipped => ev.zero
-      case t: CsvRow.Transformed => column(t)
+  def mean[N](column: VariantRow.Transformed => N)(implicit ev: Numeric[N]): Metric[Double] = {
+    val sumFold: Fold[VariantRow.Parsed, N, N] = Fold.sum {
+      case _: VariantRow.Skipped => ev.zero
+      case t: VariantRow.Transformed => column(t)
     }
-    val countFold: Fold[CsvRow.Parsed, Int, Int] = Fold.count
+    val countFold: Fold[VariantRow.Parsed, Int, Int] = Fold.count
     
     Fold.combine(sumFold, countFold).map {
       case (sum, count) => ev.toDouble(sum) / count.toDouble
@@ -106,7 +107,7 @@ object Metric {
   def countByChromosome(countSkipped: Boolean = true): Metric[Map[String, Int]] = {
     type Counts = Map[String, Int]
     
-    def doAdd(acc: Counts, elem: CsvRow.Parsed): Counts = {
+    def doAdd(acc: Counts, elem: VariantRow.Parsed): Counts = {
       if(elem.notSkipped || countSkipped) {
         import elem.derivedFrom.marker.chrom
         
@@ -123,7 +124,7 @@ object Metric {
     
     def startingCounts: Counts = Map.empty ++ Chromosomes.names.iterator.map(_ -> 0) 
     
-    Fold.apply[CsvRow.Parsed, Counts, Counts](startingCounts, doAdd, identity)
+    Fold.apply[VariantRow.Parsed, Counts, Counts](startingCounts, doAdd, identity)
   }
   
   def countFlipped: Metric[Int] = Fold.countIf(_.isFlipped)

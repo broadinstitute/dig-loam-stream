@@ -64,7 +64,7 @@ trait RowFilters { self: IntakeSyntax =>
   
   object DataRowFilters {
     def logToFile(store: Store, append: Boolean = false)(p: DataRowPredicate): CloseableDataRowPredicate = { 
-      doLogToFile[DataRow](store, append)(p)(RowFilters.HasValues.DataRowsHaveValues)
+      doLogToFile[AggregatorVariantRow](store, append)(p)(RowFilters.HasValues.DataRowsHaveValues)
     }
     
     /*
@@ -83,7 +83,7 @@ trait RowFilters { self: IntakeSyntax =>
     }
     
     def validEaf(implicit logCtx: ToFileLogContext): CloseableDataRowPredicate = { 
-      ConcreteCloseablePredicate[DataRow](logCtx) { row =>
+      ConcreteCloseablePredicate[AggregatorVariantRow](logCtx) { row =>
         row.eaf match {
           case Some(eaf) => {
             val valid = (eaf > 0.0) && (eaf < 1.0)
@@ -104,7 +104,7 @@ trait RowFilters { self: IntakeSyntax =>
     }
     
     def validMaf(implicit logCtx: ToFileLogContext): CloseableDataRowPredicate = {
-      ConcreteCloseablePredicate[DataRow](logCtx) { row =>
+      ConcreteCloseablePredicate[AggregatorVariantRow](logCtx) { row =>
         row.maf match {
           case Some(maf) => {
             val valid = (maf > 0.0) && (maf <= 0.5)
@@ -125,7 +125,7 @@ trait RowFilters { self: IntakeSyntax =>
     }
     
     def validPValue(implicit logCtx: ToFileLogContext): CloseableDataRowPredicate = {
-      ConcreteCloseablePredicate[DataRow](logCtx) { row =>
+      ConcreteCloseablePredicate[AggregatorVariantRow](logCtx) { row =>
         import row.pvalue
       
         val valid = (pvalue > 0.0) && (pvalue <= 1.0)
@@ -189,8 +189,8 @@ object RowFilters {
   }
   
   object HasValues {
-    implicit object DataRowsHaveValues extends HasValues[DataRow] {
-      override def values(r: DataRow): Seq[String] = r.values  
+    implicit object DataRowsHaveValues extends HasValues[AggregatorVariantRow] {
+      override def values(r: AggregatorVariantRow): Seq[String] = r.values  
     }
     
     implicit object CsvRowsHaveValues extends HasValues[CsvRow] {

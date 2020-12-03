@@ -50,24 +50,5 @@ final class RowSinkTest extends FunSuite {
       //NB: Trim to ignore any empty-last-line differences that we don't care about
       assert(loamstream.util.Files.readFrom(file).trim === expected)
     }
-
   }
-  
-      /**
-     * final case class ToFile(path: Path, csvFormat: CSVFormat = Source.Defaults.csvFormat) extends RowSink {
-    private lazy val writer: Writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8)
-    
-    override def close(): Unit = writer.close()
-    
-    private val lineSeparator: String = System.lineSeparator
-    
-    private val renderer: Renderer = Renderer.CommonsCsv(csvFormat)
-    
-    override def accept(row: Row): Unit = {
-      def addLineEndingIfNeeded(line: String) = if(line.endsWith(lineSeparator)) line else s"${line}${lineSeparator}"
-      
-      writer.write(addLineEndingIfNeeded(renderer.render(row)))
-    }
-  }
-     */
 }

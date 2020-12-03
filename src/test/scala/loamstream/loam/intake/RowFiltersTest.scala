@@ -175,6 +175,37 @@ final class RowFiltersTest extends FunSuite {
     }
   }
   
+  test("logToFile - problematic beta column - actual data file subset") {
+    withLogStore { logStore =>
+      val BETA = ColumnName("ALT_EFFSIZE")
+      
+      def isValid(b: Double): Boolean = b < 10.0 && b > -10.0
+                    
+      val betaIsValid = BETA.asDouble.map(isValid)
+      
+      val predicate = DataRowFilters.logToFile(logStore, append = true)(betaIsValid)
+      
+      import TestHelpers.path
+      
+      val rows = Source.fromFile(path("src/test/resources/intake/bad-line.tsv"))
+          
+      val filtered = rows.filter(predicate)
+      
+      val actual = filtered.map(_.values.mkString(" ")).records.toIndexedSeq
+      
+      val expected = Nil
+          
+      assert(actual === expected)
+      
+      predicate.close()
+      
+      val logLines = linesFrom(logStore.path)
+      
+      assert(logLines.size === 1)
+      assert(logLines.containsOnce("15:90225157:G:A"))
+    }
+  }
+  
   test("validEaf") {
     withLogStore { logStore => 
       val predicate = AggregatorVariantRowFilters.validEaf(logStore, append = true)

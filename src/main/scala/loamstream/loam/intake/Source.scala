@@ -18,6 +18,8 @@ import java.io.FileInputStream
 import java.io.StringReader
 import loamstream.loam.intake.flip.FlipDetector
 import scala.util.Try
+import org.json4s.JsonAST.JValue
+import org.json4s.JsonAST.JObject
 
 /**
  * @author clint
@@ -46,7 +48,7 @@ sealed trait Source[R] {
   
   def tagFlips(
       markerDef: MarkerColumnDef, 
-      flipDetector: => FlipDetector)(implicit ev: R <:< CsvRow): Source[VariantRow.Tagged] = {
+      flipDetector: => FlipDetector)(implicit ev: R <:< DataRow): Source[VariantRow.Tagged] = {
     
     lazy val actualFlipDetector = flipDetector
     
@@ -103,7 +105,7 @@ object Source extends Loggable {
   
   def fromFile(
       path: Path, 
-      csvFormat: CSVFormat = Defaults.csvFormat): Source[CsvRow] = {
+      csvFormat: CSVFormat = Defaults.csvFormat): Source[DataRow] = {
     
     require(notGzipped(path), s"Expected an unzipped file, but got one with a .gz extension")
     
@@ -112,7 +114,7 @@ object Source extends Loggable {
   
   def fromGzippedFile(
       path: Path, 
-      csvFormat: CSVFormat = Defaults.csvFormat): Source[CsvRow] = {
+      csvFormat: CSVFormat = Defaults.csvFormat): Source[DataRow] = {
     
     require(isGzipped(path), s"Expected a gzipped file, but got one without a .gz extension")
     
@@ -121,14 +123,14 @@ object Source extends Loggable {
   
   def fromString(
       csvData: String,
-      csvFormat: CSVFormat = Defaults.csvFormat): Source[CsvRow] = {
+      csvFormat: CSVFormat = Defaults.csvFormat): Source[DataRow] = {
     
     fromReader(new StringReader(csvData), csvFormat)
   }
   
   def fromReader(
       reader: => Reader, 
-      csvFormat: CSVFormat = Defaults.csvFormat): Source[CsvRow] = {
+      csvFormat: CSVFormat = Defaults.csvFormat): Source[DataRow] = {
     
     FromIterator(toCsvRowIterator(reader, csvFormat))
   }
@@ -136,7 +138,7 @@ object Source extends Loggable {
   def fromCommandLine(
       command: String,
       csvFormat: CSVFormat = Defaults.csvFormat,
-      workDir: Path = Defaults.thisDir): Source[CsvRow] = {
+      workDir: Path = Defaults.thisDir): Source[DataRow] = {
   
     FromIterator {
       val bashScriptForCommand = BashScript.fromCommandLineString(command)
@@ -151,12 +153,26 @@ object Source extends Loggable {
     }
   }
   
-  private def toCsvRowIterator(reader: Reader, csvFormat: CSVFormat): Iterator[CsvRow] = {
+  def fromJson(selector: JValue => Iterable[JObject])(json: => JValue): Source[DataRow] = {
+    FromIterator {
+      selector(json).iterator.zipWithIndex.map {
+        case (jObject, i) => DataRow.JsonDataRow(jObject, i)
+      }
+    }
+  }
+  
+  def fromJsonString(json: => String)(selector: JValue => Iterable[JObject]): Source[DataRow] = {
+    import org.json4s.jackson.JsonMethods.parse
+    
+    fromJson(selector)(parse(json)) 
+  }
+  
+  private def toCsvRowIterator(reader: Reader, csvFormat: CSVFormat): Iterator[DataRow] = {
     import scala.collection.JavaConverters._
       
     val parser = new CSVParser(reader, csvFormat)
     
-    val iterator = parser.iterator.asScala.map(CsvRow.CommonsCsvRow(_))
+    val iterator = parser.iterator.asScala.map(DataRow.CommonsCsvDataRow(_))
     
     TakesEndingActionIterator(iterator) {
       Throwables.quietly("Closing CSV parser")(parser.close())

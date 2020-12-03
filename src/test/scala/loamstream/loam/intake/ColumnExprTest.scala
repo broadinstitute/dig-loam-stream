@@ -7,7 +7,7 @@ import org.scalatest.FunSuite
  * Feb 10, 2020
  */
 final class ColumnExprTest extends FunSuite {
-  private val nullRow: CsvRow = null //scalastyle:ignore
+  private val nullRow: DataRow = null //scalastyle:ignore
   
   private val foo = ColumnName("foo")
   private val bar = ColumnName("bar")

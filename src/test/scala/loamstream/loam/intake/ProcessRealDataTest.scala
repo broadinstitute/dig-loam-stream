@@ -81,9 +81,9 @@ final class ProcessRealDataTest extends FunSuite with Loggable {
           from(source).
           using(flipDetector).
           via(toAggregatorRows).
-          filter(DataRowFilters.validEaf(filterLog, append = true)).
-          filter(DataRowFilters.validMaf(filterLog, append = true)).
-          filter(DataRowFilters.validPValue(filterLog, append = true)).
+          filter(AggregatorVariantRowFilters.validEaf(filterLog, append = true)).
+          filter(AggregatorVariantRowFilters.validMaf(filterLog, append = true)).
+          filter(AggregatorVariantRowFilters.validPValue(filterLog, append = true)).
           map(DataRowTransforms.clampPValues(filterLog, append = true)).
           writeSummaryStatsTo(summaryStatsFile).
           write(forceLocal = true).
@@ -133,8 +133,8 @@ final class ProcessRealDataTest extends FunSuite with Loggable {
   }
   
   private def assertSame(
-      lhs: CsvRow, 
-      rhs: CsvRow, 
+      lhs: DataRow, 
+      rhs: DataRow, 
       expectations: Iterable[(String, (String, String) => Unit)]): Unit = {
     
     try {
@@ -144,7 +144,7 @@ final class ProcessRealDataTest extends FunSuite with Loggable {
     } catch {
       case NonFatal(e) => {
         val msg = {
-          def mkString(row: CsvRow): String = row.values.mkString(" ")
+          def mkString(row: DataRow): String = row.values.mkString(" ")
           
           s"Rows didn't match: \nactual: '${mkString(lhs)}'\nexpected: '${mkString(rhs)}', '$lhs' != '$rhs'"
         }

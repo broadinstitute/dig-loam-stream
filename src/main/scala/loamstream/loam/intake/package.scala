@@ -13,17 +13,17 @@ package object intake {
   
   type CloseableTransform[A] = Transform[A] with java.io.Closeable
   
-  type PartialRowParser[A] = PartialFunction[CsvRow, A]
+  type PartialRowParser[A] = PartialFunction[DataRow, A]
   
-  type RowParser[A] = CsvRow => A
+  type RowParser[A] = DataRow => A
   
-  type RowPredicate = Predicate[CsvRow]
+  type RowPredicate = Predicate[DataRow]
   
-  type CloseableRowPredicate = CloseablePredicate[CsvRow]
+  type CloseableRowPredicate = CloseablePredicate[DataRow]
   
-  type RowTransform = Transform[CsvRow]
+  type RowTransform = Transform[DataRow]
   
-  type CloseableRowTransform = CloseableTransform[CsvRow]
+  type CloseableRowTransform = CloseableTransform[DataRow]
   
   type TaggedRowParser[A] = VariantRow.Tagged => A
   

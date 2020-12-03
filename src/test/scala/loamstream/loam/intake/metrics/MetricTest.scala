@@ -516,10 +516,10 @@ final class MetricTest extends FunSuite {
     }
                       
     val expected = Seq(
-                    DataRow(Variant(Vars.x), 99),
-                    DataRow(Variant(Vars.z), 99),
-                    DataRow(Variant(Vars.b), 99),
-                    DataRow(Variant(Vars.c), 99))
+        AggregatorVariantRow(Variant(Vars.x), 99),
+        AggregatorVariantRow(Variant(Vars.z), 99),
+        AggregatorVariantRow(Variant(Vars.b), 99),
+        AggregatorVariantRow(Variant(Vars.c), 99))
     
     val written: Buffer[RenderableRow] = new ArrayBuffer                       
       

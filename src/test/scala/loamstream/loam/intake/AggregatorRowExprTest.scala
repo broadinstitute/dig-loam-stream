@@ -21,7 +21,7 @@ final class AggregatorRowExprTest extends FunSuite {
           pvalueDef = AggregatorColumnDefs.PassThru.pvalue(PV),
           betaDef = Some(AggregatorColumnDefs.PassThru.beta(BT)))
           
-      val inputWithoutBetaColumn: Seq[CsvRow] = Helpers.csvRows(
+      val inputWithoutBetaColumn: Seq[DataRow] = Helpers.csvRows(
           Seq(MRKR.name, PV.name),
           Seq("1_1_A_T", "42"),
           Seq("1_2_A_T", "42"),
@@ -58,7 +58,7 @@ final class AggregatorRowExprTest extends FunSuite {
       markerDef = markerDef,
       pvalueDef = AggregatorColumnDefs.pvalue(LiteralColumnExpr(42.0))) //actual expr doesn't matter
       
-    val input: Seq[CsvRow] = Helpers.csvRows(
+    val input: Seq[DataRow] = Helpers.csvRows(
           Seq(AggregatorColumnNames.marker.name, AggregatorColumnNames.pvalue.name),
           Seq("1_1_A_T", "42"),
           Seq("1_2_A_T", "42"),

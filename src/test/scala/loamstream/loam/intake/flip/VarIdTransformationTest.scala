@@ -2,7 +2,7 @@ package loamstream.loam.intake.flip
 
 import org.scalatest.FunSuite
 
-import loamstream.loam.intake.CsvRow
+import loamstream.loam.intake.DataRow
 import loamstream.loam.intake.LiteralColumnExpr
 import loamstream.loam.intake.IntakeSyntax
 
@@ -51,7 +51,7 @@ final class VarIdTransformationTest extends FunSuite {
     
     def inputVarIds = inputsAndExpectedOutputs.iterator.collect { case (i, _) => i }
     
-    val source: Source[CsvRow] = Source.FromIterator {
+    val source: Source[DataRow] = Source.FromIterator {
       inputVarIds.map(i => LiteralCsvRow(varIdColumnName.name, i.underscoreDelimited)) 
     }
     
@@ -174,7 +174,7 @@ final class VarIdTransformationTest extends FunSuite {
 }
 
 object VarIdTransformationTest {
-  final case class LiteralCsvRow(private val fieldName: String, private val fieldValue: String) extends CsvRow {
+  final case class LiteralCsvRow(private val fieldName: String, private val fieldValue: String) extends DataRow {
     override def getFieldByName(name: String): String = {
       require(name == fieldName)
       
@@ -193,6 +193,6 @@ object VarIdTransformationTest {
     
     override def isSkipped: Boolean = false
     
-    override def skip: CsvRow = ???
+    override def skip: DataRow = ???
   }
 }

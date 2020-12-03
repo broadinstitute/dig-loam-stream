@@ -60,11 +60,11 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
   val HeaderRow = loamstream.loam.intake.LiteralRow
   
   //TODO
-  type DataRow = loamstream.loam.intake.AggregatorVariantRow
-  val DataRow = loamstream.loam.intake.AggregatorVariantRow
+  type AggregatorVariantRow = loamstream.loam.intake.AggregatorVariantRow
+  val AggregatorVariantRow = loamstream.loam.intake.AggregatorVariantRow
   
-  type CsvRow = loamstream.loam.intake.CsvRow
-  val CsvRow = loamstream.loam.intake.CsvRow
+  type DataRow = loamstream.loam.intake.DataRow
+  val DataRow = loamstream.loam.intake.DataRow
   
   val VariantRow = loamstream.loam.intake.VariantRow
   
@@ -152,10 +152,10 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
   }
   
   final class TransformationTarget(dest: Store) {
-    def from(source: Source[CsvRow]): UsingTarget = new UsingTarget(dest, source)
+    def from(source: Source[DataRow]): UsingTarget = new UsingTarget(dest, source)
   }
   
-  final class UsingTarget(dest: Store, rows: Source[CsvRow]) extends Loggable {
+  final class UsingTarget(dest: Store, rows: Source[DataRow]) extends Loggable {
     def using(flipDetector: => FlipDetector): ViaTarget = new ViaTarget(dest, rows, flipDetector)
   }
   
@@ -163,17 +163,17 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
   
   final class ViaTarget(
       dest: Store, 
-      private[intake] val rows: Source[CsvRow],
+      private[intake] val rows: Source[DataRow],
       flipDetector: => FlipDetector,
       private[intake] val toBeClosed: Seq[Closeable] = Nil) extends Loggable {
     
     def copy(
       dest: Store = this.dest, 
-      rows: Source[CsvRow] = this.rows,
+      rows: Source[DataRow] = this.rows,
       flipDetector: => FlipDetector = this.flipDetector,
       toBeClosed: Seq[Closeable] = this.toBeClosed): ViaTarget = new ViaTarget(dest, rows, flipDetector, toBeClosed) 
     
-    private def toFilterTransform(p: RowPredicate): CsvRow => CsvRow = { row =>
+    private def toFilterTransform(p: RowPredicate): DataRow => DataRow = { row =>
       if(row.isSkipped || p(row)) { row } else { row.skip }
     }
     

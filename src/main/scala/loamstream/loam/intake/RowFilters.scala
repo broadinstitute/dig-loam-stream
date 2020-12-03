@@ -10,7 +10,7 @@ import RowFilters.ConcreteCloseablePredicate
  * Oct 14, 2020
  */
 trait RowFilters { self: IntakeSyntax => 
-  object CsvRowFilters {
+  object DataRowFilters {
     private val di: Set[String] = Set("D", "I")
     
     def noDsNorIs(
@@ -43,7 +43,7 @@ trait RowFilters { self: IntakeSyntax =>
       
       def isAllowed(s: String): Boolean = !disallowed.contains(s)
       
-      ConcreteCloseablePredicate[CsvRow](logCtx) { row =>  
+      ConcreteCloseablePredicate[DataRow](logCtx) { row => 
         val valid = isAllowed(refColumn(row)) && isAllowed(altColumn(row))
         
         if(!valid) {
@@ -57,14 +57,28 @@ trait RowFilters { self: IntakeSyntax =>
       }
     }
     
-    def logToFile(store: Store, append: Boolean = false)(p: RowPredicate): CloseableRowPredicate = { 
-      doLogToFile[CsvRow](store, append)(p)(RowFilters.HasValues.CsvRowsHaveValues)
+    import RowFilters.HasValues.CsvRowsHaveValues
+    
+    def logToFile(
+        store: Store, 
+        append: Boolean = false, 
+        makeMessage: DataRow => String = defaultMessage[DataRow](_)(CsvRowsHaveValues))
+       (p: RowPredicate): CloseableRowPredicate = {
+      
+      doLogToFile[DataRow](store, append, makeMessage)(p)
     }
   }
   
-  object DataRowFilters {
-    def logToFile(store: Store, append: Boolean = false)(p: DataRowPredicate): CloseableDataRowPredicate = { 
-      doLogToFile[AggregatorVariantRow](store, append)(p)(RowFilters.HasValues.DataRowsHaveValues)
+  object AggregatorVariantRowFilters {
+    import RowFilters.HasValues.DataRowsHaveValues
+    
+    def logToFile(
+        store: Store, 
+        append: Boolean = false, 
+        makeMessage: AggregatorVariantRow => String = defaultMessage[AggregatorVariantRow](_)(DataRowsHaveValues))
+       (p: DataRowPredicate): CloseableDataRowPredicate = {
+      
+      doLogToFile[AggregatorVariantRow](store, append, makeMessage)(p)
     }
     
     /*
@@ -193,8 +207,8 @@ object RowFilters {
       override def values(r: AggregatorVariantRow): Seq[String] = r.values  
     }
     
-    implicit object CsvRowsHaveValues extends HasValues[CsvRow] {
-      override def values(r: CsvRow): Seq[String] = r.values.toIndexedSeq
+    implicit object CsvRowsHaveValues extends HasValues[DataRow] {
+      override def values(r: DataRow): Seq[String] = r.values.toIndexedSeq
     }
   }
 }

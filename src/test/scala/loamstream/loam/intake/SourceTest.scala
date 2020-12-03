@@ -23,7 +23,7 @@ final class SourceTest extends FunSuite {
       Seq("42",  "99",  "123"))
   }
   
-  private val csvRows: Seq[CsvRow] = Helpers.csvRows(rowData.head, rowData.tail: _*)
+  private val csvRows: Seq[DataRow] = Helpers.csvRows(rowData.head, rowData.tail: _*)
   
   private def rowDataToString(data: Seq[Seq[String]]): String = {
     data.map(_.mkString("\t")).mkString(System.lineSeparator)
@@ -31,11 +31,11 @@ final class SourceTest extends FunSuite {
   
   private val rowDataAsString = rowDataToString(rowData)
     
-  private def doCsvSourceRecordsTest(source: Source[CsvRow], expectedRows: Seq[CsvRow] = csvRows): Unit = {
+  private def doCsvSourceRecordsTest(source: Source[DataRow], expectedRows: Seq[DataRow] = csvRows): Unit = {
     doCsvSourceRecordsTest(source.records.toIndexedSeq, expectedRows)
   }
   
-  private def doCsvSourceRecordsTest(actualRows: Seq[CsvRow], expectedRows: Seq[CsvRow]): Unit = {
+  private def doCsvSourceRecordsTest(actualRows: Seq[DataRow], expectedRows: Seq[DataRow]): Unit = {
     
     actualRows.zip(expectedRows).foreach { case (actualRow, expectedRow) =>
       assert(actualRow.getFieldByName("FOO") === expectedRow.getFieldByName("FOO"))
@@ -194,7 +194,7 @@ final class SourceTest extends FunSuite {
     
     val untaggedExpectedRows = Helpers.csvRows(rowData.head, rowData.tail: _*)
       
-    def marker(r: CsvRow) = Variant.from(r.getFieldByName("FOO"))
+    def marker(r: DataRow) = Variant.from(r.getFieldByName("FOO"))
     
     def makeTaggedRow(i: Int, disp: Disposition) = {
       val mrkr = marker(untaggedExpectedRows(1))
@@ -252,7 +252,7 @@ final class SourceTest extends FunSuite {
     
     val untaggedExpectedRows = Helpers.csvRows(rowData.head, rowData.tail: _*)
       
-    def marker(r: CsvRow) = Variant.from(r.getFieldByName("FOO"))
+    def marker(r: DataRow) = Variant.from(r.getFieldByName("FOO"))
     
     def makeTaggedRow(i: Int, disp: Disposition) = {
       val mrkr = marker(untaggedExpectedRows(1))
@@ -312,7 +312,7 @@ final class SourceTest extends FunSuite {
     
     val untaggedExpectedRows = Helpers.csvRows(rowData.head, rowData.tail: _*)
       
-    def marker(r: CsvRow) = Variant.from(r.getFieldByName("FOO"))
+    def marker(r: DataRow) = Variant.from(r.getFieldByName("FOO"))
     
     def makeTaggedRow(i: Int, disp: Disposition) = {
       val mrkr = marker(untaggedExpectedRows(1))

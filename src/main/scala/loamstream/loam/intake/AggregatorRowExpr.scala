@@ -73,7 +73,11 @@ final case class AggregatorRowExpr(
       
       attempt match {
         case Success(r) => r
-        case f @ Failure(_) => if(failFast) attempt.get else attempt.getOrElse(skipped(Some(f)))
+        case f @ Failure(e) => {
+          
+          
+          if(failFast) attempt.get else attempt.getOrElse(skipped(Some(f)))
+        }
       }
     }
   }

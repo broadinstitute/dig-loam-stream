@@ -4,6 +4,7 @@ import org.apache.commons.csv.CSVFormat
 import scala.collection.mutable.ArrayBuffer
 import loamstream.loam.intake.flip.Disposition
 import scala.util.Failure
+import scala.util.Try
 
 
 /**
@@ -32,8 +33,14 @@ trait RowWithSize {
   def size: Int
 }
 
+trait RowWithRecordNumber {
+  def recordNumber: Long
+}
+
 trait KeyedRow extends RowWithSize {
   def getFieldByName(name: String): String
+  
+  def getFieldByNameOpt(name: String): Option[String] = Try(getFieldByName(name)).toOption
 }
 
 trait IndexedRow extends RowWithSize {
@@ -89,80 +96,79 @@ final case class AggregatorVariantRow(
  * Dec 1, 2020
  */
 object VariantRow {
+  final case class Tagged(
+      delegate: DataRow,
+      marker: Variant,
+      originalMarker: Variant,
+      disposition: Disposition,
+      isSkipped: Boolean = false) extends DataRow {
     
-    final case class Tagged(
-        delegate: CsvRow,
-        marker: Variant,
-        originalMarker: Variant,
-        disposition: Disposition,
-        isSkipped: Boolean = false) extends CsvRow {
-      
-      override def skip: Tagged = copy(isSkipped = true)
-      
-      def isFlipped: Boolean = disposition.isFlipped
-      def notFlipped: Boolean = disposition.notFlipped
-      
-      def isSameStrand: Boolean = disposition.isSameStrand
-      def isComplementStrand: Boolean = disposition.isComplementStrand
-      
-      override def getFieldByName(name: String): String = delegate.getFieldByName(name)
-      
-      override def getFieldByIndex(i: Int): String = delegate.getFieldByIndex(i)
-      
-      override def size: Int = delegate.size
-      
-      override def recordNumber: Long = delegate.recordNumber
-    }
+    override def skip: Tagged = copy(isSkipped = true)
     
-    sealed trait Parsed extends CsvRow {
-      val derivedFrom: Tagged
-      
-      def dataRowOpt: Option[AggregatorVariantRow]
-      
-      def isSkipped: Boolean
-      
-      override def skip: Parsed
-      
-      def transform(f: AggregatorVariantRow => AggregatorVariantRow): Parsed
-      
-      final def isFlipped: Boolean = derivedFrom.isFlipped
-      final def notFlipped: Boolean = derivedFrom.notFlipped
-      
-      final def isSameStrand: Boolean = derivedFrom.isSameStrand
-      final def isComplementStrand: Boolean = derivedFrom.isComplementStrand
-      
-      override def getFieldByName(name: String): String = derivedFrom.getFieldByName(name)
-      
-      override def getFieldByIndex(i: Int): String = derivedFrom.getFieldByIndex(i)
-      
-      override def size: Int = derivedFrom.size
-      
-      override def recordNumber: Long = derivedFrom.recordNumber
-    }
+    def isFlipped: Boolean = disposition.isFlipped
+    def notFlipped: Boolean = disposition.notFlipped
     
-    final case class Transformed(
-        derivedFrom: Tagged,
-        dataRow: AggregatorVariantRow) extends Parsed {
-      
-      override def dataRowOpt: Option[AggregatorVariantRow] = Some(dataRow)
-      
-      override def isSkipped: Boolean = false
-      
-      override def skip: Skipped = Skipped(derivedFrom, dataRowOpt)
-      
-      override def transform(f: AggregatorVariantRow => AggregatorVariantRow): Transformed = copy(dataRow = f(dataRow))
-    }
+    def isSameStrand: Boolean = disposition.isSameStrand
+    def isComplementStrand: Boolean = disposition.isComplementStrand
     
-    final case class Skipped(
-        derivedFrom: Tagged, 
-        dataRowOpt: Option[AggregatorVariantRow],
-        message: Option[String] = None,
-        cause: Option[Failure[Parsed]] = None) extends Parsed {
-      
-      override def isSkipped: Boolean = true
-      
-      override def skip: Skipped = this
-      
-      override def transform(f: AggregatorVariantRow => AggregatorVariantRow): Skipped = this
-    }
+    override def getFieldByName(name: String): String = delegate.getFieldByName(name)
+    
+    override def getFieldByIndex(i: Int): String = delegate.getFieldByIndex(i)
+    
+    override def size: Int = delegate.size
+    
+    override def recordNumber: Long = delegate.recordNumber
   }
+  
+  sealed trait Parsed extends DataRow {
+    val derivedFrom: Tagged
+    
+    def dataRowOpt: Option[AggregatorVariantRow]
+    
+    def isSkipped: Boolean
+    
+    override def skip: Parsed
+    
+    def transform(f: AggregatorVariantRow => AggregatorVariantRow): Parsed
+    
+    final def isFlipped: Boolean = derivedFrom.isFlipped
+    final def notFlipped: Boolean = derivedFrom.notFlipped
+    
+    final def isSameStrand: Boolean = derivedFrom.isSameStrand
+    final def isComplementStrand: Boolean = derivedFrom.isComplementStrand
+    
+    override def getFieldByName(name: String): String = derivedFrom.getFieldByName(name)
+    
+    override def getFieldByIndex(i: Int): String = derivedFrom.getFieldByIndex(i)
+    
+    override def size: Int = derivedFrom.size
+    
+    override def recordNumber: Long = derivedFrom.recordNumber
+  }
+  
+  final case class Transformed(
+      derivedFrom: Tagged,
+      dataRow: AggregatorVariantRow) extends Parsed {
+    
+    override def dataRowOpt: Option[AggregatorVariantRow] = Some(dataRow)
+    
+    override def isSkipped: Boolean = false
+    
+    override def skip: Skipped = Skipped(derivedFrom, dataRowOpt)
+    
+    override def transform(f: AggregatorVariantRow => AggregatorVariantRow): Transformed = copy(dataRow = f(dataRow))
+  }
+  
+  final case class Skipped(
+      derivedFrom: Tagged, 
+      dataRowOpt: Option[AggregatorVariantRow],
+      message: Option[String] = None,
+      cause: Option[Failure[Parsed]] = None) extends Parsed {
+    
+    override def isSkipped: Boolean = true
+    
+    override def skip: Skipped = this
+    
+    override def transform(f: AggregatorVariantRow => AggregatorVariantRow): Skipped = this
+  }
+}

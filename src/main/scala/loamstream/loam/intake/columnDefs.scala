@@ -29,9 +29,9 @@ trait ColumnDef[A] extends (VariantRow.Tagged => A) {
 
 final case class MarkerColumnDef(
     name: ColumnName,
-    expr: ColumnExpr[Variant]) extends (CsvRow => Variant) { self =>
+    expr: ColumnExpr[Variant]) extends (DataRow => Variant) { self =>
   
-  override def apply(row: CsvRow): Variant = expr.apply(row)
+  override def apply(row: DataRow): Variant = expr.apply(row)
 }
 
 /**

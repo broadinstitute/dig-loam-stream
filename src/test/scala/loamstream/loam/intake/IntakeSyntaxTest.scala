@@ -44,7 +44,7 @@ final class IntakeSyntaxTest extends FunSuite {
     Seq("c", "3"),
     Seq("d", "4"))
   
-  private def toTuple(row: CsvRow): (String, Boolean) = {
+  private def toTuple(row: DataRow): (String, Boolean) = {
     s"${row.getFieldByName("X")}${row.getFieldByName("Y")}" -> row.isSkipped
   }
     
@@ -361,7 +361,7 @@ object IntakeSyntaxTest {
   final case class MockCloseableRowPredicate(p: RowPredicate) extends RowPredicate with Closeable {
     var isClosed = false
     
-    override def apply(row: CsvRow): Boolean = p(row)
+    override def apply(row: DataRow): Boolean = p(row)
     
     override def close(): Unit = isClosed = true
   }

@@ -9,7 +9,7 @@ import loamstream.loam.intake.flip.Disposition
  */
 object CsvRowTest {
   private[intake] trait RowHelpers { self: FunSuite =>
-    def oneRow: CsvRow = {
+    def oneRow: DataRow = {
       val csvData = s"""|X Y Z
                         |1 hello blah_123""".stripMargin
       

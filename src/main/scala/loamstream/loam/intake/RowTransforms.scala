@@ -20,11 +20,11 @@ trait RowTransforms { self: IntakeSyntax =>
    *
    */
   object DataRowTransforms {
-    def clampPValues(logStore: Store, append: Boolean = false): CloseableDataRowTransform = {
+    def clampPValues(logStore: Store, append: Boolean = false): CloseableAggregatorVariantRowTransform = {
       clampPValues(Log.toFile(logStore, append))
     }
     
-    def clampPValues(implicit logCtx: ToFileLogContext): CloseableDataRowTransform = {
+    def clampPValues(implicit logCtx: ToFileLogContext): CloseableAggregatorVariantRowTransform = {
       RowTransforms.ConcreteCloseableTransform[AggregatorVariantRow](logCtx) { row =>
         import row.pvalue
         
@@ -46,7 +46,7 @@ trait RowTransforms { self: IntakeSyntax =>
       }
     }
     
-    def upperCaseAlleles: DataRowTransform = { row =>
+    def upperCaseAlleles: AggregatorVariantRowTransform = { row =>
       row.copy(marker = row.marker.toUpperCase)
     }
   }

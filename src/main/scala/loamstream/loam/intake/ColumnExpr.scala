@@ -11,7 +11,7 @@ import loamstream.util.Sequence
  * Dec 17, 2019
  */
 sealed abstract class ColumnExpr[A : TypeTag] extends 
-    ColumnExpr.ArithmeticOps[A] with ColumnExpr.TypeOps[A] with ColumnExpr.BooleanOps[A] with RowParser[A] {
+    ColumnExpr.ArithmeticOps[A] with ColumnExpr.TypeOps[A] with ColumnExpr.BooleanOps[A] with DataRowParser[A] {
   
   protected[intake] def tpe: TypeTag[A] = implicitly[TypeTag[A]]
   
@@ -74,15 +74,15 @@ sealed abstract class ColumnExpr[A : TypeTag] extends
     this.map(a => ev(a).getOrElse(default))
   }
   
-  final def matches(regex: String): RowPredicate = matches(regex.r)
+  final def matches(regex: String): DataRowPredicate = matches(regex.r)
   
-  final def matches(regex: Regex): RowPredicate = this.asString.map(regex.pattern.matcher(_).matches)
+  final def matches(regex: Regex): DataRowPredicate = this.asString.map(regex.pattern.matcher(_).matches)
   
   final def trim(implicit ev: A =:= String): ColumnExpr[String] = this.map(_.trim)
   
-  final def isEmpty(implicit ev: A =:= String): RowPredicate = this.map(_.isEmpty)
+  final def isEmpty(implicit ev: A =:= String): DataRowPredicate = this.map(_.isEmpty)
   
-  final def isEmptyIgnoreWhitespace(implicit ev: A =:= String): RowPredicate = this.map(_.trim.isEmpty)
+  final def isEmptyIgnoreWhitespace(implicit ev: A =:= String): DataRowPredicate = this.map(_.trim.isEmpty)
 }
 
 object ColumnExpr {
@@ -99,13 +99,13 @@ object ColumnExpr {
   }
   
   trait BooleanOps[A] { self: ColumnExpr[A] =>
-    final def ===(rhs: A): RowPredicate = this.map(_ == rhs)
-    final def !==(rhs: A): RowPredicate = this.map(_ != rhs) //scalastyle:ignore method.name
+    final def ===(rhs: A): DataRowPredicate = this.map(_ == rhs)
+    final def !==(rhs: A): DataRowPredicate = this.map(_ != rhs) //scalastyle:ignore method.name
     
-    final def <(rhs: A)(implicit ev: Ordering[A]): RowPredicate = this.map(lhs => ev.lt(lhs, rhs))
-    final def <=(rhs: A)(implicit ev: Ordering[A]): RowPredicate = this.map(lhs => ev.lteq(lhs, rhs))
-    final def >(rhs: A)(implicit ev: Ordering[A]): RowPredicate = this.map(lhs => ev.gt(lhs, rhs))
-    final def >=(rhs: A)(implicit ev: Ordering[A]): RowPredicate = this.map(lhs => ev.gteq(lhs, rhs))
+    final def <(rhs: A)(implicit ev: Ordering[A]): DataRowPredicate = this.map(lhs => ev.lt(lhs, rhs))
+    final def <=(rhs: A)(implicit ev: Ordering[A]): DataRowPredicate = this.map(lhs => ev.lteq(lhs, rhs))
+    final def >(rhs: A)(implicit ev: Ordering[A]): DataRowPredicate = this.map(lhs => ev.gt(lhs, rhs))
+    final def >=(rhs: A)(implicit ev: Ordering[A]): DataRowPredicate = this.map(lhs => ev.gteq(lhs, rhs))
   }
   
   trait TypeOps[A] { self: ColumnExpr[A] =>
@@ -140,11 +140,11 @@ object ColumnExpr {
     final def negate(implicit ev: Numeric[A]): ColumnExpr[A] = this.unary_-
   }
   
-  def fromRowParser[A: TypeTag](rowParser: RowParser[A]): ColumnExpr[A] = new ColumnExpr[A] {
+  def fromRowParser[A: TypeTag](rowParser: DataRowParser[A]): ColumnExpr[A] = new ColumnExpr[A] {
     override def eval(row: DataRow): A = rowParser(row)
   }
   
-  def fromPartialRowParser[A: TypeTag](rowParser: PartialRowParser[A]): ColumnExpr[A] = new PartialColumnExpr(rowParser)
+  def fromPartialRowParser[A: TypeTag](rowParser: PartialDataRowParser[A]): ColumnExpr[A] = new PartialColumnExpr(rowParser)
   
   implicit final class ExprOps[A](val a: A) extends AnyVal {
     def +(rhs: ColumnExpr[A])(implicit ev: Numeric[A], tt: TypeTag[A]): ColumnExpr[A] = LiteralColumnExpr(a) + rhs
@@ -204,7 +204,7 @@ object ColumnExpr {
   }
 }
 
-final class PartialColumnExpr[A: TypeTag](pf: PartialRowParser[A]) extends ColumnExpr[A] {
+final class PartialColumnExpr[A: TypeTag](pf: PartialDataRowParser[A]) extends ColumnExpr[A] {
   override def eval(row: DataRow): A = pf(row)
   
   override def isDefinedAt(row: DataRow): Boolean = pf.isDefinedAt(row)

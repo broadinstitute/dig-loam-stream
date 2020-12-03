@@ -43,10 +43,10 @@ trait KeyedRow extends RowWithSize {
   def getFieldByNameOpt(name: String): Option[String] = Try(getFieldByName(name)).toOption
 }
 
-trait IndexedRow extends RowWithSize {
+trait IndexedRow extends RowWithSize with RenderableRow {
   def getFieldByIndex(i: Int): String
   
-  def values: Iterator[String] = (0 until size).iterator.map(getFieldByIndex)
+  def values: Seq[String] = (0 until size).map(getFieldByIndex)
 }
 
 /**

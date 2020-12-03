@@ -13,17 +13,17 @@ package object intake {
   
   type CloseableTransform[A] = Transform[A] with java.io.Closeable
   
-  type PartialRowParser[A] = PartialFunction[DataRow, A]
+  type PartialDataRowParser[A] = PartialFunction[DataRow, A]
   
-  type RowParser[A] = DataRow => A
+  type DataRowParser[A] = DataRow => A
   
-  type RowPredicate = Predicate[DataRow]
+  type DataRowPredicate = Predicate[DataRow]
   
-  type CloseableRowPredicate = CloseablePredicate[DataRow]
+  type CloseableDataRowPredicate = CloseablePredicate[DataRow]
   
-  type RowTransform = Transform[DataRow]
+  type DataRowTransform = Transform[DataRow]
   
-  type CloseableRowTransform = CloseableTransform[DataRow]
+  type CloseableDataRowTransform = CloseableTransform[DataRow]
   
   type TaggedRowParser[A] = VariantRow.Tagged => A
   
@@ -35,13 +35,13 @@ package object intake {
   
   type CloseableTaggedRowTransform = CloseableTransform[VariantRow.Tagged] 
     
-  type DataRowParser[A] = AggregatorVariantRow => A
+  type AggregatorVariantRowParser[A] = AggregatorVariantRow => A
   
-  type DataRowPredicate = Predicate[AggregatorVariantRow]
+  type AggregatorVariantRowPredicate = Predicate[AggregatorVariantRow]
   
-  type CloseableDataRowPredicate = CloseablePredicate[AggregatorVariantRow]
+  type CloseableAggregatorVariantRowPredicate = CloseablePredicate[AggregatorVariantRow]
   
-  type DataRowTransform = Transform[AggregatorVariantRow]
+  type AggregatorVariantRowTransform = Transform[AggregatorVariantRow]
   
-  type CloseableDataRowTransform = CloseableTransform[AggregatorVariantRow]
+  type CloseableAggregatorVariantRowTransform = CloseableTransform[AggregatorVariantRow]
 }

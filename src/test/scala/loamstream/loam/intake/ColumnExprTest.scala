@@ -150,11 +150,11 @@ final class ColumnExprTest extends FunSuite {
   test("===/!==") {
     val row = Helpers.csvRow("foo" -> "42", "bar" -> "99", "baz" -> "hello")
     
-    val fooIs42: RowPredicate = foo.asInt === 42
-    val fooIsNot42: RowPredicate = foo.asInt !== 42
+    val fooIs42: DataRowPredicate = foo.asInt === 42
+    val fooIsNot42: DataRowPredicate = foo.asInt !== 42
     
-    val barIs42: RowPredicate = bar.asInt === 42
-    val barIsNot42: RowPredicate = bar.asInt !== 42
+    val barIs42: DataRowPredicate = bar.asInt === 42
+    val barIsNot42: DataRowPredicate = bar.asInt !== 42
     
     assert(fooIs42(row) === true)
     assert(fooIsNot42(row) === false)
@@ -166,14 +166,14 @@ final class ColumnExprTest extends FunSuite {
   test(">, >=, <, <=") {
     val row = Helpers.csvRow("foo" -> "42", "bar" -> "99", "baz" -> "hello")
     
-    val fooLt42: RowPredicate = foo.asInt < 42
-    val fooLt99: RowPredicate = foo.asInt < 99
-    val fooLtE42: RowPredicate = foo.asInt <= 42
-    val fooLtE99: RowPredicate = foo.asInt <= 99
+    val fooLt42: DataRowPredicate = foo.asInt < 42
+    val fooLt99: DataRowPredicate = foo.asInt < 99
+    val fooLtE42: DataRowPredicate = foo.asInt <= 42
+    val fooLtE99: DataRowPredicate = foo.asInt <= 99
     
-    val barGt42: RowPredicate = bar.asInt > 42
-    val barGtE99: RowPredicate = bar.asInt >= 99
-    val barGtE42: RowPredicate = bar.asInt >= 42
+    val barGt42: DataRowPredicate = bar.asInt > 42
+    val barGtE99: DataRowPredicate = bar.asInt >= 99
+    val barGtE42: DataRowPredicate = bar.asInt >= 42
     
     
     assert(fooLt42(row) === false)
@@ -187,7 +187,7 @@ final class ColumnExprTest extends FunSuite {
   }
   
   test("fromRowParser") {
-    val rowParser: RowParser[Long] = _ => 42L
+    val rowParser: DataRowParser[Long] = _ => 42L
     
     val expr = ColumnExpr.fromRowParser(rowParser)
     

@@ -358,7 +358,7 @@ ${v3.underscoreDelimited}${'\t'}1.4""".trim
 }
 
 object IntakeSyntaxTest {
-  final case class MockCloseableRowPredicate(p: RowPredicate) extends RowPredicate with Closeable {
+  final case class MockCloseableRowPredicate(p: DataRowPredicate) extends DataRowPredicate with Closeable {
     var isClosed = false
     
     override def apply(row: DataRow): Boolean = p(row)

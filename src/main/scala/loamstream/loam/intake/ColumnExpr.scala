@@ -20,7 +20,7 @@ sealed abstract class ColumnExpr[A : TypeTag] extends
     catch {
       case e: CsvProcessingException => throw e
       case NonFatal(e) => {
-        throw new CsvProcessingException(s"Error processing record number ${row.recordNumber}; row is '$row':", row, e)
+        throw new CsvProcessingException(s"Error processing record number ${row.recordNumber} with expr ${this} (${getClass.getName}); row is '$row':", row, e)
       }
     }
   }
@@ -246,12 +246,16 @@ object ColumnName {
 }
 
 final case class MappedColumnExpr[A: TypeTag, B: TypeTag](f: A => B, dependsOn: ColumnExpr[A]) extends ColumnExpr[B] {
+  override def toString: String = s"${getClass.getSimpleName}(${f}, ${dependsOn})"
+  
   override protected def eval(row: DataRow): B = f(dependsOn(row))
 }
 
 final case class FlatMappedColumnExpr[A: TypeTag, B: TypeTag](
     f: A => ColumnExpr[B], 
     dependsOn: ColumnExpr[A]) extends ColumnExpr[B] {
+  
+  override def toString: String = s"${getClass.getSimpleName}(${f}, ${dependsOn})"
   
   override protected def eval(row: DataRow): B = f(dependsOn(row)).apply(row)
 }

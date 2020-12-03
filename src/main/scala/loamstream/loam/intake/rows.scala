@@ -62,7 +62,8 @@ final case class AggregatorVariantRow(
   oddsRatio: Option[Double] = None,
   eaf: Option[Double] = None,
   maf: Option[Double] = None,
-  n: Option[Double] = None) extends RenderableRow {
+  n: Option[Double] = None,
+  derivedFromRecordNumber: Option[Long] = None) extends RenderableRow {
   
   //NB: Profiler-informed optimization: adding to a Buffer is 2x faster than ++ or .flatten
   //We expect this method to be called a lot - once per row being output.

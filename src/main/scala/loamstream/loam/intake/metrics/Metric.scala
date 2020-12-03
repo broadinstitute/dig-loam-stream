@@ -73,7 +73,10 @@ object Metric {
     def isFlipped(sourceRow: VariantRow.Tagged): Boolean = sourceRow.disposition.isFlipped
     
     val agreesFn: VariantRow.Parsed => Boolean = { 
-      case VariantRow.Transformed(sourceRow, AggregatorVariantRow(marker, _, Some(z), Some(se), Some(beta), _, _, _, _)) => {
+      case VariantRow.Transformed(
+          sourceRow, 
+          AggregatorVariantRow(marker, _, Some(z), Some(se), Some(beta), _, _, _, _, _)) => {
+            
         if(isFlipped(sourceRow)) {
           agrees(z, -(beta / se))
         } else {

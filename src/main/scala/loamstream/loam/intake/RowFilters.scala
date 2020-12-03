@@ -60,7 +60,7 @@ trait RowFilters { self: IntakeSyntax =>
         
         if(!valid) {
           logCtx.warn {
-            s"Row ${row.values.mkString(",")} contains a disallowed value from ${disallowed} " +
+            s"Row #${row.recordNumber} ${row.values.mkString(",")} contains a disallowed value from ${disallowed} " +
             s"in ${refColumn(row)} or ${altColumn(row)}"
           }
         }
@@ -97,6 +97,15 @@ trait RowFilters { self: IntakeSyntax =>
       doLogToFile[AggregatorVariantRow](store, append, makeMessage)(p)
     }
     
+    private def rowNumberPart(row: AggregatorVariantRow): String = {
+      val numberPart = row.derivedFromRecordNumber match {
+        case Some(n) => n.toString
+        case _ => "<unknown>"
+      }
+      
+      s" (from row #${numberPart}) "
+    }
+    
     /**
      * Pass rows where 0 < eaf < 1
      */
@@ -114,7 +123,7 @@ trait RowFilters { self: IntakeSyntax =>
             val valid = (eaf > 0.0) && (eaf < 1.0)
         
             if(!valid) {
-              logCtx.warn(s"Variant ${row.marker.underscoreDelimited} has invalid EAF (${eaf}): '${row}'")
+              logCtx.warn(s"Variant ${row.marker.underscoreDelimited}${rowNumberPart(row)}has invalid EAF (${eaf}): '${row}'")
             }
             
             valid
@@ -141,7 +150,7 @@ trait RowFilters { self: IntakeSyntax =>
             val valid = (maf > 0.0) && (maf <= 0.5)
         
             if(!valid) {
-              logCtx.warn(s"Variant ${row.marker.underscoreDelimited} has invalid MAF (${maf}): '${row}'")
+              logCtx.warn(s"Variant ${row.marker.underscoreDelimited}${rowNumberPart(row)}has invalid MAF (${maf}): '${row}'")
             }
             
             valid
@@ -168,7 +177,7 @@ trait RowFilters { self: IntakeSyntax =>
         val valid = (pvalue > 0.0) && (pvalue <= 1.0)
         
         if(!valid) {
-          logCtx.warn(s"Variant ${row.marker.underscoreDelimited} has invalid P-value (${pvalue}): '${row}'")
+          logCtx.warn(s"Variant ${row.marker.underscoreDelimited}${rowNumberPart(row)}has invalid P-value (${pvalue}): '${row}'")
         }
         
         valid
@@ -179,7 +188,7 @@ trait RowFilters { self: IntakeSyntax =>
   private def defaultMessage(r: RenderableRow): String = {
     val recordNumberPart = r match {
       case rwrn: RowWithRecordNumber => s" #${rwrn.recordNumber} "
-      case _ => ""
+      case _ => " "
     }
     
     s"Skipping row${recordNumberPart}'${r.values.mkString(",")}'"

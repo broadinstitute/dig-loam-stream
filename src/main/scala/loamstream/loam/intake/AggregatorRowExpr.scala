@@ -62,7 +62,8 @@ final case class AggregatorRowExpr(
         oddsRatio = oddsRatioDef.map(_.apply(row)),
         eaf = eafDef.map(_.apply(row)),
         maf = mafDef.map(_.apply(row)),
-        n = nDef.map(_.apply(row))))
+        n = nDef.map(_.apply(row)),
+        derivedFromRecordNumber = Some(row.recordNumber)))
         
     def skipped(cause: Option[Failure[VariantRow.Parsed]]) = VariantRow.Skipped(row, dataRowOpt = None, cause = cause)
         

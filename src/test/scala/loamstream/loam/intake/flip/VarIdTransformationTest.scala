@@ -181,6 +181,8 @@ object VarIdTransformationTest {
       private val fieldValue: String,
       recordNumber: Long = 42) extends DataRow {
     
+    override def headers: Seq[String] = Seq(fieldName)
+    
     override def getFieldByName(name: String): String = {
       require(name == fieldName)
       

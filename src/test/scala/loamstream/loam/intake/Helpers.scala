@@ -17,6 +17,8 @@ object Helpers {
       isSkipped: Boolean, 
       columnNamesToValues: (String, String)*) extends DataRow {
     
+    override def headers: Seq[String] = columnNamesToValues.unzip._1
+    
     override def toString: String = columnNamesToValues.toString
     
     override def getFieldByName(name: String): String = {

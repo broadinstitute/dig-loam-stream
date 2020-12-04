@@ -58,9 +58,9 @@ final class RowFiltersTest extends FunSuite {
       val logLines = linesFrom(logStore.path)
       
       assert(logLines.size === 3)
-      assert(logLines.containsOnce("D,T,42"))
-      assert(logLines.containsOnce("D,I,42"))
-      assert(logLines.containsOnce("A,I,42"))
+      assert(logLines.containsOnce(s"(${REF.name},D),(${ALT.name},T),(FOO,42)"))
+      assert(logLines.containsOnce(s"(${REF.name},D),(${ALT.name},I),(FOO,42)"))
+      assert(logLines.containsOnce(s"(${REF.name},A),(${ALT.name},I),(FOO,42)"))
     }
   }
   
@@ -99,9 +99,9 @@ final class RowFiltersTest extends FunSuite {
       val logLines = linesFrom(logStore.path)
       
       assert(logLines.size === 3)
-      assert(logLines.containsOnce("U,T,42"))
-      assert(logLines.containsOnce("U,V,42"))
-      assert(logLines.containsOnce("A,V,42"))
+      assert(logLines.containsOnce(s"(${REF.name},U),(${ALT.name},T),(FOO,42)"))
+      assert(logLines.containsOnce(s"(${REF.name},U),(${ALT.name},V),(FOO,42)"))
+      assert(logLines.containsOnce(s"(${REF.name},A),(${ALT.name},V),(FOO,42)"))
     }
   }
   
@@ -136,9 +136,9 @@ final class RowFiltersTest extends FunSuite {
       val logLines = linesFrom(logStore.path)
       
       assert(logLines.size === 3)
-      assert(logLines.containsOnce("1,42"))
-      assert(logLines.containsOnce("3,42"))
-      assert(logLines.containsOnce("7,42"))
+      assert(logLines.containsOnce("(FOO,1),(BAR,42)"))
+      assert(logLines.containsOnce("(FOO,3),(BAR,42)"))
+      assert(logLines.containsOnce("(FOO,7),(BAR,42)"))
     }
   }
   
@@ -202,7 +202,7 @@ final class RowFiltersTest extends FunSuite {
       val logLines = linesFrom(logStore.path)
       
       assert(logLines.size === 1)
-      assert(logLines.containsOnce("15:90225157:G:A"))
+      assert(logLines.containsOnce("(bedId,15:90225157:G:A)"))
     }
   }
   

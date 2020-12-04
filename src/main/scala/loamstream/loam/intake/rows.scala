@@ -11,14 +11,12 @@ import scala.util.Try
  * @author clint
  * Dec 17, 2019
  */
-trait RenderableRow {
-  def values: Seq[String]
-}
+trait RenderableRow extends HasHeaders with HasValues
 
-final case class LiteralRow(values: Seq[String]) extends RenderableRow
+final case class LiteralRow(values: Seq[String], headers: Seq[String] = Nil) extends RenderableRow
 
 object LiteralRow {
-  def apply(values: String*)(implicit discriminator: Int = 0): LiteralRow = new LiteralRow(values) 
+  def apply(values: String*): LiteralRow = new LiteralRow(values) 
 }
 
 trait SkippableRow[A <: SkippableRow[A]] { self: A =>
@@ -27,6 +25,14 @@ trait SkippableRow[A <: SkippableRow[A]] { self: A =>
   final def notSkipped: Boolean = !isSkipped
   
   def skip: A
+}
+
+trait HasValues {
+  def values: Seq[String]
+}
+
+trait HasHeaders {
+  def headers: Seq[String]
 }
 
 trait RowWithSize {
@@ -38,6 +44,8 @@ trait RowWithRecordNumber {
 }
 
 trait KeyedRow extends RowWithSize {
+  def headers: Seq[String]
+  
   def getFieldByName(name: String): String
   
   def getFieldByNameOpt(name: String): Option[String] = Try(getFieldByName(name)).toOption
@@ -65,10 +73,37 @@ final case class AggregatorVariantRow(
   n: Option[Double] = None,
   derivedFromRecordNumber: Option[Long] = None) extends RenderableRow {
   
+  import AggregatorVariantRow.fieldCount
+  
+  override def headers: Seq[String] = {
+    val buffer = new ArrayBuffer[String](fieldCount) //scalastyle:ignore magic.number
+    
+    def add(o: Option[_], columnName: ColumnName): Unit = {
+      if(o.isDefined) { 
+        buffer += columnName.name
+      }
+    }
+    
+    //TODO: This will be wrong is non-default column names were used :( :( 
+    
+    buffer += AggregatorColumnNames.marker.name
+    buffer += AggregatorColumnNames.pvalue.name
+    
+    add(zscore, AggregatorColumnNames.zscore)
+    add(stderr, AggregatorColumnNames.stderr)
+    add(beta, AggregatorColumnNames.beta)
+    add(oddsRatio, AggregatorColumnNames.odds_ratio)
+    add(eaf, AggregatorColumnNames.eaf)
+    add(maf, AggregatorColumnNames.maf)
+    add(n, AggregatorColumnNames.n)
+    
+    buffer
+  }
+  
   //NB: Profiler-informed optimization: adding to a Buffer is 2x faster than ++ or .flatten
   //We expect this method to be called a lot - once per row being output.
   override def values: Seq[String] = {
-    val buffer = new ArrayBuffer[String](10) //scalastyle:ignore magic.number
+    val buffer = new ArrayBuffer[String](fieldCount) //scalastyle:ignore magic.number
     
     def add(o: Option[Double]): Unit = o match {
       case Some(d) => buffer += d.toString
@@ -92,6 +127,10 @@ final case class AggregatorVariantRow(
   }
 }
 
+object AggregatorVariantRow {
+  private val fieldCount: Int = 10 //scalastyle:ignore magic.number
+}
+
 /**
  * @author clint
  * Dec 1, 2020
@@ -111,6 +150,8 @@ object VariantRow {
     
     def isSameStrand: Boolean = disposition.isSameStrand
     def isComplementStrand: Boolean = disposition.isComplementStrand
+    
+    override def headers: Seq[String] = delegate.headers
     
     override def getFieldByName(name: String): String = delegate.getFieldByName(name)
     
@@ -137,6 +178,8 @@ object VariantRow {
     
     final def isSameStrand: Boolean = derivedFrom.isSameStrand
     final def isComplementStrand: Boolean = derivedFrom.isComplementStrand
+    
+    override def headers: Seq[String] = derivedFrom.headers
     
     override def getFieldByName(name: String): String = derivedFrom.getFieldByName(name)
     

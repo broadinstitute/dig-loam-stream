@@ -9,7 +9,12 @@ import RowFilters.ConcreteCloseablePredicate
  * @author clint
  * Oct 14, 2020
  */
-trait RowFilters { self: IntakeSyntax => 
+trait RowFilters { self: IntakeSyntax =>
+  
+  private def asString(r: RenderableRow): String = r.headers.iterator.zip(r.values.iterator).map { 
+    case (h, v) => s"(${h},${v})"
+  }.mkString(",")
+  
   object DataRowFilters {
     private val di: Set[String] = Set("D", "I")
     
@@ -60,7 +65,7 @@ trait RowFilters { self: IntakeSyntax =>
         
         if(!valid) {
           logCtx.warn {
-            s"Row #${row.recordNumber} ${row.values.mkString(",")} contains a disallowed value from ${disallowed} " +
+            s"Row #${row.recordNumber} ${asString(row)} contains a disallowed value from ${disallowed} " +
             s"in ${refColumn(row)} or ${altColumn(row)}"
           }
         }
@@ -123,7 +128,8 @@ trait RowFilters { self: IntakeSyntax =>
             val valid = (eaf > 0.0) && (eaf < 1.0)
         
             if(!valid) {
-              logCtx.warn(s"Variant ${row.marker.underscoreDelimited}${rowNumberPart(row)}has invalid EAF (${eaf}): '${row}'")
+              logCtx.warn(s"Variant ${row.marker.underscoreDelimited}${rowNumberPart(row)}" +
+                          s"has invalid EAF (${eaf}): '${asString(row)}'")
             }
             
             valid
@@ -150,7 +156,8 @@ trait RowFilters { self: IntakeSyntax =>
             val valid = (maf > 0.0) && (maf <= 0.5)
         
             if(!valid) {
-              logCtx.warn(s"Variant ${row.marker.underscoreDelimited}${rowNumberPart(row)}has invalid MAF (${maf}): '${row}'")
+              logCtx.warn(s"Variant ${row.marker.underscoreDelimited}${rowNumberPart(row)}" + 
+                          s"has invalid MAF (${maf}): '${asString(row)}'")
             }
             
             valid
@@ -177,7 +184,8 @@ trait RowFilters { self: IntakeSyntax =>
         val valid = (pvalue > 0.0) && (pvalue <= 1.0)
         
         if(!valid) {
-          logCtx.warn(s"Variant ${row.marker.underscoreDelimited}${rowNumberPart(row)}has invalid P-value (${pvalue}): '${row}'")
+          logCtx.warn(s"Variant ${row.marker.underscoreDelimited}${rowNumberPart(row)}" +
+                      s"has invalid P-value (${pvalue}): '${asString(row)}'")
         }
         
         valid
@@ -191,7 +199,7 @@ trait RowFilters { self: IntakeSyntax =>
       case _ => " "
     }
     
-    s"Skipping row${recordNumberPart}'${r.values.mkString(",")}'"
+    s"Skipping row${recordNumberPart}'${asString(r)}'"
   }
   
   private def doLogToFile[R <: RenderableRow](

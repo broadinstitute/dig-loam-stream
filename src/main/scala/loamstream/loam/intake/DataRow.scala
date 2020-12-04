@@ -14,6 +14,12 @@ trait DataRow extends SkippableRow[DataRow] with KeyedRow with IndexedRow with R
 
 object DataRow {
   final case class CommonsCsvDataRow(delegate: CSVRecord, isSkipped: Boolean = false) extends DataRow {
+    override def headers: Seq[String] = {
+      import scala.collection.JavaConverters._
+      
+      delegate.getParser.getHeaderNames.asScala
+    }
+    
     override def getFieldByName(name: String): String = delegate.get(name)
     
     override def getFieldByIndex(i: Int): String = delegate.get(i)
@@ -26,6 +32,8 @@ object DataRow {
   }
   
   final case class JsonDataRow(json: JObject, recordNumber: Long, isSkipped: Boolean = false) extends DataRow {
+    override def headers: Seq[String] = json.values.keys.toList
+    
     override def getFieldByName(name: String): String = asString(json \ name, name)
     
     override def getFieldByNameOpt(name: String): Option[String] = asStringOpt(json \ name, name)

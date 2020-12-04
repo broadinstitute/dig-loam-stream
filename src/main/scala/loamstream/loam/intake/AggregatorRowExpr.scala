@@ -53,7 +53,7 @@ final case class AggregatorRowExpr(
   override def apply(row: VariantRow.Tagged): VariantRow.Parsed = { 
     def transformed = VariantRow.Transformed(
       derivedFrom = row, 
-      dataRow = AggregatorVariantRow(
+      aggRow = AggregatorVariantRow(
         marker = row.marker,
         pvalue = pvalueDef.apply(row),
         zscore = zscoreDef.map(_.apply(row)),
@@ -65,7 +65,7 @@ final case class AggregatorRowExpr(
         n = nDef.map(_.apply(row)),
         derivedFromRecordNumber = Some(row.recordNumber)))
         
-    def skipped(cause: Option[Failure[VariantRow.Parsed]]) = VariantRow.Skipped(row, dataRowOpt = None, cause = cause)
+    def skipped(cause: Option[Failure[VariantRow.Parsed]]) = VariantRow.Skipped(row, aggRowOpt = None, cause = cause)
         
     if(row.isSkipped) {
       skipped(cause = None)

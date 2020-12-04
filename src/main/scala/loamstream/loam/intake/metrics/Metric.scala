@@ -154,7 +154,7 @@ object Metric {
   
   def writeValidVariantsTo(sink: RowSink): Metric[Unit] = Fold.foreach { row =>
     if(row.notSkipped) {
-      row.dataRowOpt.foreach(sink.accept)
+      row.aggRowOpt.foreach(sink.accept)
     }
   }
 }

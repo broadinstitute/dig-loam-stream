@@ -1,10 +1,12 @@
 package loamstream.loam.intake.dga
 
+import loamstream.loam.intake.DataRow
 import loamstream.util.HttpClient
 import loamstream.util.SttpHttpClient
 import org.json4s._
 import org.json4s.JsonAST.JNumber
 import loamstream.loam.intake.Source
+import loamstream.loam.intake.ColumnName
 
 /**
  * @author clint
@@ -14,7 +16,7 @@ trait DgaSyntax {
   object Dga {
     def versionAndTissueSource(
         httpClient: HttpClient = new SttpHttpClient(), 
-        url: String = Defaults.tissueUrl): (String, Source[Tissue]) = {
+        url: String = Defaults.tissueUrl): (Source[String], Source[Tissue]) = {
       
       import org.json4s.jackson.JsonMethods._
       
@@ -35,13 +37,11 @@ trait DgaSyntax {
         case jv => sys.error(s"Couldn't determine tissue ontology version, got $jv from '${pretty(json)}'")
       }
       
-      val jsonE = httpClient.post(url, headers = Map("Content-Type" -> "application/json")).map(parse(_))
-      
-      /*val (version, rows) = jsonE match {
-        case Right(json) => getVersion(json) -> Source.fromJson(getTissueRows) { 
-          ???
+      def getJson: JValue = {
+        httpClient.post(url, headers = Map("Content-Type" -> "application/json")).map(parse(_)) match {
+          case Right(json) => json
+          case Left(message) => sys.error(s"Error accessing tissue ontology: '${message}'")
         }
-        case Left(message) => sys.error(s"Error accessing tissue ontology: '${message}'")
       }
       
       def toTissue(row: DataRow): Tissue = {
@@ -51,9 +51,15 @@ trait DgaSyntax {
         Tissue(id = row.getFieldByNameOpt("tissue_id"), name = row.getFieldByNameOpt("name")) 
       }
       
-      (version.trim, rows.map(toTissue))*/
-      
-      ???
+      lazy val json = getJson
+        
+      val version = Source.FromIterator {
+        Iterator(getVersion(json).trim)
+      }
+        
+      val rows = Source.fromJson(getTissueRows)(json).map(toTissue)
+
+      version -> rows
     }
     
     object Defaults {

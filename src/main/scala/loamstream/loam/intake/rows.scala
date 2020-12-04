@@ -124,7 +124,7 @@ object VariantRow {
   sealed trait Parsed extends DataRow {
     val derivedFrom: Tagged
     
-    def dataRowOpt: Option[AggregatorVariantRow]
+    def aggRowOpt: Option[AggregatorVariantRow]
     
     def isSkipped: Boolean
     
@@ -149,20 +149,20 @@ object VariantRow {
   
   final case class Transformed(
       derivedFrom: Tagged,
-      dataRow: AggregatorVariantRow) extends Parsed {
+      aggRow: AggregatorVariantRow) extends Parsed {
     
-    override def dataRowOpt: Option[AggregatorVariantRow] = Some(dataRow)
+    override def aggRowOpt: Option[AggregatorVariantRow] = Some(aggRow)
     
     override def isSkipped: Boolean = false
     
-    override def skip: Skipped = Skipped(derivedFrom, dataRowOpt)
+    override def skip: Skipped = Skipped(derivedFrom, aggRowOpt)
     
-    override def transform(f: AggregatorVariantRow => AggregatorVariantRow): Transformed = copy(dataRow = f(dataRow))
+    override def transform(f: AggregatorVariantRow => AggregatorVariantRow): Transformed = copy(aggRow = f(aggRow))
   }
   
   final case class Skipped(
       derivedFrom: Tagged, 
-      dataRowOpt: Option[AggregatorVariantRow],
+      aggRowOpt: Option[AggregatorVariantRow],
       message: Option[String] = None,
       cause: Option[Failure[Parsed]] = None) extends Parsed {
     

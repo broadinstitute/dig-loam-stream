@@ -43,7 +43,7 @@ final class VarIdTransformationTest extends FunSuite {
     val dataRows = rows.tagFlips(varIdDef, flipDetector).map(toAggregatorRow).records.toIndexedSeq
     
     assert(dataRows.size === 1)
-    assert(dataRows.head.dataRowOpt.get.marker === v)
+    assert(dataRows.head.aggRowOpt.get.marker === v)
   }
   
   test("Var ids are transformed properly when flips are detected") {
@@ -52,12 +52,14 @@ final class VarIdTransformationTest extends FunSuite {
     def inputVarIds = inputsAndExpectedOutputs.iterator.collect { case (i, _) => i }
     
     val source: Source[DataRow] = Source.FromIterator {
-      inputVarIds.map(i => LiteralCsvRow(varIdColumnName.name, i.underscoreDelimited)) 
+      inputVarIds.zipWithIndex.map { case (variant, i) => 
+        LiteralCsvRow(varIdColumnName.name, variant.underscoreDelimited, i.toLong) 
+      }
     }
     
     val dataRows = source.tagFlips(varIdDef, flipDetector).map(toAggregatorRow)
-      
-    val actualVarIds = dataRows.map(_.dataRowOpt.get.marker)
+    
+    val actualVarIds = dataRows.map(_.aggRowOpt.get.marker)
       
     actualVarIds.records.zip(inputsAndExpectedOutputs.iterator).foreach { case (actual, (input, expected)) =>
       def msg = {
@@ -174,7 +176,11 @@ final class VarIdTransformationTest extends FunSuite {
 }
 
 object VarIdTransformationTest {
-  final case class LiteralCsvRow(private val fieldName: String, private val fieldValue: String) extends DataRow {
+  final case class LiteralCsvRow(
+      private val fieldName: String, 
+      private val fieldValue: String,
+      recordNumber: Long = 42) extends DataRow {
+    
     override def getFieldByName(name: String): String = {
       require(name == fieldName)
       
@@ -188,8 +194,6 @@ object VarIdTransformationTest {
     }
     
     override def size: Int = 1
-    
-    override def recordNumber: Long = ???
     
     override def isSkipped: Boolean = false
     

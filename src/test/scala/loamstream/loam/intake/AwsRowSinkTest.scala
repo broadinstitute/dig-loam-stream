@@ -24,8 +24,10 @@ final class AwsRowSinkTest extends FunSuite {
     assert(sink.toKey("foo/bar/baz") === "some-topic/some-name/foo/bar/baz")
   }
   
+  private def randomUUID: String = UUID.randomUUID.toString
+  
   test("nextFileName") {
-    val uuid = UUID.randomUUID.toString
+    val uuid = randomUUID
     
     val sink = AwsRowSink(
         topic = "some-topic", 
@@ -48,28 +50,54 @@ final class AwsRowSinkTest extends FunSuite {
   }
   
   test("write / accept") {
-    def doTest(put: AwsRowSink => RenderableRow => Unit): Unit = {
-      val headers = Seq("X", "Y", "Z")
-      
-      val rows = Seq(
-          LiteralRow(headers = headers, values = Seq("4", "3", "2")),
-          LiteralRow(headers = headers, values = Seq("z", "x", "c")),
-          LiteralRow(headers = headers, values = Seq("q", "w", "e")))
-          
-      val client = MockAwsClient.apply("some-bucket")
-          
-      val sink = AwsRowSink(
-          topic = "some-topic", 
-          name = "some-name", 
-          batchSize = 2,
-          awsClient = client)
-          
-      assert(client.isEmpty)
-          
-      put(sink)(rows(0))
-      
-      assert(client.isEmpty)
-    }
+    val headers = Seq("X", "Y", "Z")
+    
+    val rows = Seq(
+        LiteralRow(headers = headers, values = Seq("4", "3", "2")),
+        LiteralRow(headers = headers, values = Seq("z", "x", "c")),
+        LiteralRow(headers = headers, values = Seq("q", "w", "e")),
+        LiteralRow(headers = headers, values = Seq("f", "o", "o")))
+        
+    val client = MockAwsClient.apply("some-bucket")
+        
+    val uuid = randomUUID 
+    
+    val sink = AwsRowSink(
+        topic = "some-topic", 
+        name = "some-name", 
+        batchSize = 2,
+        awsClient = client,
+        yes = true,
+        fileIds = Iterator(2, 4, 6, 8),
+        uuid = uuid)
+        
+    assert(client.isEmpty)
+        
+    sink.accept(rows(0))
+    
+    assert(client.isEmpty)
+    
+    sink.accept(rows(1))
+    
+    val newline = '\n'
+    
+    val expected0 = Map(
+      s"some-bucket/some-topic/some-name/part-002-${uuid}.json" -> 
+        AwsRowSinkTest.MockValue(s"""{"X":"4","Y":"3","Z":"2"}${newline}{"X":"z","Y":"x","Z":"c"}""", Some(AwsClient.ContentType.ApplicationJson)))
+    
+    assert(client.data === expected0)
+    
+    sink.accept(rows(2))
+    
+    assert(client.data === expected0)
+    
+    sink.accept(rows(3))
+    
+    val expected1 = expected0 + (
+      s"some-bucket/some-topic/some-name/part-004-${uuid}.json" -> 
+        AwsRowSinkTest.MockValue(s"""{"X":"q","Y":"w","Z":"e"}${newline}{"X":"f","Y":"o","Z":"o"}""", Some(AwsClient.ContentType.ApplicationJson)))
+        
+    assert(client.data === expected1)
   }
 }
 

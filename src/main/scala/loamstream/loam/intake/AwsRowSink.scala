@@ -181,7 +181,7 @@ final case class AwsRowSink(
     uploadedSoFarBox.foreach { _ =>
       //add the object to the batch as a JSON string (compacted)
       batch += compact(render(obj))
-  
+      
       //if the size reached the commit size, then commit it
       if(batch.size >= batchSize) {
         flush()

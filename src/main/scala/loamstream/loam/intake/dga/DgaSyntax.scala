@@ -7,13 +7,15 @@ import org.json4s._
 import org.json4s.JsonAST.JNumber
 import loamstream.loam.intake.Source
 import loamstream.loam.intake.ColumnName
+import loamstream.util.TimeUtils
+import loamstream.util.Loggable
 
 /**
  * @author clint
  * Dec 1, 2020
  */
 trait DgaSyntax { 
-  object Dga {
+  object Dga extends Loggable {
     def versionAndTissueSource(
         httpClient: HttpClient = new SttpHttpClient(), 
         url: String = Defaults.tissueUrl): (Source[String], Source[Tissue]) = {
@@ -51,7 +53,9 @@ trait DgaSyntax {
         Tissue(id = row.getFieldByNameOpt("tissue_id"), name = row.getFieldByNameOpt("name")) 
       }
       
-      lazy val json = getJson
+      lazy val json = TimeUtils.time(s"Hitting $url", info(_)) {
+        getJson
+      }
         
       val version = Source.FromIterator {
         Iterator(getVersion(json).trim)

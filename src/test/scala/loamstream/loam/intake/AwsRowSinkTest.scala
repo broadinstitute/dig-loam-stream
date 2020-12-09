@@ -49,7 +49,68 @@ final class AwsRowSinkTest extends FunSuite {
     assert(fileNames === expected)
   }
   
-  test("write / accept") {
+  test("accept / write / flush") {
+    val headers = Seq("X", "Y", "Z")
+    
+    val rows = Seq(
+        LiteralRow(headers = headers, values = Seq("4", "3", "2")),
+        LiteralRow(headers = headers, values = Seq("z", "x", "c")),
+        LiteralRow(headers = headers, values = Seq("q", "w", "e")),
+        LiteralRow(headers = headers, values = Seq("f", "o", "o")))
+        
+    val client = MockAwsClient.apply("some-bucket")
+        
+    val uuid = randomUUID 
+    
+    val sink = AwsRowSink(
+        topic = "some-topic", 
+        name = "some-name", 
+        batchSize = 2,
+        awsClient = client,
+        yes = true,
+        fileIds = Iterator(2, 4, 6, 8),
+        uuid = uuid)
+        
+    assert(client.isEmpty)
+    assert(sink.uploadedSoFar === 0)
+    assert(sink.batchedSoFar === 0)
+        
+    sink.accept(rows(0))
+    
+    assert(client.isEmpty)
+    assert(sink.uploadedSoFar === 0)
+    assert(sink.batchedSoFar === 1)
+    
+    sink.accept(rows(1))
+    
+    val newline = '\n'
+    
+    val expected0 = Map(
+      s"some-bucket/some-topic/some-name/part-002-${uuid}.json" -> 
+        AwsRowSinkTest.MockValue(s"""{"X":"4","Y":"3","Z":"2"}${newline}{"X":"z","Y":"x","Z":"c"}""", Some(AwsClient.ContentType.ApplicationJson)))
+    
+    assert(client.data === expected0)
+    assert(sink.uploadedSoFar === 2)
+    assert(sink.batchedSoFar === 0)
+    
+    sink.accept(rows(2))
+    
+    assert(client.data === expected0)
+    assert(sink.uploadedSoFar === 2)
+    assert(sink.batchedSoFar === 1)
+    
+    sink.accept(rows(3))
+    
+    val expected1 = expected0 + (
+      s"some-bucket/some-topic/some-name/part-004-${uuid}.json" -> 
+        AwsRowSinkTest.MockValue(s"""{"X":"q","Y":"w","Z":"e"}${newline}{"X":"f","Y":"o","Z":"o"}""", Some(AwsClient.ContentType.ApplicationJson)))
+        
+    assert(client.data === expected1)
+    assert(sink.uploadedSoFar === 4)
+    assert(sink.batchedSoFar === 0)
+  }
+  
+  test("flush") {
     val headers = Seq("X", "Y", "Z")
     
     val rows = Seq(
@@ -77,27 +138,15 @@ final class AwsRowSinkTest extends FunSuite {
     
     assert(client.isEmpty)
     
-    sink.accept(rows(1))
+    sink.flush()
     
-    val newline = '\n'
+    val json = Some(AwsClient.ContentType.ApplicationJson)
     
     val expected0 = Map(
       s"some-bucket/some-topic/some-name/part-002-${uuid}.json" -> 
-        AwsRowSinkTest.MockValue(s"""{"X":"4","Y":"3","Z":"2"}${newline}{"X":"z","Y":"x","Z":"c"}""", Some(AwsClient.ContentType.ApplicationJson)))
+        AwsRowSinkTest.MockValue(s"""{"X":"4","Y":"3","Z":"2"}""", json))
     
     assert(client.data === expected0)
-    
-    sink.accept(rows(2))
-    
-    assert(client.data === expected0)
-    
-    sink.accept(rows(3))
-    
-    val expected1 = expected0 + (
-      s"some-bucket/some-topic/some-name/part-004-${uuid}.json" -> 
-        AwsRowSinkTest.MockValue(s"""{"X":"q","Y":"w","Z":"e"}${newline}{"X":"f","Y":"o","Z":"o"}""", Some(AwsClient.ContentType.ApplicationJson)))
-        
-    assert(client.data === expected1)
   }
 }
 

@@ -47,9 +47,9 @@ final class DgaTissueUploadTest extends AwsFunSuite with IntakeSyntax with DgaSy
     val uploaded = awsClient.list(s"${testDir}")
     
     val expectedKeys = Set(
-        s"${testDir}/some-topic/some-name/part-000-${uuid}.json",
-        s"${testDir}/some-topic/some-name/part-001-${uuid}.json",
-        s"${testDir}/some-topic/some-name/part-002-${uuid}.json")
+        s"${testDir}/some-topic/some-name/part-00000-${uuid}.json",
+        s"${testDir}/some-topic/some-name/part-00001-${uuid}.json",
+        s"${testDir}/some-topic/some-name/part-00002-${uuid}.json")
     
     assert(uploaded.toSet == expectedKeys)
   }

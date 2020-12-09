@@ -197,7 +197,7 @@ final case class AwsRowSink(
   }
   
   //TODO: How much padding?
-  private[intake] def nextFileName(): String = f"part-${fileIds.next()}%03d-${uuid}.json"
+  private[intake] def nextFileName(): String = f"part-${fileIds.next()}%05d-${uuid}.json"
   
   /**
    * Write the current batch to a part file.

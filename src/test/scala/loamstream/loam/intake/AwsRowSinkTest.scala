@@ -40,11 +40,11 @@ final class AwsRowSinkTest extends FunSuite {
     val fileNames = (1 to 5).map(_ => sink.nextFileName())
     
     val expected = Seq(
-        s"part-001-${uuid}.json",
-        s"part-002-${uuid}.json",
-        s"part-003-${uuid}.json",
-        s"part-004-${uuid}.json",
-        s"part-005-${uuid}.json")
+        s"part-00001-${uuid}.json",
+        s"part-00002-${uuid}.json",
+        s"part-00003-${uuid}.json",
+        s"part-00004-${uuid}.json",
+        s"part-00005-${uuid}.json")
         
     assert(fileNames === expected)
   }
@@ -86,7 +86,7 @@ final class AwsRowSinkTest extends FunSuite {
     val newline = '\n'
     
     val expected0 = Map(
-      s"some-bucket/some-topic/some-name/part-002-${uuid}.json" -> 
+      s"some-bucket/some-topic/some-name/part-00002-${uuid}.json" -> 
         AwsRowSinkTest.MockValue(s"""{"X":"4","Y":"3","Z":"2"}${newline}{"X":"z","Y":"x","Z":"c"}""", Some(AwsClient.ContentType.ApplicationJson)))
     
     assert(client.data === expected0)
@@ -102,7 +102,7 @@ final class AwsRowSinkTest extends FunSuite {
     sink.accept(rows(3))
     
     val expected1 = expected0 + (
-      s"some-bucket/some-topic/some-name/part-004-${uuid}.json" -> 
+      s"some-bucket/some-topic/some-name/part-00004-${uuid}.json" -> 
         AwsRowSinkTest.MockValue(s"""{"X":"q","Y":"w","Z":"e"}${newline}{"X":"f","Y":"o","Z":"o"}""", Some(AwsClient.ContentType.ApplicationJson)))
         
     assert(client.data === expected1)
@@ -143,7 +143,7 @@ final class AwsRowSinkTest extends FunSuite {
     val json = Some(AwsClient.ContentType.ApplicationJson)
     
     val expected0 = Map(
-      s"some-bucket/some-topic/some-name/part-002-${uuid}.json" -> 
+      s"some-bucket/some-topic/some-name/part-00002-${uuid}.json" -> 
         AwsRowSinkTest.MockValue(s"""{"X":"4","Y":"3","Z":"2"}""", json))
     
     assert(client.data === expected0)

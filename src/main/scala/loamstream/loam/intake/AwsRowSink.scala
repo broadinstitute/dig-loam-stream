@@ -31,6 +31,7 @@ final case class AwsRowSink(
     name: String,
     batchSize: Int,
     awsClient: AwsClient,
+    baseDir: Option[String] = None,
     // :(
     yes: Boolean = false,
     private val fileIds: Iterator[Long] = AwsRowSink.defaultFileIdSequence,
@@ -66,7 +67,13 @@ final case class AwsRowSink(
   /**
    * Build the prefix key path for this dataset.
    */
-  private val path: String = s"${topic}/${name}"
+  private val path: String = {
+    def addTrailingSlashIfNeeded(s: String): String = if(s.endsWith("/")) s else s"${s}/"
+    
+    val baseDirPart = baseDir.map(addTrailingSlashIfNeeded).getOrElse("")
+    
+    s"${baseDirPart}${topic}/${name}"
+  }
 
   /**
    * Build a key for a given file.

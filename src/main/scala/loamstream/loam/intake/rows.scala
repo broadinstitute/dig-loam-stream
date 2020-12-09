@@ -167,8 +167,6 @@ object VariantRow {
     
     def aggRowOpt: Option[AggregatorVariantRow]
     
-    def isSkipped: Boolean
-    
     override def skip: Parsed
     
     def transform(f: AggregatorVariantRow => AggregatorVariantRow): Parsed

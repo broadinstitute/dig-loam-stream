@@ -1,10 +1,12 @@
 package loamstream.loam.intake.dga
 
+import loamstream.loam.intake.RenderableRow
+
 /**
  * @author clint
  * Dec 1, 2020
  */
-final case class Tissue(id: Option[String], name: Option[String]) {
+final case class Tissue(id: Option[String], name: Option[String]) extends RenderableRow {
   def isValid: Boolean = {
     def isValidPrefix(s: String): Boolean = s.trim match {
       case "UBERON" | "CLO" | "CL" | "EFO" | "BTO" => true
@@ -16,4 +18,8 @@ final case class Tissue(id: Option[String], name: Option[String]) {
       case _ => false
     }
   }
+  
+  override def headers: Seq[String] = Seq("id", "name")
+  
+  override def values: Seq[String] = Nil ++ id ++ name
 }

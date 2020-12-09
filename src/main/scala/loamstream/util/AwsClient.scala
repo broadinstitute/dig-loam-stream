@@ -14,7 +14,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest
 trait AwsClient {
   def bucket: String
   
-  def list(prefix: String, delimiter: String): Seq[String]
+  def list(prefix: String, delimiter: String = "/"): Seq[String]
   
   def deleteDir(key: String): Unit
   
@@ -33,7 +33,7 @@ object AwsClient {
   final class Default(aws: AWS) extends AwsClient {
     override def bucket: String = aws.bucket
     
-    override def list(prefix: String, delimiter: String): Seq[String] = {
+    override def list(prefix: String, delimiter: String = "/"): Seq[String] = {
       aws.ls(prefix).unsafeRunSync()
     }
   

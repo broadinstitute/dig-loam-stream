@@ -21,21 +21,27 @@ import scala.util.Try
  * Dec 4, 2020
  */
 object AwsRowSink {
-  def defaultFileIdSequence: Iterator[Long] = Sequence[Long]().iterator
+  object Defaults {
+    def fileIdSequence: Iterator[Long] = Sequence[Long]().iterator
   
-  def randomUUID: String = UUID.randomUUID.toString
+    def randomUUID: String = UUID.randomUUID.toString
+  
+    def batchSize: Int = 300000
+    
+    def baseDir: Option[String] = None
+  }
 }
 
 final case class AwsRowSink(
     topic: String,
     name: String,
-    batchSize: Int,
     awsClient: AwsClient,
-    baseDir: Option[String] = None,
+    batchSize: Int = AwsRowSink.Defaults.batchSize,
+    baseDir: Option[String] = AwsRowSink.Defaults.baseDir,
     // :(
     yes: Boolean = false,
-    private val fileIds: Iterator[Long] = AwsRowSink.defaultFileIdSequence,
-    private val uuid: String = AwsRowSink.randomUUID) extends RowSink with Loggable {
+    private val fileIds: Iterator[Long] = AwsRowSink.Defaults.fileIdSequence,
+    private val uuid: String = AwsRowSink.Defaults.randomUUID) extends RowSink with Loggable {
   
   private[this] val initializedBox: ValueBox[Boolean] = ValueBox(false)
   

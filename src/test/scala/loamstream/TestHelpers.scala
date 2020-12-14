@@ -253,7 +253,7 @@ object TestHelpers {
     val workDir = getWorkDir(basename, deleteAtJvmShutdown = false)
     
     try { body(workDir) }
-    finally { /*FileUtils.deleteQuietly(workDir.toFile)*/ }
+    finally { FileUtils.deleteQuietly(workDir.toFile) }
   }
 
   def loamEngine: LoamEngine = LoamEngine.default(config, LsSettings.noCliConfig)

@@ -14,6 +14,7 @@ import loamstream.util.Processes
 import scala.util.Try
 import java.time.Instant
 import java.time.LocalDateTime
+import loamstream.util.Terminable
 
 /**
  * @author clint

@@ -26,19 +26,26 @@ object BashScript extends Loggable {
   }
 
   /** Characters that should be escaped by prefixing with backslash */
-  private val charsToBeEscaped: Set[Char] = Set('\\', '\'', '\"', '\n', '\r', '\t', '\b', '\f', ' ')
+  //NB: Profiler-guided optimization: pattern-matching is almost 2x faster than using a Set, and this method gets 
+  //called _a lot_.
+  private def shouldBeEscaped(ch: Char): Boolean = ch match {
+    case '\\' | '\'' | '\"' | '\n' | '\r' | '\t' | '\b' | '\f' | ' ' => true
+    case _ => false
+  }
 
   /**
    * Escapes string for Bash.
-   * Note new StringBuilder-oriented approach, which is significantly faster than the previous one that relied on
-   * String.flatMap.  Somewhat surprisingly, this method was a significant component of the graph-validation code's
-   * running time before switching to the StringBuilder approach.
    */
   def escapeString(string: String): String = {
+    /*
+     * Note new StringBuilder-oriented approach, which is significantly faster than the previous one that relied on
+     * String.flatMap.  Somewhat surprisingly, this method was a significant component of the graph-validation code's
+     * running time before switching to the StringBuilder approach. 
+     */
     val builder = new StringBuilder(string.length * 2)
 
     string.foreach { c =>
-      if (charsToBeEscaped(c)) {
+      if (shouldBeEscaped(c)) {
         builder.append('\\')
       }
 

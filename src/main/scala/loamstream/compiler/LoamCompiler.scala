@@ -10,7 +10,6 @@ import scala.tools.reflect.ReflectGlobal
 import loamstream.compiler.Issue.Severity
 import loamstream.compiler.LoamCompiler.CompilerReporter
 import loamstream.conf.LoamConfig
-import loamstream.loam.GraphPrinter
 import loamstream.loam.LoamGraph
 import loamstream.loam.LoamGraphValidation
 import loamstream.loam.LoamProjectContext
@@ -279,17 +278,6 @@ final class LoamCompiler(
     result
   }
 
-  private def reportCompilation(project: LoamProject, graph: LoamGraph): Unit = {
-    val lengthOfLine = 100
-    val graphPrinter = GraphPrinter.byLine(lengthOfLine)
-
-    logScripts(LogContext.Level.Trace, project)
-
-    trace(s"""|[Start Graph]
-              |${graphPrinter.print(graph)}
-              |[End Graph]""".stripMargin)
-  }
-
   private def withRun[A](f: compiler.Run => A): A = {
     reporter.reset()
     targetDirectory.clear()
@@ -356,8 +344,6 @@ final class LoamCompiler(
               validateGraph(graph)
             }
           }
-
-          reportCompilation(project, graph)
 
           debug(s"Compilation finished.")
 

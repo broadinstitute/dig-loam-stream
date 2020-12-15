@@ -1,8 +1,11 @@
 package loamstream.loam.intake.flip
 
 import org.scalatest.FunSuite
-import loamstream.loam.intake.IntakeSyntax
+
 import loamstream.loam.intake.CsvRow
+import loamstream.loam.intake.LiteralColumnExpr
+import loamstream.loam.intake.IntakeSyntax
+
 
 
 /**
@@ -14,32 +17,51 @@ final class VarIdTransformationTest extends FunSuite {
   private lazy val flipDetector: FlipDetector = FlipDetectorTest.makeFlipDetector
   
   import VarIdTransformationTest.LiteralCsvRow
+  import IntakeSyntax._
+  
+  private val varIdColumnName = ColumnName("VAR_ID")
+  private val pvalueColumnName = ColumnName("P_VALUE")
+  
+  private val variantExpr = varIdColumnName.map(Variant.from)
+    
+  private val varIdDef = MarkerColumnDef(
+    varIdColumnName,
+    variantExpr)
+    
+  private val toAggregatorRow: AggregatorRowExpr = AggregatorRowExpr(
+    markerDef = varIdDef,
+    pvalueDef = NamedColumnDef(AggregatorColumnNames.pvalue, LiteralColumnExpr(42.0)))
+  
+  
+  test("problematic variant 1_713131_AT_A") {
+
+    val v = Variant.from("1_713131_AT_A")
+    
+    val rows = Source.fromString(s"""|${varIdColumnName.name}
+                                     |${v.underscoreDelimited}""".stripMargin)
+    
+    val dataRows = rows.tagFlips(varIdDef, flipDetector).map(toAggregatorRow).records.toIndexedSeq
+    
+    assert(dataRows.size === 1)
+    assert(dataRows.head.dataRowOpt.get.marker === v)
+  }
   
   test("Var ids are transformed properly when flips are detected") {
     import IntakeSyntax._
     
     def inputVarIds = inputsAndExpectedOutputs.iterator.collect { case (i, _) => i }
     
-    val source: CsvSource = CsvSource.FromIterator {
-      inputVarIds.map(i => LiteralCsvRow("VAR_ID", i)) 
+    val source: Source[CsvRow] = Source.FromIterator {
+      inputVarIds.map(i => LiteralCsvRow(varIdColumnName.name, i.underscoreDelimited)) 
     }
     
-    val varIdColumnName = ColumnName("VAR_ID")
-    
-    val varIdDef = ColumnDef(
-        varIdColumnName, 
-        varIdColumnName, 
-        varIdColumnName.map(Variant.from(_).flip.underscoreDelimited))
-    
-    val rowDef = UnsourcedRowDef(varIdDef = varIdDef, otherColumns = Nil)
-    
-    val (headerRow, dataRows) = process(flipDetector)(rowDef.from(source))
+    val dataRows = source.tagFlips(varIdDef, flipDetector).map(toAggregatorRow)
       
-    val actualVarIds = dataRows.map(_.values.head)
+    val actualVarIds = dataRows.map(_.dataRowOpt.get.marker)
       
-    actualVarIds.zip(inputsAndExpectedOutputs.iterator).foreach { case (actual, (input, expected)) =>
+    actualVarIds.records.zip(inputsAndExpectedOutputs.iterator).foreach { case (actual, (input, expected)) =>
       def msg = {
-        s"Actual '$input' should have been turned to '$expected' but got '$actual'. " + 
+        s"Input '$input' should have been turned into '$expected' but got '$actual'. " + 
         s"Input flipped? ${flipDetector.isFlipped(input)}"
       }
       
@@ -47,7 +69,9 @@ final class VarIdTransformationTest extends FunSuite {
     }
   }
   
-  private val inputsAndExpectedOutputs: Seq[(String, String)] = Seq(
+  import loamstream.loam.intake.Variant
+  
+  private val inputsAndExpectedOutputs: Seq[(Variant, Variant)] = Seq(
     ("1_612688_T_TCTC","1_612688_T_TCTC"),
     ("1_636285_C_T","1_636285_T_C"),
     ("1_649192_T_A","1_649192_A_T"),
@@ -146,7 +170,7 @@ final class VarIdTransformationTest extends FunSuite {
     ("1_752721_G_A","1_752721_A_G"),
     ("1_752894_C_T","1_752894_T_C"),
     ("1_753405_A_C","1_753405_C_A"),
-    ("1_753425_C_T","1_753425_T_C"))
+    ("1_753425_C_T","1_753425_T_C")).map { case (i, e) => (Variant.from(i), Variant.from(e)) }
 }
 
 object VarIdTransformationTest {
@@ -166,5 +190,9 @@ object VarIdTransformationTest {
     override def size: Int = 1
     
     override def recordNumber: Long = ???
+    
+    override def isSkipped: Boolean = false
+    
+    override def skip: CsvRow = ???
   }
 }

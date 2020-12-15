@@ -15,7 +15,7 @@ import scala.reflect.ClassTag
 sealed trait LoamToken {
   def render: String
 
-  override def toString = render
+  override def toString: String = render
 }
 
 object LoamToken {

@@ -1,14 +1,14 @@
-package loamstream.loam.intake
+/*package loamstream.loam.intake
 
 import java.nio.file.Paths
 
 import loamstream.util.Loggable
 import loamstream.util.TimeUtils
 
-/**
+*//**
  * @author clint
  * Feb 25, 2020
- */
+ *//*
 object DslExample1 extends App with Loggable {
   
   import IntakeSyntax._
@@ -67,7 +67,7 @@ object DslExample1 extends App with Loggable {
     val PDashValue = "P-value".asColumnName
   }
   
-  val src: CsvSource = CsvSource.fromCommandLine("cat data.txt")
+  val src: RowSource = CsvSource.fromCommandLine("cat data.txt")
   
   val (header, rows) = TimeUtils.time("Making DataRow iterator", info(_)) {
     val flipDetector = new FlipDetector.Default(
@@ -100,3 +100,4 @@ object DslExample1 extends App with Loggable {
     rows.size
   }
 }
+*/

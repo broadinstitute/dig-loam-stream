@@ -53,8 +53,8 @@ final case class Execution(
     case (EnvironmentType.Aws, Some(_: AwsResources)) => true
     case _ => false
   }
-  
-  def isPersistable: Boolean = (isSkipped || isCommandExecution) && cmd.isDefined
+
+  def isPersistable: Boolean = isSkipped || cmd.isDefined
   def notPersistable: Boolean = !isPersistable
   
   //NB :(
@@ -156,10 +156,7 @@ object Execution extends Loggable {
       resources: Option[Resources] = None,
       terminationReason: Option[TerminationReason] = None): Execution = {
     
-    val commandLine: Option[String] = job match {
-      case clj: CommandLineJob => Option(clj.commandLineString)
-      case _ => None
-    }
+    val commandLine: Option[String] = Identifier.from(job)
     
     val outputRecords = job.outputs.map(_.toStoreRecord)
     

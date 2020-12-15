@@ -515,10 +515,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
         }
       }
   
-      doTest(Some(mockCmd), JobResult.Failure)
       doTest(None, JobResult.Failure)
-      doTest(Some(mockCmd), JobResult.CommandResult(1))
-      doTest(Some(mockCmd), JobResult.CommandResult(1))
       doTest(None, JobResult.CommandResult(0))
     }
     

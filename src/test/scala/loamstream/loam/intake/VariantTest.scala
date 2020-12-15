@@ -7,6 +7,29 @@ import org.scalatest.FunSuite
  * Apr 1, 2020
  */
 final class VariantTest extends FunSuite {
+  
+  test("complement") {
+    assert(Variant("1", 123, "A", "C").complement === Variant("1", 123, "T", "G"))
+    assert(Variant("1", 123, "T", "G").complement === Variant("1", 123, "A", "C"))
+    
+    def doRoundTrip(v: Variant): Unit = {
+      assert(v.complement.complement === v) 
+    }
+    
+    doRoundTrip(Variant("1", 123, "A", "C"))
+    doRoundTrip(Variant("1", 123, "T", "G"))
+  }
+  
+  test("toUpperCase") {
+    val v = Variant(chrom = "xwYE", pos = 123, alt = "zxC", ref = "yUi")
+    
+    val expected = Variant(chrom = "XWYE", pos = 123, alt = "ZXC", ref = "YUI")
+    
+    assert(v.toUpperCase === expected)
+    
+    assert(v.toUpperCase.toUpperCase === expected)
+  }
+  
   test("from") {
     import Variant.from
     

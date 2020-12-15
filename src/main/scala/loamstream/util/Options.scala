@@ -22,6 +22,11 @@ object Options {
         case Some(b) => b
         case None => false
       }
+      
+      def zip[B](ob: Option[B]): Option[(A, B)] = (o, ob) match {
+        case (Some(a), Some(b)) => Some((a, b))
+        case _ => None
+      }
     }
   }
 }

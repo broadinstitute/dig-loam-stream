@@ -36,7 +36,7 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps wit
 
   override def insertExecutions(executions: Iterable[Execution]): Unit = {
 
-    requireCommandExecution(executions)
+    requirePersistableExecution(executions)
 
     val inserts = insertableExecutions(executions).map(insert)
 
@@ -106,7 +106,7 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps wit
     ExecutionQueries.executionById(executionId).result.headOption.transactionally
   }
   
-  private def requireCommandExecution(executions: Iterable[Execution]): Unit = {
+  private def requirePersistableExecution(executions: Iterable[Execution]): Unit = {
     def firstNonPersistableExecution: Execution = executions.find(_.notPersistable).get
 
     require(
@@ -120,10 +120,11 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps wit
     executions.collect {
       case e @ Execution.WithCommandResult(cr) => e -> cr
       //NB: Allow storing the failure to invoke a command; give this case DummyExitCode
-      case e @ Execution.WithCommandInvocationFailure(cif) => {
+      case e @ Execution.WithThrowable(_) => {
         // TODO: Better to assign e -> JobResult.Failure?
         e -> CommandResult(JobResult.DummyExitCode)
       }
+      case e if e.isSuccess => e -> CommandResult(0)
     }
   }
   

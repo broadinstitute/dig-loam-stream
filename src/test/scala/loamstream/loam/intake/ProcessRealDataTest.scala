@@ -6,13 +6,16 @@ import loamstream.TestHelpers
 import loamstream.util.Files
 import loamstream.util.TimeUtils
 import scala.util.control.NonFatal
-import loamstream.loam.intake.aggregator.ColumnDefs
+import loamstream.loam.LoamSyntax
+import loamstream.util.Loggable
+import loamstream.compiler.LoamEngine
+import loamstream.model.execute.RxExecuter
 
 /**
  * @author clint
  * Apr 6, 2020
  */
-final class ProcessRealDataTest extends FunSuite {
+final class ProcessRealDataTest extends FunSuite with Loggable {
   test("Real input produces output that matches the existing/old Perl scripts") {
     import IntakeSyntax._
     import TestHelpers._
@@ -34,54 +37,98 @@ final class ProcessRealDataTest extends FunSuite {
     }
     
     import ColumnNames._
-    import ColumnDefs._
+    import AggregatorColumnDefs._
   
-    val rowDef = UnsourcedRowDef(
-      varIdDef = marker(CHR, BP, ALLELE0, ALLELE1, VAR_ID),
-      otherColumns = Seq(
-        eaf(A1FREQ, EAF_PH),
-        ColumnDef(MAF_PH, A1FREQ.asDouble.complementIf(_ > 0.5)),
-        beta(BETA, BETA),
-        just(SE),
-        ColumnDef(P_VALUE, P_BOLT_LMM, P_BOLT_LMM)))
-    
+    val toAggregatorRows: AggregatorRowExpr = {
+      AggregatorRowExpr(
+        markerDef = marker(
+                      chromColumn = CHR, 
+                      posColumn = BP, 
+                      refColumn = ALLELE0, 
+                      altColumn = ALLELE1, 
+                      destColumn = VAR_ID),
+        pvalueDef = NamedColumnDef(P_VALUE, P_BOLT_LMM.asDouble, None),
+        stderrDef = Some(NamedColumnDef(SE, SE.asDouble)),
+        betaDef = Some(beta(BETA, destColumn = BETA)),
+        eafDef = Some(eaf(A1FREQ, destColumn = EAF_PH)),
+        mafDef = Some(NamedColumnDef(MAF_PH, A1FREQ.asDouble.complementIf(_ > 0.5))))
+  }
+        
     val flipDetector: FlipDetector = new FlipDetector.Default(
         referenceDir = path("src/test/resources/intake/reference-first-1M-of-chrom1"),
         isVarDataType = true,
         pathTo26kMap = path("src/test/resources/intake/26k_id.map.first100"))
   
-    val input = CsvSource.fromFile(
+    val source = Source.fromFile(
         path("src/test/resources/intake/real-input-data.tsv"), 
-        CsvSource.Formats.tabDelimitedWithHeader.withDelimiter(' '))
-    
-    val (headerRow: HeaderRow, resultIterator: Iterator[DataRow]) = process(flipDetector)(rowDef.from(input))
-        
-    val expected = CsvSource.fromFile(path("src/test/resources/intake/real-output-data.tsv"))
+        Source.Formats.tabDelimitedWithHeader.withDelimiter(' '))
     
     TestHelpers.withWorkDir(this.getClass.getSimpleName) { workDir =>
+      val (actualDataPath, graph) = TestHelpers.withScriptContext { implicit scriptContext =>
+        import LoamSyntax._
+        
+        val destPath = workDir.resolve("processed.tsv")
+        
+        val dest = store(destPath)
+        
+        val sourceStore = store(path("src/test/resources/intake/real-input-data.tsv"))
+        
+        val filterLog: Store = store(path(s"${dest.path.toString}.filtered-rows"))
+        
+        val summaryStatsFile: Store = store(path(s"${dest.path.toString}.summary"))
+        
+        produceCsv(dest).
+          from(source).
+          using(flipDetector).
+          via(toAggregatorRows).
+          filter(DataRowFilters.validEaf(filterLog, append = true)).
+          filter(DataRowFilters.validMaf(filterLog, append = true)).
+          filter(DataRowFilters.validPValue(filterLog, append = true)).
+          map(DataRowTransforms.clampPValues(filterLog, append = true)).
+          writeSummaryStatsTo(summaryStatsFile).
+          write(forceLocal = true).
+          tag(s"process-real-data").
+          in(sourceStore)
+          
+        (destPath, scriptContext.projectContext.graph)
+      }
       
-      val actualDataPath = workDir.resolve("processed.tsv")
+      val executable = LoamEngine.toExecutable(graph)
+        
+      val results = RxExecuter.default.execute(executable)
+    
+      val expected = Source.fromFile(path("src/test/resources/intake/real-output-data.tsv"))
       
-      val renderer: Renderer = Renderer.CommonsCsv(CsvSource.Formats.tabDelimitedWithHeader)
-      
-      Files.writeLinesTo(actualDataPath)(Iterator(renderer.render(headerRow)) ++ resultIterator.map(renderer.render))
-      
-      val actual = CsvSource.fromFile(actualDataPath)
+      val actual = Source.fromFile(actualDataPath)
       
       val expectations: Iterable[(String, (String, String) => Unit)] = {
-        val asDouble: (String, String) => Unit = { (lhs, rhs) => compareWithEpsilon(lhs.toDouble, rhs.toDouble) }
-        val asString: (String, String) => Unit = _ == _
+        def asDouble(fieldName: String): (String, (String, String) => Unit) = { 
+          fieldName -> { (lhs, rhs) => 
+            compareWithEpsilon(fieldName, lhs.toDouble, rhs.toDouble)
+          }
+        }
+        
+        def asString(fieldName: String): (String, (String, String) => Unit) = { 
+          fieldName ->  { (lhs, rhs) => 
+            assert(lhs == rhs, s"Field '$fieldName' didn't match")
+          }
+        }
         
         Seq(
-          VAR_ID.name -> asString,
-          EAF_PH.name -> asDouble,
-          MAF_PH.name -> asDouble,
-          BETA.name -> asDouble,
-          SE.name -> asDouble,
-          P_VALUE.name -> asDouble)
+          asString(VAR_ID.name),
+          asDouble(P_VALUE.name),
+          asDouble(SE.name),
+          asDouble(BETA.name),
+          asDouble(EAF_PH.name),
+          asDouble(MAF_PH.name))
       }
         
-      actual.records.zip(expected.records).foreach { case (lhs, rhs) => assertSame(lhs, rhs, expectations) }
+      val actualRecords = actual.records.toList
+      val expectedRecords = expected.records.toList
+      
+      actualRecords.zip(expectedRecords).foreach { case (lhs, rhs) => assertSame(lhs, rhs, expectations) }
+      
+      assert(actualRecords.size === expectedRecords.size)
     }
   }
   
@@ -99,7 +146,7 @@ final class ProcessRealDataTest extends FunSuite {
         val msg = {
           def mkString(row: CsvRow): String = row.values.mkString(" ")
           
-          s"Rows didn't match: \nactual: '${mkString(lhs)}'\nexpected: '${mkString(rhs)}'"
+          s"Rows didn't match: \nactual: '${mkString(lhs)}'\nexpected: '${mkString(rhs)}', '$lhs' != '$rhs'"
         }
         
         throw new Exception(msg, e)
@@ -116,10 +163,10 @@ final class ProcessRealDataTest extends FunSuite {
   
   private implicit val doubleEq = org.scalactic.TolerantNumerics.tolerantDoubleEquality(epsilon)
   
-  private def compareWithEpsilon(a: Double, b: Double): Unit = {
+  private def compareWithEpsilon(fieldName: String, a: Double, b: Double): Unit = {
     //import ProcessRealDataTest.Implicits._
     
-    assert(a === b)
+    assert(a === b, s"Field '$fieldName' didn't match")
   }
 }
 

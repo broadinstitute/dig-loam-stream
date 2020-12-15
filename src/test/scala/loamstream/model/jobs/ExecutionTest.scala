@@ -289,7 +289,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     assertIsPersistable(Some(CommandResult(42)))
     assertIsPersistable(Some(CommandInvocationFailure(e)))
 
-    assertIsNOTPersistable(result = None, statusOpt = Some(JobStatus.Skipped), cmd = None)
+    assertIsPersistable(result = None, statusOpt = Some(JobStatus.Skipped), cmd = None)
     
     assertIsNOTPersistable(Some(CommandResult(0)), cmd = None)
     assertIsNOTPersistable(Some(CommandResult(1)), cmd = None)
@@ -298,9 +298,9 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
 
     assertIsNOTPersistable(Some(CommandInvocationFailure(e)), cmd = None)
     
-    assertIsNOTPersistable(Some(Success))
-    assertIsNOTPersistable(Some(Failure))
-    assertIsNOTPersistable(Some(FailureWithException(e)))
+    assertIsPersistable(Some(Success))
+    assertIsPersistable(Some(Failure))
+    assertIsPersistable(Some(FailureWithException(e)))
 
     assertIsNOTPersistable(Some(Success), cmd = None)
     assertIsNOTPersistable(Some(Failure), cmd = None)

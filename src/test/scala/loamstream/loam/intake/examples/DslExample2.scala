@@ -1,13 +1,13 @@
-package loamstream.loam.intake
+/*package loamstream.loam.intake
 
 import loamstream.util.TimeUtils
 import java.nio.file.Paths
 import loamstream.util.Loggable
 
-/**
+*//**
  * @author clint
  * Feb 25, 2020
- */
+ *//*
 object DslExample2 extends App with Loggable {
   import IntakeSyntax._
   
@@ -108,3 +108,4 @@ object DslExample2 extends App with Loggable {
     rows.size
   }
 }
+*/

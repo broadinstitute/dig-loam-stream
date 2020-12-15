@@ -45,7 +45,7 @@ final class RichVariantTest extends FunSuite {
     
     val richV = new RichVariant(ReferenceFiles.empty, JSet.empty, v)
     
-    assert(richV.toKeyMunged === s"a_123_G_T")
+    assert(richV.toKeyComplemented === s"a_123_G_T")
   }
   
   test("isIn26k") {
@@ -70,7 +70,7 @@ final class RichVariantTest extends FunSuite {
     
     val v1 = Variant(chrom = "x", pos = 456, alt = "A", ref = "C")
     
-    val varId0Munged = (new RichVariant(ReferenceFiles.empty, JSet.empty, v0)).toKeyMunged
+    val varId0Munged = (new RichVariant(ReferenceFiles.empty, JSet.empty, v0)).toKeyComplemented
     
     val varsIn26k: java.util.Set[String] = JSet(varId0Munged) 
     
@@ -78,8 +78,8 @@ final class RichVariantTest extends FunSuite {
     
     val richV1 = new RichVariant(ReferenceFiles.empty, varsIn26k, v1)
     
-    assert(richV0.isIn26kMunged === true)
-    assert(richV1.isIn26kMunged === false)
+    assert(richV0.isIn26kComplemented === true)
+    assert(richV1.isIn26kComplemented === false)
   }
   
   test("refChar") {
@@ -101,9 +101,9 @@ final class RichVariantTest extends FunSuite {
       val richV2 = new RichVariant(refFiles, JSet.empty, v2)
       
       //NB: positions start from 1, so v0's position refers to the 2nd char in the file
-      assert(richV0.refChar === Some('2')) 
-      assert(richV1.refChar === None)
-      assert(richV2.refChar === None)
+      assert(richV0.refCharFromReferenceGenome === Some('2')) 
+      assert(richV1.refCharFromReferenceGenome === None)
+      assert(richV2.refCharFromReferenceGenome === None)
     }
   }
   

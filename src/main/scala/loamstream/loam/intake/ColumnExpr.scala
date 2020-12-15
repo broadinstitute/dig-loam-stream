@@ -4,6 +4,7 @@ import scala.reflect.runtime.universe.TypeTag
 import scala.reflect.runtime.universe.typeTag
 import scala.util.matching.Regex
 import scala.util.control.NonFatal
+import loamstream.util.Sequence
 
 /**
  * @author clint
@@ -27,8 +28,6 @@ sealed abstract class ColumnExpr[A : TypeTag] extends
   protected def eval(row: CsvRow): A
   
   def isDefinedAt(row: CsvRow): Boolean = true
-  
-  final def dataType: DataType = DataType.fromTypeTag(typeTag[A])
   
   final def render(row: CsvRow): String = eval(row).toString
   
@@ -87,6 +86,18 @@ sealed abstract class ColumnExpr[A : TypeTag] extends
 }
 
 object ColumnExpr {
+  object String {
+    def unapply(expr: ColumnExpr[_]): Option[ColumnExpr[String]] = {
+      if(expr.isStringExpr) Some(expr.asInstanceOf[ColumnExpr[String]]) else None
+    }
+  }
+  
+  object Double {
+    def unapply(expr: ColumnExpr[_]): Option[ColumnExpr[Double]] = {
+      if(expr.isDoubleExpr) Some(expr.asInstanceOf[ColumnExpr[Double]]) else None
+    }
+  }
+  
   trait BooleanOps[A] { self: ColumnExpr[A] =>
     final def ===(rhs: A): RowPredicate = this.map(_ == rhs)
     final def !==(rhs: A): RowPredicate = this.map(_ != rhs) //scalastyle:ignore method.name
@@ -165,6 +176,12 @@ object ColumnExpr {
     }
   }
   
+  def asDouble(column: ColumnExpr[_]): ColumnExpr[Double] = column match {
+    case ColumnExpr.Double(expr) => expr
+    case ColumnExpr.String(expr) => expr.asDouble
+    case _ => column.asString.asDouble
+  }
+  
   import scala.language.implicitConversions
   
   implicit def lift[A: TypeTag, B: TypeTag](f: A => B): ColumnExpr[A] => ColumnExpr[B] = _.map(f)
@@ -205,6 +222,8 @@ final case class LiteralColumnExpr[A: TypeTag](value: A) extends ColumnExpr[A] {
 }
 
 final case class ColumnName(name: String) extends ColumnExpr[String] {
+  override def toString: String = s"${getClass.getSimpleName}(${name})"
+  
   override def eval(row: CsvRow): String = {
     val value = row.getFieldByName(name)
     
@@ -213,9 +232,17 @@ final case class ColumnName(name: String) extends ColumnExpr[String] {
     value
   }
   
+  private[intake] val index: Int = ColumnName.nextColumnIndex()
+  
   override def asString: ColumnExpr[String] = this
   
   def mapName(f: String => String): ColumnName = copy(name = f(name))
+}
+
+object ColumnName {
+  private[this] val indices: Sequence[Int] = Sequence()
+  
+  private[intake] def nextColumnIndex(): Int = indices.next()
 }
 
 final case class MappedColumnExpr[A: TypeTag, B: TypeTag](f: A => B, dependsOn: ColumnExpr[A]) extends ColumnExpr[B] {

@@ -1,11 +1,15 @@
 package loamstream.loam.intake.metrics
 
-import loamstream.loam.intake.ColumnExpr
-import loamstream.loam.intake.ColumnName
-import loamstream.loam.intake.CsvRow
-import loamstream.loam.intake.aggregator
+import loamstream.loam.intake.Variant
+import loamstream.loam.intake.DataRow
 import loamstream.loam.intake.flip.FlipDetector
 import loamstream.util.Fold
+import loamstream.loam.intake.CsvRow
+import loamstream.loam.intake.Chromosomes
+import loamstream.loam.intake.flip.Disposition
+import java.nio.file.Path
+import loamstream.util.Files
+import loamstream.loam.intake.RowSink
 
 
 /**
@@ -13,33 +17,34 @@ import loamstream.util.Fold
  * Mar 27, 2020
  */
 object Metric {
-  def countGreaterThan(column: ColumnName)(threshold: Double): Metric[Int] = {
-    val columnAsDouble = column.asDouble
-    
-    Fold.countIf[CsvRow](row => columnAsDouble(row) > threshold)
+  def countGreaterThan(column: CsvRow.Transformed => Double)(threshold: Double): Metric[Int] = {
+    Fold.countIf[CsvRow.Parsed] {
+      case _: CsvRow.Skipped => false
+      case row: CsvRow.Transformed => column(row) > threshold
+    }
   }
   
-  def fractionGreaterThan(column: ColumnName)(threshold: Double): Metric[Double] = {
+  def fractionGreaterThan(column: CsvRow.Transformed => Double)(threshold: Double): Metric[Double] = {
     fractionOfTotal(countGreaterThan(column)(threshold))
   }
   
-  def countKnown(markerColumn: ColumnName, client: BioIndexClient): Metric[Int] = {
-    countKnownOrUnknown(markerColumn, client)(client.isKnown)
+  def countKnown(client: BioIndexClient): Metric[Int] = {
+    countKnownOrUnknown(client)(client.isKnown)
   }
   
-  def countUnknown(markerColumn: ColumnName, client: BioIndexClient): Metric[Int] = {
-    countKnownOrUnknown(markerColumn, client)(client.isUnknown)
+  def countUnknown(client: BioIndexClient): Metric[Int] = {
+    countKnownOrUnknown(client)(client.isUnknown)
   }
   
-  private def countKnownOrUnknown(
-      markerColumn: ColumnName, 
-      client: BioIndexClient)(p: String => Boolean): Metric[Int] = {
-    
-    Fold.countIf(row => p(markerColumn.eval(row)))
+  private def countKnownOrUnknown(client: BioIndexClient)(p: Variant => Boolean): Metric[Int] = {
+    Fold.countIf { 
+      case CsvRow.Transformed(_, dataRow) => p(dataRow.marker) 
+      case _ => false
+    }
   }
   
-  def fractionUnknown(markerColumn: ColumnName, client: BioIndexClient): Metric[Double] = {
-    fractionOfTotal(countUnknown(markerColumn, client))
+  def fractionUnknown(client: BioIndexClient): Metric[Double] = {
+    fractionOfTotal(countUnknown(client))
   }
   
   private def fractionOfTotal[A](numeratorMetric: Metric[A])(implicit ev: Numeric[A]): Metric[Double] = {
@@ -55,14 +60,7 @@ object Metric {
     }
   }
   
-  def countWithDisagreeingBetaStderrZscore(
-      flipDetector: FlipDetector)(
-      markerColumn: ColumnName = aggregator.ColumnNames.marker,
-      zscoreColumn: ColumnName = aggregator.ColumnNames.zscore,
-      betaColumn: ColumnName = aggregator.ColumnNames.beta,
-      stderrColumn: ColumnName = aggregator.ColumnNames.stderr,
-      epsilon: Double = 1e-8d): Metric[Int] = {
-    
+  def countWithDisagreeingBetaStderrZscore(epsilon: Double = 1e-8d): Metric[Int] = {
     //z = beta / se  or  -(beta / se) if flipped
     
     def agrees(expected: Double, actual: Double): Boolean = scala.math.abs(expected - actual) < epsilon
@@ -71,36 +69,88 @@ object Metric {
     
     def agreesFlip(z: Double, beta: Double, se: Double): Boolean = agrees(z, -(beta / se))
     
-    val isFlippedExpr: ColumnExpr[Boolean] = markerColumn.map(flipDetector.isFlipped)
-      
-    val agreesExpr: ColumnExpr[Boolean] = {
-      for {
-        isFlipped <- isFlippedExpr
-        z <- zscoreColumn.asDouble
-        se <- stderrColumn.asDouble
-        beta <- betaColumn.asDouble
-      } yield {
-        if(isFlipped) {
+    def isFlipped(sourceRow: CsvRow.Tagged): Boolean = sourceRow.disposition.isFlipped
+    
+    val agreesFn: CsvRow.Parsed => Boolean = { 
+      case CsvRow.Transformed(sourceRow, DataRow(marker, _, Some(z), Some(se), Some(beta), _, _, _, _)) => {
+        if(isFlipped(sourceRow)) {
           agrees(z, -(beta / se))
         } else {
           agrees(z, beta / se)
         }
       }
+      case _ => true
     }
     
-    def disagrees(row: CsvRow): Boolean = !agreesExpr(row)
+    def disagrees(row: CsvRow.Parsed): Boolean = !agreesFn(row)
     
     Fold.countIf(disagrees)
   }
   
-  def mean(columnExpr: ColumnExpr[_]): Metric[Double] = {
-    val columnAsDouble = columnExpr.asString.asDouble
-    
-    val sumFold: Fold[CsvRow, Double, Double] = Fold(0.0, _ + columnAsDouble(_), identity)
-    val countFold: Fold[CsvRow, Int, Int] = Fold.count
+  def fractionWithDisagreeingBetaStderrZscore(epsilon: Double = 1e-8d): Metric[Double] = {
+    fractionOfTotal(countWithDisagreeingBetaStderrZscore(epsilon))
+  }
+  
+  def mean[N](column: CsvRow.Transformed => N)(implicit ev: Numeric[N]): Metric[Double] = {
+    val sumFold: Fold[CsvRow.Parsed, N, N] = Fold.sum {
+      case _: CsvRow.Skipped => ev.zero
+      case t: CsvRow.Transformed => column(t)
+    }
+    val countFold: Fold[CsvRow.Parsed, Int, Int] = Fold.count
     
     Fold.combine(sumFold, countFold).map {
-      case (sum, count) => sum / count.toDouble
+      case (sum, count) => ev.toDouble(sum) / count.toDouble
+    }
+  }
+  
+  def countByChromosome(countSkipped: Boolean = true): Metric[Map[String, Int]] = {
+    type Counts = Map[String, Int]
+    
+    def doAdd(acc: Counts, elem: CsvRow.Parsed): Counts = {
+      if(elem.notSkipped || countSkipped) {
+        import elem.derivedFrom.marker.chrom
+        
+        val newCount = acc.get(chrom) match {
+          case Some(count) => count + 1
+          case None => 1
+        }
+        
+        acc + (chrom -> newCount)
+      } else {
+        acc
+      }
+    }
+    
+    def startingCounts: Counts = Map.empty ++ Chromosomes.names.iterator.map(_ -> 0) 
+    
+    Fold.apply[CsvRow.Parsed, Counts, Counts](startingCounts, doAdd, identity)
+  }
+  
+  def countFlipped: Metric[Int] = Fold.countIf(_.isFlipped)
+  
+  def countComplemented: Metric[Int] = Fold.countIf(_.isComplementStrand)
+  
+  def countSkipped: Metric[Int] = Fold.countIf(_.isSkipped)
+  
+  def countNOTSkipped: Metric[Int] = Fold.countIf(_.notSkipped)
+  
+  def summaryStats: Metric[SummaryStats] = {
+    val fields: Metric[(Int, Int, Int, Int, Map[String, Int])] = {
+      (countNOTSkipped |+| countSkipped |+| countFlipped |+| 
+       countComplemented |+| countByChromosome(countSkipped = false)).map {
+        
+        case ((((a, b), c), d), e) => (a, b, c, d, e) 
+      }
+    }
+    
+    fields.map(SummaryStats.tupled)
+  }
+  
+  def writeSummaryStatsTo(file: Path): Metric[Unit] = summaryStats.map(_.toFileContents).map(Files.writeTo(file))
+  
+  def writeValidVariantsTo(sink: RowSink): Metric[Unit] = Fold.foreach { row =>
+    if(row.notSkipped) {
+      row.dataRowOpt.foreach(sink.accept)
     }
   }
 }

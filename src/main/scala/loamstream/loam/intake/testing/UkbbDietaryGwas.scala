@@ -6,11 +6,10 @@ import com.typesafe.config.ConfigFactory
 import loamstream.conf.LoamConfig
 import loamstream.loam.LoamProjectContext
 import loamstream.loam.LoamScriptContext
-import loamstream.loam.intake.aggregator
-import loamstream.loam.intake.aggregator.AggregatorIntakeConfig
-import loamstream.loam.intake.aggregator.Metadata
-import loamstream.loam.intake.aggregator.SourceColumns
-import loamstream.loam.intake.aggregator.ColumnDefs
+import loamstream.loam.intake.AggregatorIntakeConfig
+import loamstream.loam.intake.SourceColumns
+import loamstream.loam.intake.RowSink
+import loamstream.loam.intake.AggregatorCommands.upload
 
 /**
  * @author clint
@@ -29,24 +28,28 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
     val BETA = "BETA".asColumnName
     val SE = "SE".asColumnName
     val P_BOLT_LMM = "P_BOLT_LMM".asColumnName
+    val Z_SCORE = "Z_SCORE".asColumnName
     
     val VARID = "VARID".asColumnName
   }
-  
-  val rowDef = {
+
+  val toAggregatorRows: AggregatorRowExpr = {
     import ColumnNames._
-    import ColumnDefs._
+    import AggregatorColumnDefs._
     
-    val varId = marker(chromColumn = CHR, posColumn = BP, refColumn = ALLELE1, altColumn = ALLELE0)
-        
-    val otherColumns = Seq(
-        pvalue(P_BOLT_LMM),
-        stderr(SE),
-        beta(BETA),
-        eaf(A1FREQ),
-        zscore(BETA, SE))
-        
-    RowDef(varId, otherColumns)
+    AggregatorRowExpr(
+      markerDef = marker(
+          chromColumn = CHR, 
+          posColumn = BP, 
+          refColumn = ALLELE1, 
+          altColumn = ALLELE0),
+      pvalueDef = pvalue(P_BOLT_LMM),
+      //zscoreDef = Some(zscore(BETA, SE)),
+      //zscoreDef = Some(zscore(Z_SCORE)),
+      zscoreDef = Some(PassThru.zscore(Z_SCORE)),
+      stderrDef = Some(stderr(SE)),
+      betaDef = Some(beta(BETA)),
+      eafDef = Some(eaf(A1FREQ)))
   }
   
   object Paths {
@@ -78,20 +81,35 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
     
     require(sourceStore.isPathStore)
     
-    val dest: Store = destOpt.getOrElse(store(Paths.workDir / s"ready-for-intake-${phenotype}.tsv"))
+    val destPath = Paths.workDir / s"ready-for-intake-${phenotype}.tsv"
+    
+    val dest: Store = destOpt.getOrElse(store(destPath))
     
     val csvFormat = org.apache.commons.csv.CSVFormat.DEFAULT.withDelimiter(' ').withFirstRecordAsHeader
     
-    val source = CsvSource.fromCommandLine(s"zcat ${sourceStore.path}", csvFormat)
+    val source = Source.fromCommandLine(s"zcat ${sourceStore.path}", csvFormat)
     
-    val columns = rowDef.from(source)
-        
+    val filterLog: Store = store(path(s"${dest.path.toString}.filtered-rows"))
+    val unknownToBioIndexFile: Store = store(path(s"${dest.path.toString}.unknown-to-bio-index"))
+    val disagreeingZBetaStdErrFile: Store = store(path(s"${dest.path.toString}.disagreeing-z-Beta-stderr"))
+    
     produceCsv(dest).
-        from(columns).
+        from(source).
         using(flipDetector).
+        via(toAggregatorRows).
+        filter(DataRowFilters.validEaf(filterLog, append = true)).
+        filter(DataRowFilters.validMaf(filterLog, append = true)).
+        map(DataRowTransforms.clampPValues(filterLog, append = true)).
+        filter(DataRowFilters.validPValue(filterLog, append = true)).
+        withMetric(Metrics.fractionUnknownToBioIndex(unknownToBioIndexFile)).
+        withMetric(Metrics.fractionWithDisagreeingBetaStderrZscore(disagreeingZBetaStdErrFile, flipDetector)).
+        write().
         tag(s"process-phenotype-$phenotype").
-        in(sourceStore)
-        
+        in(sourceStore).
+        out(dest).
+        out(unknownToBioIndexFile).
+        out(disagreeingZBetaStdErrFile)
+       
     dest
   }
   
@@ -99,8 +117,8 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
   
   private val intakeMetadataTypesafeConfig: Config = loadConfig("INTAKE_METADATA_CONF", "").config
   
-  val generalMetadata: Metadata.NoPhenotypeOrQuantitative = {
-    Metadata.NoPhenotypeOrQuantitative.fromConfig(intakeMetadataTypesafeConfig).get
+  val generalMetadata: AggregatorMetadata.NoPhenotypeOrQuantitative = {
+    AggregatorMetadata.NoPhenotypeOrQuantitative.fromConfig(intakeMetadataTypesafeConfig).get
   }
   
   val aggregatorIntakePipelineConfig: AggregatorIntakeConfig = {
@@ -118,12 +136,10 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
     intakeTypesafeConfig.as[Map[String, PhenotypeConfig]](key)
   }
   
-  import loamstream.loam.intake.aggregator.AggregatorCommands.upload
-  
-  def toMetadata(phenotypeConfigTuple: (String, PhenotypeConfig)): Metadata = {
+  def toMetadata(phenotypeConfigTuple: (String, PhenotypeConfig)): AggregatorMetadata = {
     val (phenotype, PhenotypeConfig(_, subjects)) = phenotypeConfigTuple
     
-    generalMetadata.toMetadata(phenotype, Some(Metadata.Quantitative.Subjects(subjects)))
+    generalMetadata.toMetadata(phenotype, Some(AggregatorMetadata.Quantitative.Subjects(subjects)))
   }
   
   val flipDetector: FlipDetector = new FlipDetector.Default(

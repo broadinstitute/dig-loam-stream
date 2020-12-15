@@ -1,32 +1,61 @@
 package loamstream.loam.intake
 
 import org.apache.commons.csv.CSVFormat
+import scala.collection.mutable.ArrayBuffer
 
 
 /**
  * @author clint
  * Dec 17, 2019
  */
-sealed trait Row {
+trait Row {
   def values: Seq[String]
 }
 
-final case class HeaderRow(typedValues: Seq[(String, DataType)]) extends Row {
-  override def values: Seq[String] = typedValues.unzip._1
+final case class LiteralRow(values: Seq[String]) extends Row
+
+object LiteralRow {
+  def apply(values: String*)(implicit discriminator: Int = 0): LiteralRow = new LiteralRow(values) 
 }
 
-final case class DataRow(valuesByColumn: Map[ColumnDef, TypedData]) extends Row {
+/**
+ * @author clint
+ * Oct 14, 2020
+ */
+final case class DataRow(
+  marker: Variant,
+  pvalue: Double,
+  zscore: Option[Double] = None,
+  stderr: Option[Double] = None,
+  beta: Option[Double] = None,
+  oddsRatio: Option[Double] = None,
+  eaf: Option[Double] = None,
+  maf: Option[Double] = None,
+  n: Option[Double] = None) extends Row {
+  
+  //NB: Profiler-informed optimization: adding to a Buffer is 2x faster than ++ or .flatten
+  //We expect this method to be called a lot - once per row being output.
   override def values: Seq[String] = {
-    val sortedColumnDefs = valuesByColumn.keys.toSeq.sortBy(_.index)
+    val buffer = new ArrayBuffer[String](10) //scalastyle:ignore magic.number
     
-    sortedColumnDefs.map(valuesByColumn.apply(_).raw)
+    def add(o: Option[Double]): Unit = o match {
+      case Some(d) => buffer += d.toString
+      case None => ()
+    }
+    
+    //NB: ORDERING MATTERS :\
+    
+    buffer += marker.underscoreDelimited
+    buffer += pvalue.toString
+    
+    add(zscore)
+    add(stderr)
+    add(beta)
+    add(oddsRatio)
+    add(eaf)
+    add(maf)
+    add(n)
+    
+    buffer 
   }
-  
-  def ++(other: DataRow): DataRow = DataRow(valuesByColumn ++ other.valuesByColumn)
-}
-
-object DataRow {
-  def apply(tuples: (ColumnDef, TypedData)*): DataRow = new DataRow(Map(tuples: _*))
-  
-  val empty: DataRow = DataRow()
 }

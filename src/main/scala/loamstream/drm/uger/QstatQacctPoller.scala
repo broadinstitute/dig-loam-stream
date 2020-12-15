@@ -40,7 +40,9 @@ final class QstatQacctPoller private[uger] (
     val qstatResultObs = {
       implicit val ec = ExecutionContexts.forQstat
 
-      Observable.from(qstatInvoker.apply(())).observeOn(Schedulers.forQstat)
+      Observable.from(qstatInvoker.apply(())).observeOn(Schedulers.forQstat).onErrorResumeNext {
+        warnThenComplete(s"Error invoking qstat, will try again during at next polling time.")
+      }
     }
 
     //The Set of distinct DrmTaskIds (jobId/task index coords) that we're polling for
@@ -84,6 +86,14 @@ final class QstatQacctPoller private[uger] (
     }
   }
 
+  private def warnThenComplete[A](msg: => String): Throwable => Observable[A] = {
+    case NonFatal(e) => {
+      warn(msg)
+  
+      Observable.empty
+    }
+  }
+  
   private def invokeQacctFor(
     drmTaskIds: Set[DrmTaskId])
    (jobNumber: String)(implicit ec: ExecutionContext): Observable[(DrmTaskId, DrmStatus)] = {
@@ -94,11 +104,7 @@ final class QstatQacctPoller private[uger] (
       .map(QacctSupport.parseMultiTaskQacctResults(drmTaskIds))
       .flatMap(Observable.from(_))
       .onErrorResumeNext {
-        case NonFatal(e) => {
-          warn(s"Error invoking qacct for task array with job id '${jobNumber}'")
-  
-          Observable.empty
-        }
+        warnThenComplete(s"Error invoking qacct for task array with job id '${jobNumber}'")
       }
   }
 

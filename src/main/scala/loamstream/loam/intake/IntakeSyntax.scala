@@ -59,7 +59,6 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
   type HeaderRow = loamstream.loam.intake.LiteralRow
   val HeaderRow = loamstream.loam.intake.LiteralRow
   
-  //TODO
   type AggregatorVariantRow = loamstream.loam.intake.AggregatorVariantRow
   val AggregatorVariantRow = loamstream.loam.intake.AggregatorVariantRow
   

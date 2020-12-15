@@ -36,7 +36,6 @@ final class SourceTest extends FunSuite {
   }
   
   private def doCsvSourceRecordsTest(actualRows: Seq[DataRow], expectedRows: Seq[DataRow]): Unit = {
-    
     actualRows.zip(expectedRows).foreach { case (actualRow, expectedRow) =>
       assert(actualRow.getFieldByName("FOO") === expectedRow.getFieldByName("FOO"))
       assert(actualRow.getFieldByName("BAR") === expectedRow.getFieldByName("BAR"))

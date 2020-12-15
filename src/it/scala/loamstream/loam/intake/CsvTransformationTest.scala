@@ -16,7 +16,6 @@ import loamstream.loam.LoamGraph
 import loamstream.loam.LoamSyntax
 import loamstream.model.execute.RxExecuter
 import loamstream.util.Files
-import loamstream.loam.intake.aggregator.Metadata.Quantitative
 
 
 /**
@@ -26,19 +25,20 @@ import loamstream.loam.intake.aggregator.Metadata.Quantitative
 final class CsvTransformationTest extends AggregatorIntakeTest {
   
   import CsvTransformationTest._
+  import IntakeSyntax._
   
   test("End-to-end CSV munging") {
     makeTablesAndThen {
       IntegrationTestHelpers.withWorkDirUnderTarget() { workDir =>
         val paths = new Paths(workDir)
         
-        val metadata: aggregator.Metadata = aggregator.Metadata(
+        val metadata = AggregatorMetadata(
           dataset = "some-dataset",
           phenotype = "some-phenotype",
           ancestry = "some-ancestry",
           author = Some("some-author"),
           tech = "some-tech",
-          quantitative = Some(Quantitative.CasesAndControls(cases = 42, controls = 21)),
+          quantitative = Some(AggregatorMetadata.Quantitative.CasesAndControls(cases = 42, controls = 21)),
           varIdFormat = "{chrom}_{pos}_{ref}_{alt}")  
         
         val graph = Loam.code(this, paths, s3Bucket, metadata)
@@ -93,7 +93,7 @@ final class CsvTransformationTest extends AggregatorIntakeTest {
     assert(Files.readFrom(envFile) === expectedContents)
   }
   
-  private def deleteUploadedData(metadata: aggregator.Metadata): Unit = {
+  private def deleteUploadedData(metadata: AggregatorMetadata): Unit = {
     val uploadDir = s"variants/${metadata.dataset}"
     
     aws.rmdir(uploadDir).unsafeRunSync()
@@ -103,7 +103,7 @@ final class CsvTransformationTest extends AggregatorIntakeTest {
     assert(aws.s3.keyExists(s3Bucket, uploadDir) === false)
   }
   
-  private def getUploadedData(metadata: aggregator.Metadata): String = {
+  private def getUploadedData(metadata: AggregatorMetadata): String = {
     val uploadDir = s"variants/${metadata.dataset}/${metadata.phenotype}"
     
     val expectedPartFile = s"${uploadDir}/part-1"
@@ -119,18 +119,18 @@ final class CsvTransformationTest extends AggregatorIntakeTest {
     } yield response.readAsString()).unsafeRunSync()
   }
   
-  private def expectedDataAsRows: Seq[CsvRow] = {
-    RowSource.fromReader(new StringReader(expectedMungedContents)).records.toIndexedSeq
+  private def expectedDataAsRows: Seq[DataRow] = {
+    Source.fromString(expectedMungedContents).records.toIndexedSeq
   }
   
-  private def uploadedDataAsRows(data: String): Seq[CsvRow] = {
+  private def uploadedDataAsRows(data: String): Seq[DataRow] = {
     import org.json4s._
     import org.json4s.jackson._
     import org.json4s.jackson.Serialization.write
     
     def toJObject(s: String): JObject = parseJson(s).asInstanceOf[JObject]
     
-    def toCsvRow(jobject: JObject): CsvRow = {
+    def toDataRow(jobject: JObject): DataRow = {
       implicit val formats = DefaultFormats
       
       def stripQuotes(s: String): String = {
@@ -139,7 +139,9 @@ final class CsvTransformationTest extends AggregatorIntakeTest {
         if(withoutLeadingQuote.last == '\"') withoutLeadingQuote.dropRight(1) else withoutLeadingQuote 
       }
       
-      new CsvRow {
+      new DataRow {
+        override def headers: Seq[String] = jobject.obj.collect { case JField(name, _) => name }
+        
         override def getFieldByName(name: String): String = stripQuotes(write(jobject \ name))
     
         override def getFieldByIndex(i: Int): String = ???
@@ -147,12 +149,16 @@ final class CsvTransformationTest extends AggregatorIntakeTest {
         override def size: Int = ???
         
         override def recordNumber: Long = ???
+        
+        override def isSkipped: Boolean = false
+        
+        override def skip: DataRow = this
       }
     }
     
     val lines = data.split(System.lineSeparator)
     
-    lines.map(toJObject).map(toCsvRow)
+    lines.map(toJObject).map(toDataRow)
   }
   
   private val refAndAltRegex = """^.+?(.)\:(.)$""".r 
@@ -162,15 +168,15 @@ final class CsvTransformationTest extends AggregatorIntakeTest {
     case _ => ???
   }
   
-  private def mapBy(rows: Seq[CsvRow], fieldName: String): Map[String, CsvRow] = {
+  private def mapBy(rows: Seq[DataRow], fieldName: String): Map[String, DataRow] = {
     import loamstream.util.Traversables.Implicits._
       
     rows.mapBy(_.getFieldByName(fieldName))
   }
   
   private def doAssertFieldsMatch(
-      uploadedRowAndFieldName: (CsvRow, String), 
-      expectedRowAndFieldName: (CsvRow, String)): Unit = {
+      uploadedRowAndFieldName: (DataRow, String), 
+      expectedRowAndFieldName: (DataRow, String)): Unit = {
     
     val (uploadedRow, uploadedFieldName) = uploadedRowAndFieldName
     val (expectedRow, expectedFieldName) = expectedRowAndFieldName
@@ -181,8 +187,8 @@ final class CsvTransformationTest extends AggregatorIntakeTest {
   }
   
   private def doAssertDoubleFieldsMatch(
-      uploadedRowAndFieldName: (CsvRow, String), 
-      expectedRowAndFieldName: (CsvRow, String)): Unit = {
+      uploadedRowAndFieldName: (DataRow, String), 
+      expectedRowAndFieldName: (DataRow, String)): Unit = {
     
     val (uploadedRow, uploadedFieldName) = uploadedRowAndFieldName
     val (expectedRow, expectedFieldName) = expectedRowAndFieldName
@@ -198,12 +204,12 @@ final class CsvTransformationTest extends AggregatorIntakeTest {
         s"'${uploadedFieldName}' didn't match '${expectedFieldName}'")
   }
   
-  private def validateUploadedData(metadata: aggregator.Metadata): Unit = {
+  private def validateUploadedData(metadata: AggregatorMetadata): Unit = {
     val uploadedData = getUploadedData(metadata)
     
-    val expectedRowsByVarId: Map[String, CsvRow] = mapBy(expectedDataAsRows, "VAR_ID")
+    val expectedRowsByVarId: Map[String, DataRow] = mapBy(expectedDataAsRows, "VAR_ID")
     
-    val uploadedRowsByVarId: Map[String, CsvRow] = mapBy(uploadedDataAsRows(uploadedData), "varId")
+    val uploadedRowsByVarId: Map[String, DataRow] = mapBy(uploadedDataAsRows(uploadedData), "varId")
     
     for {
       (varIdInUploadedFormat, uploadedRow) <- uploadedRowsByVarId
@@ -275,7 +281,7 @@ object CsvTransformationTest {
         test: CsvTransformationTest,
         paths: Paths, 
         s3Bucket: String,
-        metadata: aggregator.Metadata): LoamGraph = IntegrationTestHelpers.makeGraph() { implicit scriptContext =>
+        metadata: AggregatorMetadata): LoamGraph = IntegrationTestHelpers.makeGraph() { implicit scriptContext =>
           
       import paths._
       
@@ -288,10 +294,24 @@ object CsvTransformationTest {
       val dataListFile = store(dataListFilePath)
       val schemaListFile = store(schemaListFilePath)
       
-      val columns: Seq[UnsourcedColumnDef] = {
-        import Loam.ColumnNames._
+      val toAggregatorFormat: AggregatorRowExpr = {
+        import ColumnNames._
         
-        Seq(
+        AggregatorRowExpr(
+          markerDef = AggregatorColumnDefs.marker(
+            chromColumn = CHROM, 
+            posColumn = POS, 
+            refColumn = Allele2.asUpperCase, 
+            altColumn = Allele1.asUpperCase, 
+            destColumn = VARID),
+          pvalueDef = AggregatorColumnDefs.pvalue(PDashValue, destColumn = PValue),
+          stderrDef = Some(AggregatorColumnDefs.stderr(StdErr, destColumn = SE)),
+          oddsRatioDef = Some(AggregatorColumnDefs.oddsRatio(Effect, destColumn = OddsRatio)),
+          eafDef = Some(AggregatorColumnDefs.eaf(Freq1, destColumn = EAF)),
+          mafDef = Some(NamedColumnDef(MAF, Freq1.asDouble, Freq1.asDouble)),
+          failFast = true)
+      }
+        /*Seq(
           ColumnDef(
             VARID,
             strexpr"${CHROM}_${POS}_${Allele2.asUpperCase}_${Allele1.asUpperCase}",
@@ -308,36 +328,28 @@ object CsvTransformationTest {
           ColumnDef(OddsRatio, Effect.asDouble.exp, Effect.asDouble.negate.exp),
           ColumnDef(SE, StdErr.asDouble, StdErr.asDouble),
           ColumnDef(PValue, PDashValue.asDouble, PDashValue.asDouble))
-      }
+      }*/
       
-      val source: RowSource = CsvSource.fromCommandLine(s"cat ${inputDataFile.path}")
+      val source: Source[DataRow] = Source.fromFile(inputDataFile.path)
       
       val flipDetector = new FlipDetector.Default(
         referenceDir = path("/home/clint/workspace/marcins-scripts/reference"),
         isVarDataType = true,
         pathTo26kMap = path("/home/clint/workspace/marcins-scripts/26k_id.map"))
       
-      val varIdColumn +: otherColumns = source.producing(columns)
-      
       produceCsv(mungedDataFile).
-          from(varIdColumn, otherColumns: _*).
+          from(source).
           using(flipDetector).
+          via(toAggregatorFormat).
+          write(forceLocal = true).
           tag("makeCSV").
           in(inputDataFile)
       
       val aggregatorConfigFile = store(aggregatorConfigFilePath)
       
-      val sourceColumns = aggregator.SourceColumns(
-          marker = Loam.ColumnNames.VARID,
-          pvalue = Loam.ColumnNames.PValue,
-          zscore = Some(Loam.ColumnNames.OddsRatio),
-          stderr = Some(Loam.ColumnNames.SE),
-          beta = Some(Loam.ColumnNames.OddsRatio),
-          oddsRatio = Some(Loam.ColumnNames.OddsRatio),
-          eaf = Some(Loam.ColumnNames.EAF),
-          maf = Some(Loam.ColumnNames.MAF))
+      val sourceColumns = toAggregatorFormat.sourceColumns
           
-      val configData = aggregator.ConfigData(metadata, sourceColumns, mungedDataFile.path)      
+      val configData = AggregatorConfigData(metadata, sourceColumns, mungedDataFile.path)      
           
       produceAggregatorIntakeConfigFile(aggregatorConfigFile).
           from(configData).

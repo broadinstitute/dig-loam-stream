@@ -86,7 +86,7 @@ final class QstatQacctPoller private[uger] (
     }
   }
 
-  private def warnThenComplete[A](msg: String): Throwable => Observable[A] = {
+  private def warnThenComplete[A](msg: => String): Throwable => Observable[A] = {
     case NonFatal(e) => {
       warn(msg)
   

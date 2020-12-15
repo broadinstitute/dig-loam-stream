@@ -15,16 +15,12 @@ trait AggregatorCommands {
   import IntakeSyntax._
   import loamstream.loam.LoamSyntax._
   
-  def upload(
-      aggregatorIntakeConfig: AggregatorIntakeConfig,
-      metadata: AggregatorMetadata, 
-      csvFile: Store, 
+  private def makeConfigFile(
+      workDir: Path, 
+      metadata: AggregatorMetadata,
+      csvFile: Store,
       sourceColumnMapping: SourceColumns,
-      workDir: Path = Paths.get("."),
-      logFile: Option[Path] = None,
-      skipValidation: Boolean = false,
-      forceLocal: Boolean = false,
-      yes: Boolean = false)(implicit scriptContext: LoamScriptContext): Tool = {
+      forceLocal: Boolean)(implicit scriptContext: LoamScriptContext): Store = {
     
     val aggregatorConfigFileName: Path = {
       workDir.resolve(s"aggregator-intake-${metadata.dataset}-${metadata.phenotype}.conf")
@@ -36,8 +32,23 @@ trait AggregatorCommands {
     
     produceAggregatorIntakeConfigFile(aggregatorConfigFile).
         from(configData, forceLocal).
-        tag(s"make-aggregator-conf-${metadata.dataset}-${metadata.phenotype}").
-        in(csvFile)
+        tag(s"make-aggregator-conf-${metadata.dataset}-${metadata.phenotype}")
+        
+    aggregatorConfigFile
+  }
+  
+  def upload(
+      aggregatorIntakeConfig: AggregatorIntakeConfig,
+      metadata: AggregatorMetadata, 
+      csvFile: Store, 
+      sourceColumnMapping: SourceColumns,
+      workDir: Path = Paths.get("."),
+      logFile: Option[Path] = None,
+      skipValidation: Boolean = false,
+      forceLocal: Boolean = false,
+      yes: Boolean = false)(implicit scriptContext: LoamScriptContext): Tool = {
+    
+    val aggregatorConfigFile = makeConfigFile(workDir, metadata, csvFile, sourceColumnMapping, forceLocal)
     
     val aggregatorIntakeCondaEnvPart = aggregatorIntakeConfig.condaEnvName.map { condaEnv =>
       val condaExecutable = aggregatorIntakeConfig.condaExecutable

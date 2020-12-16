@@ -9,11 +9,11 @@ import loamstream.util.Loggable
  */
 object MissingOutputsJobFilter extends JobFilter with Loggable {
   override def shouldRun(job: LJob): Boolean = {
-    def missingOutputs: Seq[String] = job.outputs.filter(_.isMissing).map(_.location).toSeq.map(l => s"'${l}'")
-    
     val result = job.outputs.isEmpty || job.outputs.exists(_.isMissing)
     
     if(!result) {
+      def missingOutputs: Seq[String] = job.outputs.filter(_.isMissing).map(_.location).toSeq.map(l => s"'${l}'")
+      
       debug(s"Skipping job $job because these outputs are missing: ${missingOutputs.mkString(",")}")
     }
     

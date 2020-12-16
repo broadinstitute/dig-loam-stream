@@ -4,12 +4,17 @@ import org.scalatest.FunSuite
 import java.net.URI
 import loamstream.TestHelpers
 import java.nio.file.Path
+import java.io.StringReader
+import loamstream.util.Files
 
 /**
  * @author clint
  * Dec 15, 2020
  */
 final class ProtectsFilesJobFilterTest extends FunSuite {
+  import URI.{create => uri}
+  import TestHelpers.path
+  
   test("apply - varags") {
     val filter = ProtectsFilesJobFilter("x", "y", "a", "x")
     
@@ -23,9 +28,6 @@ final class ProtectsFilesJobFilterTest extends FunSuite {
   }
   
   test("apply - Iterable of Eithers") {
-    import URI.{create => uri}
-    import TestHelpers.path
-    
     val es: Iterable[Either[Path, URI]] = {
       Iterable(Left(path("x")), Right(uri("gs://y")), Left(path("a")), Left(path("x")))
     }
@@ -35,5 +37,59 @@ final class ProtectsFilesJobFilterTest extends FunSuite {
     val expected = Set(path("x").toAbsolutePath.toString, "gs://y", path("a").toAbsolutePath.toString)
     
     assert(filter.locationsToProtect === expected)
+  }
+  
+  test("fromString") {
+    val data = s"""|x
+                   |  //lala
+                   |   gs://y
+                   | a
+                   |#zzzzzz
+                   |###
+                   | x""".stripMargin
+                   
+    val expected = Set(path("x").toAbsolutePath.toString, "gs://y", path("a").toAbsolutePath.toString)
+    
+    val filter = ProtectsFilesJobFilter.fromString(data)
+    
+    assert(filter.locationsToProtect === expected)
+  }
+  
+  test("fromReader") {
+    val data = s"""|x
+                   |  //lala
+                   |   gs://y
+                   | a
+                   |#zzzzzz
+                   |###
+                   | x""".stripMargin
+                   
+    val expected = Set(path("x").toAbsolutePath.toString, "gs://y", path("a").toAbsolutePath.toString)
+    
+    val filter = ProtectsFilesJobFilter.fromReader(new StringReader(data))
+    
+    assert(filter.locationsToProtect === expected)
+  }
+  
+  test("fromFile") {
+    val data = s"""|x
+                   |  //lala
+                   |   gs://y
+                   | a
+                   |#zzzzzz
+                   |###
+                   | x""".stripMargin
+                
+    TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
+      val file = workDir.resolve("asdf")
+
+      Files.writeTo(file)(data)
+                   
+      val expected = Set(path("x").toAbsolutePath.toString, "gs://y", path("a").toAbsolutePath.toString)
+    
+      val filter = ProtectsFilesJobFilter.fromFile(file)
+    
+      assert(filter.locationsToProtect === expected)
+    }
   }
 }

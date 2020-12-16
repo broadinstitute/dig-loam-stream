@@ -12,6 +12,7 @@ import java.io.BufferedReader
 import java.io.FileReader
 import java.io.Reader
 import java.nio.file.Paths
+import loamstream.model.jobs.DataHandle
 
 /**
  * @author clint
@@ -25,9 +26,17 @@ final class ProtectsFilesJobFilter private (
   private[execute] def locationsToProtect: Set[String] = _locationsToProtect.asScala.toSet
   
   override def shouldRun(job: LJob): Boolean = {
-    val anyOutputIsProtected = job.outputs.exists(output => _locationsToProtect.contains(output.location))
+    def isProtected(output: DataHandle): Boolean = _locationsToProtect.contains(output.location)
+    
+    val anyOutputIsProtected = job.outputs.exists(isProtected)
     
     val noOutputsAreProtected = !anyOutputIsProtected
+    
+    def protectedOutputs = job.outputs.filter(isProtected).map(_.location).map(l => s"'${l}'")
+    
+    if(anyOutputIsProtected) {
+      info(s"Skipping job $job because the following outputs are protected: ${protectedOutputs.mkString(",")}")
+    }
     
     noOutputsAreProtected
   }

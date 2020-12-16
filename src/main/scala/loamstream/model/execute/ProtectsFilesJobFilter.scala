@@ -29,7 +29,7 @@ final class ProtectsFilesJobFilter private (
     def isProtected(output: DataHandle): Boolean = _locationsToProtect.contains(output.location)
     
     val anyOutputIsProtected = job.outputs.exists(isProtected)
-    
+
     val noOutputsAreProtected = !anyOutputIsProtected
     
     def protectedOutputs = job.outputs.filter(isProtected).map(_.location).map(l => s"'${l}'")
@@ -63,6 +63,8 @@ object ProtectsFilesJobFilter {
     
     apply(locs)
   }
+
+  def empty: ProtectsFilesJobFilter = apply(Seq.empty[String])
   
   def fromString(data: String): ProtectsFilesJobFilter = fromReader(new StringReader(data))
   

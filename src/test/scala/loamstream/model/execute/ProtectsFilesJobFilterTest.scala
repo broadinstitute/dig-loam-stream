@@ -6,6 +6,9 @@ import loamstream.TestHelpers
 import java.nio.file.Path
 import java.io.StringReader
 import loamstream.util.Files
+import loamstream.model.jobs.MockJob
+import loamstream.model.jobs.JobStatus
+import loamstream.model.jobs.DataHandle
 
 /**
  * @author clint
@@ -91,5 +94,25 @@ final class ProtectsFilesJobFilterTest extends FunSuite {
     
       assert(filter.locationsToProtect === expected)
     }
+  }
+  
+  test("empty") {
+    assert(ProtectsFilesJobFilter.empty.locationsToProtect.isEmpty === true)
+  }
+  
+  test("shouldRun - empty protected set") {
+    val filter = ProtectsFilesJobFilter.empty
+    
+    val job = MockJob(JobStatus.Succeeded, outputs = Set(DataHandle.PathHandle(path("foo"))))
+    
+    assert(filter.shouldRun(job) === true)
+  }
+  
+  test("shouldRun - some protected files, none apply") {
+    fail("TODO")
+  }
+  
+  test("shouldRun - some protected files, some apply") {
+    fail("TODO")
   }
 }

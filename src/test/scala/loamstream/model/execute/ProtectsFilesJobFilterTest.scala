@@ -109,10 +109,22 @@ final class ProtectsFilesJobFilterTest extends FunSuite {
   }
   
   test("shouldRun - some protected files, none apply") {
-    fail("TODO")
+    val filter = ProtectsFilesJobFilter(Iterable("x", "y", "a", "x"))
+    
+    val job = MockJob(JobStatus.Succeeded, outputs = Set(DataHandle.PathHandle(path("z"))))
+    
+    assert(filter.shouldRun(job) === true)
   }
   
   test("shouldRun - some protected files, some apply") {
-    fail("TODO")
+    val locs = Iterable(Left(path("x")), Right(uri("gs://y")), Left(path("a")), Left(path("x")))
+    
+    val filter = ProtectsFilesJobFilter(locs)
+    
+    def pathHandle(s: String) = DataHandle.PathHandle(path(s))
+    
+    val job = MockJob(JobStatus.Succeeded, outputs = Set(pathHandle("y"), pathHandle("a")))
+    
+    assert(filter.shouldRun(job) === false)
   }
 }

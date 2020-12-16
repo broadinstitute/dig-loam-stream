@@ -1,18 +1,20 @@
 package loamstream.model.execute
 
-import java.net.URI
-import java.nio.file.Path
-
-import loamstream.model.jobs.LJob
-import loamstream.util.Loggable
-import scala.collection.JavaConverters._
-import loamstream.util.CanBeClosed
-import java.io.StringReader
 import java.io.BufferedReader
 import java.io.FileReader
 import java.io.Reader
-import java.nio.file.Paths
+import java.io.StringReader
+import java.net.URI
+import java.nio.file.Path
+
+import scala.collection.JavaConverters._
+
 import loamstream.model.jobs.DataHandle
+import loamstream.model.jobs.LJob
+import loamstream.util.CanBeClosed
+import loamstream.util.Loggable
+import loamstream.util.{Paths => LPaths}
+import java.nio.file.Paths
 
 /**
  * @author clint
@@ -57,11 +59,11 @@ object ProtectsFilesJobFilter {
   
   def apply(pathsOrUris: Iterable[Either[Path, URI]])(implicit discriminator: Int = 42): ProtectsFilesJobFilter = {
     val locs: Iterable[String] = pathsOrUris.collect {
-      case Left(p) => p.toAbsolutePath.toString
+      case Left(p) => LPaths.normalize(p).toString
       case Right(u) => u.toString
     }
     
-    apply(locs)
+    new ProtectsFilesJobFilter(asJavaSet(locs))
   }
 
   def empty: ProtectsFilesJobFilter = apply(Seq.empty[String])

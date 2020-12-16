@@ -20,6 +20,8 @@ object CanBeClosed {
     override def close(a: A): Unit = a.stop()
   }
 
+  def using[A, C: CanBeClosed](c: C)(f: C => A): A = enclosed(c)(f)
+  
   def enclosed[A, C: CanBeClosed](c: C)(f: C => A): A = {
     try {
       f(c)

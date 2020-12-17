@@ -521,24 +521,6 @@ final class IntentTest extends FunSuite {
     }
   }
   
-  /*
-   * private[cli] def determineJobFilterIntent(values: Conf.Values): JobFilterIntent = {
-    def nameOf(field: Conf => ScallopOption[_]) = field(values.derivedFrom).name
-    
-    def toRegexes(regexStrings: Seq[String]) = regexStrings.map(_.r)
-    
-    import JobFilterIntent._
-    
-    values.run match {
-      case Some((Conf.RunStrategies.Everything, _)) => RunEverything
-      case Some((Conf.RunStrategies.IfAnyMissingOutputs, _)) => RunIfAnyMissingOutputs
-      case Some((Conf.RunStrategies.AllOf, regexStrings)) => RunIfAllMatch(toRegexes(regexStrings))
-      case Some((Conf.RunStrategies.AnyOf, regexStrings)) => RunIfAnyMatch(toRegexes(regexStrings))
-      case Some((Conf.RunStrategies.NoneOf, regexStrings)) => RunIfNoneMatch(toRegexes(regexStrings))
-      case _ => DontFilterByName
-    }
-  }
-   */
   test("determineJobFilterIntent") {
     {
       val conf = cliConf(s"--run everything --compile-only --loams $exampleFile0")

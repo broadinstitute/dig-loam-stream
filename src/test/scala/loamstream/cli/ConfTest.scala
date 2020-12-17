@@ -286,4 +286,20 @@ final class ConfTest extends FunSuite with Matchers {
     
     assert(withWorker.toArguments === ("--worker" +: args))
   }
+  
+  test("--protect-files-from specified") {
+    val exampleFile = "src/examples/loam/cp.loam"
+    
+    val conf = makeConf(s"--protect-files-from ${exampleFile} --loams ${exampleFile}".split("\\s+"))
+    
+    assert(conf.toValues.protectedOutputsFile === Some(path(exampleFile)))
+  }
+  
+  test("--protect-files-from omitted") {
+    val exampleFile = "src/examples/loam/cp.loam"
+    
+    val conf = makeConf(s"--loams ${exampleFile}".split("\\s+"))
+    
+    assert(conf.toValues.protectedOutputsFile === None)
+  }
 }

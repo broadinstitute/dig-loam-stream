@@ -552,12 +552,29 @@ final class IntentTest extends FunSuite {
       assert(Intent.determineJobFilterIntent(conf.right.get.toValues) === JobFilterIntent.RunIfAnyMissingOutputs)
     }
     
+    object HasRegexes {
+      def unapply(intent: JobFilterIntent): Option[Seq[Regex]] = intent match {
+        case JobFilterIntent.RunIfAllMatch(regexes) => Some(regexes)
+        case JobFilterIntent.RunIfAnyMatch(regexes) => Some(regexes)
+        case JobFilterIntent.RunIfNoneMatch(regexes) => Some(regexes)
+        case _ => None
+      }
+    }
+    
+    def assertAreEqual(actual: JobFilterIntent, expected: JobFilterIntent): Unit = (actual, expected) match {
+      case (lhs @ HasRegexes(lhsRegexes), rhs @ HasRegexes(rhsRegexes)) => {
+        assert(lhs.getClass === rhs.getClass)
+        assert(lhsRegexes.map(_.toString) === rhsRegexes.map(_.toString))
+      }
+      case (lhs, rhs) => assert(lhs === rhs)
+    }
+    
     {
       val conf = cliConf(s"--run allOf foo bar --compile-only --loams $exampleFile0")
 
       val expected = JobFilterIntent.RunIfAllMatch(Seq("foo".r, "bar".r))
       
-      assert(Intent.determineJobFilterIntent(conf.right.get.toValues) === expected)
+      assertAreEqual(Intent.determineJobFilterIntent(conf.right.get.toValues), expected)
     }
     
     {
@@ -565,7 +582,7 @@ final class IntentTest extends FunSuite {
 
       val expected = JobFilterIntent.RunIfAnyMatch(Seq("foo".r, "bar".r))
       
-      assert(Intent.determineJobFilterIntent(conf.right.get.toValues) === expected)
+      assertAreEqual(Intent.determineJobFilterIntent(conf.right.get.toValues), expected)
     }
     
     {
@@ -573,7 +590,7 @@ final class IntentTest extends FunSuite {
 
       val expected = JobFilterIntent.RunIfNoneMatch(Seq("foo".r, "bar".r))
       
-      assert(Intent.determineJobFilterIntent(conf.right.get.toValues) === expected)
+      assertAreEqual(Intent.determineJobFilterIntent(conf.right.get.toValues), expected)
     }
     
     //Default, DB-backed filter

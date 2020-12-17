@@ -520,4 +520,74 @@ final class IntentTest extends FunSuite {
       assert(Intent.determineHashingStrategy(conf.right.get.toValues) === HashingStrategy.HashOutputs)
     }
   }
+  
+  /*
+   * private[cli] def determineJobFilterIntent(values: Conf.Values): JobFilterIntent = {
+    def nameOf(field: Conf => ScallopOption[_]) = field(values.derivedFrom).name
+    
+    def toRegexes(regexStrings: Seq[String]) = regexStrings.map(_.r)
+    
+    import JobFilterIntent._
+    
+    values.run match {
+      case Some((Conf.RunStrategies.Everything, _)) => RunEverything
+      case Some((Conf.RunStrategies.IfAnyMissingOutputs, _)) => RunIfAnyMissingOutputs
+      case Some((Conf.RunStrategies.AllOf, regexStrings)) => RunIfAllMatch(toRegexes(regexStrings))
+      case Some((Conf.RunStrategies.AnyOf, regexStrings)) => RunIfAnyMatch(toRegexes(regexStrings))
+      case Some((Conf.RunStrategies.NoneOf, regexStrings)) => RunIfNoneMatch(toRegexes(regexStrings))
+      case _ => DontFilterByName
+    }
+  }
+   */
+  test("determineJobFilterIntent") {
+    {
+      val conf = cliConf(s"--run everything --compile-only --loams $exampleFile0")
+
+      assert(Intent.determineJobFilterIntent(conf.right.get.toValues) === JobFilterIntent.RunEverything)
+    }
+
+    {
+      val conf = cliConf(s"--run ifAnyMissingOutputs --compile-only --loams $exampleFile0")
+
+      assert(Intent.determineJobFilterIntent(conf.right.get.toValues) === JobFilterIntent.RunIfAnyMissingOutputs)
+    }
+    
+    {
+      val conf = cliConf(s"--run allOf foo bar --compile-only --loams $exampleFile0")
+
+      val expected = JobFilterIntent.RunIfAllMatch(Seq("foo".r, "bar".r))
+      
+      assert(Intent.determineJobFilterIntent(conf.right.get.toValues) === expected)
+    }
+    
+    {
+      val conf = cliConf(s"--run anyOf foo bar --compile-only --loams $exampleFile0")
+
+      val expected = JobFilterIntent.RunIfAnyMatch(Seq("foo".r, "bar".r))
+      
+      assert(Intent.determineJobFilterIntent(conf.right.get.toValues) === expected)
+    }
+    
+    {
+      val conf = cliConf(s"--run noneOf foo bar --compile-only --loams $exampleFile0")
+
+      val expected = JobFilterIntent.RunIfNoneMatch(Seq("foo".r, "bar".r))
+      
+      assert(Intent.determineJobFilterIntent(conf.right.get.toValues) === expected)
+    }
+    
+    //Default, DB-backed filter
+    {
+      val conf = cliConf(s"--run blasdasdasd --compile-only --loams $exampleFile0")
+
+      assert(Intent.determineJobFilterIntent(conf.right.get.toValues) === JobFilterIntent.DontFilterByName)
+    }
+    
+    //Default, DB-backed filter
+    {
+      val conf = cliConf(s"--compile-only --loams $exampleFile0")
+
+      assert(Intent.determineJobFilterIntent(conf.right.get.toValues) === JobFilterIntent.DontFilterByName)
+    }
+  }
 }

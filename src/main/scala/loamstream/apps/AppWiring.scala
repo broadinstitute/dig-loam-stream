@@ -98,6 +98,7 @@ import scala.util.Success
 import rx.lang.scala.Scheduler
 import rx.lang.scala.schedulers.ExecutionContextScheduler
 import loamstream.util.DirOracle
+import loamstream.model.execute.ProtectsFilesJobCanceler
 
 
 
@@ -187,10 +188,12 @@ object AppWiring extends Loggable {
           cliConfig = intent.cliConfig)
     }
     
+    def cliConfigValues: Option[Conf.Values] = intent.cliConfig.map(_.toValues)
+    
     val settings: LsSettings = {
       require(intent.cliConfig.isDefined, "Expected LS to be run from the command line")
       
-      LsSettings(intent.cliConfig.map(_.toValues))
+      LsSettings(cliConfigValues)
     }
     
     override def executer: Executer = terminableExecuter
@@ -232,7 +235,7 @@ object AppWiring extends Loggable {
             compositeRunner, 
             new FileMonitor(outputPollingFrequencyInHz, maxWaitTimeForOutputs),
             windowLength, 
-            defaultJobCanceller,
+            defaultJobCanceller(cliConfigValues.flatMap(_.protectedOutputsFile)),
             jobFilter, 
             executionRecorder,
             maxRunsPerJob,
@@ -539,7 +542,15 @@ object AppWiring extends Loggable {
     }
   }
   
-  private[apps] def defaultJobCanceller: JobCanceler = RequiresPresentInputsJobCanceler
+  private[apps] def defaultJobCanceller(protectedOutputsFile: Option[Path]): JobCanceler = {
+    val protectedFilesJobCanceler: JobCanceler = {
+      import ProtectsFilesJobCanceler.{empty, fromFile}
+      
+      protectedOutputsFile.map(fromFile).getOrElse(empty)
+    }
+    
+    RequiresPresentInputsJobCanceler || protectedFilesJobCanceler
+  }
   
   private[apps] def defaultJobFilter(dao: LoamDao, outputHashingStrategy: HashingStrategy): JobFilter = {
     RunsIfNoOutputsJobFilter || new DbBackedJobFilter(dao, outputHashingStrategy)

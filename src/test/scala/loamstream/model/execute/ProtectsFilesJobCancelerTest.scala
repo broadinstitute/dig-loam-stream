@@ -30,12 +30,12 @@ final class ProtectsFilesJobCancelerTest extends FunSuite {
     assert(filter.locationsToProtect === Set("x", "y", "a"))
   }
   
-  test("apply - Iterable of Eithers") {
+  test("fromEithers - Iterable of Eithers") {
     val es: Iterable[Either[Path, URI]] = {
       Iterable(Left(path("x")), Right(uri("gs://y")), Left(path("a")), Left(path("x")))
     }
     
-    val filter = ProtectsFilesJobCanceler(es)
+    val filter = ProtectsFilesJobCanceler.fromEithers(es)
     
     val expected = Set(path("x").toAbsolutePath.toString, "gs://y", path("a").toAbsolutePath.toString)
     
@@ -133,7 +133,7 @@ final class ProtectsFilesJobCancelerTest extends FunSuite {
   test("shouldCancel - some protected files, some apply") {
     val locs = Iterable(Left(path("x")), Right(uri("gs://y")), Left(path("a")), Left(path("x")))
     
-    val filter = ProtectsFilesJobCanceler(locs)
+    val filter = ProtectsFilesJobCanceler.fromEithers(locs)
     
     def pathHandle(s: String) = DataHandle.PathHandle(path(s))
     

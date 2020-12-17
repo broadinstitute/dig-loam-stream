@@ -25,6 +25,17 @@ final class ProtectsFilesJobCanceler private (
     //shouldRun() method to be called _a lot_, on the order of once per store in a pipeline.
     private val _locationsToProtect: java.util.Set[String]) extends JobCanceler with Loggable {
   
+  val isEmpty: Boolean = _locationsToProtect.isEmpty
+  
+  def nonEmpty: Boolean = !isEmpty
+  
+  override def hashCode: Int = _locationsToProtect.hashCode
+  
+  override def equals(other: Any): Boolean = other match {
+    case that: ProtectsFilesJobCanceler => this.locationsToProtect == that.locationsToProtect
+    case _ => false
+  }
+  
   private[execute] def locationsToProtect: Set[String] = _locationsToProtect.asScala.toSet
   
   override def shouldCancel(job: LJob): Boolean = {
@@ -36,7 +47,7 @@ final class ProtectsFilesJobCanceler private (
     
     def anyOutputIsMissing = outputs.exists(_.isMissing)
 
-    val result = anyOutputIsProtected && anyOutputIsMissing
+    val result = nonEmpty && anyOutputIsProtected && anyOutputIsMissing
     
     if(result) {
       def toQuotedString(handle: DataHandle): String = s"'${handle.location}'"
@@ -66,7 +77,9 @@ object ProtectsFilesJobCanceler {
   
   def apply(loc: String, rest: String*): ProtectsFilesJobCanceler = apply(loc +: rest)
   
-  def apply(pathsOrUris: Iterable[Either[Path, URI]])(implicit discriminator: Int = 42): ProtectsFilesJobCanceler = {
+  private[execute] def fromEithers(
+      pathsOrUris: Iterable[Either[Path, URI]])(implicit discriminator: Int = 42): ProtectsFilesJobCanceler = {
+    
     val locs: Iterable[String] = pathsOrUris.collect {
       case Left(p) => LPaths.normalize(p).toString
       case Right(u) => u.toString
@@ -98,6 +111,6 @@ object ProtectsFilesJobCanceler {
     
     val locs = lines.map(_.trim).filterNot(shouldSkip).map(parse)
     
-    ProtectsFilesJobCanceler(locs.toList)
+    fromEithers(locs.toList)
   }
 }

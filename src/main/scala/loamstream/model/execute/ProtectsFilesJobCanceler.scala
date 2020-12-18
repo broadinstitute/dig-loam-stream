@@ -47,9 +47,11 @@ final class ProtectsFilesJobCanceler private (
     
     def anyOutputIsMissing = outputs.exists(_.isMissing)
 
-    val result = nonEmpty && anyOutputIsProtected && anyOutputIsMissing
+    //Short-circuit if there are no protected outputs to test against; we expect this method 
+    //will be called a lot - once per job in every pipeline.
+    val jobShouldBeCanceled = nonEmpty && anyOutputIsProtected && anyOutputIsMissing
     
-    if(result) {
+    if(jobShouldBeCanceled) {
       def toQuotedString(handle: DataHandle): String = s"'${handle.location}'"
       
       def protectedOutputs = outputs.filter(isProtected).map(toQuotedString)
@@ -60,7 +62,7 @@ final class ProtectsFilesJobCanceler private (
            s"it would have run because the following outputs are missing: ${missingOutputs.mkString(",")}")
     }
     
-    result
+    jobShouldBeCanceled
   }
 }
 

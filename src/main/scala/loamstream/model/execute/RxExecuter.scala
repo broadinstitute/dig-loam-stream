@@ -39,10 +39,14 @@ final case class RxExecuter(
     executionRecorder: ExecutionRecorder,
     maxRunsPerJob: Int,
     scheduler: Scheduler,
-    override protected val terminableComponents: Iterable[Terminable] = Nil)
-    (implicit val executionContext: ExecutionContext) extends Executer with Terminable.StopsComponents with Loggable {
+    private val additionalTerminableComponents: Iterable[Terminable] = Nil)
+   (implicit val executionContext: ExecutionContext) extends Executer with Terminable.StopsComponents with Loggable {
   
   require(maxRunsPerJob >= 1, s"The maximum number of times to run each job must not be negative; got $maxRunsPerJob")
+
+  protected override val terminableComponents: Iterable[Terminable] = {
+    additionalTerminableComponents.toSet + executionRecorder
+  }
   
   import executionRecorder.record
   import loamstream.util.Observables.Implicits._

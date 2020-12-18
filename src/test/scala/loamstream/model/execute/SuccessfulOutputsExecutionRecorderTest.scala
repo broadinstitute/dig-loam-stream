@@ -54,9 +54,14 @@ final class SuccessfulOutputsExecutionRecorderTest extends FunSuite {
       
       val recordedLocs = Files.readFrom(file).split(System.lineSeparator).iterator.map(_.trim).toSet
       
-      val expected = Seq(o0, o2, o3, o4).map(_.location).toSet
+      val expected = for {
+        job <- Seq(j0, j2, j3, j4)
+        output <- job.outputs.toSeq
+      } yield {
+        s"${job.toReturn.jobStatus}\t${output.location}"
+      }
       
-      assert(recordedLocs === expected)
+      assert(recordedLocs === expected.toSet)
     }
   }
 }

@@ -26,7 +26,9 @@ final case class SuccessfulOutputsExecutionRecorder(file: Path) extends Executio
     executionTuples.foreach { case (j, e) =>
       if(e.isSuccess && e.outputs.nonEmpty) {
         try {
-          e.outputs.iterator.map(_.loc).foreach(writer.println)
+          val tuples = e.outputs.iterator.map(o => e.status -> o.loc)
+          
+          tuples.map { case (s, l) => s"${s}\t${l}"}.foreach(writer.println)
         } finally {
           //Flush after writing each batch.  This will reduce performance, but will make it easier to tail
           //the resulting file over the course of a long run.

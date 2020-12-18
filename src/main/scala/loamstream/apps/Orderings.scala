@@ -3,6 +3,7 @@ package loamstream.apps
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.LJob
 import loamstream.util.TimeUtils
+import java.time.LocalDateTime
 
 /**
  * @author clint
@@ -17,13 +18,23 @@ object Orderings {
     val (_, executionB) = b
 
     (executionA.resources, executionB.resources) match {
-      case (Some(resourcesA), Some(resourcesB)) => {
-        import TimeUtils.toEpochMilli
-        
-        toEpochMilli(resourcesA.startTime) < toEpochMilli(resourcesB.startTime)
-      }
+      case (Some(resourcesA), Some(resourcesB)) => lt(resourcesA.startTime, resourcesB.startTime)
       case (_, None) => false
       case _ => true
     }
+  }
+  
+  def indexFileRowOrdering(a: IndexFiles.Row, b: IndexFiles.Row): Boolean = {
+    (a.startTime, b.startTime) match {
+      case (Some(startTimeA), Some(startTimeB)) => lt(startTimeA, startTimeB)
+      case (_, None) => false
+      case _ => true
+    }
+  }
+  
+  private def lt(a: LocalDateTime, b: LocalDateTime): Boolean = {
+    import TimeUtils.toEpochMilli
+    
+    toEpochMilli(a) < toEpochMilli(b)
   }
 }

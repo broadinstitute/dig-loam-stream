@@ -22,6 +22,7 @@ import loamstream.util.TimeUtils
 import rx.lang.scala.Observable
 import rx.lang.scala.Scheduler
 import rx.lang.scala.schedulers.IOScheduler
+import scala.util.control.NonFatal
 
 
 /**
@@ -74,20 +75,32 @@ final case class RxExecuter(
       ExecutionState.initialFor(executable, maxRunsPerJob)
     }
     
-    val jobResultTuples: Observable[(LJob, Execution)] = {
-      //Note onBackpressureDrop(), in case runEligibleJobs takes too long (or the polling window is too short)
-      val ticks = Observable.interval(windowLength, scheduler).onBackpressureDrop
+    propagateExecutionStateOnException(executionState) {
+      val jobResultTuples: Observable[(LJob, Execution)] = {
+        //Note onBackpressureDrop(), in case runEligibleJobs takes too long (or the polling window is too short)
+        val ticks = Observable.interval(windowLength, scheduler).onBackpressureDrop
+        
+        def runJobs(jobsAndCells: ExecutionState.JobStatuses) = runEligibleJobs(executionState, jobOracle, jobsAndCells)
+        
+        def isFinished = executionState.isFinished
+        
+        ticks.map(_ => executionState.updateJobs()).distinctUntilChanged.flatMap(runJobs).takeUntil(_ => isFinished)
+      }
       
-      def runJobs(jobsAndCells: ExecutionState.JobStatuses) = runEligibleJobs(executionState, jobOracle, jobsAndCells)
-      
-      def isFinished = executionState.isFinished
-      
-      ticks.map(_ => executionState.updateJobs()).distinctUntilChanged.flatMap(runJobs).takeUntil(_ => isFinished)
+      val futureMergedResults = jobResultTuples.toMap.firstAsFuture
+  
+      Await.result(futureMergedResults, timeout)
     }
-    
-    val futureMergedResults = jobResultTuples.toMap.firstAsFuture
-
-    Await.result(futureMergedResults, timeout)
+  }
+  
+  private def propagateExecutionStateOnException[A](executionState: ExecutionState)(body: => A): A = {
+    try { body }
+    catch {
+      case NonFatal(e) => throw InterruptedExecutionException(
+          executionState.snapshot(), 
+          "Error during execution; propagating execution state for debugging", 
+          e)
+    }
   }
   
   private def finishOneJob(

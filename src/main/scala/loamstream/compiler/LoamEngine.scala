@@ -35,6 +35,8 @@ import loamstream.loam.ScalaLoamScript
 import loamstream.util.Files
 import loamstream.conf.LsSettings
 import loamstream.conf.ExecutionConfig
+import loamstream.model.execute.InterruptedExecutionException
+import loamstream.model.execute.JobExecutionState
 
 
 /**
@@ -104,6 +106,13 @@ final case class LoamEngine(
   
       executions
     } catch {
+      case e: InterruptedExecutionException => {
+        error(
+            s"Caught exception when running, attempting to provide information about jobs for debugging. Root cause: ", 
+            e.cause)
+            
+        makeExecutionMapInCaseOfInterruption(e.executionState, jobOracle)
+      }
       case NonFatal(e) => {
         error(s"Caught exception when running, attempting to provide information about jobs for debugging.", e)
         
@@ -114,13 +123,39 @@ final case class LoamEngine(
     }
   }
   
+  private def makeExecutionMapInCaseOfInterruption(
+      executionStates: Iterable[JobExecutionState], 
+      jobOracle: JobOracle): Map[LJob, Execution] = {
+    
+    def getCommand(j: LJob): Option[String] = j match {
+      case clj: HasCommandLine => Some(clj.commandLineString)
+      case _ => None
+    }
+    
+    executionStates.iterator.map { state =>
+      import state.job
+      
+      val e = Execution(
+          cmd = getCommand(job),
+          settings = job.initialSettings,
+          status = state.status,
+          result = None,
+          resources = None,
+          outputs = job.outputs.map(_.toStoreRecord),
+          jobDir = jobOracle.dirOptFor(job),
+          terminationReason = None)
+      
+      job -> e
+    }.toMap
+  }
+  
   private def makeExecutionMapInCaseOfException(executable: Executable, jobOracle: JobOracle): Map[LJob, Execution] = {
     def getCommand(j: LJob): Option[String] = j match {
       case clj: HasCommandLine => Some(clj.commandLineString)
       case _ => None
     }
     
-    executable.allJobs.map { job =>
+    executable.allJobs.iterator.map { job =>
       val e = Execution(
           cmd = getCommand(job),
           settings = job.initialSettings,

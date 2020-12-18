@@ -99,6 +99,7 @@ import rx.lang.scala.Scheduler
 import rx.lang.scala.schedulers.ExecutionContextScheduler
 import loamstream.util.DirOracle
 import loamstream.model.execute.ProtectsFilesJobCanceler
+import loamstream.model.execute.SuccessfulOutputsExecutionRecorder
 
 
 
@@ -170,8 +171,14 @@ object AppWiring extends Loggable {
     }
   }
   
-  private[AppWiring] def makeExecutionRecorder(getDao: => LoamDao): ExecutionRecorder = {
-    FileSystemExecutionRecorder && (new DbBackedExecutionRecorder(getDao))
+  private[AppWiring] def makeExecutionRecorder(
+      executionConfig: ExecutionConfig)(getDao: => LoamDao): ExecutionRecorder = {
+    
+    val successfulOutputFile = executionConfig.locations.logDir.resolve("successful-job-outputs.txt")
+    
+    FileSystemExecutionRecorder && 
+    (new DbBackedExecutionRecorder(getDao)) &&
+    SuccessfulOutputsExecutionRecorder(successfulOutputFile)
   }
   
   private final class DefaultAppWiring(
@@ -204,7 +211,7 @@ object AppWiring extends Loggable {
 
     override lazy val jobFilter: JobFilter = makeJobFilter(intent.jobFilterIntent, intent.hashingStrategy, dao)
     
-    override lazy val executionRecorder: ExecutionRecorder = makeExecutionRecorder(dao)
+    override lazy val executionRecorder: ExecutionRecorder = makeExecutionRecorder(config.executionConfig)(dao)
     
     private lazy val terminableExecuter: TerminableExecuter = {
       trace("Creating executer...")

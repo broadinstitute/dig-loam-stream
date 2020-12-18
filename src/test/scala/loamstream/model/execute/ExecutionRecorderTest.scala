@@ -51,7 +51,7 @@ final class ExecutionRecorderTest extends FunSuite {
     TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
       val file = workDir.resolve("successful-outputs.txt")
       
-      val recorder = ExecutionRecorder.SuccessfulOutputsExecutionRecorder(file)
+      val recorder = SuccessfulOutputsExecutionRecorder(file)
       
       val o0 = DataHandle.PathHandle(path("foo"))
       val o1 = DataHandle.PathHandle(path("bar"))

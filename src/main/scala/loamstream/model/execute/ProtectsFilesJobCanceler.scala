@@ -25,6 +25,18 @@ final class ProtectsFilesJobCanceler private (
     //shouldRun() method to be called _a lot_, on the order of once per store in a pipeline.
     private val _locationsToProtect: java.util.Set[String]) extends JobCanceler with Loggable {
   
+  doInitialLogging()
+  
+  private def doInitialLogging(): Unit = {
+    import _locationsToProtect.size
+    
+    debug(s"Made ${ProtectsFilesJobCanceler.getClass.getSimpleName} that will protect ${size} locations:")
+    
+    if(isDebugEnabled) {
+      locationsToProtect.toSeq.sorted.foreach(debug(_))
+    }
+  }
+  
   val isEmpty: Boolean = _locationsToProtect.isEmpty
   
   def nonEmpty: Boolean = !isEmpty

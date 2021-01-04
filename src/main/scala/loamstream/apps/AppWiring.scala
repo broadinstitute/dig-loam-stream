@@ -166,8 +166,18 @@ object AppWiring extends Loggable {
     import JobFilterIntent._
     
     jobFilterIntent match {
-      case convertible: JobFilterIntent.ConvertibleToJobFilter => convertible.toJobFilter
-      case _ => defaultJobFilter(getDao, hashingStrategy)
+      case convertible: JobFilterIntent.ConvertibleToJobFilter => {
+        val jobFilter = convertible.toJobFilter
+        
+        debug(s"Job filter intent ${jobFilterIntent} produced job filter ${jobFilter}")
+        
+        jobFilter
+      }
+      case _ => {
+        debug("Using default JobFilter")
+        
+        defaultJobFilter(getDao, hashingStrategy)
+      }
     }
   }
   
@@ -556,7 +566,11 @@ object AppWiring extends Loggable {
       protectedOutputsFile.map(fromFile).getOrElse(empty)
     }
     
-    RequiresPresentInputsJobCanceler || protectedFilesJobCanceler
+    val jobCanceller = RequiresPresentInputsJobCanceler || protectedFilesJobCanceler
+    
+    debug(s"Made default job canceller $jobCanceller")
+    
+    jobCanceller
   }
   
   private[apps] def defaultJobFilter(dao: LoamDao, outputHashingStrategy: HashingStrategy): JobFilter = {

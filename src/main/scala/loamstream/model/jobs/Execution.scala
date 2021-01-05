@@ -126,7 +126,7 @@ object Execution extends Loggable {
         status = result.toJobStatus, 
         result = Option(result), 
         resources = None, 
-        outputs = outputs.toSet,
+        outputs = outputs,
         jobDir = Option(jobDir),
         terminationReason = None)
   }
@@ -135,7 +135,7 @@ object Execution extends Loggable {
                   cmd: String,
                   result: JobResult,
                   jobDir: Path,
-                  outputs: Set[DataHandle]): Execution = {
+                  outputs: Iterable[DataHandle]): Execution = {
     
     Execution(
         cmd = Option(cmd),
@@ -143,7 +143,7 @@ object Execution extends Loggable {
         status = result.toJobStatus, 
         result = Option(result), 
         resources = None, 
-        outputs = outputs.map(_.toStoreRecord),
+        outputs = toStoreRecords(outputs),
         jobDir = Option(jobDir),
         terminationReason = None)
   }
@@ -158,7 +158,7 @@ object Execution extends Loggable {
     
     val commandLine: Option[String] = Identifier.from(job)
     
-    val outputRecords = job.outputs.toSeq.map(_.toStoreRecord)
+    val outputRecords = toStoreRecords(job.outputs)
     
     val settings = job.initialSettings
     
@@ -171,5 +171,13 @@ object Execution extends Loggable {
       outputs = outputRecords,
       jobDir = jobDir,
       terminationReason = terminationReason)
+  }
+  
+  private def toStoreRecords(dataHandles: Iterable[DataHandle]): Iterable[StoreRecord] = {
+    //Note .toSeq here.  This prevents building a set of StoreRecords (as long as job.outputs is a Set),
+    //which would invoke StoreRecord.equals for each StoreRecord produced, forcing the evaluation of thos
+    //StoreRecords' hash fields.  We want to prevent forcing the evaluation of those fields and leave the
+    //the decision to hash or not to ExecutionRecorders. (Ie, don't eval hashes if they won't be used.) 
+    dataHandles.toSeq.map(_.toStoreRecord)
   }
 }

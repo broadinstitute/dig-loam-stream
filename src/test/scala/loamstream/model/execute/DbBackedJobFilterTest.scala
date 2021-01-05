@@ -92,7 +92,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
   testWithSimpleOutputSet("shouldRun - failed and successful runs") { outputs =>
     registerRunAndThen(run) {
       val filter = new DbBackedJobFilter(dao, HashingStrategy.HashOutputs)
-      val recorder = new DbBackedExecutionRecorder(dao)
+      val recorder = new DbBackedExecutionRecorder(dao, HashingStrategy.HashOutputs)
         
       val jobName = "dummyJob"
       
@@ -143,7 +143,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
   testWithSimpleOutputSet("needsToBeRun/hasDifferentHash/hasDifferentModTime - should hash") { outputs =>
     registerRunAndThen(run) {
       val filter = new DbBackedJobFilter(dao, HashingStrategy.HashOutputs)
-      val recorder = new DbBackedExecutionRecorder(dao)
+      val recorder = new DbBackedExecutionRecorder(dao, HashingStrategy.HashOutputs)
       
       val jobName = "dummyJob"
 
@@ -232,7 +232,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
   testWithSimpleOutputSet("needsToBeRun/hasDifferentHash/hasDifferentModTime - hashing disabled") { outputs =>
     registerRunAndThen(run) {
       val filter = new DbBackedJobFilter(dao, HashingStrategy.DontHashOutputs)
-      val recorder = new DbBackedExecutionRecorder(dao)
+      val recorder = new DbBackedExecutionRecorder(dao, HashingStrategy.HashOutputs)
       val jobName = "dummyJob"
 
       assert(executions === Nil)
@@ -352,7 +352,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       val outputs: Set[DataHandle] = Set(o0, o1)
 
-      val recorder = new DbBackedExecutionRecorder(dao)
+      val recorder = new DbBackedExecutionRecorder(dao, HashingStrategy.HashOutputs)
 
       val cmdLineJob0 = cmdLineJob(cmd0, outputs)
       

@@ -30,7 +30,7 @@ final case class Execution(
     status: JobStatus,
     result: Option[JobResult] = None,
     resources: Option[Resources] = None,
-    outputs: Set[StoreRecord] = Set.empty,
+    outputs: Iterable[StoreRecord] = Seq.empty,
     jobDir: Option[Path],
     terminationReason: Option[TerminationReason]) extends Execution.Persisted {
 
@@ -86,7 +86,7 @@ object Execution extends Loggable {
     def cmd: Option[String]
     def status: JobStatus
     def result: Option[JobResult]
-    def outputs: Set[StoreRecord]
+    def outputs: Iterable[StoreRecord]
     def jobDir: Option[Path]
     def terminationReason: Option[TerminationReason]
   }
@@ -158,7 +158,7 @@ object Execution extends Loggable {
     
     val commandLine: Option[String] = Identifier.from(job)
     
-    val outputRecords = job.outputs.map(_.toStoreRecord)
+    val outputRecords = job.outputs.toSeq.map(_.toStoreRecord)
     
     val settings = job.initialSettings
     

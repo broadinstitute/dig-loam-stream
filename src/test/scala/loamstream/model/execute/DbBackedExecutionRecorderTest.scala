@@ -42,7 +42,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
   
   test("record() - no Executions") {
     createTablesAndThen {
-      val recorder = new DbBackedExecutionRecorder(dao)
+      val recorder = new DbBackedExecutionRecorder(dao, HashingStrategy.HashOutputs)
 
       assert(executions === Nil)
 
@@ -58,7 +58,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
         status: JobStatus, 
         result: Option[JobResult] = None): Unit = {
       registerRunAndThen(run) {
-        val recorder = new DbBackedExecutionRecorder(dao)
+        val recorder = new DbBackedExecutionRecorder(dao, HashingStrategy.HashOutputs)
   
         assert(executions === Nil)
   
@@ -89,7 +89,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
 
   test("record() - successful command-Execution, no outputs") {
     registerRunAndThen(run) {
-      val recorder = new DbBackedExecutionRecorder(dao)
+      val recorder = new DbBackedExecutionRecorder(dao, HashingStrategy.HashOutputs)
 
       assert(executions === Nil)
 
@@ -117,7 +117,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
   
   test("record() - skipped command-Execution, no outputs") {
     registerRunAndThen(run) {
-      val recorder = new DbBackedExecutionRecorder(dao)
+      val recorder = new DbBackedExecutionRecorder(dao, HashingStrategy.HashOutputs)
 
       assert(executions === Nil)
 
@@ -147,7 +147,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
 
   test("record() - failed command-Execution, no outputs") {
     registerRunAndThen(run) {
-      val recorder = new DbBackedExecutionRecorder(dao)
+      val recorder = new DbBackedExecutionRecorder(dao, HashingStrategy.HashOutputs)
 
       assert(executions === Nil)
 
@@ -175,7 +175,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
 
   test("record() - successful command-Execution, some outputs") {
     registerRunAndThen(run) {
-      val recorder = new DbBackedExecutionRecorder(dao)
+      val recorder = new DbBackedExecutionRecorder(dao, HashingStrategy.HashOutputs)
 
       assert(executions === Nil)
 
@@ -197,7 +197,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
   
   test("record() - skipped command-Execution, some outputs") {
     registerRunAndThen(run) {
-      val recorder = new DbBackedExecutionRecorder(dao)
+      val recorder = new DbBackedExecutionRecorder(dao, HashingStrategy.HashOutputs)
 
       assert(executions === Nil)
 
@@ -221,7 +221,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
 
   test("record() - failed command-Execution, some outputs") {
     registerRunAndThen(run) {
-      val recorder = new DbBackedExecutionRecorder(dao)
+      val recorder = new DbBackedExecutionRecorder(dao, HashingStrategy.HashOutputs)
 
       assert(executions === Nil)
 
@@ -249,7 +249,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
   
   test("record() - successful native job Execution, some outputs") {
     registerRunAndThen(run) {
-      val recorder = new DbBackedExecutionRecorder(dao)
+      val recorder = new DbBackedExecutionRecorder(dao, HashingStrategy.HashOutputs)
 
       assert(executions === Nil)
 
@@ -278,7 +278,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
   
   test("record() - failed native job Execution, some outputs") {
     registerRunAndThen(run) {
-      val recorder = new DbBackedExecutionRecorder(dao)
+      val recorder = new DbBackedExecutionRecorder(dao, HashingStrategy.HashOutputs)
 
       assert(executions === Nil)
 

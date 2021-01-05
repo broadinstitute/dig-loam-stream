@@ -182,12 +182,13 @@ object AppWiring extends Loggable {
   }
   
   private[AppWiring] def makeExecutionRecorder(
-      executionConfig: ExecutionConfig)(getDao: => LoamDao): ExecutionRecorder = {
+      executionConfig: ExecutionConfig,
+      hashingStrategy: HashingStrategy)(getDao: => LoamDao): ExecutionRecorder = {
     
     val successfulOutputFile = executionConfig.locations.logDir.resolve("successful-job-outputs.txt")
     
     FileSystemExecutionRecorder && 
-    (new DbBackedExecutionRecorder(getDao)) &&
+    (new DbBackedExecutionRecorder(getDao, hashingStrategy)) &&
     SuccessfulOutputsExecutionRecorder(successfulOutputFile)
   }
   
@@ -221,7 +222,9 @@ object AppWiring extends Loggable {
 
     override lazy val jobFilter: JobFilter = makeJobFilter(intent.jobFilterIntent, intent.hashingStrategy, dao)
     
-    override lazy val executionRecorder: ExecutionRecorder = makeExecutionRecorder(config.executionConfig)(dao)
+    override lazy val executionRecorder: ExecutionRecorder = {
+      makeExecutionRecorder(config.executionConfig, intent.hashingStrategy)(dao)
+    }
     
     private lazy val terminableExecuter: TerminableExecuter = {
       trace("Creating executer...")

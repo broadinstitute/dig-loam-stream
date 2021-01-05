@@ -15,20 +15,20 @@ final class DbBackedExecutionRecorder(
     val dao: LoamDao, 
     hashingStrategy: HashingStrategy) extends ExecutionRecorder with Loggable {
   
+  import DbBackedExecutionRecorder.noHashes
+  
+  private val disableHashingIfNeeded: Execution => Execution = hashingStrategy match {
+    case HashingStrategy.DontHashOutputs => noHashes
+    case HashingStrategy.HashOutputs => identity
+  }
+  
   override def record(jobOracle: JobOracle, executionTuples: Iterable[(LJob, Execution)]): Unit = {
     //NB: We can only insert skipped executions and command executions (UGER or command-line jobs, 
     //anything with an in exit status code) for now
     
     val insertableExecutions = executionTuples.collect { case (_, e) if e.isPersistable => e }
     
-    import DbBackedExecutionRecorder.noHashes
-    
     debug(s"Recording job executions ${if(hashingStrategy.shouldHash) "WITH" else "WITHOUT"} hashes")
-    
-    val disableHashingIfNeeded: Execution => Execution = hashingStrategy match {
-      case HashingStrategy.DontHashOutputs => noHashes
-      case HashingStrategy.HashOutputs => identity
-    }
 
     dao.insertExecutions(insertableExecutions.map(disableHashingIfNeeded))
   }

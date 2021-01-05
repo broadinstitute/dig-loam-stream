@@ -588,5 +588,55 @@ final class IntentTest extends FunSuite {
 
       assert(Intent.determineJobFilterIntent(conf.right.get.toValues) === JobFilterIntent.DontFilterByName)
     }
+    
+    //if-any-missing-outputs
+    {
+      val conf = cliConf(s"--run ifAnyMissingOutputs --compile-only --loams $exampleFile0")
+
+      assert(Intent.determineJobFilterIntent(conf.right.get.toValues) === JobFilterIntent.RunIfAnyMissingOutputs)
+    }
+  }
+  
+  test("determineJobFilterIntent - problematic real-world args") {
+    val loams = Seq(
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/Ancestry.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/Annotate.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/ArrayStores.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/DirTree.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/ExportCleanData.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/ExportQcData.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/FilterArray.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/Fxns.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/Harmonize.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/Kinship.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/Load.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/Main.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/Pca.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/Prepare.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/ProjectConfig.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/ProjectStores.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/QcReport.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/QcReportStores.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/SampleQc.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/StoreHelpers.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/Stores.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/Tracking.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/Upload.scala")
+    
+    val args = Seq(
+      "--backend",
+      "uger",
+      "--disable-hashing",
+      "--protect-files-from",
+      "protected_files.txt",
+      "--run",
+      "ifAnyMissingOutputs",
+      "--conf",
+      "loamstream.conf",
+      "--loams") ++ loams
+      
+    val conf = Conf(args)
+    
+    assert(Intent.determineJobFilterIntent(conf.toValues) === JobFilterIntent.RunIfAnyMissingOutputs)
   }
 }

@@ -23,6 +23,7 @@ import loamstream.model.execute.Resources.LsfResources
 import loamstream.drm.lsf.LsfDefaults
 import loamstream.googlecloud.ClusterConfig
 import loamstream.model.jobs.PseudoExecution
+import loamstream.model.jobs.StoreRecord
 
 /**
  * @author kyuksel
@@ -68,11 +69,16 @@ trait ProvidesEnvAndResources extends FunSuite {
   }
 
   protected def assertEqualFieldsFor(actual: Iterable[Execution.Persisted], expected: Iterable[Execution]): Unit = {
+    implicit final class StoreRecordIterableOps(srs: Iterable[StoreRecord]) {
+      def sortedByLoc: Seq[StoreRecord] = srs.toSeq.sortBy(_.loc)
+    }
+    
     assert(actual.map(_.envType) === expected.map(_.envType))
     assert(actual.map(_.cmd) === expected.map(_.cmd))
     assert(actual.map(_.status) === expected.map(_.status))
     assert(actual.map(_.result) === expected.map(_.result))
-    assert(actual.map(_.outputs) === expected.map(_.outputs))
+    // Sort to ignore order whole not forcing evaluation of any lazy fields, which could happen with .toSet
+    assert(actual.map(_.outputs.sortedByLoc) === expected.map(_.outputs.sortedByLoc)) 
     assert(actual.map(_.jobDir) === expected.map(_.jobDir))
     assert(actual.map(_.terminationReason) === expected.map(_.terminationReason))
   }

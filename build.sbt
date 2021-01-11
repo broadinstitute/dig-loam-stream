@@ -71,6 +71,7 @@ lazy val testDeps = Seq(
 )
 
 lazy val root = (project in file("."))
+  .aggregate(webui)
   .configs(IntegrationTest)
   .settings(Defaults.itSettings : _*)
   .settings(
@@ -79,6 +80,7 @@ lazy val root = (project in file("."))
     //NB: version set in version.sbt
     scalaVersion := Versions.Scala,
     scalacOptions ++= Seq("-feature", "-deprecation", "-unchecked"),
+    update / aggregate := false,
     resolvers ++= Seq(Resolvers.SonatypeReleases, Resolvers.SonatypeSnapshots),
     publishTo := Some(Resolvers.LocalRepo),
     libraryDependencies ++= (mainDeps ++ testDeps),
@@ -91,6 +93,28 @@ lazy val root = (project in file("."))
     mainClass in assembly := Some("loamstream.apps.Main"),
     mainClass in Compile := Some("loamstream.apps.Main")
   ).enablePlugins(JavaAppPackaging)
+
+lazy val webuiNpmDeps = Seq(
+  "react" -> "16.13.1",
+  "react-dom" -> "16.13.1"
+)
+
+lazy val webui = (project in file("webui"))
+  .settings(
+    name := "loamstream-webui",
+    organization := Orgs.DIG,
+    //NB: version set in version.sbt
+    scalaVersion := Versions.Scala,
+    scalacOptions ++= Seq("-feature", "-deprecation", "-unchecked"),
+    resolvers ++= Seq(Resolvers.SonatypeReleases, Resolvers.SonatypeSnapshots),
+    publishTo := Some(Resolvers.LocalRepo),
+    libraryDependencies ++= Seq("com.github.japgolly.scalajs-react" %%% "core" % "1.7.7", "io.monix" %%% "monix" % "3.3.0"),
+    scalastyleFailOnError := true,
+    scalaJSUseMainModuleInitializer := true,
+    (npmDependencies in Compile) ++= webuiNpmDeps,
+  )
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+
 
 //Skip tests when running assembly (and publishing).  Comment this line to re-enable tests when publishing.
 test in assembly := {}

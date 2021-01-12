@@ -17,20 +17,20 @@ final class QdelJobKillerTest extends FunSuite {
     assert(sessionTracker.isEmpty)
     assert(tokens === Seq("foo", "-u", "bar"))
     
-    sessionTracker.register(DrmTaskId("blarg", 42))
+    sessionTracker.register(Seq(DrmTaskId("blarg", 42)))
     
     assert(sessionTracker.nonEmpty)
     assert(tokens === Seq("foo", "-u", "bar", "blarg"))
     
-    sessionTracker.register(DrmTaskId("blarg", 43))
-    sessionTracker.register(DrmTaskId("blah", 1))
+    sessionTracker.register(Seq(DrmTaskId("blarg", 43)))
+    sessionTracker.register(Seq(DrmTaskId("blah", 1)))
     
     assert(sessionTracker.nonEmpty)
     assert(tokens.startsWith(Seq("foo", "-u", "bar")))
     assert(tokens.size === 4)
     assert(tokens(3).split(",").toSet === Set("blarg", "blah"))
     
-    sessionTracker.register(DrmTaskId("zuh", 2))
+    sessionTracker.register(Seq(DrmTaskId("zuh", 2)))
     
     assert(sessionTracker.nonEmpty)
     assert(sessionTracker.nonEmpty)

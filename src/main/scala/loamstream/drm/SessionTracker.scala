@@ -7,8 +7,6 @@ import loamstream.util.ValueBox
  * Jan 11, 2021
  */
 trait SessionTracker {
-  def register(drmTaskId: DrmTaskId): Unit
-  
   def register(drmTaskIds: Iterable[DrmTaskId]): Unit
   
   def taskArrayIdsSoFar: Iterable[String]
@@ -20,8 +18,6 @@ trait SessionTracker {
 
 object SessionTracker {
   object Noop extends SessionTracker {
-    final override def register(drmTaskId: DrmTaskId): Unit = ()
-  
     final override def register(drmTaskIds: Iterable[DrmTaskId]): Unit = ()
   
     final override def taskArrayIdsSoFar: Iterable[String] = Nil
@@ -31,12 +27,6 @@ object SessionTracker {
   
   final class Default extends SessionTracker {
     private[this] val soFar: ValueBox[java.util.Set[String]] = ValueBox(new java.util.HashSet)
-    
-    override def register(drmTaskId: DrmTaskId): Unit = soFar.mutate { sf =>
-      sf.add(drmTaskId.jobId)
-      
-      sf
-    }
     
     import scala.collection.JavaConverters._
     
@@ -48,6 +38,10 @@ object SessionTracker {
   
     override def taskArrayIdsSoFar: Iterable[String] = soFar.get(_.asScala.toIterable)
     
-    override def isEmpty: Boolean = soFar().isEmpty
+    override def isEmpty: Boolean = soFar.get(_.isEmpty)
+  }
+  
+  object Default {
+    def empty: Default = new Default
   }
 }

@@ -43,7 +43,8 @@ final case class DrmChunkRunner(
     jobSubmitter: JobSubmitter,
     jobMonitor: JobMonitor,
     accountingClient: AccountingClient,
-    jobKiller: JobKiller
+    jobKiller: JobKiller,
+    private val sessionTracker: SessionTracker,
   )(implicit ec: ExecutionContext) extends ChunkRunnerFor(environmentType) with 
         Terminable.StopsComponents with Loggable {
 
@@ -136,7 +137,11 @@ final case class DrmChunkRunner(
     import loamstream.drm.DrmSubmissionResult._
     
     submissionResult match {
-      case SubmissionSuccess(drmJobsByDrmId) => jobsToRunDatas(drmJobsByDrmId)
+      case SubmissionSuccess(drmJobsByDrmId) => {
+        sessionTracker.register(drmJobsByDrmId.keys)
+        
+        jobsToRunDatas(drmJobsByDrmId)
+      }
       case SubmissionFailure(e) => makeAllFailureMap(drmJobs, Some(e))
     }
   }

@@ -42,7 +42,7 @@ object Qsub {
     }
   }
   
-  private[uger] def makeTokens(sessionSource: SessionSource, actualExecutable: String, params: Params): Seq[String] = {
+  private[uger] def makeTokens(actualExecutable: String, params: Params): Seq[String] = {
     import params.{ ugerConfig, settings, taskArraySize, drmScriptFile } 
     
     val staticPartFromUgerConfig = {
@@ -64,7 +64,6 @@ object Qsub {
       val runTimePart = s"h_rt=${runTimeInHours}:0:0"
       val runtimeAndMemPart = Seq("-l", s"${runTimePart},${memPart}")
 
-      val sessionPart = Seq("-si", sessionSource.getSession)
       val taskArrayPart = Seq("-t", s"1-${taskArraySize}")
       
       val stdoutPathPart = Seq("-o", params.stdOutPathTemplate)
@@ -77,7 +76,6 @@ object Qsub {
         "smp",
         numCores.toString)
       
-      sessionPart ++
       taskArrayPart ++
       numCoresPart ++
       queuePart ++
@@ -92,13 +90,12 @@ object Qsub {
   }
     
   final def commandInvoker(
-      sessionSource: SessionSource,
       ugerConfig: UgerConfig,
       actualExecutable: String = "qsub",
       scheduler: Scheduler)(implicit ec: ExecutionContext, logCtx: LogContext): CommandInvoker.Async[Params] = {
 
     def invocationFn(params: Params): Try[RunResults] = {
-      val tokens = makeTokens(sessionSource, actualExecutable, params)
+      val tokens = makeTokens(actualExecutable, params)
       
       logCtx.debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
       

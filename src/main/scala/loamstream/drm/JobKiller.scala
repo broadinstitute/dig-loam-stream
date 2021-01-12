@@ -20,19 +20,19 @@ trait JobKiller {
 object JobKiller extends Loggable {
   abstract class Companion[A](
       defaultExecutable: String,
-      constructor: (CommandInvoker.Sync[Unit], SessionSource) => A) {
+      constructor: (CommandInvoker.Sync[Unit], SessionTracker) => A) {
     
-    protected def makeTokens(sessionSource: SessionSource, actualExecutable: String, username: String): Seq[String]
+    protected def makeTokens(sessionTracker: SessionTracker, actualExecutable: String, username: String): Seq[String]
     
     def fromExecutable(
-        sessionSource: SessionSource,
+        sessionTracker: SessionTracker,
         config: DrmConfig,
         actualExecutable: String = defaultExecutable,
         username: String = Users.currentUser,
         isSuccess: Int => Boolean): A = {
         
       val killJobs: Unit => Try[RunResults] = { _ =>
-        val tokens = makeTokens(sessionSource, actualExecutable, username)
+        val tokens = makeTokens(sessionTracker, actualExecutable, username)
         
         debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
         
@@ -45,7 +45,7 @@ object JobKiller extends Loggable {
       
       val commandInvoker = new CommandInvoker.Sync.Retrying(justOnce, maxRetries = config.maxRetries)
       
-      constructor(commandInvoker, sessionSource)
+      constructor(commandInvoker, sessionTracker)
     }
   }
 }

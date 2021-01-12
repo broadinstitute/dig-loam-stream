@@ -7,6 +7,8 @@ import org.scalatest.FunSuite
 import loamstream.util.RunResults
 import loamstream.util.Tries
 import loamstream.drm.SessionSource
+import loamstream.drm.SessionTracker
+import loamstream.drm.DrmTaskId
 
 /**
  * @author clint
@@ -17,7 +19,15 @@ final class BkillJobKillerTest extends FunSuite {
     val executable = "foo"
     val user = "asdf"
     
-    assert(BkillJobKiller.makeTokens(SessionSource.Noop, executable, user) === Seq(executable, "-u", user, "0"))
+    val sessionTracker = new SessionTracker.Default
+    
+    assert(sessionTracker.isEmpty)
+    assert(BkillJobKiller.makeTokens(sessionTracker, executable, user) === Seq(executable, "-u", user, "0"))
+    
+    sessionTracker.register(Seq(DrmTaskId("X", 42), DrmTaskId("y", 1), DrmTaskId("ZZZz", 3)))
+    
+    assert(sessionTracker.nonEmpty)
+    assert(BkillJobKiller.makeTokens(sessionTracker, executable, user) === Seq(executable, "-u", user, "0"))
   }
   
   test("killAllJobs - happy path") {

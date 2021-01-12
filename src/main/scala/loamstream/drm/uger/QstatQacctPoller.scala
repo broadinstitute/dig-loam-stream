@@ -148,7 +148,6 @@ final class QstatQacctPoller private[uger] (
 object QstatQacctPoller extends Loggable {
 
   def fromExecutables(
-    sessionSource: SessionSource,
     qstatPollingFrequencyInHz: Double,
     ugerConfig: UgerConfig,
     actualQstatExecutable: String = "qstat",
@@ -163,7 +162,7 @@ object QstatQacctPoller extends Loggable {
     val maxQacctCacheAge = (1.0 / qstatPollingFrequencyInHz).seconds
 
     val qacct = qacctCommandInvoker(actualQacctExecutable, ugerConfig, maxQacctCacheAge, scheduler)
-    val qstat = qstatCommandInvoker(sessionSource, qstatPollingFrequencyInHz, actualQstatExecutable)
+    val qstat = qstatCommandInvoker(qstatPollingFrequencyInHz, actualQstatExecutable)
 
     new QstatQacctPoller(qstat, qacct)
   }

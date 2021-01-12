@@ -110,7 +110,8 @@ final class DrmChunkRunnerTest extends FunSuite {
         //NB: The poller can always fail, since it should never be invoked
         jobMonitor = new JobMonitor(scheduler, JustFailsMockPoller),
         accountingClient = MockAccountingClient.NeverWorks,
-        jobKiller = MockJobKiller.DoesNothing)
+        jobKiller = MockJobKiller.DoesNothing,
+        sessionTracker = SessionTracker.Noop)
     
     val result = waitFor(runner.run(Set.empty, TestHelpers.DummyJobOracle).to[Seq].firstAsFuture)
     
@@ -128,7 +129,8 @@ final class DrmChunkRunnerTest extends FunSuite {
         //NB: The poller can always fail, since it should never be invoked
         jobMonitor = new JobMonitor(scheduler, JustFailsMockPoller),
         accountingClient = MockAccountingClient.NeverWorks,
-        jobKiller = MockJobKiller.DoesNothing)
+        jobKiller = MockJobKiller.DoesNothing,
+        sessionTracker = SessionTracker.Noop)
     
     val result = waitFor(runner.run(Set.empty, TestHelpers.DummyJobOracle).to[Seq].firstAsFuture)
     
@@ -140,6 +142,10 @@ final class DrmChunkRunnerTest extends FunSuite {
     val mockJob = jobWrapper.commandLineJob.asInstanceOf[MockDrmJob]
     
     Observable.from(mockJob.statusesToReturn).map(status => jobWrapper -> status)
+  }
+  
+  test("toRunDataStream") {
+    fail("TODO: Make sure job ids are registered with SessionTracker on successful job submission")
   }
   
   test("toRunDatas - one failed job") {
@@ -319,7 +325,8 @@ final class DrmChunkRunnerTest extends FunSuite {
             jobSubmitter = mockJobSubmitter,
             jobMonitor = new JobMonitor(poller = JustFailsMockPoller, scheduler = IOScheduler()),
             accountingClient = MockAccountingClient.NeverWorks,
-            jobKiller = MockJobKiller.DoesNothing)
+            jobKiller = MockJobKiller.DoesNothing,
+            sessionTracker = SessionTracker.Noop)
       }
       case DrmSystem.Lsf => {
         DrmChunkRunner(
@@ -330,7 +337,8 @@ final class DrmChunkRunnerTest extends FunSuite {
             jobSubmitter = mockJobSubmitter,
             jobMonitor = new JobMonitor(poller = JustFailsMockPoller, scheduler = IOScheduler()),
             accountingClient = MockAccountingClient.NeverWorks,
-            jobKiller = MockJobKiller.DoesNothing)
+            jobKiller = MockJobKiller.DoesNothing,
+            sessionTracker = SessionTracker.Noop)
       }
     }
     
@@ -406,7 +414,8 @@ final class DrmChunkRunnerTest extends FunSuite {
             jobSubmitter = mockJobSubmitter,
             jobMonitor = new JobMonitor(poller = MockPoller(Map.empty), scheduler = IOScheduler()),
             accountingClient = MockAccountingClient.NeverWorks,
-            jobKiller = MockJobKiller.DoesNothing)
+            jobKiller = MockJobKiller.DoesNothing,
+            sessionTracker = SessionTracker.Noop)
       }
       case DrmSystem.Lsf => {
         DrmChunkRunner(
@@ -418,7 +427,8 @@ final class DrmChunkRunnerTest extends FunSuite {
             //NB: The poller can fail, since we're not checking execution results, just config-propagation
             jobMonitor = new JobMonitor(poller = JustFailsMockPoller, scheduler = IOScheduler()),
             accountingClient = MockAccountingClient.NeverWorks,
-            jobKiller = MockJobKiller.DoesNothing)
+            jobKiller = MockJobKiller.DoesNothing,
+            sessionTracker = SessionTracker.Noop)
       }
     }
     

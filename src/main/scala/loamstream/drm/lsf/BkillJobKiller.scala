@@ -9,6 +9,7 @@ import loamstream.drm.SessionSource
 import loamstream.util.CommandInvoker
 import scala.util.Try
 import loamstream.util.RunResults
+import loamstream.drm.SessionTracker
 
 /**
  * @author clint
@@ -16,7 +17,7 @@ import loamstream.util.RunResults
  */
 final class BkillJobKiller(
     commandInvoker: CommandInvoker.Sync[Unit], 
-    sessionSource: SessionSource = SessionSource.Noop) extends JobKiller with Loggable {
+    sessionSource: SessionTracker = SessionTracker.Noop) extends JobKiller with Loggable {
   
   override def killAllJobs(): Unit = {
     commandInvoker(()) match {
@@ -32,7 +33,7 @@ object BkillJobKiller extends JobKiller.Companion[BkillJobKiller]("bkill", new B
   }
   
   override protected[lsf] def makeTokens(
-      sessionSource: SessionSource, 
+      sessionTracker: SessionTracker, 
       actualExecutable: String, 
       username: String): Seq[String] = Seq(actualExecutable, "-u", username, "0")
 }

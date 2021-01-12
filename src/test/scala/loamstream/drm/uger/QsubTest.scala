@@ -30,7 +30,7 @@ final class QsubTest extends FunSuite {
   private def getTokens(uc: UgerConfig, ugerSettings: UgerDrmSettings) = {
     val params = Qsub.Params(uc, ugerSettings, 99, drmScriptFile, "stdoutT", "stderrT")
     
-    Qsub.makeTokens(MockSessionSource("lalala"), "bin/foo", params)
+    Qsub.makeTokens("bin/foo", params)
   }
   
   private def makeUgerSettings(containerParams: Option[ContainerParams]) = UgerDrmSettings(
@@ -72,8 +72,6 @@ final class QsubTest extends FunSuite {
       "y",
       "-b",
       "n",
-      "-si",
-      "lalala",
       "-t",
       "1-99",
       "-binding",
@@ -106,8 +104,6 @@ final class QsubTest extends FunSuite {
       "foo",
       "bar",
       "baz",
-      "-si",
-      "lalala",
       "-t",
       "1-99",
       "-binding",

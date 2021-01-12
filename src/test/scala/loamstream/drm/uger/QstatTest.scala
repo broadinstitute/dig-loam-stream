@@ -2,6 +2,7 @@ package loamstream.drm.uger
 
 import org.scalatest.FunSuite
 import loamstream.drm.SessionSource
+import loamstream.drm.SessionTracker
 
 
 /**
@@ -12,8 +13,6 @@ final class QstatTest extends FunSuite {
   test("makeTokens") {
     import Qstat.makeTokens
     
-    val sessionSource = MockSessionSource("lalala")
-    
-    assert(makeTokens("foo", sessionSource) === Seq("foo", "-si", "lalala"))
+    assert(makeTokens("foo") === Seq("foo"))
   }
 }

@@ -8,6 +8,7 @@ import loamstream.util.Loggable
 import loamstream.util.Users
 import loamstream.drm.SessionSource
 import loamstream.util.CommandInvoker
+import loamstream.drm.SessionTracker
 
 /**
  * @author clint
@@ -15,10 +16,10 @@ import loamstream.util.CommandInvoker
  */
 final class QdelJobKiller(
     commandInvoker: CommandInvoker.Sync[Unit], 
-    sessionSource: SessionSource) extends JobKiller with Loggable {
+    sessionTracker: SessionTracker) extends JobKiller with Loggable {
   
   override def killAllJobs(): Unit = {
-    if(sessionSource.isInitialized) {
+    if(sessionTracker.nonEmpty) {
       commandInvoker.apply(()) match {
         case Success(runResults) => debug("Killed UGER jobs")
         case Failure(e) => warn(s"Error killing all UGER jobs: ${e.getMessage}", e)
@@ -31,7 +32,15 @@ final class QdelJobKiller(
 
 object QdelJobKiller extends JobKiller.Companion[QdelJobKiller]("qdel", new QdelJobKiller(_, _)) {
   override protected[drm] def makeTokens(
-      sessionSource: SessionSource,
+      sessionTracker: SessionTracker,
       actualExecutable: String, 
-      username: String): Seq[String] = Seq(actualExecutable, "-u", username, "-si", sessionSource.getSession)
+      username: String): Seq[String] = {
+    
+    val preamble = Seq(actualExecutable, "-u", username)
+    
+    def jobIdsPart = sessionTracker.taskArrayIdsSoFar.mkString(",")
+    
+    if(sessionTracker.isEmpty) { preamble } 
+    else { preamble :+ jobIdsPart } 
+  }
 }

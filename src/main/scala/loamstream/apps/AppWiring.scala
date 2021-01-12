@@ -100,6 +100,7 @@ import rx.lang.scala.schedulers.ExecutionContextScheduler
 import loamstream.util.DirOracle
 import loamstream.model.execute.ProtectsFilesJobCanceler
 import loamstream.model.execute.SuccessfulOutputsExecutionRecorder
+import loamstream.drm.SessionTracker
 
 
 
@@ -434,7 +435,7 @@ object AppWiring extends Loggable {
 
       import loamstream.model.execute.ExecuterHelpers._
 
-      val sessionSource = QconfSessionSource.fromExecutable(ugerConfig)
+      //val sessionSource = QconfSessionSource.fromExecutable(ugerConfig)
       
       implicit val ec = executionContext
       
@@ -444,16 +445,20 @@ object AppWiring extends Loggable {
       val pollingFrequencyInHz = 0.1
       
       val poller = {
-        QstatQacctPoller.fromExecutables(sessionSource, pollingFrequencyInHz, ugerConfig, scheduler = scheduler)
+        QstatQacctPoller.fromExecutables(pollingFrequencyInHz, ugerConfig, scheduler = scheduler)
       }
       
       val jobMonitor = new JobMonitor(scheduler, poller, pollingFrequencyInHz)
 
-      val jobSubmitter = QsubJobSubmitter.fromExecutable(sessionSource, ugerConfig, scheduler = scheduler)
+      val jobSubmitter = QsubJobSubmitter.fromExecutable(ugerConfig, scheduler = scheduler)
       
       val accountingClient = QacctAccountingClient.useActualBinary(ugerConfig, scheduler)
       
-      val jobKiller = QdelJobKiller.fromExecutable(sessionSource, ugerConfig, isSuccess = Set(0,1).contains)
+      val sessionTracker: SessionTracker = new SessionTracker.Default
+      
+      val jobKiller = QdelJobKiller.fromExecutable(sessionTracker, ugerConfig, isSuccess = Set(0,1).contains)
+      
+      
       
       val ugerRunner = DrmChunkRunner(
           environmentType = EnvironmentType.Uger,
@@ -463,9 +468,10 @@ object AppWiring extends Loggable {
           jobSubmitter = jobSubmitter, 
           jobMonitor = jobMonitor,
           accountingClient = accountingClient,
-          jobKiller = jobKiller)
+          jobKiller = jobKiller,
+          sessionTracker = sessionTracker)
 
-      val handles = Seq(ugerRunner, sessionSource)
+      val handles = Seq(ugerRunner)
 
       (ugerRunner, handles)
     }
@@ -497,7 +503,8 @@ object AppWiring extends Loggable {
 
       val accountingClient = BacctAccountingClient.useActualBinary(lsfConfig, scheduler)
       
-      val jobKiller = BkillJobKiller.fromExecutable(SessionSource.Noop, lsfConfig, isSuccess = ExitCodes.isSuccess)
+      //TODO: Revisit Noop
+      val jobKiller = BkillJobKiller.fromExecutable(SessionTracker.Noop, lsfConfig, isSuccess = ExitCodes.isSuccess)
       
       val lsfRunner = DrmChunkRunner(
           environmentType = EnvironmentType.Lsf,
@@ -507,7 +514,8 @@ object AppWiring extends Loggable {
           jobSubmitter = jobSubmitter, 
           jobMonitor = jobMonitor,
           accountingClient = accountingClient,
-          jobKiller = jobKiller)
+          jobKiller = jobKiller,
+          sessionTracker = SessionTracker.Noop) //TODO
 
       val handles = Seq(lsfRunner)
 

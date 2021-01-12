@@ -55,13 +55,12 @@ object QsubJobSubmitter extends Loggable {
   type SubmissionFn = (DrmSettings, DrmTaskArray) => Try[RunResults]
   
   def fromExecutable(
-      sessionSource: SessionSource, 
       ugerConfig: UgerConfig, 
       actualExecutable: String = "qsub",
       scheduler: Scheduler)(implicit ec: ExecutionContext): QsubJobSubmitter = {
     
     new QsubJobSubmitter(
-        Qsub.commandInvoker(sessionSource, ugerConfig, actualExecutable, scheduler), 
+        Qsub.commandInvoker(ugerConfig, actualExecutable, scheduler), 
         ugerConfig)
   }
   

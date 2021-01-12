@@ -2,14 +2,13 @@ package loamstream.drm.lsf
 
 import scala.util.Failure
 import scala.util.Success
+import scala.util.Try
 
 import loamstream.drm.JobKiller
-import loamstream.util.Loggable
-import loamstream.drm.SessionSource
-import loamstream.util.CommandInvoker
-import scala.util.Try
-import loamstream.util.RunResults
 import loamstream.drm.SessionTracker
+import loamstream.util.CommandInvoker
+import loamstream.util.Loggable
+import loamstream.util.RunResults
 
 /**
  * @author clint

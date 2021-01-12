@@ -1,25 +1,21 @@
 package loamstream.drm.uger
 
-import loamstream.drm.JobSubmitter
-import rx.lang.scala.Observable
-import loamstream.model.execute.DrmSettings
-import loamstream.drm.DrmTaskArray
-import loamstream.drm.DrmSubmissionResult
-import loamstream.util.Loggable
-import loamstream.conf.UgerConfig
-import loamstream.util.Processes
-import scala.util.Try
-import loamstream.util.RunResults
-import loamstream.util.Users
-import java.util.UUID
-import loamstream.util.CommandInvoker
-import rx.lang.scala.schedulers.IOScheduler
-import loamstream.util.Observables
-import loamstream.drm.DrmTaskId
-import loamstream.util.Options
-import loamstream.util.Tries
+
+
 import scala.concurrent.ExecutionContext
-import loamstream.drm.SessionSource
+import scala.util.Try
+
+import loamstream.conf.UgerConfig
+import loamstream.drm.DrmSubmissionResult
+import loamstream.drm.DrmTaskArray
+import loamstream.drm.DrmTaskId
+import loamstream.drm.JobSubmitter
+import loamstream.model.execute.DrmSettings
+import loamstream.util.CommandInvoker
+import loamstream.util.Loggable
+import loamstream.util.RunResults
+import loamstream.util.Tries
+import rx.lang.scala.Observable
 import rx.lang.scala.Scheduler
 
 

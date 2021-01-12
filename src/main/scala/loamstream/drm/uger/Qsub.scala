@@ -1,19 +1,18 @@
 package loamstream.drm.uger
 
-import loamstream.util.Loggable
-import scala.util.Try
-import loamstream.util.RunResults
+import java.nio.file.Path
+
 import scala.concurrent.ExecutionContext
-import loamstream.util.CommandInvoker
+import scala.util.Try
+
 import loamstream.conf.UgerConfig
 import loamstream.drm.DrmTaskArray
 import loamstream.model.execute.DrmSettings
-import loamstream.util.Processes
-import rx.lang.scala.schedulers.IOScheduler
-import rx.lang.scala.Scheduler
-import loamstream.drm.SessionSource
-import java.nio.file.Path
+import loamstream.util.CommandInvoker
 import loamstream.util.LogContext
+import loamstream.util.Processes
+import loamstream.util.RunResults
+import rx.lang.scala.Scheduler
 
 /**
  * @author clint
@@ -43,7 +42,7 @@ object Qsub {
   }
   
   private[uger] def makeTokens(actualExecutable: String, params: Params): Seq[String] = {
-    import params.{ ugerConfig, settings, taskArraySize, drmScriptFile } 
+    import params.{ drmScriptFile, settings, taskArraySize, ugerConfig } 
     
     val staticPartFromUgerConfig = {
       ugerConfig.staticJobSubmissionParams.split("\\s+").iterator.map(_.trim).filter(_.nonEmpty)

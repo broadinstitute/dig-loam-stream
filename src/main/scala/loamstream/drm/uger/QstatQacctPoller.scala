@@ -10,7 +10,6 @@ import loamstream.conf.UgerConfig
 import loamstream.drm.DrmStatus
 import loamstream.drm.DrmTaskId
 import loamstream.drm.Poller
-import loamstream.drm.SessionSource
 import loamstream.util.CommandInvoker
 import loamstream.util.ExecutorServices.QueueStrategy
 import loamstream.util.ExecutorServices.RejectedExecutionStrategy

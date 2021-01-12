@@ -1,14 +1,13 @@
 package loamstream.drm.uger
 
-import scala.util.Try
-import loamstream.util.RunResults
-import loamstream.util.CommandInvoker
-import loamstream.util.Loggable
-import loamstream.util.Processes
 import scala.concurrent.ExecutionContext
-import loamstream.drm.SessionSource
-import loamstream.util.RateLimitedCache
+import scala.util.Try
+
+import loamstream.util.CommandInvoker
 import loamstream.util.LogContext
+import loamstream.util.Processes
+import loamstream.util.RateLimitedCache
+import loamstream.util.RunResults
 
 /**
  * @author clint

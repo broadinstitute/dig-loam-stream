@@ -1,9 +1,6 @@
 package loamstream.drm.uger
 
 import org.scalatest.FunSuite
-import loamstream.drm.SessionSource
-import loamstream.drm.SessionTracker
-
 
 /**
  * @author clint

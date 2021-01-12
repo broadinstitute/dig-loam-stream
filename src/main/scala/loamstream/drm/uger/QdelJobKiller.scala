@@ -4,11 +4,9 @@ import scala.util.Failure
 import scala.util.Success
 
 import loamstream.drm.JobKiller
-import loamstream.util.Loggable
-import loamstream.util.Users
-import loamstream.drm.SessionSource
-import loamstream.util.CommandInvoker
 import loamstream.drm.SessionTracker
+import loamstream.util.CommandInvoker
+import loamstream.util.Loggable
 
 /**
  * @author clint

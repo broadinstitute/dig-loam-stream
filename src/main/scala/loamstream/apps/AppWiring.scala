@@ -30,7 +30,7 @@ import loamstream.drm.DrmSystem
 import loamstream.drm.JobMonitor
 import loamstream.drm.JobSubmitter
 import loamstream.drm.Poller
-import loamstream.drm.SessionSource
+import loamstream.drm.SessionTracker
 
 import loamstream.drm.lsf.BacctAccountingClient
 import loamstream.drm.lsf.BjobsPoller
@@ -44,8 +44,6 @@ import loamstream.drm.uger.QdelJobKiller
 import loamstream.drm.uger.QstatQacctPoller
 import loamstream.drm.uger.Qsub
 import loamstream.drm.uger.QsubJobSubmitter
-import loamstream.drm.uger.QconfSessionSource
-import loamstream.drm.uger.QconfSessionSource
 import loamstream.drm.uger.UgerPathBuilder
 
 import loamstream.googlecloud.CloudSdkDataProcWrapper
@@ -100,7 +98,6 @@ import rx.lang.scala.schedulers.ExecutionContextScheduler
 import loamstream.util.DirOracle
 import loamstream.model.execute.ProtectsFilesJobCanceler
 import loamstream.model.execute.SuccessfulOutputsExecutionRecorder
-import loamstream.drm.SessionTracker
 
 
 

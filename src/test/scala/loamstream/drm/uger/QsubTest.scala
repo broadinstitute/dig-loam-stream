@@ -1,20 +1,15 @@
 package loamstream.drm.uger
 
+import java.nio.file.Paths
+
 import org.scalatest.FunSuite
 
-import loamstream.TestHelpers
 import loamstream.conf.UgerConfig
-import loamstream.model.execute.DrmSettings
+import loamstream.drm.ContainerParams
+import loamstream.model.execute.UgerDrmSettings
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
-import loamstream.model.execute.UgerDrmSettings
-import loamstream.drm.DrmSystem
-import loamstream.drm.ContainerParams
-import loamstream.drm.ContainerParams
-import loamstream.drm.SessionSource
-import java.nio.file.Paths
-import TestHelpers.path
 
 /**
  * @author clint

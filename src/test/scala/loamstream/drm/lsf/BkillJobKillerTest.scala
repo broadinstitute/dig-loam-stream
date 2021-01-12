@@ -4,11 +4,10 @@ import scala.util.Success
 
 import org.scalatest.FunSuite
 
+import loamstream.drm.DrmTaskId
+import loamstream.drm.SessionTracker
 import loamstream.util.RunResults
 import loamstream.util.Tries
-import loamstream.drm.SessionSource
-import loamstream.drm.SessionTracker
-import loamstream.drm.DrmTaskId
 
 /**
  * @author clint

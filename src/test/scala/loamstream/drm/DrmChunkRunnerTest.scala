@@ -49,6 +49,7 @@ import loamstream.model.execute.Resources.DrmResources
 import loamstream.model.jobs.TerminationReason
 import loamstream.model.execute.Resources.UgerResources
 import loamstream.drm.uger.QdelJobKiller
+import loamstream.model.execute.LsfDrmSettings
 
 
 /**
@@ -144,8 +145,100 @@ final class DrmChunkRunnerTest extends FunSuite {
     Observable.from(mockJob.statusesToReturn).map(status => jobWrapper -> status)
   }
   
-  test("toRunDataStream") {
-    fail("TODO: Make sure job ids are registered with SessionTracker on successful job submission")
+  test("submit - submission failure") {
+    val cause = new Exception with scala.util.control.NoStackTrace
+    
+    val runner = DrmChunkRunner(
+        environmentType = EnvironmentType.Lsf,
+        pathBuilder = LsfPathBuilder,
+        executionConfig = executionConfig,
+        drmConfig = lsfConfig,
+        jobSubmitter = MockJobSubmitter.AlwaysFails(cause),
+        //NB: The poller can always fail, since it should never be invoked
+        jobMonitor = new JobMonitor(scheduler, JustFailsMockPoller),
+        accountingClient = MockAccountingClient.NeverWorks,
+        jobKiller = MockJobKiller.DoesNothing,
+        sessionTracker = new SessionTracker.Default)
+        
+    val drmSettings = LsfDrmSettings(
+        cores = Cpus(1), 
+        memoryPerCore = Memory.inGb(1), 
+        maxRunTime = CpuTime.inHours(1), 
+        queue = None, 
+        containerParams = None)
+    
+    val jobs = Seq(CommandLineJob(commandLineString = "echo 42", initialSettings = drmSettings))
+        
+    val taskArray = DrmTaskArray.fromCommandLineJobs(
+        executionConfig, 
+        TestHelpers.DummyJobOracle, 
+        drmSettings, 
+        lsfConfig, 
+        LsfPathBuilder, 
+        jobs, 
+        "foo")
+
+    assert(runner.submittedTaskArrayIds.isEmpty)
+    
+    val expected = DrmSubmissionResult.SubmissionFailure(cause)
+    
+    assert(TestHelpers.waitFor(runner.submit(drmSettings, taskArray).firstAsFuture) === expected)
+    
+    assert(runner.submittedTaskArrayIds.isEmpty)
+  }
+  
+  test("submit - submission success") {
+    val drmSettings = LsfDrmSettings(
+      cores = Cpus(1), 
+      memoryPerCore = Memory.inGb(1), 
+      maxRunTime = CpuTime.inHours(1), 
+      queue = None, 
+      containerParams = None)
+
+    val job = CommandLineJob(commandLineString = "echo 42", initialSettings = drmSettings)
+      
+    val taskId = DrmTaskId("some-job-id", 42)
+      
+    val drmTaskIdsToJobs: Map[DrmTaskId, DrmJobWrapper] = {
+      val jobWrapper = DrmJobWrapper(
+        executionConfig = executionConfig,
+        drmSettings = drmSettings,
+        pathBuilder = LsfPathBuilder,
+        commandLineJob = job,
+        jobDir = TestHelpers.DummyJobOracle.dirFor(job),
+        drmIndex = taskId.taskIndex)
+      
+      Map(taskId -> jobWrapper)
+    }
+    
+    val runner = DrmChunkRunner(
+        environmentType = EnvironmentType.Lsf,
+        pathBuilder = LsfPathBuilder,
+        executionConfig = executionConfig,
+        drmConfig = lsfConfig,
+        jobSubmitter = MockJobSubmitter.AlwaysSucceeds(drmTaskIdsToJobs),
+        //NB: The poller can always fail, since it should never be invoked
+        jobMonitor = new JobMonitor(scheduler, JustFailsMockPoller),
+        accountingClient = MockAccountingClient.NeverWorks,
+        jobKiller = MockJobKiller.DoesNothing,
+        sessionTracker = new SessionTracker.Default)
+        
+    val taskArray = DrmTaskArray.fromCommandLineJobs(
+        executionConfig, 
+        TestHelpers.DummyJobOracle, 
+        drmSettings, 
+        lsfConfig, 
+        LsfPathBuilder, 
+        Seq(job), 
+        "foo")
+
+    assert(runner.submittedTaskArrayIds.isEmpty)
+    
+    val expected = DrmSubmissionResult.SubmissionSuccess(drmTaskIdsToJobs)
+    
+    assert(TestHelpers.waitFor(runner.submit(drmSettings, taskArray).firstAsFuture) === expected)
+    
+    assert(runner.submittedTaskArrayIds.toSet === Set(taskId.jobId))
   }
   
   test("toRunDatas - one failed job") {
@@ -524,6 +617,24 @@ object DrmChunkRunnerTest {
     }
     
     override def stop(): Unit = ()
+  }
+  
+  object MockJobSubmitter {
+    final case class AlwaysFails(cause: Throwable) extends JobSubmitter {
+      override def submitJobs(drmSettings: DrmSettings, taskArray: DrmTaskArray): Observable[DrmSubmissionResult] = {
+        Observable.just(DrmSubmissionResult.SubmissionFailure(cause))
+      }
+      
+      override def stop(): Unit = ()
+    }
+    
+    final case class AlwaysSucceeds(toReturn: Map[DrmTaskId, DrmJobWrapper]) extends JobSubmitter {
+      override def submitJobs(drmSettings: DrmSettings, taskArray: DrmTaskArray): Observable[DrmSubmissionResult] = {
+        Observable.just(DrmSubmissionResult.SubmissionSuccess(toReturn))
+      }
+      
+      override def stop(): Unit = ()
+    }
   }
   
   final case class MockDrmJob(taskId: DrmTaskId, statusesToReturn: DrmStatus*) extends LocalJob with HasCommandLine {

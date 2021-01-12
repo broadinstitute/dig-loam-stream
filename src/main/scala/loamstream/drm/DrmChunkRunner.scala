@@ -58,6 +58,8 @@ final case class DrmChunkRunner(
     Seq(jobKillerTerminable, jobSubmitter, jobMonitor)
   }
 
+  def submittedTaskArrayIds: Iterable[String] = sessionTracker.taskArrayIdsSoFar
+  
   /**
    * Run the provided jobs, using the provided predicate (`shouldRestart`) to decide whether to re-run them if they
    * fail.  Returns an Observable producing a map of jobs to Executions.
@@ -102,6 +104,26 @@ final case class DrmChunkRunner(
     else { Observables.merge(resultsForSubChunks) }
   }
 
+  private def onSubmit(submissionResult: DrmSubmissionResult): DrmSubmissionResult = {
+    submissionResult.foreach(drmJobsByDrmId => sessionTracker.register(drmJobsByDrmId.keys))
+    
+    submissionResult
+  }
+  
+  private[drm] def submit(drmSettings: DrmSettings, drmTaskArray: DrmTaskArray): Observable[DrmSubmissionResult] = {
+    import drmTaskArray.{ drmJobName => name }
+    
+    val msg = s"Submitting task array ${name} with ${drmTaskArray.size} jobs"
+    
+    TimeUtils.time(msg, debug(_)) {
+      debug(msg)
+      
+      import loamstream.drm.DrmSubmissionResult._
+      
+      jobSubmitter.submitJobs(drmSettings, drmTaskArray).map(onSubmit)
+    }
+  }
+
   /**
    * Submits the provided CommandLineJobs and monitors them, resulting in an Observable producing a map of jobs to
    * Executions
@@ -110,24 +132,12 @@ final case class DrmChunkRunner(
     drmSettings: DrmSettings,
     drmTaskArray: DrmTaskArray): Observable[(LJob, RunData)] = {
 
-    def submit(): Observable[DrmSubmissionResult] = {
-      val name = drmTaskArray.drmJobName
-      
-      val msg = s"Submitting task array ${name} with ${drmTaskArray.size} jobs"
-      
-      TimeUtils.time(msg, debug(_)) {
-        debug(msg)
-        
-        jobSubmitter.submitJobs(drmSettings, drmTaskArray)
-      }
-    }
-    
     drmTaskArray.drmJobs match {
       case Nil => Observable.empty
-      case drmJobs => submit().flatMap(toRunDataStream(drmJobs, _))
+      case drmJobs => submit(drmSettings, drmTaskArray).flatMap(toRunDataStream(drmJobs, _))
     }
   }
-
+  
   private def toRunDataStream(
     drmJobs: Seq[DrmJobWrapper],
     submissionResult: DrmSubmissionResult)(implicit ec: ExecutionContext): Observable[(LJob, RunData)] = {
@@ -137,11 +147,7 @@ final case class DrmChunkRunner(
     import loamstream.drm.DrmSubmissionResult._
     
     submissionResult match {
-      case SubmissionSuccess(drmJobsByDrmId) => {
-        sessionTracker.register(drmJobsByDrmId.keys)
-        
-        jobsToRunDatas(drmJobsByDrmId)
-      }
+      case SubmissionSuccess(drmJobsByDrmId) => jobsToRunDatas(drmJobsByDrmId)
       case SubmissionFailure(e) => makeAllFailureMap(drmJobs, Some(e))
     }
   }

@@ -14,6 +14,7 @@ import loamstream.drm.DrmSystem
 import loamstream.model.execute.HashingStrategy
 import loamstream.util.Files
 import loamstream.model.execute.EnvironmentType
+import loamstream.cli.Conf
 
 /**
  * @author clint
@@ -148,7 +149,10 @@ final class SimpleLocalAndUgerPipelineTest extends FunSuite {
       jobFilterIntent = jobFilterIntent,
       drmSystemOpt = environmentDescriptor.drmSystem,
       loams = Seq(loamScriptPath),
-      cliConfig = None)
+      //NB: Not all params implied by jobFilterStrategy and hashingStrategy, but enough to get LS running
+      cliConfig = Some(Conf(Seq(  
+          "--conf", confFilePath.toString, 
+          "--loams", loamScriptPath.toString))))
     
     (new Main.Run).doRealRun(intent, _ => dao)
     

@@ -17,6 +17,7 @@ import loamstream.util.RunResults
 import loamstream.util.Tries
 import rx.lang.scala.Observable
 import rx.lang.scala.Scheduler
+import loamstream.util.LogContext
 
 
 /**
@@ -32,7 +33,9 @@ final class QsubJobSubmitter private[uger] (
     
     import QsubJobSubmitter.parseQsubOutput
     
-    val taskIdsObs = resultsObs.flatMap(results => Observable.just(parseQsubOutput(results.stdout)))
+    val taskIdsObs = resultsObs.flatMap { results => 
+      Observable.just(parseQsubOutput(results.stdout, taskArray.drmJobName))
+    }
     
     for {
       taskIdsAttempt <- taskIdsObs
@@ -65,9 +68,15 @@ object QsubJobSubmitter extends Loggable {
     val jobNameIndexRangeAndStep = """^Your\s+job-array\s+(.+?)\.(\d+)-(\d+)\:(\d+).+?has been submitted$""".r
   }
   
-  private[uger] def parseQsubOutput(lines: Seq[String]): Try[Seq[DrmTaskId]] = {
+  private[uger] def parseQsubOutput(
+      lines: Seq[String], 
+      taskArrayName: String)(implicit ctx: LogContext): Try[Seq[DrmTaskId]] = {
+    
     val resultOpt = lines.iterator.map(_.trim).collectFirst {
       case Regexes.jobNameIndexRangeAndStep(jobId, startString, endString, stepString) => {
+        
+        ctx.debug(s"Submitted task array with LS name '${taskArrayName}' as Uger job id ${jobId}")
+        
         Try {
           val indexRange = (startString.toInt to endString.toInt by stepString.toInt)
           

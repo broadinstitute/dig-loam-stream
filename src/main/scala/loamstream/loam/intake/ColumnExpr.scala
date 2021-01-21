@@ -5,6 +5,7 @@ import scala.reflect.runtime.universe.typeTag
 import scala.util.matching.Regex
 import scala.util.control.NonFatal
 import loamstream.util.Sequence
+import scala.util.Try
 
 /**
  * @author clint
@@ -24,6 +25,8 @@ sealed abstract class ColumnExpr[A : TypeTag] extends
       }
     }
   }
+  
+  def applyOpt(row: DataRow): Option[A] = Try(apply(row)).toOption 
   
   protected def eval(row: DataRow): A
   

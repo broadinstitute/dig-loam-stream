@@ -17,8 +17,8 @@ import loamstream.util.Loggable
 trait DgaSyntax { 
   object Dga extends Loggable {
     def versionAndTissueSource(
-        httpClient: HttpClient = new SttpHttpClient(), 
-        url: String = Defaults.tissueUrl): (Source[String], Source[Tissue]) = {
+        url: String = Defaults.tissueUrl,
+        httpClient: HttpClient = new SttpHttpClient()): (Source[String], Source[Tissue]) = {
       
       import org.json4s.jackson.JsonMethods._
       

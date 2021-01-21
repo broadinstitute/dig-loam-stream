@@ -23,6 +23,7 @@ lazy val Versions = new {
   val TestContainersScala = "0.35.2"
   val MysqlConnector = "8.0.19"
   val Sttp = "2.0.6"
+  val CommonsCompress = "1.20"
 }
 
 lazy val Orgs = new {
@@ -60,7 +61,8 @@ lazy val mainDeps = Seq(
   "org.apache.commons" % "commons-csv" % Versions.CommonsCsv,
   Orgs.DIG %% "dig-aws" % Versions.DigAws,
   "org.hsqldb" % "hsqldb" % Versions.HsqlDb,
-  "com.softwaremill.sttp.client" %% "core" % Versions.Sttp
+  "com.softwaremill.sttp.client" %% "core" % Versions.Sttp,
+  "org.apache.commons" % "commons-compress" % Versions.CommonsCompress
 )
 
 lazy val testDeps = Seq(

@@ -44,7 +44,7 @@ final case class DrmChunkRunner(
     jobMonitor: JobMonitor,
     accountingClient: AccountingClient,
     jobKiller: JobKiller,
-    private val sessionTracker: SessionTracker,
+    private val sessionTracker: SessionTracker
   )(implicit ec: ExecutionContext) extends ChunkRunnerFor(environmentType) with 
         Terminable.StopsComponents with Loggable {
 

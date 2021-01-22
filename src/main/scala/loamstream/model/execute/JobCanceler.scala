@@ -9,7 +9,7 @@ import loamstream.model.jobs.LJob
 trait JobCanceler {
   def shouldCancel(job: LJob): Boolean
   
-  final def ||(that: JobCanceler): JobCanceler = JobCanceler.Or(this, that)
+  final def ||(that: JobCanceler): JobCanceler = JobCanceler.Or(this, that) //scalastyle:ignore method.name
 }
 
 object JobCanceler {

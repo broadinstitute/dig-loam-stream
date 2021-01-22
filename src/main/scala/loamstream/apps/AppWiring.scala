@@ -432,8 +432,6 @@ object AppWiring extends Loggable {
 
       import loamstream.model.execute.ExecuterHelpers._
 
-      //val sessionSource = QconfSessionSource.fromExecutable(ugerConfig)
-      
       implicit val ec = executionContext
       
       val scheduler = ExecutionContextScheduler(executionContext)
@@ -441,9 +439,7 @@ object AppWiring extends Loggable {
       //TODO: Make configurable?
       val pollingFrequencyInHz = 0.1
       
-      val poller = {
-        QstatQacctPoller.fromExecutables(pollingFrequencyInHz, ugerConfig, scheduler = scheduler)
-      }
+      val poller = QstatQacctPoller.fromExecutables(pollingFrequencyInHz, ugerConfig, scheduler = scheduler)
       
       val jobMonitor = new JobMonitor(scheduler, poller, pollingFrequencyInHz)
 
@@ -454,8 +450,6 @@ object AppWiring extends Loggable {
       val sessionTracker: SessionTracker = new SessionTracker.Default
       
       val jobKiller = QdelJobKiller.fromExecutable(sessionTracker, ugerConfig, isSuccess = Set(0,1).contains)
-      
-      
       
       val ugerRunner = DrmChunkRunner(
           environmentType = EnvironmentType.Uger,
@@ -468,9 +462,7 @@ object AppWiring extends Loggable {
           jobKiller = jobKiller,
           sessionTracker = sessionTracker)
 
-      val handles = Seq(ugerRunner)
-
-      (ugerRunner, handles)
+      (ugerRunner, Seq(ugerRunner))
     }
   }
   
@@ -514,9 +506,7 @@ object AppWiring extends Loggable {
           jobKiller = jobKiller,
           sessionTracker = SessionTracker.Noop) //TODO
 
-      val handles = Seq(lsfRunner)
-
-      (lsfRunner, handles)
+      (lsfRunner, Seq(lsfRunner))
     }
   }
   

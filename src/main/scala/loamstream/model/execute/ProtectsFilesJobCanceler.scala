@@ -91,7 +91,7 @@ object ProtectsFilesJobCanceler {
   def apply(loc: String, rest: String*): ProtectsFilesJobCanceler = apply(loc +: rest)
   
   private[execute] def fromEithers(
-      pathsOrUris: Iterable[Either[Path, URI]])(implicit discriminator: Int = 42): ProtectsFilesJobCanceler = {
+      pathsOrUris: Iterable[Either[Path, URI]])(implicit discriminator: Int = 1): ProtectsFilesJobCanceler = {
     
     val locs: Iterable[String] = pathsOrUris.collect {
       case Left(p) => LPaths.normalize(p).toString

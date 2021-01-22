@@ -28,7 +28,7 @@ final case class SuccessfulOutputsExecutionRecorder(file: Path) extends Executio
         try {
           val tuples = e.outputs.iterator.map(o => e.status -> o.loc)
           
-          tuples.map { case (s, l) => s"${s}\t${l}"}.foreach(writer.println)
+          tuples.map { case (s, l) => s"${s}\t${l}"}.foreach(writer.println) //scalastyle:ignore regex
         } finally {
           //Flush after writing each batch.  This will reduce performance, but will make it easier to tail
           //the resulting file over the course of a long run.

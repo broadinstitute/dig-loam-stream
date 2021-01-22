@@ -7,4 +7,5 @@ package loamstream.model.execute
 final case class InterruptedExecutionException(
     executionState: Iterable[JobExecutionState], 
     message: String,
-    cause: Throwable = null) extends Exception(message, cause)
+    cause: Throwable = null //scalastyle:ignore null
+    ) extends Exception(message, cause)

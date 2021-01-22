@@ -24,6 +24,7 @@ import loamstream.model.execute.Settings
 import loamstream.model.execute.LocalSettings
 import loamstream.googlecloud.ClusterConfig
 import loamstream.conf.LsSettings
+import loamstream.conf.SingularityConfig
 
 /**
  * @author clint
@@ -149,7 +150,7 @@ final class LoamPredefTest extends FunSuite {
           Memory.inGb(4), 
           CpuTime.inHours(6), 
           drmSystem.defaultQueue, //use this default, since it's not possible to specify a queue via drmWith()
-          Some(ContainerParams(imageName = "library/foo:1.2.3")))
+          Some(ContainerParams(imageName = "library/foo:1.2.3", SingularityConfig.default.extraParams)))
       
       doSettingsTest(
           scriptContext, 

@@ -371,7 +371,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           Memory.inGb(4), 
           LsfDefaults.maxRunTime, 
           None,
-          Some(ContainerParams(imageName = "library/foo:1.2.3")))
+          Some(ContainerParams(imageName = "library/foo:1.2.3", "")))
               
       val googleSettings = GoogleSettings("some-cluster", ClusterConfig.default)
 
@@ -628,14 +628,14 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
         Memory.inGb(4), 
         UgerDefaults.maxRunTime, 
         Option(UgerDefaults.queue), 
-        Some(ContainerParams(imageName = "library/foo:1.2.3")))
+        Some(ContainerParams(imageName = "library/foo:1.2.3", "")))
 
     val lsfSettings = LsfDrmSettings(
         Cpus(8), 
         Memory.inGb(4), 
         LsfDefaults.maxRunTime, 
         None, 
-        Some(ContainerParams(imageName = "library/foo:1.2.3")))
+        Some(ContainerParams(imageName = "library/foo:1.2.3", "")))
         
     val googleSettings = GoogleSettings("some-cluster", ClusterConfig.default)
 

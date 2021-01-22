@@ -8,4 +8,4 @@ import java.nio.file.Path
  * 
  * Represents the information needed to run commands in a Singularity container. 
  */
-final case class ContainerParams(imageName: String)
+final case class ContainerParams(imageName: String, extraParams: String)

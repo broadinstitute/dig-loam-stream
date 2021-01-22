@@ -128,7 +128,7 @@ trait LoamPredef extends Loggable {
     val runInContainer = imageName.nonEmpty
     
     val containerParamsOpt: Option[ContainerParams] = {
-      if(runInContainer) { Some(ContainerParams(imageName)) } 
+      if(runInContainer) { Some(ContainerParams(imageName, loamConfig.executionConfig.singularity.extraParams)) } 
       else { None }
     }
     

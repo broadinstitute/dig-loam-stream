@@ -49,7 +49,7 @@ final class QsubTest extends FunSuite {
     }
 
     doTest(None, Nil)
-    doTest(Some(ContainerParams("docker://library/foo:1.2.3")), Seq("-l", "os=RedHat7"))
+    doTest(Some(ContainerParams("docker://library/foo:1.2.3", "")), Seq("-l", "os=RedHat7"))
   }
   
   private def doTestWithDefaultJobSubmissionParams(

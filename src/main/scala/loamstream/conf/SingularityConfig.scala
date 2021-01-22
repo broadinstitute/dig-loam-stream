@@ -11,7 +11,8 @@ import SingularityConfig.Defaults
  */
 final case class SingularityConfig(
     executable: String = Defaults.executable,
-    mappedDirs: Seq[Path] = Defaults.mappedDirs)
+    mappedDirs: Seq[Path] = Defaults.mappedDirs,
+    extraParams: String = Defaults.extraParams)
 
 object SingularityConfig extends ConfigParser[SingularityConfig] {
   
@@ -21,6 +22,8 @@ object SingularityConfig extends ConfigParser[SingularityConfig] {
     val executable: String = "singularity"
     
     val mappedDirs: Seq[Path] = Nil
+    
+    val extraParams: String = ""
   }
   
   override def fromConfig(config: Config): Try[SingularityConfig] = {

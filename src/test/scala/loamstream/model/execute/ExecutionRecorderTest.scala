@@ -1,10 +1,11 @@
 package loamstream.model.execute
 
 import org.scalatest.FunSuite
+
 import loamstream.TestHelpers
+import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobOracle
 import loamstream.model.jobs.LJob
-import loamstream.model.jobs.Execution
 
 /**
  * @author clint

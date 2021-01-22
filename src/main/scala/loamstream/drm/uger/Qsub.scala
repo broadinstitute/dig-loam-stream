@@ -1,19 +1,18 @@
 package loamstream.drm.uger
 
-import loamstream.util.Loggable
-import scala.util.Try
-import loamstream.util.RunResults
+import java.nio.file.Path
+
 import scala.concurrent.ExecutionContext
-import loamstream.util.CommandInvoker
+import scala.util.Try
+
 import loamstream.conf.UgerConfig
 import loamstream.drm.DrmTaskArray
 import loamstream.model.execute.DrmSettings
-import loamstream.util.Processes
-import rx.lang.scala.schedulers.IOScheduler
-import rx.lang.scala.Scheduler
-import loamstream.drm.SessionSource
-import java.nio.file.Path
+import loamstream.util.CommandInvoker
 import loamstream.util.LogContext
+import loamstream.util.Processes
+import loamstream.util.RunResults
+import rx.lang.scala.Scheduler
 
 /**
  * @author clint
@@ -42,8 +41,8 @@ object Qsub {
     }
   }
   
-  private[uger] def makeTokens(sessionSource: SessionSource, actualExecutable: String, params: Params): Seq[String] = {
-    import params.{ ugerConfig, settings, taskArraySize, drmScriptFile } 
+  private[uger] def makeTokens(actualExecutable: String, params: Params): Seq[String] = {
+    import params.{ drmScriptFile, settings, taskArraySize, ugerConfig } 
     
     val staticPartFromUgerConfig = {
       ugerConfig.staticJobSubmissionParams.split("\\s+").iterator.map(_.trim).filter(_.nonEmpty)
@@ -64,7 +63,6 @@ object Qsub {
       val runTimePart = s"h_rt=${runTimeInHours}:0:0"
       val runtimeAndMemPart = Seq("-l", s"${runTimePart},${memPart}")
 
-      val sessionPart = Seq("-si", sessionSource.getSession)
       val taskArrayPart = Seq("-t", s"1-${taskArraySize}")
       
       val stdoutPathPart = Seq("-o", params.stdOutPathTemplate)
@@ -77,7 +75,6 @@ object Qsub {
         "smp",
         numCores.toString)
       
-      sessionPart ++
       taskArrayPart ++
       numCoresPart ++
       queuePart ++
@@ -92,13 +89,12 @@ object Qsub {
   }
     
   final def commandInvoker(
-      sessionSource: SessionSource,
       ugerConfig: UgerConfig,
       actualExecutable: String = "qsub",
       scheduler: Scheduler)(implicit ec: ExecutionContext, logCtx: LogContext): CommandInvoker.Async[Params] = {
 
     def invocationFn(params: Params): Try[RunResults] = {
-      val tokens = makeTokens(sessionSource, actualExecutable, params)
+      val tokens = makeTokens(actualExecutable, params)
       
       logCtx.debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
       

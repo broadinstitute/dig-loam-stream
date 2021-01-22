@@ -3,6 +3,7 @@ package loamstream.cli
 import scala.util.matching.Regex
 import loamstream.model.execute.JobFilter
 import loamstream.model.execute.ByNameJobFilter
+import loamstream.model.execute.MissingOutputsJobFilter
 
 /**
  * @author clint
@@ -26,6 +27,10 @@ object JobFilterIntent {
     final def toJobFilter: JobFilter = toByNameJobFilter
     
     def toByNameJobFilter: ByNameJobFilter
+  }
+  
+  case object RunIfAnyMissingOutputs extends ConvertibleToJobFilter {
+    final override def toJobFilter: JobFilter = MissingOutputsJobFilter
   }
   
   case object RunEverything extends ConvertibleToJobFilter {

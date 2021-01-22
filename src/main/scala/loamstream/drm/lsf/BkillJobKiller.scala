@@ -2,12 +2,12 @@ package loamstream.drm.lsf
 
 import scala.util.Failure
 import scala.util.Success
+import scala.util.Try
 
 import loamstream.drm.JobKiller
-import loamstream.util.Loggable
-import loamstream.drm.SessionSource
+import loamstream.drm.SessionTracker
 import loamstream.util.CommandInvoker
-import scala.util.Try
+import loamstream.util.Loggable
 import loamstream.util.RunResults
 
 /**
@@ -16,7 +16,7 @@ import loamstream.util.RunResults
  */
 final class BkillJobKiller(
     commandInvoker: CommandInvoker.Sync[Unit], 
-    sessionSource: SessionSource = SessionSource.Noop) extends JobKiller with Loggable {
+    sessionSource: SessionTracker = SessionTracker.Noop) extends JobKiller with Loggable {
   
   override def killAllJobs(): Unit = {
     commandInvoker(()) match {
@@ -32,7 +32,7 @@ object BkillJobKiller extends JobKiller.Companion[BkillJobKiller]("bkill", new B
   }
   
   override protected[lsf] def makeTokens(
-      sessionSource: SessionSource, 
+      sessionTracker: SessionTracker, 
       actualExecutable: String, 
       username: String): Seq[String] = Seq(actualExecutable, "-u", username, "0")
 }

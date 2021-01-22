@@ -39,6 +39,7 @@ import loamstream.model.execute.Run
 import loamstream.conf.LsSettings
 import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.JobResult
+import loamstream.model.execute.HashingStrategy
 
 
 
@@ -321,7 +322,9 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
     val mockRunner = MockChunkRunner(asyncChunkRunner)
 
     val delegateExecuter: RxExecuter = {
-      RxExecuter.defaultWith(new DbBackedJobFilter(dao), new DbBackedExecutionRecorder(dao))
+      val executionRecorder = new DbBackedExecutionRecorder(dao, HashingStrategy.HashOutputs)
+      
+      RxExecuter.defaultWith(new DbBackedJobFilter(dao), executionRecorder)
     }
     
     val resultExecuter = {

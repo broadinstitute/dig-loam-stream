@@ -61,7 +61,7 @@ final class OutputAndExecutionRecordingTest extends FunSuite with ProvidesSlickL
     
     registerRunAndThen(run) {
       val jobFilter = new DbBackedJobFilter(dao, HashingStrategy.HashOutputs)
-      val executionRecorder = new DbBackedExecutionRecorder(dao)
+      val executionRecorder = new DbBackedExecutionRecorder(dao, HashingStrategy.HashOutputs)
       
       val executer = RxExecuter.defaultWith(jobFilter, executionRecorder)
       

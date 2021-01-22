@@ -12,7 +12,7 @@ object RequiresPresentInputsJobCanceler extends JobCanceler with Loggable {
     val result = job.inputs.exists(_.isMissing)
 
     if (result) {
-      val missingInputs = job.inputs.filter(_.isMissing)
+      lazy val missingInputs = job.inputs.filter(_.isMissing)
 
       debug(s"Cancelling ${job} due to ${missingInputs.size} missing inputs: ${missingInputs.mkString(",")}")
     }

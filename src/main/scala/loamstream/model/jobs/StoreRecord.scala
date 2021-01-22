@@ -26,7 +26,9 @@ final class StoreRecord private (
   def copy(
       loc: String = this.loc,
       isPresent: Boolean = this.isPresent,
-      lastModified: Option[Instant] = this.lastModified): StoreRecord = {
+      lastModified: Option[Instant] = this.lastModified,
+      makeHash: () => Option[String] = this.makeHash,
+      makeHashType: () => Option[String] = this.makeHashType): StoreRecord = {
     new StoreRecord(loc, isPresent, makeHash, makeHashType, lastModified)
   }
   

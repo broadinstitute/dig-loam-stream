@@ -42,7 +42,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
   
   test("record() - no Executions") {
     createTablesAndThen {
-      val recorder = new DbBackedExecutionRecorder(dao)
+      val recorder = new DbBackedExecutionRecorder(dao, HashingStrategy.HashOutputs)
 
       assert(executions === Nil)
 
@@ -57,29 +57,35 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
         command: Option[String], 
         status: JobStatus, 
         result: Option[JobResult] = None): Unit = {
-      registerRunAndThen(run) {
-        val recorder = new DbBackedExecutionRecorder(dao)
+      
+      def doIt(hashingStrategy: HashingStrategy): Unit = {
+        registerRunAndThen(run) {
+          val recorder = new DbBackedExecutionRecorder(dao, hashingStrategy)
+    
+          assert(executions === Nil)
+    
+          val job = MockJob(status)
+          
+          val e = Execution(
+              settings = mockUgerSettings,
+              cmd = command, 
+              status = status, 
+              result = result, 
+              resources = Option(mockResources),
+              jobDir = None,
+              outputs = Set.empty[StoreRecord],
+              terminationReason = None)
   
-        assert(executions === Nil)
-  
-        val job = MockJob(status)
-        
-        val e = Execution(
-            settings = mockUgerSettings,
-            cmd = command, 
-            status = status, 
-            result = result, 
-            resources = Option(mockResources),
-            jobDir = None,
-            outputs = Set.empty[StoreRecord],
-            terminationReason = None)
-
-        assert(e.isPersistable === (status.isSkipped || command.isDefined))
-        
-        recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
-        
-        assert(executions === Nil)
+          assert(e.isPersistable === (status.isSkipped || command.isDefined))
+          
+          recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
+          
+          assert(executions === Nil)
+        }
       }
+      
+      doIt(HashingStrategy.DontHashOutputs)
+      doIt(HashingStrategy.HashOutputs)
     }
     
     doTest(None, JobStatus.Succeeded, Option(CommandResult(0)))
@@ -88,225 +94,288 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
   }
 
   test("record() - successful command-Execution, no outputs") {
-    registerRunAndThen(run) {
-      val recorder = new DbBackedExecutionRecorder(dao)
-
-      assert(executions === Nil)
-
-      val cr = CommandResult(0)
-
-      assert(cr.isSuccess)
-
-      val job = MockJob(cr.toJobStatus)
-      
-      val e = Execution(
-          settings = mockUgerSettings,
-          cmd = Option(mockCmd), 
-          status = cr.toJobStatus, 
-          result = Option(cr), 
-          resources = Option(mockResources),
-          jobDir = Some(dummyJobDir),
-          outputs = Set.empty[StoreRecord],
-          terminationReason = None)
-
-      recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
-
-      assertEqualFieldsFor(executions, Seq(e))
+    def doTest(hashingStrategy: HashingStrategy): Unit = {
+      registerRunAndThen(run) {
+        val recorder = new DbBackedExecutionRecorder(dao, hashingStrategy)
+  
+        assert(executions === Nil)
+  
+        val cr = CommandResult(0)
+  
+        assert(cr.isSuccess)
+  
+        val job = MockJob(cr.toJobStatus)
+        
+        val e = Execution(
+            settings = mockUgerSettings,
+            cmd = Option(mockCmd), 
+            status = cr.toJobStatus, 
+            result = Option(cr), 
+            resources = Option(mockResources),
+            jobDir = Some(dummyJobDir),
+            outputs = Set.empty[StoreRecord],
+            terminationReason = None)
+  
+        recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
+  
+        assertEqualFieldsFor(executions, Seq(e))
+      }
     }
+    
+    doTest(HashingStrategy.DontHashOutputs)
+    doTest(HashingStrategy.HashOutputs)
   }
   
   test("record() - skipped command-Execution, no outputs") {
-    registerRunAndThen(run) {
-      val recorder = new DbBackedExecutionRecorder(dao)
-
-      assert(executions === Nil)
-
-      val cr = JobResult.Success
-
-      assert(cr.isSuccess)
-
-      val job = MockJob(cr.toJobStatus)
-      
-      val e = Execution(
-          settings = mockUgerSettings,
-          cmd = Option(mockCmd), 
-          status = JobStatus.Skipped, 
-          result = Option(cr), 
-          resources = Option(mockResources),
-          jobDir = Some(dummyJobDir),
-          outputs = Set.empty[StoreRecord],
-          terminationReason = None)
-
-      recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
-      
-      val expected = e.copy(result = Some(CommandResult(0)))
-
-      assertEqualFieldsFor(executions, Seq(expected))
+    def doTest(hashingStrategy: HashingStrategy): Unit = {
+      registerRunAndThen(run) {
+        val recorder = new DbBackedExecutionRecorder(dao, hashingStrategy)
+  
+        assert(executions === Nil)
+  
+        val cr = JobResult.Success
+  
+        assert(cr.isSuccess)
+  
+        val job = MockJob(cr.toJobStatus)
+        
+        val e = Execution(
+            settings = mockUgerSettings,
+            cmd = Option(mockCmd), 
+            status = JobStatus.Skipped, 
+            result = Option(cr), 
+            resources = Option(mockResources),
+            jobDir = Some(dummyJobDir),
+            outputs = Set.empty[StoreRecord],
+            terminationReason = None)
+  
+        recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
+        
+        val expected = e.copy(result = Some(CommandResult(0)))
+  
+        assertEqualFieldsFor(executions, Seq(expected))
+      }
     }
+    
+    doTest(HashingStrategy.DontHashOutputs)
+    doTest(HashingStrategy.HashOutputs)
   }
 
   test("record() - failed command-Execution, no outputs") {
-    registerRunAndThen(run) {
-      val recorder = new DbBackedExecutionRecorder(dao)
-
-      assert(executions === Nil)
-
-      val cr = CommandResult(42)
-
-      assert(cr.isFailure)
-
-      val job = MockJob(cr.toJobStatus)
-      
-      val e = Execution(
-          settings = mockUgerSettings,
-          cmd = Option(mockCmd), 
-          status = cr.toJobStatus, 
-          result = Option(cr),
-          resources = Option(mockResources),
-          jobDir = Some(dummyJobDir),
-          outputs = Set.empty,
-          terminationReason = None)
-
-      recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
-
-      assertEqualFieldsFor(executions, Seq(e))
+    def doTest(hashingStrategy: HashingStrategy): Unit = {
+      registerRunAndThen(run) {
+        val recorder = new DbBackedExecutionRecorder(dao, hashingStrategy)
+  
+        assert(executions === Nil)
+  
+        val cr = CommandResult(42)
+  
+        assert(cr.isFailure)
+  
+        val job = MockJob(cr.toJobStatus)
+        
+        val e = Execution(
+            settings = mockUgerSettings,
+            cmd = Option(mockCmd), 
+            status = cr.toJobStatus, 
+            result = Option(cr),
+            resources = Option(mockResources),
+            jobDir = Some(dummyJobDir),
+            outputs = Set.empty,
+            terminationReason = None)
+  
+        recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
+  
+        assertEqualFieldsFor(executions, Seq(e))
+      }
     }
+    
+    doTest(HashingStrategy.DontHashOutputs)
+    doTest(HashingStrategy.HashOutputs)
   }
 
   test("record() - successful command-Execution, some outputs") {
-    registerRunAndThen(run) {
-      val recorder = new DbBackedExecutionRecorder(dao)
-
-      assert(executions === Nil)
-
-      val cr = CommandResult(0)
-
-      assert(cr.isSuccess)
-
-      val job = MockJob(cr.toJobStatus)
-      
-      val e = Execution.fromOutputs(mockUgerSettings, mockCmd, cr, dummyJobDir, Set(o0, o1, o2))
-
-      val withHashedOutputs = e.withStoreRecords(Set(cachedOutput0, cachedOutput1, cachedOutput2))
-
-      recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
-
-      assertEqualFieldsFor(executions, Seq(withHashedOutputs))
+    def doTest(hashingStrategy: HashingStrategy): Unit = {
+      registerRunAndThen(run) {
+        val recorder = new DbBackedExecutionRecorder(dao, hashingStrategy)
+  
+        assert(executions === Nil)
+  
+        val cr = CommandResult(0)
+  
+        assert(cr.isSuccess)
+  
+        val job = MockJob(cr.toJobStatus)
+        
+        val e = Execution.fromOutputs(mockUgerSettings, mockCmd, cr, dummyJobDir, Set(o0, o1, o2))
+  
+        val baseStoreRecords = Iterable(cachedOutput0, cachedOutput1, cachedOutput2)
+        
+        val storeRecords = {
+          if(hashingStrategy.shouldHash) { baseStoreRecords }
+          else { baseStoreRecords.map(noHash) }
+        }
+        
+        val withHashedOutputs = e.withStoreRecords(storeRecords.toSet)
+  
+        recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
+  
+        assertEqualFieldsFor(executions, Seq(withHashedOutputs))
+      }
     }
+    
+    doTest(HashingStrategy.DontHashOutputs)
+    doTest(HashingStrategy.HashOutputs)
   }
   
+  private def noHash(sr: StoreRecord): StoreRecord = sr.copy(makeHash = () => None, makeHashType = () => None)
+  
   test("record() - skipped command-Execution, some outputs") {
-    registerRunAndThen(run) {
-      val recorder = new DbBackedExecutionRecorder(dao)
-
-      assert(executions === Nil)
-
-      val cr = JobResult.Success
-
-      assert(cr.isSuccess)
-
-      val job = MockJob(JobStatus.Skipped)
-      
-      val e = Execution.fromOutputs(mockUgerSettings, mockCmd, cr, dummyJobDir, Set(o0, o1, o2))
-
-      recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
-
-      val withHashedOutputs = e.withStoreRecords(Set(cachedOutput0, cachedOutput1, cachedOutput2))
-      
-      val expected = withHashedOutputs.copy(result = Some(CommandResult(0)))
-      
-      assertEqualFieldsFor(executions, Seq(expected))
+    def doTest(hashingStrategy: HashingStrategy): Unit = {
+      registerRunAndThen(run) {
+        val recorder = new DbBackedExecutionRecorder(dao, hashingStrategy)
+  
+        assert(executions === Nil)
+  
+        val cr = JobResult.Success
+  
+        assert(cr.isSuccess)
+  
+        val job = MockJob(JobStatus.Skipped)
+        
+        val e = Execution.fromOutputs(mockUgerSettings, mockCmd, cr, dummyJobDir, Set(o0, o1, o2))
+  
+        recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
+  
+        val baseStoreRecords = Iterable(cachedOutput0, cachedOutput1, cachedOutput2)
+        
+        val storeRecords = {
+          if(hashingStrategy.shouldHash) { baseStoreRecords }
+          else { baseStoreRecords.map(noHash) }
+        }
+        
+        val withHashedOutputs = e.withStoreRecords(storeRecords.toSet)
+        
+        val expected = withHashedOutputs.copy(result = Some(CommandResult(0)))
+        
+        assertEqualFieldsFor(executions, Seq(expected))
+      }
     }
+    
+    doTest(HashingStrategy.DontHashOutputs)
+    doTest(HashingStrategy.HashOutputs)
   }
 
   test("record() - failed command-Execution, some outputs") {
-    registerRunAndThen(run) {
-      val recorder = new DbBackedExecutionRecorder(dao)
-
-      assert(executions === Nil)
-
-      val cr = CommandResult(42)
-
-      assert(cr.isFailure)
-
-      val job = MockJob(cr.toJobStatus)
-      
-      val e = Execution.fromOutputs(mockUgerSettings, mockCmd, cr, dummyJobDir, Set[DataHandle](o0, o1, o2))
-
-      recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
-
-      val expected = Seq(
-          Execution(
-              settings = mockUgerSettings, 
-              cmd = mockCmd, 
-              result = CommandResult(42),
-              jobDir = e.jobDir.get,
-              outputs = failedOutput0, failedOutput1, failedOutput2))
-      
-      assertEqualFieldsFor(executions, expected)
+    def doTest(hashingStrategy: HashingStrategy): Unit = {
+      registerRunAndThen(run) {
+        val recorder = new DbBackedExecutionRecorder(dao, hashingStrategy)
+  
+        assert(executions === Nil)
+  
+        val cr = CommandResult(42)
+  
+        assert(cr.isFailure)
+  
+        val job = MockJob(cr.toJobStatus)
+        
+        val e = Execution.fromOutputs(mockUgerSettings, mockCmd, cr, dummyJobDir, Set[DataHandle](o0, o1, o2))
+  
+        recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
+  
+        val expected = Seq(
+            Execution(
+                settings = mockUgerSettings, 
+                cmd = mockCmd, 
+                result = CommandResult(42),
+                jobDir = e.jobDir.get,
+                outputs = failedOutput0, failedOutput1, failedOutput2))
+        
+        assertEqualFieldsFor(executions, expected)
+      }
     }
+    
+    doTest(HashingStrategy.DontHashOutputs)
+    doTest(HashingStrategy.HashOutputs)
   }
   
   test("record() - successful native job Execution, some outputs") {
-    registerRunAndThen(run) {
-      val recorder = new DbBackedExecutionRecorder(dao)
-
-      assert(executions === Nil)
-
-      val cr = JobResult.Success
-
-      assert(cr.isSuccess)
-
-      val job = MockJob(cr.toJobStatus)
-      
-      val e = Execution.fromOutputs(
-          settings = LocalSettings, 
-          cmd = "native-job-name", 
-          result = JobResult.CommandResult(0), 
-          jobDir = dummyJobDir, 
-          outputs = Set(o0, o1, o2))
-          
-      assert(e.isPersistable)
-
-      val expected = e.withStoreRecords(Set(cachedOutput0, cachedOutput1, cachedOutput2))
-
-      recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
-      
-      assertEqualFieldsFor(executions, Seq(expected))
+    def doTest(hashingStrategy: HashingStrategy): Unit = {
+      registerRunAndThen(run) {
+        val recorder = new DbBackedExecutionRecorder(dao, hashingStrategy)
+  
+        assert(executions === Nil)
+  
+        val cr = JobResult.Success
+  
+        assert(cr.isSuccess)
+  
+        val job = MockJob(cr.toJobStatus)
+        
+        val e = Execution.fromOutputs(
+            settings = LocalSettings, 
+            cmd = "native-job-name", 
+            result = JobResult.CommandResult(0), 
+            jobDir = dummyJobDir, 
+            outputs = Set(o0, o1, o2))
+            
+        assert(e.isPersistable)
+  
+        val baseStoreRecords = Iterable(cachedOutput0, cachedOutput1, cachedOutput2)
+        
+        val storeRecords = {
+          if(hashingStrategy.shouldHash) { baseStoreRecords }
+          else { baseStoreRecords.map(noHash) }
+        }
+        
+        val expected = e.withStoreRecords(storeRecords.toSet)
+  
+        recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
+        
+        assertEqualFieldsFor(executions, Seq(expected))
+      }
     }
+    
+    doTest(HashingStrategy.DontHashOutputs)
+    doTest(HashingStrategy.HashOutputs)
   }
   
   test("record() - failed native job Execution, some outputs") {
-    registerRunAndThen(run) {
-      val recorder = new DbBackedExecutionRecorder(dao)
-
-      assert(executions === Nil)
-
-      val cr = {
-        val e = new Exception with scala.util.control.NoStackTrace
+    def doTest(hashingStrategy: HashingStrategy): Unit = {
+      registerRunAndThen(run) {
+        val recorder = new DbBackedExecutionRecorder(dao, hashingStrategy)
+  
+        assert(executions === Nil)
+  
+        val cr = {
+          val e = new Exception with scala.util.control.NoStackTrace
+          
+          JobResult.FailureWithException(e)
+        }
+  
+        assert(cr.isFailure)
+  
+        val job = MockJob(cr.toJobStatus)
         
-        JobResult.FailureWithException(e)
+        val execution = Execution.fromOutputs(mockUgerSettings, mockCmd, cr, dummyJobDir, Set[DataHandle](o0, o1, o2))
+  
+        assert(execution.isPersistable)
+        
+        recorder.record(TestHelpers.DummyJobOracle, Seq(job -> execution))
+  
+        val expected = Seq(
+            Execution(
+                settings = mockUgerSettings, 
+                cmd = mockCmd, 
+                result = CommandResult(JobResult.DummyExitCode),
+                jobDir = execution.jobDir.get,
+                outputs = failedOutput0, failedOutput1, failedOutput2))
+        
+        assertEqualFieldsFor(executions, expected)
       }
-
-      assert(cr.isFailure)
-
-      val job = MockJob(cr.toJobStatus)
-      
-      val execution = Execution.fromOutputs(mockUgerSettings, mockCmd, cr, dummyJobDir, Set[DataHandle](o0, o1, o2))
-
-      assert(execution.isPersistable)
-      
-      recorder.record(TestHelpers.DummyJobOracle, Seq(job -> execution))
-
-      val expected = Seq(
-          Execution(
-              settings = mockUgerSettings, 
-              cmd = mockCmd, 
-              result = CommandResult(JobResult.DummyExitCode),
-              jobDir = execution.jobDir.get,
-              outputs = failedOutput0, failedOutput1, failedOutput2))
-      
-      assertEqualFieldsFor(executions, expected)
     }
+    
+    doTest(HashingStrategy.DontHashOutputs)
+    doTest(HashingStrategy.HashOutputs)
   }
 }

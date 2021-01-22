@@ -11,6 +11,8 @@ import loamstream.model.jobs.Execution
 import loamstream.model.jobs.LJob
 import loamstream.util.CanBeClosed
 import loamstream.util.Files
+import loamstream.model.jobs.JobStatus
+import java.time.LocalDateTime
 
 /**
  * @author clint
@@ -34,38 +36,67 @@ object IndexFiles {
     writeDataTo(makePath("failed-jobs.tsv"))(jobsToExecutions.filterValues(shouldGoToFailureFile))
   }
   
+  private def writeRowsTo(file: Path)(rows: Iterable[Row]): Unit = {
+    val sorted = rows.toSeq.sortWith(Orderings.indexFileRowOrdering)
+    
+    CanBeClosed.using(new CSVPrinter(new FileWriter(file.toFile), Row.csvFormat)) { csvPrinter =>
+      sorted.iterator.map(_.toJavaIterable).foreach(csvPrinter.printRecord)
+    }
+  }
+  
   private def writeDataTo(file: Path)(executionTuples: Iterable[(LJob, Execution)]): Unit = {
-    val csvFormat = CSVFormat.DEFAULT.
+    val toRow: (LJob, Execution) => Row = Row(_, _)
+    
+    writeRowsTo(file)(executionTuples.map(toRow.tupled))
+  }
+  
+  final case class Row(
+      id: String, 
+      name: String, 
+      exitCode: Option[Int], 
+      jobDir: Option[Path],
+      jobStatus: JobStatus, 
+      failureCause: Option[Throwable],
+      startTime: Option[LocalDateTime]) {
+    def toJavaIterable: java.lang.Iterable[String] = {
+      import scala.collection.JavaConverters._
+      
+      Iterable(id, name, jobStatusPart, exitCodePart, jobDirPart).asJava
+    }
+    
+    private def exitCodePart: String = exitCode match {
+      case Some(ec) => ec.toString
+      case _ => "<not available>"
+    }
+
+    private def jobDirPart: String = jobDir.map(_.toAbsolutePath.toString).getOrElse("<not available>")
+
+    private def jobStatusPart: String = failureCause match {
+      case Some(e) => s"Failed due to exception: '${e.getMessage}'"
+      case _ => jobStatus.toString
+    }
+  }
+  
+  object Row {
+    val csvFormat: CSVFormat = CSVFormat.DEFAULT.
         withHeader("JOB_ID", "JOB_NAME", "JOB_STATUS", "EXIT_CODE", "JOB_DIR").
         withDelimiter('\t').
         withRecordSeparator(scala.util.Properties.lineSeparator)
     
-    val toRow = Row.tupled
+    def apply(tuple: (LJob, Execution)): Row = apply(tuple._1, tuple._2) 
     
-    val sorted = executionTuples.toSeq.sortWith(Orderings.executionTupleOrdering)
-    
-    CanBeClosed.enclosed(new CSVPrinter(new FileWriter(file.toFile), csvFormat)) { csvPrinter =>
-      executionTuples.iterator.map(toRow).map(_.toJavaIterable).foreach(csvPrinter.printRecord)
-    }
-  }
-  
-  private final case class Row(job: LJob, ex: Execution) {
-    def toJavaIterable: java.lang.Iterable[String] = {
-      import scala.collection.JavaConverters._
+    def apply(job: LJob, ex: Execution): Row = {
+      val exitCode: Option[Int] = ex match {
+        case Execution.WithCommandResult(cr) => Option(cr.exitCode)
+        case _ => None
+      }
       
-      Iterable(job.id.toString, job.name, jobStatusPart(ex), exitCodePart(ex), jobDirPart(ex)).asJava
-    }
-    
-    private def exitCodePart(e: Execution): String = e match {
-      case Execution.WithCommandResult(cr) => cr.exitCode.toString
-      case _ => "<not available>"
-    }
-
-    private def jobDirPart(e: Execution): String = e.jobDir.map(_.toAbsolutePath.toString).getOrElse("<not available>")
-
-    private def jobStatusPart(e: Execution): String = e match {
-      case Execution.WithThrowable(e) => s"Failed due to exception: '${e.getMessage}'"
-      case _ => e.status.toString
+      val failureCause: Option[Throwable] = ex match {
+        case Execution.WithThrowable(e) => Option(e)
+        case _ => None
+      }
+      
+      new Row(job.id.toString, job.name, exitCode, ex.jobDir, ex.status, failureCause, ex.resources.map(_.startTime))
     }
   }
 }

@@ -1,26 +1,23 @@
 package loamstream.drm.uger
 
-import loamstream.drm.JobSubmitter
-import rx.lang.scala.Observable
-import loamstream.model.execute.DrmSettings
-import loamstream.drm.DrmTaskArray
-import loamstream.drm.DrmSubmissionResult
-import loamstream.util.Loggable
-import loamstream.conf.UgerConfig
-import loamstream.util.Processes
-import scala.util.Try
-import loamstream.util.RunResults
-import loamstream.util.Users
-import java.util.UUID
-import loamstream.util.CommandInvoker
-import rx.lang.scala.schedulers.IOScheduler
-import loamstream.util.Observables
-import loamstream.drm.DrmTaskId
-import loamstream.util.Options
-import loamstream.util.Tries
+
+
 import scala.concurrent.ExecutionContext
-import loamstream.drm.SessionSource
+import scala.util.Try
+
+import loamstream.conf.UgerConfig
+import loamstream.drm.DrmSubmissionResult
+import loamstream.drm.DrmTaskArray
+import loamstream.drm.DrmTaskId
+import loamstream.drm.JobSubmitter
+import loamstream.model.execute.DrmSettings
+import loamstream.util.CommandInvoker
+import loamstream.util.Loggable
+import loamstream.util.RunResults
+import loamstream.util.Tries
+import rx.lang.scala.Observable
 import rx.lang.scala.Scheduler
+import loamstream.util.LogContext
 
 
 /**
@@ -36,7 +33,9 @@ final class QsubJobSubmitter private[uger] (
     
     import QsubJobSubmitter.parseQsubOutput
     
-    val taskIdsObs = resultsObs.flatMap(results => Observable.just(parseQsubOutput(results.stdout)))
+    val taskIdsObs = resultsObs.flatMap { results => 
+      Observable.just(parseQsubOutput(results.stdout, taskArray.drmJobName))
+    }
     
     for {
       taskIdsAttempt <- taskIdsObs
@@ -55,13 +54,12 @@ object QsubJobSubmitter extends Loggable {
   type SubmissionFn = (DrmSettings, DrmTaskArray) => Try[RunResults]
   
   def fromExecutable(
-      sessionSource: SessionSource, 
       ugerConfig: UgerConfig, 
       actualExecutable: String = "qsub",
       scheduler: Scheduler)(implicit ec: ExecutionContext): QsubJobSubmitter = {
     
     new QsubJobSubmitter(
-        Qsub.commandInvoker(sessionSource, ugerConfig, actualExecutable, scheduler), 
+        Qsub.commandInvoker(ugerConfig, actualExecutable, scheduler), 
         ugerConfig)
   }
   
@@ -70,9 +68,15 @@ object QsubJobSubmitter extends Loggable {
     val jobNameIndexRangeAndStep = """^Your\s+job-array\s+(.+?)\.(\d+)-(\d+)\:(\d+).+?has been submitted$""".r
   }
   
-  private[uger] def parseQsubOutput(lines: Seq[String]): Try[Seq[DrmTaskId]] = {
+  private[uger] def parseQsubOutput(
+      lines: Seq[String], 
+      taskArrayName: String)(implicit ctx: LogContext): Try[Seq[DrmTaskId]] = {
+    
     val resultOpt = lines.iterator.map(_.trim).collectFirst {
       case Regexes.jobNameIndexRangeAndStep(jobId, startString, endString, stepString) => {
+        
+        ctx.debug(s"Submitted task array with LS name '${taskArrayName}' as Uger job id ${jobId}")
+        
         Try {
           val indexRange = (startString.toInt to endString.toInt by stepString.toInt)
           

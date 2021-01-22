@@ -520,4 +520,123 @@ final class IntentTest extends FunSuite {
       assert(Intent.determineHashingStrategy(conf.right.get.toValues) === HashingStrategy.HashOutputs)
     }
   }
+  
+  test("determineJobFilterIntent") {
+    {
+      val conf = cliConf(s"--run everything --compile-only --loams $exampleFile0")
+
+      assert(Intent.determineJobFilterIntent(conf.right.get.toValues) === JobFilterIntent.RunEverything)
+    }
+
+    {
+      val conf = cliConf(s"--run ifAnyMissingOutputs --compile-only --loams $exampleFile0")
+
+      assert(Intent.determineJobFilterIntent(conf.right.get.toValues) === JobFilterIntent.RunIfAnyMissingOutputs)
+    }
+    
+    object HasRegexes {
+      def unapply(intent: JobFilterIntent): Option[Seq[Regex]] = intent match {
+        case JobFilterIntent.RunIfAllMatch(regexes) => Some(regexes)
+        case JobFilterIntent.RunIfAnyMatch(regexes) => Some(regexes)
+        case JobFilterIntent.RunIfNoneMatch(regexes) => Some(regexes)
+        case _ => None
+      }
+    }
+    
+    def assertAreEqual(actual: JobFilterIntent, expected: JobFilterIntent): Unit = (actual, expected) match {
+      case (lhs @ HasRegexes(lhsRegexes), rhs @ HasRegexes(rhsRegexes)) => {
+        assert(lhs.getClass === rhs.getClass)
+        assert(lhsRegexes.map(_.toString) === rhsRegexes.map(_.toString))
+      }
+      case (lhs, rhs) => assert(lhs === rhs)
+    }
+    
+    {
+      val conf = cliConf(s"--run allOf foo bar --compile-only --loams $exampleFile0")
+
+      val expected = JobFilterIntent.RunIfAllMatch(Seq("foo".r, "bar".r))
+      
+      assertAreEqual(Intent.determineJobFilterIntent(conf.right.get.toValues), expected)
+    }
+    
+    {
+      val conf = cliConf(s"--run anyOf foo bar --compile-only --loams $exampleFile0")
+
+      val expected = JobFilterIntent.RunIfAnyMatch(Seq("foo".r, "bar".r))
+      
+      assertAreEqual(Intent.determineJobFilterIntent(conf.right.get.toValues), expected)
+    }
+    
+    {
+      val conf = cliConf(s"--run noneOf foo bar --compile-only --loams $exampleFile0")
+
+      val expected = JobFilterIntent.RunIfNoneMatch(Seq("foo".r, "bar".r))
+      
+      assertAreEqual(Intent.determineJobFilterIntent(conf.right.get.toValues), expected)
+    }
+    
+    //Default, DB-backed filter
+    {
+      val conf = cliConf(s"--run blasdasdasd --compile-only --loams $exampleFile0")
+
+      assert(Intent.determineJobFilterIntent(conf.right.get.toValues) === JobFilterIntent.DontFilterByName)
+    }
+    
+    //Default, DB-backed filter
+    {
+      val conf = cliConf(s"--compile-only --loams $exampleFile0")
+
+      assert(Intent.determineJobFilterIntent(conf.right.get.toValues) === JobFilterIntent.DontFilterByName)
+    }
+    
+    //if-any-missing-outputs
+    {
+      val conf = cliConf(s"--run ifAnyMissingOutputs --compile-only --loams $exampleFile0")
+
+      assert(Intent.determineJobFilterIntent(conf.right.get.toValues) === JobFilterIntent.RunIfAnyMissingOutputs)
+    }
+  }
+  
+  test("determineJobFilterIntent - problematic real-world args") {
+    val loams = Seq(
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/Ancestry.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/Annotate.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/ArrayStores.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/DirTree.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/ExportCleanData.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/ExportQcData.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/FilterArray.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/Fxns.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/Harmonize.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/Kinship.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/Load.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/Main.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/Pca.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/Prepare.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/ProjectConfig.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/ProjectStores.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/QcReport.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/QcReportStores.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/SampleQc.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/StoreHelpers.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/Stores.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/Tracking.scala",
+      "/humgen/diabetes2/users/ryank/software/dig-loam/src/scala/qc/Upload.scala")
+    
+    val args = Seq(
+      "--backend",
+      "uger",
+      "--disable-hashing",
+      "--protect-files-from",
+      "protected_files.txt",
+      "--run",
+      "ifAnyMissingOutputs",
+      "--conf",
+      "loamstream.conf",
+      "--loams") ++ loams
+      
+    val conf = Conf(args)
+    
+    assert(Intent.determineJobFilterIntent(conf.toValues) === JobFilterIntent.RunIfAnyMissingOutputs)
+  }
 }

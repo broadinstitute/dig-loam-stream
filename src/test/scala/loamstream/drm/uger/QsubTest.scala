@@ -1,20 +1,15 @@
 package loamstream.drm.uger
 
+import java.nio.file.Paths
+
 import org.scalatest.FunSuite
 
-import loamstream.TestHelpers
 import loamstream.conf.UgerConfig
-import loamstream.model.execute.DrmSettings
+import loamstream.drm.ContainerParams
+import loamstream.model.execute.UgerDrmSettings
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
-import loamstream.model.execute.UgerDrmSettings
-import loamstream.drm.DrmSystem
-import loamstream.drm.ContainerParams
-import loamstream.drm.ContainerParams
-import loamstream.drm.SessionSource
-import java.nio.file.Paths
-import TestHelpers.path
 
 /**
  * @author clint
@@ -30,7 +25,7 @@ final class QsubTest extends FunSuite {
   private def getTokens(uc: UgerConfig, ugerSettings: UgerDrmSettings) = {
     val params = Qsub.Params(uc, ugerSettings, 99, drmScriptFile, "stdoutT", "stderrT")
     
-    Qsub.makeTokens(MockSessionSource("lalala"), "bin/foo", params)
+    Qsub.makeTokens("bin/foo", params)
   }
   
   private def makeUgerSettings(containerParams: Option[ContainerParams]) = UgerDrmSettings(
@@ -72,8 +67,6 @@ final class QsubTest extends FunSuite {
       "y",
       "-b",
       "n",
-      "-si",
-      "lalala",
       "-t",
       "1-99",
       "-binding",
@@ -106,8 +99,6 @@ final class QsubTest extends FunSuite {
       "foo",
       "bar",
       "baz",
-      "-si",
-      "lalala",
       "-t",
       "1-99",
       "-binding",

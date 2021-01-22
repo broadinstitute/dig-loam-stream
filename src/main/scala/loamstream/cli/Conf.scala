@@ -89,13 +89,21 @@ final case class Conf private (arguments: Seq[String]) extends ScallopConf(argum
       descr = "Deletes .loamstream/ ; Effectively the same as using all of " +
               "--clean-db, --clean-logs, and --clean-scripts")
   
-  val run: ScallopOption[List[String]] = opt(
+  val run: ScallopOption[List[String]] = {
+    import Conf.RunStrategies._
+   
+    opt(
       descr = "How to run jobs: " +
-              "<everything> - always run jobs, never skip them; " +
-              "<allOf> <regexes> - run jobs if their names match ALL of the passed regexes" +
-              "<anyOf> <regexes> - run jobs if their names match ANY of the passed regexes" +
-              "<noneOf> <regexes> - run jobs if their names match NONE of the passed regexes",
+             s"<${Everything}> - always run jobs, never skip them; " +
+             s"<${AllOf}> <regexes> - run jobs if their names match ALL of the passed regexes" +
+             s"<${AnyOf}> <regexes> - run jobs if their names match ANY of the passed regexes" +
+             s"<${NoneOf}> <regexes> - run jobs if their names match NONE of the passed regexes" +
+             s"<${IfAnyMissingOutputs}> - run jobs if any of their outputs are missing",
       required = false)
+  }
+      
+  val protectFilesFrom: ScallopOption[Path] = opt[Path](
+      descr = "Path to file containing list of outputs to NOT overwrite")
   
   val noValidation: ScallopOption[Boolean] = opt[Boolean](
       descr = "Don't validate the graph produced by evaluating .loam files")
@@ -168,6 +176,7 @@ final case class Conf private (arguments: Seq[String]) extends ScallopConf(argum
       run = getRun,
       workerSupplied = worker.isSupplied,
       workDir = workDir.toOption,
+      protectedOutputsFile = protectFilesFrom.toOption,
       this)
   }
 }
@@ -178,6 +187,7 @@ object Conf {
   
   object RunStrategies {
     val Everything = "everything"
+    val IfAnyMissingOutputs = "ifAnyMissingOutputs"
     val AllOf = "allOf"
     val AnyOf = "anyOf"
     val NoneOf = "noneOf"
@@ -199,6 +209,7 @@ object Conf {
       run: Option[(String, Seq[String])],
       workerSupplied: Boolean,
       workDir: Option[Path],
+      protectedOutputsFile: Option[Path],
       derivedFrom: Conf) {
     
     def withIsWorker(isWorker: Boolean): Values = copy(workerSupplied = true)

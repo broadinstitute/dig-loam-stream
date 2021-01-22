@@ -492,8 +492,9 @@ object AppWiring extends Loggable {
 
       val accountingClient = BacctAccountingClient.useActualBinary(lsfConfig, scheduler)
       
-      //TODO: Revisit Noop
-      val jobKiller = BkillJobKiller.fromExecutable(SessionTracker.Noop, lsfConfig, isSuccess = ExitCodes.isSuccess)
+      val sessionTracker: SessionTracker = new SessionTracker.Default
+      
+      val jobKiller = BkillJobKiller.fromExecutable(sessionTracker, lsfConfig, isSuccess = ExitCodes.isSuccess)
       
       val lsfRunner = DrmChunkRunner(
           environmentType = EnvironmentType.Lsf,
@@ -504,7 +505,7 @@ object AppWiring extends Loggable {
           jobMonitor = jobMonitor,
           accountingClient = accountingClient,
           jobKiller = jobKiller,
-          sessionTracker = SessionTracker.Noop) //TODO
+          sessionTracker = sessionTracker)
 
       (lsfRunner, Seq(lsfRunner))
     }

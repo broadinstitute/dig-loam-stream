@@ -24,7 +24,7 @@ trait BedSupport {
   /**
    * Download the BED file in the URL and return a Source that will produce the data it contains
    */
-  def download(
+  def downloadBed(
       url: URI,
       auth: HttpClient.Auth,
       httpClient: HttpClient = new SttpHttpClient()): Source[DataRow] = {
@@ -38,8 +38,6 @@ trait BedSupport {
         ext = ext[1:]
     else:
         ext = None*/
-
-    
     
     def bedReader: Reader = {
       //download the source into memory

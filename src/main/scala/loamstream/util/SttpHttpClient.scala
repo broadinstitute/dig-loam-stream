@@ -49,7 +49,7 @@ final class SttpHttpClient extends HttpClient with Loggable {
     
     val request = basicRequest.post(uri"${url}").body(body.getOrElse("")).headers(headers).withAuth(auth)
     
-    val response = request.response(asString)//backend.send(request)
+    val response = backend.send(request)
     
     response.body
   }

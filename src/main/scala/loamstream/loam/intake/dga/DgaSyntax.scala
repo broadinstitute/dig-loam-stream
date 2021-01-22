@@ -40,7 +40,7 @@ trait DgaSyntax {
       }
       
       def getJson: JValue = {
-        httpClient.post(url, headers = Map("Content-Type" -> "application/json")).map(parse(_)) match {
+        httpClient.post(url, headers = Headers.ContentType.applicationJson).map(parse(_)) match {
           case Right(json) => json
           case Left(message) => sys.error(s"Error accessing tissue ontology: '${message}'")
         }

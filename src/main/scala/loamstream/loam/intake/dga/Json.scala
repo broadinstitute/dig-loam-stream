@@ -28,6 +28,13 @@ object Json {
       case _ => Tries.failure(makeMessage("string", fieldName)) 
     }
     
+    def tryAsStrings(fieldName: String): Try[Seq[String]] = tryAsArray(fieldName).map(_.map { case JString(s) => s })
+    
+    def asStringOption(fieldName: String): Option[String] = (jv \ fieldName) match {
+      case JString(s) => Option(s.trim)
+      case _ => None 
+    }
+    
     def tryAsArray(fieldName: String): Try[Seq[JValue]] = (jv \ fieldName) match {
       case JArray(jvs) => Success(jvs)
       case _ => Tries.failure(makeMessage("string", fieldName)) 

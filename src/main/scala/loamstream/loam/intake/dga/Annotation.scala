@@ -19,15 +19,15 @@ import loamstream.util.LogContext
  */
 final case class Annotation private[dga] (
     assembly: String,
-    annotation_id: String,
-    biosample_type: String,
-    biosample_id: String,
-    biosample_name: String,
-    system_slims: String,
-    organ_slims: String, 
-    dbxrefs: String,
-    harmonized_states: String,
-    annotation_method: String,
+    annotation_id: Option[String], //is this really optional?
+    biosample_type: Option[String], //is this really optional?
+    biosample_id: Option[String], //is this really optional?
+    biosample_name: Option[String], //is this really optional?
+    system_slims: Option[String], //is this really optional?
+    organ_slims: Option[String], //is this really optional?
+    dbxrefs: Seq[String],
+    harmonized_states: Option[String], //is this really optional?
+    annotation_method: Option[String], //is this really optional?
     //kwargs: Map[String, Any],
     file_download: Seq[Annotation.Download]) extends Loggable {
   
@@ -35,13 +35,8 @@ final case class Annotation private[dga] (
    * Returns True if the annotation meets all criteria for ingesting.
    */
   def isUploadable: Boolean = {
-    //if annot.annotation_id is None:
-    //    return False
-    //if annot.biosample_id is None:
-    //    return False
-
-    //ignore any datasets with no valid datasets to load
-    file_download.nonEmpty
+    //ignore any datasets with no annotationId, no biosampleId, or no valid datasets to load
+    annotation_id.isDefined && biosample_id.isDefined && file_download.nonEmpty
   }
 }
 
@@ -58,21 +53,25 @@ object Annotation {
       }
     }
     
+    def filteredSortedFileDownloads(annotationId: String): Try[Seq[Download]] = {
+      allFileDownloads.map(_.filter(isValidDownload(assembly, annotationId)).toSeq.sortBy(_.md5Sum))
+    }
+    
     for {
-      annotation_id <- json.tryAsString("annotation_id")
-      biosample_type <- json.tryAsString("biosample_type")
-      biosample_id <- json.tryAsString("biosample_id")
-      biosample_name <- json.tryAsString("biosample_name")
-      system_slims <- json.tryAsString("system_slims")
-      organ_slims <- json.tryAsString("organ_slims") 
-      dbxrefs <- json.tryAsString("dbxrefs")
-      harmonized_states <- json.tryAsString("harmonized_states")
-      annotation_method <- json.tryAsString("annotation_method")
-      fileDownloads <- allFileDownloads.map(_.filter(isValidDownload(assembly, annotation_id)).toSeq.sortBy(_.md5Sum))
+      annotationId <- Try(json.asStringOption("annotation_id"))
+      biosample_type = json.asStringOption("biosample_type")
+      biosample_id = json.asStringOption("biosample_id")
+      biosample_name = json.asStringOption("biosample_name")
+      system_slims = json.asStringOption("system_slims")
+      organ_slims = json.asStringOption("organ_slims") 
+      dbxrefs <- json.tryAsStrings("dbxrefs")
+      harmonized_states = json.asStringOption("harmonized_states")
+      annotation_method = json.asStringOption("annotation_method")
+      fileDownloads <- filteredSortedFileDownloads(annotationId)
     } yield {
       Annotation(
         assembly = assembly,
-        annotation_id = annotation_id,
+        annotation_id = annotationId,
         biosample_type = biosample_type,
         biosample_id = biosample_id,
         biosample_name = biosample_name,
@@ -87,10 +86,10 @@ object Annotation {
   
   //only keep files of the right format, assembly and have been released
   private def isValidDownload(
-      assembly: String, 
-      annotation_id: String)(download: Annotation.Download)(implicit ctx: LogContext): Boolean = {
+      assemblyId: String, 
+      annotationId: String)(download: Annotation.Download)(implicit ctx: LogContext): Boolean = {
     
-    def fileName: String = s"${annotation_id}/${download.file}"
+    def fileName: String = s"${annotationId}/${download.file}"
     
     def isReleased: Boolean = {
       val released = download.status.countsAsReleased
@@ -113,10 +112,10 @@ object Annotation {
     }
     
     def assembliesMatch: Boolean = {
-      val asmsMatch = AssemblyMap.match_assemblies(download.assembly, assembly)
+      val asmsMatch = AssemblyMap.matchAssemblies(download.assemblyId, assemblyId)
       
       if(!asmsMatch) {
-        ctx.warn(s"File ${fileName} does not match assembly ${assembly}; skipping...")
+        ctx.warn(s"File ${fileName} does not match assembly ${assemblyId}; skipping...")
       }
       
       asmsMatch
@@ -141,20 +140,24 @@ object Annotation {
     }*/
   }
   
-  final case class Download private (assembly: String, url: URI, file: Path, status: Status, md5Sum: String) {
+  final case class Download private (assemblyId: String, url: URI, file: Path, status: Status, md5Sum: String) {
     //def url: URI = URI.create(href)//urllib.parse.urlparse(download.get('href', ''))
     //def file: Path = Paths.get(url.getPath).getFileName//os.path.basename(url.path)
     //def sstatus: String = status.toLowerCase//download.get('status', '').lower()
   }
   
   object Download {
-    def fromJson(assembly: String)(json: JValue): Try[Download] = {
+    def fromJson(assemblyId: String)(json: JValue): Try[Download] = {
       for {
         url <- json.tryAsString("files_href").map(URI.create(_))
         status <- json.tryAsString("files_status").map(_.toLowerCase).map(Status.fromString)
         md5Sum <- json.tryAsString("files_md5sum")
-        file = Paths.get(url.getPath)
-      } yield Download(assembly, url, file, status, md5Sum)
+      } yield Download(
+          assemblyId = assemblyId, 
+          url = url, 
+          file = Paths.get(url.getPath), 
+          status = status, 
+          md5Sum = md5Sum)
     }
   }
   
@@ -177,14 +180,11 @@ object Annotation {
     }
   }
   
-  private object Regexes {
-    val bedOrBedGz = "\\.bed(\\.gz)?$".r
-  }
-  
   object File {
-    def isBed(file: Path): Boolean = file.toString match {
-      case Regexes.bedOrBedGz() => true
-      case _ => false
+    def isBed(file: Path): Boolean = {
+      val asString = file.toString
+      
+      asString.endsWith(".bed") || asString.endsWith(".bed.gz")
     }
     
     def notBed(file: Path): Boolean = !isBed(file)

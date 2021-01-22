@@ -7,15 +7,16 @@ package loamstream.loam.intake.dga
  * @see processors/util/assembly_map.py
  */
 object AssemblyMap {
+  
   val Assemblies: Map[String, String] = Map(
-    "hg19" -> "GRCh37"
+    AssemblyIds.hg19 -> "GRCh37"
   )
   
   /**
    * True if assembly a matches assembly b. First will translate hgXX assemblies
    * to GRChXX assemblies before comparing.
    */
-  def match_assemblies(a: String, b: String): Boolean = {
+  def matchAssemblies(a: String, b: String): Boolean = {
     def mapAssemblyIdIfNeeded(assemblyId: String): String = {
       val loweredId = assemblyId.toLowerCase
       

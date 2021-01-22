@@ -59,7 +59,7 @@ final class ExecutionState private (
     jobStatesBox.get(cellFor(job)).status
   }
   
-  private def snapshot(): Array[JobExecutionState] = jobStatesBox.get(ExecutionState.copyOf)
+  private[execute] def snapshot(): Array[JobExecutionState] = jobStatesBox.get(ExecutionState.copyOf)
   
   /**
    * Returns a view of the current state of all jobs, useful to Executers. (The result of jobStatuses())

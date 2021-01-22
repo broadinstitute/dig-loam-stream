@@ -228,7 +228,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     assert(e0.cmd === Some("foo"))
     assert(e0.settings.isUger)
     assert(e0.result === Some(result0))
-    assert(e0.outputs === Set.empty)
+    assert(e0.outputs === Iterable.empty)
     assert(e0.jobDir === jobDirOpt)
     //TODO: Check settings field once it's no longer a placeholder 
     
@@ -236,7 +236,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     assert(e1.settings.isLocal)
     assert(e1.status === status1)
     assert(e1.result === None)
-    assert(e1.outputs === Set.empty)
+    assert(e1.outputs === Iterable.empty)
     assert(e1.jobDir === None)
     //TODO: Check settings field once it's no longer a placeholder
   }

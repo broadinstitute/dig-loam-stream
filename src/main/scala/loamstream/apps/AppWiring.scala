@@ -30,7 +30,7 @@ import loamstream.drm.DrmSystem
 import loamstream.drm.JobMonitor
 import loamstream.drm.JobSubmitter
 import loamstream.drm.Poller
-import loamstream.drm.SessionSource
+import loamstream.drm.SessionTracker
 
 import loamstream.drm.lsf.BacctAccountingClient
 import loamstream.drm.lsf.BjobsPoller
@@ -44,8 +44,6 @@ import loamstream.drm.uger.QdelJobKiller
 import loamstream.drm.uger.QstatQacctPoller
 import loamstream.drm.uger.Qsub
 import loamstream.drm.uger.QsubJobSubmitter
-import loamstream.drm.uger.QconfSessionSource
-import loamstream.drm.uger.QconfSessionSource
 import loamstream.drm.uger.UgerPathBuilder
 
 import loamstream.googlecloud.CloudSdkDataProcWrapper
@@ -98,6 +96,8 @@ import scala.util.Success
 import rx.lang.scala.Scheduler
 import rx.lang.scala.schedulers.ExecutionContextScheduler
 import loamstream.util.DirOracle
+import loamstream.model.execute.ProtectsFilesJobCanceler
+import loamstream.model.execute.SuccessfulOutputsExecutionRecorder
 
 
 
@@ -164,13 +164,30 @@ object AppWiring extends Loggable {
     import JobFilterIntent._
     
     jobFilterIntent match {
-      case convertible: JobFilterIntent.ConvertibleToJobFilter => convertible.toJobFilter
-      case _ => defaultJobFilter(getDao, hashingStrategy)
+      case convertible: JobFilterIntent.ConvertibleToJobFilter => {
+        val jobFilter = convertible.toJobFilter
+        
+        debug(s"Job filter intent ${jobFilterIntent} produced job filter ${jobFilter}")
+        
+        jobFilter
+      }
+      case _ => {
+        debug("Using default JobFilter")
+        
+        defaultJobFilter(getDao, hashingStrategy)
+      }
     }
   }
   
-  private[AppWiring] def makeExecutionRecorder(getDao: => LoamDao): ExecutionRecorder = {
-    FileSystemExecutionRecorder && (new DbBackedExecutionRecorder(getDao))
+  private[AppWiring] def makeExecutionRecorder(
+      executionConfig: ExecutionConfig,
+      hashingStrategy: HashingStrategy)(getDao: => LoamDao): ExecutionRecorder = {
+    
+    val successfulOutputFile = executionConfig.locations.logDir.resolve("successful-job-outputs.txt")
+    
+    FileSystemExecutionRecorder && 
+    (new DbBackedExecutionRecorder(getDao, hashingStrategy)) &&
+    SuccessfulOutputsExecutionRecorder(successfulOutputFile)
   }
   
   private final class DefaultAppWiring(
@@ -187,10 +204,12 @@ object AppWiring extends Loggable {
           cliConfig = intent.cliConfig)
     }
     
+    def cliConfigValues: Option[Conf.Values] = intent.cliConfig.map(_.toValues)
+    
     val settings: LsSettings = {
       require(intent.cliConfig.isDefined, "Expected LS to be run from the command line")
       
-      LsSettings(intent.cliConfig.map(_.toValues))
+      LsSettings(cliConfigValues)
     }
     
     override def executer: Executer = terminableExecuter
@@ -201,7 +220,9 @@ object AppWiring extends Loggable {
 
     override lazy val jobFilter: JobFilter = makeJobFilter(intent.jobFilterIntent, intent.hashingStrategy, dao)
     
-    override lazy val executionRecorder: ExecutionRecorder = makeExecutionRecorder(dao)
+    override lazy val executionRecorder: ExecutionRecorder = {
+      makeExecutionRecorder(config.executionConfig, intent.hashingStrategy)(dao)
+    }
     
     private lazy val terminableExecuter: TerminableExecuter = {
       trace("Creating executer...")
@@ -232,7 +253,7 @@ object AppWiring extends Loggable {
             compositeRunner, 
             new FileMonitor(outputPollingFrequencyInHz, maxWaitTimeForOutputs),
             windowLength, 
-            defaultJobCanceller,
+            defaultJobCanceller(cliConfigValues.flatMap(_.protectedOutputsFile)),
             jobFilter, 
             executionRecorder,
             maxRunsPerJob,
@@ -411,8 +432,6 @@ object AppWiring extends Loggable {
 
       import loamstream.model.execute.ExecuterHelpers._
 
-      val sessionSource = QconfSessionSource.fromExecutable(ugerConfig)
-      
       implicit val ec = executionContext
       
       val scheduler = ExecutionContextScheduler(executionContext)
@@ -420,17 +439,17 @@ object AppWiring extends Loggable {
       //TODO: Make configurable?
       val pollingFrequencyInHz = 0.1
       
-      val poller = {
-        QstatQacctPoller.fromExecutables(sessionSource, pollingFrequencyInHz, ugerConfig, scheduler = scheduler)
-      }
+      val poller = QstatQacctPoller.fromExecutables(pollingFrequencyInHz, ugerConfig, scheduler = scheduler)
       
       val jobMonitor = new JobMonitor(scheduler, poller, pollingFrequencyInHz)
 
-      val jobSubmitter = QsubJobSubmitter.fromExecutable(sessionSource, ugerConfig, scheduler = scheduler)
+      val jobSubmitter = QsubJobSubmitter.fromExecutable(ugerConfig, scheduler = scheduler)
       
       val accountingClient = QacctAccountingClient.useActualBinary(ugerConfig, scheduler)
       
-      val jobKiller = QdelJobKiller.fromExecutable(sessionSource, ugerConfig, isSuccess = Set(0,1).contains)
+      val sessionTracker: SessionTracker = new SessionTracker.Default
+      
+      val jobKiller = QdelJobKiller.fromExecutable(sessionTracker, ugerConfig, isSuccess = Set(0,1).contains)
       
       val ugerRunner = DrmChunkRunner(
           environmentType = EnvironmentType.Uger,
@@ -440,11 +459,10 @@ object AppWiring extends Loggable {
           jobSubmitter = jobSubmitter, 
           jobMonitor = jobMonitor,
           accountingClient = accountingClient,
-          jobKiller = jobKiller)
+          jobKiller = jobKiller,
+          sessionTracker = sessionTracker)
 
-      val handles = Seq(ugerRunner, sessionSource)
-
-      (ugerRunner, handles)
+      (ugerRunner, Seq(ugerRunner))
     }
   }
   
@@ -474,7 +492,9 @@ object AppWiring extends Loggable {
 
       val accountingClient = BacctAccountingClient.useActualBinary(lsfConfig, scheduler)
       
-      val jobKiller = BkillJobKiller.fromExecutable(SessionSource.Noop, lsfConfig, isSuccess = ExitCodes.isSuccess)
+      val sessionTracker: SessionTracker = new SessionTracker.Default
+      
+      val jobKiller = BkillJobKiller.fromExecutable(sessionTracker, lsfConfig, isSuccess = ExitCodes.isSuccess)
       
       val lsfRunner = DrmChunkRunner(
           environmentType = EnvironmentType.Lsf,
@@ -484,11 +504,10 @@ object AppWiring extends Loggable {
           jobSubmitter = jobSubmitter, 
           jobMonitor = jobMonitor,
           accountingClient = accountingClient,
-          jobKiller = jobKiller)
+          jobKiller = jobKiller,
+          sessionTracker = sessionTracker)
 
-      val handles = Seq(lsfRunner)
-
-      (lsfRunner, handles)
+      (lsfRunner, Seq(lsfRunner))
     }
   }
   
@@ -539,7 +558,19 @@ object AppWiring extends Loggable {
     }
   }
   
-  private[apps] def defaultJobCanceller: JobCanceler = RequiresPresentInputsJobCanceler
+  private[apps] def defaultJobCanceller(protectedOutputsFile: Option[Path]): JobCanceler = {
+    val protectedFilesJobCanceler: JobCanceler = {
+      import ProtectsFilesJobCanceler.{empty, fromFile}
+      
+      protectedOutputsFile.map(fromFile).getOrElse(empty)
+    }
+    
+    val jobCanceller = RequiresPresentInputsJobCanceler || protectedFilesJobCanceler
+    
+    debug(s"Made default job canceller $jobCanceller")
+    
+    jobCanceller
+  }
   
   private[apps] def defaultJobFilter(dao: LoamDao, outputHashingStrategy: HashingStrategy): JobFilter = {
     RunsIfNoOutputsJobFilter || new DbBackedJobFilter(dao, outputHashingStrategy)

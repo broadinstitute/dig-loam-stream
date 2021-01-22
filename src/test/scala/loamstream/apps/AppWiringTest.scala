@@ -25,6 +25,9 @@ import loamstream.model.execute.RxExecuter
 import loamstream.model.execute.RunsIfNoOutputsJobFilter
 import loamstream.model.execute.HashingStrategy
 import loamstream.model.execute.RequiresPresentInputsJobCanceler
+import loamstream.model.execute.ProtectsFilesJobCanceler
+import loamstream.TestHelpers
+import loamstream.util.Files
 
 
 
@@ -250,6 +253,27 @@ final class AppWiringTest extends FunSuite with Matchers {
   }
   
   test("defaultJobCanceler") {
-    assert(AppWiring.defaultJobCanceller === RequiresPresentInputsJobCanceler)
+    val expected0 = RequiresPresentInputsJobCanceler || ProtectsFilesJobCanceler.empty
+    
+    assert(AppWiring.defaultJobCanceller(None) === expected0)
+    
+    TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
+      val file = workDir.resolve("foo.list")
+      
+      import java.nio.file.{ Paths => JPaths }
+      import loamstream.util.{ Paths => LPaths }
+      
+      val rawNames = Seq("foo", "bar", "baz")
+      
+      val protectedFiles = rawNames.map(TestHelpers.path).map(LPaths.normalize)
+      
+      val protectsFilesCanceler = ProtectsFilesJobCanceler(protectedFiles)
+      
+      val expected1 = RequiresPresentInputsJobCanceler || protectsFilesCanceler
+      
+      Files.writeTo(file)(rawNames.mkString(System.lineSeparator))
+      
+      assert(AppWiring.defaultJobCanceller(Some(file)) === expected1)
+    }
   }
 }

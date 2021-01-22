@@ -186,6 +186,7 @@ object Intent extends Loggable {
     
     values.run match {
       case Some((Conf.RunStrategies.Everything, _)) => RunEverything
+      case Some((Conf.RunStrategies.IfAnyMissingOutputs, _)) => RunIfAnyMissingOutputs
       case Some((Conf.RunStrategies.AllOf, regexStrings)) => RunIfAllMatch(toRegexes(regexStrings))
       case Some((Conf.RunStrategies.AnyOf, regexStrings)) => RunIfAnyMatch(toRegexes(regexStrings))
       case Some((Conf.RunStrategies.NoneOf, regexStrings)) => RunIfNoneMatch(toRegexes(regexStrings))

@@ -10,7 +10,6 @@ import loamstream.conf.UgerConfig
 import loamstream.drm.DrmStatus
 import loamstream.drm.DrmTaskId
 import loamstream.drm.Poller
-import loamstream.drm.SessionSource
 import loamstream.util.CommandInvoker
 import loamstream.util.ExecutorServices.QueueStrategy
 import loamstream.util.ExecutorServices.RejectedExecutionStrategy
@@ -88,7 +87,7 @@ final class QstatQacctPoller private[uger] (
 
   private def warnThenComplete[A](msg: => String): Throwable => Observable[A] = {
     case NonFatal(e) => {
-      warn(msg)
+      warn(msg, e)
   
       Observable.empty
     }
@@ -148,7 +147,6 @@ final class QstatQacctPoller private[uger] (
 object QstatQacctPoller extends Loggable {
 
   def fromExecutables(
-    sessionSource: SessionSource,
     qstatPollingFrequencyInHz: Double,
     ugerConfig: UgerConfig,
     actualQstatExecutable: String = "qstat",
@@ -163,7 +161,7 @@ object QstatQacctPoller extends Loggable {
     val maxQacctCacheAge = (1.0 / qstatPollingFrequencyInHz).seconds
 
     val qacct = qacctCommandInvoker(actualQacctExecutable, ugerConfig, maxQacctCacheAge, scheduler)
-    val qstat = qstatCommandInvoker(sessionSource, qstatPollingFrequencyInHz, actualQstatExecutable)
+    val qstat = qstatCommandInvoker(qstatPollingFrequencyInHz, actualQstatExecutable)
 
     new QstatQacctPoller(qstat, qacct)
   }

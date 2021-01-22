@@ -8,10 +8,16 @@ import loamstream.model.jobs.LJob
  */
 trait JobCanceler {
   def shouldCancel(job: LJob): Boolean
+  
+  final def ||(that: JobCanceler): JobCanceler = JobCanceler.Or(this, that) //scalastyle:ignore method.name
 }
 
 object JobCanceler {
   object NeverCancel extends JobCanceler {
     override def shouldCancel(job: LJob): Boolean = false
+  }
+  
+  final case class Or(lhs: JobCanceler, rhs: JobCanceler) extends JobCanceler {
+    override def shouldCancel(job: LJob): Boolean = lhs.shouldCancel(job) || rhs.shouldCancel(job)
   }
 }

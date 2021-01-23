@@ -54,6 +54,8 @@ object HailCtlDataProcClient extends Loggable {
     val tokens: Seq[String] = Seq(
       "--project",
       googleConfig.projectId,
+      "--region",
+      clusterConfig.region,
       "--zone",
       clusterConfig.zone,
       "--master-machine-type",

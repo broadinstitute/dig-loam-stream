@@ -7,7 +7,6 @@ import ClusterConfig.Defaults
  * Jul 11, 2019
  */
 final case class ClusterConfig(
-    region: String = Defaults.region,
     zone: String = Defaults.zone,
     masterMachineType: String = Defaults.masterMachineType,
     masterBootDiskSize: Int = Defaults.masterBootDiskSize,
@@ -24,7 +23,6 @@ object ClusterConfig {
   val default: ClusterConfig = ClusterConfig()
   
   object Defaults { // for creating a minimal cluster
-    val region: String = "us-central1"
     val zone: String = "us-central1-b"
     val masterMachineType: String = "n1-standard-1"
     val masterBootDiskSize: Int = 20 // in GB

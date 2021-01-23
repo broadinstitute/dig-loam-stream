@@ -74,9 +74,10 @@ trait HailLoamSyntax {
         val sourceBashrcPart = "source ~/.bashrc"
         val activateCondaPart = s"""conda activate "${hailConfig.condaEnv}""""
         val projectIdEnvVarPart = s"""export CLOUDSDK_CORE_PROJECT="${googleConfig.projectId}""""
+        val regionEnvVarPart = s"""export CLOUDSDK_DATAPROC_REGION="${googleConfig.region}""""
         val pathMungingPart = s"""export PATH="${normalize(googleConfig.gcloudBinary.getParent)}":$${PATH}"""
     
-        val prefix = s"${sourceBashrcPart} && ${activateCondaPart} && ${projectIdEnvVarPart} && ${pathMungingPart}"
+        val prefix = s"${sourceBashrcPart} && ${activateCondaPart} && ${projectIdEnvVarPart} && ${regionEnvVarPart} && ${pathMungingPart}"
         
         s"""${prefix} && hailctl dataproc submit ${googleConfig.clusterId} """
       }

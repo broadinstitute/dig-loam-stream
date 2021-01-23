@@ -27,6 +27,7 @@ final case class GoogleCloudConfig(
     projectId: String,
     clusterId: String,
     credentialsFile: Path,
+    region: String,
     defaultClusterConfig: ClusterConfig = Defaults.clusterConfig)
 
 object GoogleCloudConfig extends Loggable {
@@ -40,6 +41,7 @@ object GoogleCloudConfig extends Loggable {
       projectId: String,
       clusterId: String,
       credentialsFile: Path,
+      region: String,
       defaultClusterConfig: ClusterConfig = Defaults.clusterConfig) {
     
     def toGoogleCloudConfig: Try[GoogleCloudConfig] = {
@@ -52,6 +54,7 @@ object GoogleCloudConfig extends Loggable {
           projectId = projectId,
           clusterId = clusterId,
           credentialsFile = credentialsFile,
+          region = region,
           defaultClusterConfig = defaultClusterConfig)
       }
     }

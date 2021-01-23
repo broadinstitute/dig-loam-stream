@@ -55,7 +55,7 @@ object HailCtlDataProcClient extends Loggable {
       "--project",
       googleConfig.projectId,
       "--region",
-      clusterConfig.region,
+      googleConfig.region,
       "--zone",
       clusterConfig.zone,
       "--master-machine-type",
@@ -94,6 +94,7 @@ object HailCtlDataProcClient extends Loggable {
                                  |conda activate ${hailConfig.condaEnv}
                                  |PATH="${normalize(googleConfig.gcloudBinary.getParent)}":$${PATH}
                                  |CLOUDSDK_CORE_PROJECT="${googleConfig.projectId}"
+                                 |CLOUDSDK_DATAPROC_REGION="${googleConfig.region}"
                                  |${command}""".stripMargin
 
     CloudSdkDataProcWrapper.runProcess(fullScriptContents, "hailctl")

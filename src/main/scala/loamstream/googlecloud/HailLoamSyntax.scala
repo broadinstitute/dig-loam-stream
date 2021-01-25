@@ -77,7 +77,9 @@ trait HailLoamSyntax {
         val regionEnvVarPart = s"""export CLOUDSDK_DATAPROC_REGION="${googleConfig.region}""""
         val pathMungingPart = s"""export PATH="${normalize(googleConfig.gcloudBinary.getParent)}":$${PATH}"""
     
-        val prefix = s"${sourceBashrcPart} && ${activateCondaPart} && ${projectIdEnvVarPart} && ${regionEnvVarPart} && ${pathMungingPart}"
+        val envVarsPart = s"${projectIdEnvVarPart} && ${regionEnvVarPart} && ${pathMungingPart}"
+        
+        val prefix = s"${sourceBashrcPart} && ${activateCondaPart} && ${envVarsPart}"
         
         s"""${prefix} && hailctl dataproc submit ${googleConfig.clusterId} """
       }

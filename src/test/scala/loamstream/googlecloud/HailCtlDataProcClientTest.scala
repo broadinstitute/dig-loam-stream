@@ -71,6 +71,7 @@ final class HailCtlDataProcClientTest extends FunSuite {
         projectId = "some-project-id",
         clusterId = "some-cluster-id",
         credentialsFile = path("some/creds/file"),
+        region = "some-region",
         defaultClusterConfig = clusterConfig)
     
     val expected = Seq(
@@ -79,6 +80,8 @@ final class HailCtlDataProcClientTest extends FunSuite {
       "start",
       "--project",
       googleConfig.projectId,
+      "--region", 
+      googleConfig.region,
       "--zone",
       clusterConfig.zone,
       "--master-machine-type",

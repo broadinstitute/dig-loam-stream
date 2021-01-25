@@ -31,6 +31,7 @@ final class GoogleCloudConfigTest extends FunSuite {
   private val workerBootDiskSize = 17
   private val properties = "p,r,o,p,s"
   private val maxClusterIdleTime = "42h"
+  private val region = "region-askdhasf"
 
   test("fromConfig - defaults used") {
     val confString = s"""loamstream {
@@ -40,6 +41,7 @@ final class GoogleCloudConfigTest extends FunSuite {
           projectId = "$projectId"
           clusterId = "$clusterId"
           credentialsFile = "$credentialsFile"
+          region = "${region}"
         }
       }"""
 
@@ -52,6 +54,7 @@ final class GoogleCloudConfigTest extends FunSuite {
     assert(gConfig.projectId === projectId)
     assert(gConfig.clusterId === clusterId)
     assert(gConfig.credentialsFile === Paths.get(credentialsFile))
+    assert(gConfig.region === region)
 
     import GoogleCloudConfig.Defaults
 
@@ -82,6 +85,7 @@ final class GoogleCloudConfigTest extends FunSuite {
           projectId = "$projectId"
           clusterId = "$clusterId"
           credentialsFile = "$credentialsFile"
+          region = "${region}"
           defaultClusterConfig {
             numWorkers = $numWorkers
             zone = "$zone"
@@ -106,6 +110,8 @@ final class GoogleCloudConfigTest extends FunSuite {
     assert(gConfig.gsutilBinary === Paths.get(gsutilBinaryPath))
     assert(gConfig.projectId === projectId)
     assert(gConfig.clusterId === clusterId)
+    assert(gConfig.credentialsFile === Paths.get(credentialsFile))
+    assert(gConfig.region === region)
     assert(gConfig.defaultClusterConfig.numWorkers === numWorkers)
     assert(gConfig.defaultClusterConfig.zone === zone)
     assert(gConfig.defaultClusterConfig.masterMachineType === masterMachineType)

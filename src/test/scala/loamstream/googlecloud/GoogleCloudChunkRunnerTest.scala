@@ -43,7 +43,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
   private val googleConfig = {
     import TestHelpers.path
     
-    GoogleCloudConfig(path("gcloud"), path("gsutil"), "some-project-id", clusterId, path("creds-file"))
+    GoogleCloudConfig(path("gcloud"), path("gsutil"), "some-project-id", clusterId, path("creds-file"), "some-region")
   }
 
   private val clusterConfig0 = ClusterConfig.default.copy(zone = "foo")

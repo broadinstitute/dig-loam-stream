@@ -31,6 +31,7 @@ final class HailSupportTest extends FunSuite {
 
   private val clusterId = "cluster-asdfasdf"
   private val projectId = "project-kajsdhka"
+  private val region = "region-kasdhasfd"
   
   //NB: Write pyhail script files to a temp dir
   private lazy val config: LoamConfig = {
@@ -43,6 +44,7 @@ final class HailSupportTest extends FunSuite {
           projectId = "${projectId}"
           clusterId = "${clusterId}"
           credentialsFile = "/path/to/creds"
+          region = "${region}"
 
           hail {
             condaEnv = "hail-0.2.18"
@@ -62,15 +64,13 @@ final class HailSupportTest extends FunSuite {
   // scalastyle:off line.size.limit
   private val sep = File.separator
   private val gCloudPath = s"${sep}path${sep}to${sep}gcloud"
-  private val hailctlPrefix = s"""source ~/.bashrc && conda activate "hail-0.2.18" && export CLOUDSDK_CORE_PROJECT="${projectId}" && export PATH="/path/to":$${PATH} && hailctl dataproc submit ${clusterId} """
+  private val hailctlPrefix = s"""source ~/.bashrc && conda activate "hail-0.2.18" && export CLOUDSDK_CORE_PROJECT="${projectId}" && export CLOUDSDK_DATAPROC_REGION="${region}" && export PATH="/path/to":$${PATH} && hailctl dataproc submit ${clusterId} """
   // scalastyle:on line.size.limit
 
   import HailSupport._
 
   test("Guards: executionEnvironment") {
-    withScriptContext(projectContext) { implicit scriptContext =>
-
-      scriptContext.settings = googleSettings
+    withScriptContext(projectContext, initialSettings = googleSettings) { implicit scriptContext =>
 
       hail""
 

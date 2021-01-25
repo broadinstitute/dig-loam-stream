@@ -61,7 +61,7 @@ final class UgerConfigIsPropagatedToJobsTest extends FunSuite {
           Memory.inGb(16), 
           CpuTime.inHours(5), 
           expectedQueue, 
-          Some(ContainerParams("library/foo:1.2.3")))
+          Some(ContainerParams("library/foo:1.2.3", "")))
       
       assert(jobs.head.initialSettings === expectedSettings)
     }

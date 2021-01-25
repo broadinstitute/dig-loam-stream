@@ -162,7 +162,7 @@ final class BsubJobSubmitterTest extends FunSuite {
       memoryPerCore = Memory.inGb(7),
       maxRunTime = CpuTime.inHours(3),
       queue = Some(queue),
-      containerParams = Some(ContainerParams(imageName = "library/foo:1.2.3")))
+      containerParams = Some(ContainerParams(imageName = "library/foo:1.2.3", "")))
   
   private lazy val settingsWithoutContainer = settings.copy(containerParams = None)
           

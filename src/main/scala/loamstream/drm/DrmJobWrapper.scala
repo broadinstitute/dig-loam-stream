@@ -48,9 +48,13 @@ final case class DrmJobWrapper(
       }.mkString
     }
 
+    def munge(extraParams: String): String = if(extraParams.nonEmpty) s"${extraParams} " else extraParams
+    
     val singularityPart = drmSettings.containerParams match {
-      case Some(params) => s"${singularityConfig.executable} exec ${mappingPart}${params.imageName} "
-      case _            => ""
+      case Some(ContainerParams(imageName, extraParams)) => {
+        s"${singularityConfig.executable} exec ${mappingPart}${munge(extraParams)}${imageName} "
+      }
+      case _ => ""
     }
 
     val result = s"${singularityPart}${commandLineJob.commandLineString}"

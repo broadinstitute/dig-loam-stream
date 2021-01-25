@@ -83,7 +83,7 @@ final class ScriptBuilderTest extends FunSuite {
       assert(scriptContents === expectedScriptContents)
     }
     
-    val containerParams = ContainerParams("library/foo:1.23")
+    val containerParams = ContainerParams("library/foo:1.23", "--foo --bar")
     
     doTest(DrmSystem.Uger, None)
     doTest(DrmSystem.Uger, Some(containerParams))
@@ -193,7 +193,8 @@ final class ScriptBuilderTest extends FunSuite {
     val sixSpaces = "      "
 
     val singularityPrefix: String = containerParamsOpt match {
-      case Some(containerParams) => s"singularity exec ${containerParams.imageName} "
+      case Some(ContainerParams(imageName, "")) => s"singularity exec ${imageName} "
+      case Some(ContainerParams(imageName, params)) => s"singularity exec $params ${imageName} "
       case _ => ""
     }
     

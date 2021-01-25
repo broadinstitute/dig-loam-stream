@@ -54,7 +54,7 @@ final class FileSystemExecutionRecorderTest extends FunSuite {
       val memoryPerCore = Memory.inGb(1.23)
       val maxRunTime = CpuTime.inSeconds(345)
       val queueOpt = Option(Queue("foo"))
-      val containerParamsOpt = Option(ContainerParams("library/ubuntu:18.04"))
+      val containerParamsOpt = Option(ContainerParams("library/ubuntu:18.04", ""))
       
       val settings = UgerDrmSettings(cores, memoryPerCore, maxRunTime, queueOpt, containerParamsOpt)
       
@@ -205,7 +205,7 @@ final class FileSystemExecutionRecorderTest extends FunSuite {
       }
       
       val queue = Queue("foo")
-      val containerParams = ContainerParams("some-image")
+      val containerParams = ContainerParams("some-image", "")
       
       doTestWith(None, None)
       doTestWith(Some(queue), None)

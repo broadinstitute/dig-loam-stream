@@ -58,9 +58,9 @@ final class DrmJobWrapperTest extends FunSuite {
   }
 
   test("commandLineInTaskArray - with image, default singularity settings") {
-    val ugerSettings = TestHelpers.defaultUgerSettings.copy(containerParams = Option(ContainerParams("bar")))
+    val ugerSettings = TestHelpers.defaultUgerSettings.copy(containerParams = Option(ContainerParams("bar", "")))
 
-    val lsfSettings = TestHelpers.defaultLsfSettings.copy(containerParams = Option(ContainerParams("baz")))
+    val lsfSettings = TestHelpers.defaultLsfSettings.copy(containerParams = Option(ContainerParams("baz", "")))
 
     assert(baseExecutionConfig.singularity == SingularityConfig.default)
 
@@ -75,15 +75,19 @@ final class DrmJobWrapperTest extends FunSuite {
   }
 
   test("commandLineInTaskArray - with image, non-default singularity settings") {
-    val ugerSettings = TestHelpers.defaultUgerSettings.copy(containerParams = Option(ContainerParams("bar")))
+    val ugerSettings = {
+      TestHelpers.defaultUgerSettings.copy(containerParams = Option(ContainerParams("bar", "--foo --bar")))
+    }
 
-    val lsfSettings = TestHelpers.defaultLsfSettings.copy(containerParams = Option(ContainerParams("baz")))
+    val lsfSettings = {
+      TestHelpers.defaultLsfSettings.copy(containerParams = Option(ContainerParams("baz", "--foo --bar")))
+    }
 
     def doTest(pathBuilder: PathBuilder, drmSettings: DrmSettings): Unit = {
       val bar = path("/bar").toAbsolutePath
       val fooBarBat = path("/foo/bar/bat").toAbsolutePath
 
-      val singularityConfig = SingularityConfig("blarg", Seq(bar, fooBarBat))
+      val singularityConfig = SingularityConfig("blarg", Seq(bar, fooBarBat), "--foo --bar")
 
       val executionConfigWithSingularityParams = baseExecutionConfig.copy(singularity = singularityConfig)
 
@@ -92,7 +96,9 @@ final class DrmJobWrapperTest extends FunSuite {
       }
 
       val expected = {
-        s"blarg exec -B ${bar.render} -B ${fooBarBat.render} ${drmSettings.containerParams.get.imageName} foo"
+        val imageName = drmSettings.containerParams.get.imageName
+        
+        s"blarg exec -B ${bar.render} -B ${fooBarBat.render} --foo --bar ${imageName} foo"
       }
 
       assert(drmJob.commandLineInTaskArray === expected)
@@ -296,15 +302,19 @@ final class DrmJobWrapperTest extends FunSuite {
     val imageName = "fooImage.simg"
 
     val ugerSettingsNoContainer = TestHelpers.defaultUgerSettings
-    val ugerSettingsWITHContainer = ugerSettingsNoContainer.copy(containerParams = Option(ContainerParams(imageName)))
+    val ugerSettingsWITHContainer = {
+      ugerSettingsNoContainer.copy(containerParams = Option(ContainerParams(imageName, "--baz")))
+    }
 
     val lsfSettingsNoContainer = TestHelpers.defaultLsfSettings
-    val lsfSettingsWITHContainer = lsfSettingsNoContainer.copy(containerParams = Option(ContainerParams(imageName)))
+    val lsfSettingsWITHContainer = {
+      lsfSettingsNoContainer.copy(containerParams = Option(ContainerParams(imageName, "--baz")))
+    }
 
     doTest(ugerPathBuilder, ugerSettingsNoContainer, "")
-    doTest(ugerPathBuilder, ugerSettingsWITHContainer, "singularity exec fooImage.simg ")
+    doTest(ugerPathBuilder, ugerSettingsWITHContainer, "singularity exec --baz fooImage.simg ")
 
     doTest(LsfPathBuilder, lsfSettingsNoContainer, "")
-    doTest(LsfPathBuilder, lsfSettingsWITHContainer, "singularity exec fooImage.simg ")
+    doTest(LsfPathBuilder, lsfSettingsWITHContainer, "singularity exec --baz fooImage.simg ")
   }
 }

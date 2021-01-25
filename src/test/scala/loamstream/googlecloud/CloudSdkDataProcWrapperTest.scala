@@ -21,6 +21,7 @@ final class CloudSdkDataProcWrapperTest extends FunSuite {
     projectId = "pid",
     clusterId = "cid",
     credentialsFile = path("N/A"),
+    region = "rid",
     //non-default values
     defaultClusterConfig = ClusterConfig(
       numWorkers = 42,
@@ -73,7 +74,17 @@ final class CloudSdkDataProcWrapperTest extends FunSuite {
     val tokens = gcloudTokens(config)("foo")("--bar", "Baz")
 
     val expectedTokens = {
-      Seq(examplePath.render, "beta", "dataproc", "clusters", "foo", "--project", config.projectId, "--bar", "Baz")
+      Seq(examplePath.render, 
+          "beta", 
+          "dataproc", 
+          "clusters", 
+          "foo", 
+          "--project", 
+          config.projectId, 
+          "--region",
+          config.region,
+          "--bar", 
+          "Baz")
     }
     
     assert(tokens === expectedTokens)
@@ -91,7 +102,9 @@ final class CloudSdkDataProcWrapperTest extends FunSuite {
         "clusters", 
         "describe", 
         "--project", 
-        config.projectId, 
+        config.projectId,
+        "--region",
+        config.region,
         config.clusterId)
     
     assert(tokens === expectedTokens)
@@ -109,7 +122,9 @@ final class CloudSdkDataProcWrapperTest extends FunSuite {
         "clusters", 
         "delete", 
         "--project", 
-        config.projectId, 
+        config.projectId,
+        "--region",
+        config.region,
         config.clusterId) 
     
     assert(tokens === expectedTokens)

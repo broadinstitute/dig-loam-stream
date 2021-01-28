@@ -144,11 +144,13 @@ final case class RxExecuter(
     info(s"RxExecuter.runEligibleJobs(): Ready to run: $numReadyToRun; Cannot run: $numCannotRun; " +
          s"Running: $numRunning; Finished: $numFinished; Other: $numRemaining.")
     
-    val (finishedJobStates, notFinishedJobStates) = {
-      jobsAndCells.readyToRun.partition(_.isTerminal)
+    val (_, notFinishedJobStates) = {
+      //NB: Note .toSeq, to help guarantee that any derived Executions' Outputs' hash fields aren't computed, 
+      //say by building a Set
+      jobsAndCells.readyToRun.toSeq.partition(_.isTerminal)
     }
     
-    val (finishedJobs, notFinishedJobs) = (finishedJobStates.map(_.job), notFinishedJobStates.map(_.job))
+    val notFinishedJobs = notFinishedJobStates.map(_.job)
     
     if(notFinishedJobs.nonEmpty) {
       runNotFinishedJobs(notFinishedJobs, executionState, jobOracle)
@@ -221,9 +223,7 @@ final case class RxExecuter(
   }
   
   private def cancelJobs(jobsToCancel: Iterable[LJob]): Iterable[(LJob, Execution)] = {
-    import loamstream.model.jobs.JobStatus.Canceled
-    
-    jobsToCancel.map(job => job -> Execution.from(job, Canceled, terminationReason = None))
+    makeExecutionTuplesWithStatus(JobStatus.Canceled, jobsToCancel)
   }
   
   private def handleSkipped(skippedJobs: Iterable[LJob]): Unit = {
@@ -246,7 +246,12 @@ final case class RxExecuter(
   }
   
   private def toSkippedJobTuples(skippedJobs: Iterable[LJob]): Iterable[(LJob, Execution)] = {
-    skippedJobs.map(job => job -> Execution.from(job, JobStatus.Skipped, terminationReason = None))
+    makeExecutionTuplesWithStatus(JobStatus.Skipped, skippedJobs)
+  }
+  
+  private def makeExecutionTuplesWithStatus(status: JobStatus, jobs: Iterable[LJob]): Iterable[(LJob, Execution)] = {
+    //NB: Note .toSeq, to guarantee that Executions' Outputs' hash fields aren't computed, say by building a Set
+    jobs.toSeq.map(job => job -> Execution.from(job, status, terminationReason = None))
   }
 }
 
@@ -321,8 +326,9 @@ object RxExecuter extends Loggable {
   }
 
   /**
-   * Turns the passed `runDataMap` into an observable that will fire once, producing a Map derived from `runDataMap`
-   * by turning `runDataMap`'s values into Executions after waiting for any missing outputs. 
+   * Turns the passed `runDataTuple` into an observable that will fire once, producing a tuple derived from 
+   * `runDataTuple` by turning `runDataTuple`'s `RunData` member into an Execution after waiting for any 
+   * missing outputs. 
    */
   private[execute] def toExecutionMap(
       fileMonitor: FileMonitor)

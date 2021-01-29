@@ -4,6 +4,7 @@ import org.json4s._
 import scala.util.Try
 import loamstream.util.LogContext
 import loamstream.util.Tries
+import scala.util.Success
 
 /**
  * @author clint
@@ -57,11 +58,16 @@ final case class Annotations private[dga] (
 object Annotations {
   import Json.JsonOps
   
-  def fromJson(assemblyId: String)(json: JValue)(implicit ctx: LogContext): Try[Annotations] = {
+  def fromJson(
+      assemblyId: String,
+      tissueIdsToNames: Map[String, String])(json: JValue)(implicit ctx: LogContext): Try[Annotations] = {
+    
     def toAnnotationIterable(fieldName: String): Try[Iterable[Annotation]] = {
       val jvs = json.tryAsArray(fieldName).getOrElse(Nil)
       
-      Tries.sequence(jvs.map(Annotation.fromJson(assemblyId)))
+      //TODO: Don't drop failures, log them at a minimum
+      //Tries.sequence(jvs.map(Annotation.fromJson(assemblyId, tissueIdsToNames)))
+      Success(jvs.map(Annotation.fromJson(assemblyId, tissueIdsToNames)).collect { case Success(a) => a })
     }
     
     for {

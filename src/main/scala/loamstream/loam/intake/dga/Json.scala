@@ -40,6 +40,10 @@ object Json {
       case _ => Tries.failure(makeMessage("string", fieldName)) 
     }
     
+    def tryAsStringArray(fieldName: String): Try[Seq[String]] = {
+      tryAsArray(fieldName).map(_.collect { case JString(s) => s })
+    }
+    
     def tryAsObject(fieldName: String): Try[Map[String, JValue]] = (jv \ fieldName) match {
       case jobj: JObject => Success(jobj.obj.toMap)
       case _ => Tries.failure(makeMessage("string", fieldName)) 

@@ -8,6 +8,7 @@ import scala.util.Try
 import loamstream.util.Tries
 import scala.util.Success
 import loamstream.util.LogContext
+import org.json4s._
 
 /**
  * @author clint
@@ -19,32 +20,47 @@ import loamstream.util.LogContext
  */
 final case class Annotation private[dga] (
     assembly: String,
-    annotation_id: Option[String], //is this really optional?
-    biosample_type: Option[String], //is this really optional?
-    biosample_id: Option[String], //is this really optional?
-    biosample_name: Option[String], //is this really optional?
-    system_slims: Option[String], //is this really optional?
-    organ_slims: Option[String], //is this really optional?
-    dbxrefs: Seq[String],
-    harmonized_states: Option[String], //is this really optional?
-    annotation_method: Option[String], //is this really optional?
-    //kwargs: Map[String, Any],
-    file_download: Seq[Annotation.Download]) extends Loggable {
+    annotationType: String,
+    annotationId: String,
+    category: Option[String],   //TODO: Optional for now
+    tissueId: Option[String],   //TODO: Optional for now
+    tissue: Option[String],
+    source: Option[String],     //TODO: Optional for now
+    assay: Option[String],      //TODO: Optional for now
+    collection: Option[String], //TODO: Optional for now
+    biosampleId: String, 
+    biosample: Option[String],
+    method: Option[String], 
+    downloads: Seq[Annotation.Download]) extends Loggable {
   
   /**
    * Returns True if the annotation meets all criteria for ingesting.
    */
   def isUploadable: Boolean = {
     //ignore any datasets with no annotationId, no biosampleId, or no valid datasets to load
-    annotation_id.isDefined && biosample_id.isDefined && file_download.nonEmpty
+    val result = /*annotation_id.isDefined && */ /*biosampleId.isDefined && */downloads.nonEmpty
+    
+    if(!result) {
+      warn(s"Skipping ${assembly}/${annotationId}: biosample id: ${biosampleId} downloads: ${downloads}")
+    }
+    
+    result
   }
+  
+  def notUploadable: Boolean = !isUploadable
+  
+  def toMetadata: Annotation.Metadata = Annotation.Metadata(
+      sources = this.downloads,
+      annotationMethod = this.method) 
 }
 
 object Annotation {
-  import org.json4s._
   import Json.JsonOps
   
-  def fromJson(assembly: String)(json: JValue)(implicit ctx: LogContext): Try[Annotation] = {
+  def fromJson(
+      assembly: String, 
+      tissueIdsToNames: Map[String, String])(json: JValue)(implicit ctx: LogContext): Try[Annotation] = {
+    
     def allFileDownloads: Try[Iterable[Download]] = {
       json.tryAsObject("file_download").flatMap { downloadsById =>
         val downloadJVs = downloadsById.values.collect { case arr: JArray => arr }.flatMap(_.arr)
@@ -58,29 +74,37 @@ object Annotation {
     }
     
     for {
-      annotationId <- Try(json.asStringOption("annotation_id"))
-      biosample_type = json.asStringOption("biosample_type")
-      biosample_id = json.asStringOption("biosample_id")
-      biosample_name = json.asStringOption("biosample_name")
-      system_slims = json.asStringOption("system_slims")
-      organ_slims = json.asStringOption("organ_slims") 
-      dbxrefs <- json.tryAsStrings("dbxrefs")
-      harmonized_states = json.asStringOption("harmonized_states")
-      annotation_method = json.asStringOption("annotation_method")
+      annotationId <- json.tryAsString("annotation_id")
+      annotationType <- json.tryAsString("annotation_type")
       fileDownloads <- filteredSortedFileDownloads(annotationId)
+      biosampleId <- json.tryAsString("biosample_term_id")
+      method = json.asStringOption("annotation_method")
+      collection = json.asStringOption("collection")
+      assay = json.asStringOption("underlying_assay")
+      source = json.asStringOption("annotation_source")
+      category = json.asStringOption("annotation_category")
+      tissueId = json.asStringOption("portal_tissue_id")
+      biosample = tissueIdsToNames.get(biosampleId)
+      tissue = tissueId.flatMap(tissueIdsToNames.get)
     } yield {
       Annotation(
         assembly = assembly,
-        annotation_id = annotationId,
-        biosample_type = biosample_type,
-        biosample_id = biosample_id,
-        biosample_name = biosample_name,
-        system_slims = system_slims,
-        organ_slims = organ_slims, 
-        dbxrefs = dbxrefs,
-        harmonized_states = harmonized_states,
-        annotation_method = annotation_method,
-        file_download = fileDownloads)
+        annotationId = annotationId,
+        annotationType = annotationType,
+        category = category,
+        tissueId = tissueId,
+        tissue = tissue,
+        source = source,
+        assay = assay,
+        collection = collection,
+        biosampleId = biosampleId,
+        biosample = biosample,
+        //system_slims = system_slims,
+        //organ_slims = organ_slims, 
+        //dbxrefs = dbxrefs,
+        //harmonized_states = harmonized_states,
+        method = method,
+        downloads = fileDownloads)
     }
   }
   
@@ -122,28 +146,16 @@ object Annotation {
     }
     
     isReleased && isBed && assembliesMatch 
-    
-    /*if(!download.status.countsAsReleased) {
-      ctx.warn(s"File ${fileName} is not released; skipping...")
-      
-      false
-    } else if(File.notBed(download.file)) {
-      ctx.warn(s"File ${fileName} is not a BED file; skipping...")
-        
-      false
-    } else if(!AssemblyMap.match_assemblies(download.assembly, assembly)) {
-      ctx.warn(s"File ${fileName} does not match assembly ${assembly}; skipping...")
-      
-      false
-    } else {
-      true
-    }*/
   }
   
   final case class Download private (assemblyId: String, url: URI, file: Path, status: Status, md5Sum: String) {
-    //def url: URI = URI.create(href)//urllib.parse.urlparse(download.get('href', ''))
-    //def file: Path = Paths.get(url.getPath).getFileName//os.path.basename(url.path)
-    //def sstatus: String = status.toLowerCase//download.get('status', '').lower()
+    //TODO: Automate this
+    def toJson: JValue = JObject(
+        "assemblyId" -> JString(assemblyId),
+        "url" -> JString(url.toString),
+        "file" -> JString(file.toString),
+        "status" -> JString(status.toString),
+        "md5Sum" -> JString(md5Sum))
   }
   
   object Download {
@@ -188,5 +200,25 @@ object Annotation {
     }
     
     def notBed(file: Path): Boolean = !isBed(file)
+  }
+  
+  final case class Metadata(
+    sources: Seq[Annotation.Download],
+    annotationMethod: Option[String]) {
+        
+    def vendor: String = "DGA"
+    
+    def version: String = "1.0"
+    
+    //TODO: Automate this
+    def toJson: JObject = {
+      val annotationMethodPart: Option[JField] = annotationMethod.map("method" -> JString(_))
+      
+      val fields: Seq[JField] = Seq(
+        "sources" -> JArray(this.sources.toList.map(_.toJson)),
+      ) ++ annotationMethodPart
+      
+      JObject(fields: _*)
+    }
   }
 }

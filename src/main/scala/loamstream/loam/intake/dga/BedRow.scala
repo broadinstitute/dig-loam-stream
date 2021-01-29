@@ -1,11 +1,28 @@
 package loamstream.loam.intake.dga
 
+import loamstream.loam.intake.RenderableRow
+
 /**
  * @author clint
  * Jan 20, 2021
  */
 final case class BedRow(
-    chr: String,
+    biosampleId: String,    // e.g. UBERON:293289
+    tissueId: Option[String],   //TODO: Only Optional for now; e.g. UBERON:293289
+    annotation: String,    // annotation type, e.g. binding_site
+    category: Option[String], //TODO: Only Optional for now
+    method: Option[String],  //TODO: Only Optional for now; e.g. MAC2
+    source: Option[String],   //TODO: Only Optional for now; e.g. ATAC-seq-peak
+    assay: Option[String],   //TODO: Only Optional for now; e.g. ATAC-seq
+    collection: Option[String], //TODO: Only Optional for now; e.g. ENCODE
+    chromosome: String,
+    start: Long,
+    end: Long,
+    state: String, //was name
+    targetGene: Option[String],    // only for annotation_type == "target_gene_prediction"
+    targetGeneStart: Option[Long],    // only for annotation_type == "target_gene_prediction"
+    targetGeneEnd: Option[Long]    // only for annotation_type == "target_gene_prediction"
+    /*chr: String,
     start: Int,
     end: Int,
     state: String,
@@ -21,6 +38,9 @@ final case class BedRow(
     chromStart: Option[Int],
     chromEnd: Option[Int],
     name: Option[String],
-    score: Option[Double]) {
+    score: Option[Double]*/) extends RenderableRow {
 
+  override def headers: Seq[String]
+  
+  override def values: Seq[String]
 }

@@ -11,6 +11,17 @@ import scala.util.Failure
 import scala.collection.mutable.Buffer
 import scala.collection.mutable.ArrayBuffer
 import scala.util.control.NonFatal
+import org.broadinstitute.dig.aws.config.Secrets
+import scala.util.Try
+import loamstream.loam.intake.AwsRowSink
+import loamstream.loam.intake.RowSink
+import loamstream.util.AwsClient
+import loamstream.util.HttpClient.Auth
+import loamstream.util.Maps
+import loamstream.util.TimeUtils
+import loamstream.loam.intake.metrics.Metrics
+import loamstream.loam.intake.metrics.Metric
+import loamstream.util.Fold
 
 /**
  * @author clint
@@ -18,7 +29,7 @@ import scala.util.control.NonFatal
  * 
  * @see processors/vendors/dga/download.py
  */
-trait AnnotationsSupport { self: Loggable =>
+trait AnnotationsSupport { self: Loggable with BedSupport with DgaSyntax =>
   
   type AnnotationsField = Annotations => Iterable[Annotation]
   
@@ -30,40 +41,55 @@ trait AnnotationsSupport { self: Loggable =>
   /**
    * Download region annotations loaded from DGA and upload them to S3
    */
-  def processAnnotations(assemblyId: String): Unit = { //TODO
-    val auth: Auth = ??? //TODO: Secrets()['dga-annotations']
-
-    val annotationsSource = downloadAnnotations(assemblyId) //TODO: url and httpClient
+  def uploadAnnotatedDataset(
+      annotation: Annotation, 
+      tpe: String, 
+      auth: Auth,
+      awsClient: AwsClient,
+      yes: Boolean = false): Unit = {
     
-    val failed: Buffer[(Annotation, Throwable)] = new ArrayBuffer
+    import annotation.annotationId 
     
-    //load the bed files
-    for {
-      annotations <- annotationsSource.records
-      (tpe, field) <- annotationTypes
-      annotation <- field(annotations).filter(_.isUploadable)
-    } {
-      try {
-        upload_annotated_dataset(annotation, tpe, auth, yes=yes)
-      } catch {
-        case NonFatal(e) => {
-          error(s"Failed to upload dataset ${annotation.annotation_id}: ${e.getMessage}", e)
-          
-          failed += (annotation -> e)
-        }
+    info(s"Creating ${tpe} dataset ${annotationId}")
+    
+    val datasetName = toDatasetName(tpe)
+    
+    //create the new dataset
+    val sink = new AwsRowSink(
+        topic = "annotated_regions",
+        name = datasetName,
+        awsClient = awsClient,
+        yes = yes)
+    
+    //create the metadata for this dataset
+    val metadata = annotation.toMetadata
+    
+    // if the metadata matches what's in HDFS already it can be skipped
+    //TODO: Does this comparison work?  Is it field-order-dependent?
+    if(sink.existingMetadata == Option(metadata.toJson)) {
+      info(s"Dataset ${datasetName} already up to date; skipping...")
+    } else {
+      //load each source file
+      for {
+        download <- annotation.downloads
+      } {
+        import download.url
+        
+        info(s"Processing ${url}...")
+        
+        val bedRowExpr = BedRowExpr(annotation = annotation, annotationType = tpe)
+        
+        val bedRows = downloadBed(url, auth).map(bedRowExpr)
+        
+        val count: Fold[BedRow, Int, Int] = Fold.count
+        
+        val upload: Fold[BedRow, _, Unit] = Fold.foreach(sink.accept)
+        
+        //val size = bedRows.records.size
+        
+        //info(s"Found $size rows")
       }
     }
-
-    //show failures
-    for {
-      (annotation, e) <- failed
-    } {
-      error(s"Failed to upload dataset ${annotation.annotation_id}: ${e.getMessage}", e)
-    }
-  }
-  
-  def uploadAnnotatedDataset(annotation: Annotation, tpe: String, auth: Auth): Unit = {
-    ???
   }
   
   /**
@@ -72,16 +98,18 @@ trait AnnotationsSupport { self: Loggable =>
   def downloadAnnotations(
       assemblyId: String = AssemblyIds.hg19,
       url: URI = AnnotationsSupport.Defaults.url,
-      httpClient: HttpClient = new SttpHttpClient): Source[Annotations] = {
+      httpClient: HttpClient = new SttpHttpClient): Source[(String, Source[Annotation])] = {
     
     def annotations = {
       info(s"Downloading region annotations from '$url' ...")
     
       //fetch all the annotations as JSON
-      val resp = httpClient.post(
+      val resp = TimeUtils.time(s"Hitting $url", info(_)) {
+        httpClient.post(
           url = url.toString, 
           headers = Headers.ContentType.applicationJson,
-          body = Some("{\"type\": \"Annotation\"}"))
+          body = Some("{\"type\": \"Annotation\"}")) //TODO: Make this string with json4s
+      }
           
       import org.json4s.jackson.JsonMethods._
           
@@ -90,34 +118,30 @@ trait AnnotationsSupport { self: Loggable =>
         case Left(message) => sys.error(s"Error accessing region annotations: '${message}'")
       }
       
-      Annotations.fromJson(assemblyId)(json) match {
+      val (_, tissueSource) = Dga.versionAndTissueSource()
+      
+      val tissueNamesById: Map[String, String] = {
+        tissueSource.collect { case Tissue(Some(id), Some(name)) => (id, name) }.records.toMap
+      }
+      
+      Annotations.fromJson(assemblyId, tissueNamesById)(json) match {
         case Success(as) => as
         case Failure(e) => throw new Exception(s"Error accessing region annotations: ", e) 
       }
     }
     
-    Source.producing(annotations)
+    import Maps.Implicits._
+    
+    val anns = Source.fromIterable(Seq(annotations))
+    
+    anns.flatMap { anns =>
+      Source.fromIterable {
+        annotationTypes.strictMapValues(field => Source.fromIterable(field(anns)))
+      }
+    }
   }
   
-  /*def download_annotations(*argv):
-    opts = argparse.ArgumentParser()
-    opts.add_argument('--assembly', default='hg19', help='Reference genome assembly to pull (e.g. "GRCh37")')
-    opts.add_argument('--url', help='REST end-point URL to DGA annotations')
-
-    # parse arguments
-    args = opts.parse_args(argv)
-
-    logging.info('Downloading region annotations...')
-
-    # fetch all the annotations as JSON
-    resp = requests.post(
-        args.url or _annotations_rest_url,
-        headers={'Content-Type': 'application/json'},
-        json={'type': 'Annotation'},
-    )
-
-    # parse and extract all the fields as kwargs to class constructors
-    return Annotations(assembly=args.assembly, **resp.json())*/
+  private def toDatasetName(s: String): String = s.toLowerCase.split("\\s+").mkString("_")
 }
 
 object AnnotationsSupport {

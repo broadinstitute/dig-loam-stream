@@ -1,20 +1,22 @@
 package loamstream.loam.intake.dga
 
+import java.io.ByteArrayInputStream
+import java.io.InputStream
+import java.io.InputStreamReader
+import java.io.Reader
 import java.net.URI
+import java.util.zip.GZIPInputStream
+import java.util.zip.ZipInputStream
+
+import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream
+import org.apache.commons.compress.compressors.xz.XZCompressorInputStream
 
 import loamstream.loam.intake.DataRow
 import loamstream.loam.intake.Source
 import loamstream.util.HttpClient
 import loamstream.util.SttpHttpClient
-import java.io.StringReader
-import java.io.InputStream
-import java.util.zip.GZIPInputStream
-import java.io.ByteArrayInputStream
-import java.util.zip.ZipInputStream
-import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream
-import org.apache.commons.compress.compressors.xz.XZCompressorInputStream
-import java.io.InputStreamReader
-import java.io.Reader
+import loamstream.util.TimeUtils
+import loamstream.util.LogContext
 
 /**
  * @author clint
@@ -27,30 +29,18 @@ trait BedSupport {
   def downloadBed(
       url: URI,
       auth: HttpClient.Auth,
-      httpClient: HttpClient = new SttpHttpClient()): Source[DataRow] = {
+      httpClient: HttpClient = new SttpHttpClient())(implicit context: LogContext): Source[DataRow] = {
     
     val extOpt = url.getPath.split("\\.").lastOption.map(_.trim.toLowerCase)
 
-    /*# determine the type of compression from the extension
-    if ext in ['.gz', '.gzip']:
-        ext = 'gzip'
-    elif ext in ['.bz2', '.zip', '.xz']:
-        ext = ext[1:]
-    else:
-        ext = None*/
-    
     def bedReader: Reader = {
       //download the source into memory
-      val bedData = httpClient.getAsBytes(url.toString, Some(auth)).right.getOrElse {
-        throw new Exception(s"HTTP request failed: GET ${url}")
-      }
       
-      /*resp = requests.get(url, auth=(auth['username'], auth['password']))
-      if resp.status_code != 200:
-          raise Exception('HTTP request error: %s' % resp.reason)*/
-  
-      /*# parse the content
-      bed = io.BytesIO(resp.content)*/
+      val bedData = TimeUtils.time(s"", context.info(_)) {
+        httpClient.getAsBytes(url.toString, Some(auth)).right.getOrElse {
+          throw new Exception(s"HTTP request failed: GET ${url}")
+        }
+      }
   
       val bedStream = new ByteArrayInputStream(bedData)
       
@@ -65,19 +55,6 @@ trait BedSupport {
       new InputStreamReader(unzippedBedStream)
     }
     
-    //TODO: Header?
-    Source.fromReader(bedReader, Source.Formats.spaceDelimited)
-    
-    /*# read the response into a frame
-    return pandas.read_csv(
-        bed,
-        compression=ext,
-        index_col=None,
-        delim_whitespace=True,
-        keep_default_na=True,
-        na_values=['.'],
-    )
-    
-    ???*/
+    Source.fromReader(bedReader, Source.Formats.tabDelimitedWithHeader)
   }
 }

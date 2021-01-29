@@ -142,6 +142,8 @@ final class CsvTransformationTest extends AggregatorIntakeTest {
       new DataRow {
         override def headers: Seq[String] = jobject.obj.collect { case JField(name, _) => name }
         
+        override def hasField(name: String): Boolean = jobject.obj.exists { case JField(n, _) => n == name }
+        
         override def getFieldByName(name: String): String = stripQuotes(write(jobject \ name))
     
         override def getFieldByIndex(i: Int): String = ???

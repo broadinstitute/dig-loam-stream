@@ -183,8 +183,10 @@ object VarIdTransformationTest {
     
     override def headers: Seq[String] = Seq(fieldName)
     
+    override def hasField(name: String): Boolean = name == fieldName
+    
     override def getFieldByName(name: String): String = {
-      require(name == fieldName)
+      require(hasField(name))
       
       fieldValue
     }

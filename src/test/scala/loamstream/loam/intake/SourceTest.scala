@@ -45,6 +45,14 @@ final class SourceTest extends FunSuite {
     assert(actualRows.size === expectedRows.size)
   }
   
+  test("flatMap") {
+    val is = Source.fromIterable(Seq(1,2,3)).flatMap { i => Source.fromIterable(Seq.fill(i)(i * 2)) }
+    
+    val expected = Seq(2, 4, 4, 6, 6, 6)
+    
+    assert(is.records.toList === expected)
+  }
+  
   test("Reading zipped input as unzipped should fail") {
     intercept[Exception] {
       Source.fromFile(

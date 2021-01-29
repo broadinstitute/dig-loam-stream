@@ -70,6 +70,10 @@ sealed trait Source[R] {
   def map[S](f: R => S): Source[S] = fromCombinator(_.map(f))
   
   def flatMap[S](f: R => Source[S]): Source[S] = fromCombinator(_.flatMap(f(_).records))
+
+  def collect[S](pf: PartialFunction[R, S]): Source[S] = fromCombinator(_.collect(pf))
+  
+  def foreach[A](f: R => A): Unit = records.foreach(f)
 }
   
 object Source extends Loggable {

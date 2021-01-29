@@ -6,6 +6,8 @@ import scala.util.matching.Regex
 import scala.util.control.NonFatal
 import loamstream.util.Sequence
 import scala.util.Try
+import scala.util.Success
+import loamstream.util.Iterators
 
 /**
  * @author clint
@@ -20,11 +22,19 @@ sealed abstract class ColumnExpr[A : TypeTag] extends
     try { eval(row) }
     catch {
       case e: CsvProcessingException => throw e
-      case NonFatal(e) => {
-        throw new CsvProcessingException(s"Error processing record number ${row.recordNumber} with expr ${this} (${getClass.getName}); row is '$row':", row, e)
-      }
+      case NonFatal(e) => throw newCsvProcessingException(row, e)
     }
   }
+  
+  protected def newCsvProcessingException(row: DataRow, cause: Throwable) = {
+    new CsvProcessingException(
+        s"Error processing record number ${row.recordNumber} with expr ${this} (${getClass.getName}); row is '$row':", 
+        row, 
+        cause)
+  }
+  
+  final def ~>(name: String): NamedColumnDef[A] = NamedColumnDef(name, this)
+  final def ~>(name: ColumnName): NamedColumnDef[A] = NamedColumnDef(name, this)
   
   def applyOpt(row: DataRow): Option[A] = Try(apply(row)).toOption 
   
@@ -39,6 +49,10 @@ sealed abstract class ColumnExpr[A : TypeTag] extends
   final def flatMap[B: TypeTag](f: A => ColumnExpr[B]): ColumnExpr[B] = FlatMappedColumnExpr(f, this)
   
   import ColumnExpr._
+  
+  def or(rhs: ColumnExpr[A]): OrColumnExpr[A] = OrColumnExpr(this, rhs)
+  
+  def asOption: ColumnExpr[Option[A]] = OptionalExpr(this)
   
   def asString: ColumnExpr[String] = {
     if(isStringExpr) { this.asInstanceOf[ColumnExpr[String]] }
@@ -261,4 +275,16 @@ final case class FlatMappedColumnExpr[A: TypeTag, B: TypeTag](
   override def toString: String = s"${getClass.getSimpleName}(${f}, ${dependsOn})"
   
   override protected def eval(row: DataRow): B = f(dependsOn(row)).apply(row)
+}
+
+final case class OrColumnExpr[A : TypeTag](lhs: ColumnExpr[A], rhs: ColumnExpr[A]) extends ColumnExpr[A] {
+  override def toString: String = s"${getClass.getSimpleName}(${lhs}, ${rhs})"
+  
+  override protected def eval(row: DataRow): A = Try(lhs(row)).getOrElse(rhs(row))
+}
+
+final case class OptionalExpr[A : TypeTag](dependsOn: ColumnExpr[A]) extends ColumnExpr[Option[A]] {
+  override def toString: String = s"${getClass.getSimpleName}(${dependsOn})"
+  
+  override protected def eval(row: DataRow): Option[A] = dependsOn.applyOpt(row)
 }

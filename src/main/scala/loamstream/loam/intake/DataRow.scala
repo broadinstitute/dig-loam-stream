@@ -20,6 +20,8 @@ object DataRow {
       delegate.getParser.getHeaderNames.asScala
     }
     
+    override def hasField(name: String): Boolean = delegate.isSet(name)
+    
     override def getFieldByName(name: String): String = delegate.get(name)
     
     override def getFieldByIndex(i: Int): String = delegate.get(i)
@@ -33,6 +35,8 @@ object DataRow {
   
   final case class JsonDataRow(json: JObject, recordNumber: Long, isSkipped: Boolean = false) extends DataRow {
     override def headers: Seq[String] = json.values.keys.toList
+    
+    override def hasField(name: String): Boolean = json.obj.exists { case JField(n, _) => n == name } 
     
     override def getFieldByName(name: String): String = asString(json \ name, name)
     

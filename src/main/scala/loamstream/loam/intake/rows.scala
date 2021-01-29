@@ -37,6 +37,8 @@ trait HasHeaders {
 
 trait RowWithSize {
   def size: Int
+  
+  final def hasIndex(i: Int): Boolean = i > 0 && i < size
 }
 
 trait RowWithRecordNumber {
@@ -45,6 +47,8 @@ trait RowWithRecordNumber {
 
 trait KeyedRow extends RowWithSize {
   def headers: Seq[String]
+  
+  def hasField(name: String): Boolean 
   
   def getFieldByName(name: String): String
   
@@ -153,6 +157,8 @@ object VariantRow {
     
     override def headers: Seq[String] = delegate.headers
     
+    override def hasField(name: String): Boolean = delegate.hasField(name)
+    
     override def getFieldByName(name: String): String = delegate.getFieldByName(name)
     
     override def getFieldByIndex(i: Int): String = delegate.getFieldByIndex(i)
@@ -178,6 +184,8 @@ object VariantRow {
     final def isComplementStrand: Boolean = derivedFrom.isComplementStrand
     
     override def headers: Seq[String] = derivedFrom.headers
+    
+    override def hasField(name: String): Boolean = derivedFrom.hasField(name)
     
     override def getFieldByName(name: String): String = derivedFrom.getFieldByName(name)
     

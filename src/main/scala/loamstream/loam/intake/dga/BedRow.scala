@@ -40,7 +40,37 @@ final case class BedRow(
     name: Option[String],
     score: Option[Double]*/) extends RenderableRow {
 
-  override def headers: Seq[String]
+  override def headers: Seq[String] = Seq(
+    "biosampleId",
+    "tissueId",
+    "annotation",
+    "category",
+    "method",
+    "source",
+    "assay",
+    "collection",
+    "chromosome",
+    "start",
+    "end",
+    "state",
+    "targetGene",
+    "targetGeneStart",
+    "targetGeneEnd")
   
-  override def values: Seq[String]
+  override def values: Seq[Option[String]] = Seq(
+      Option(biosampleId),
+      tissueId,
+      Option(annotation),
+      category,
+      method,
+      source,
+      assay,
+      collection,
+      Option(chromosome),
+      Option(start.toString),
+      Option(end.toString),
+      Option(state),
+      targetGene,
+      targetGeneStart.map(_.toString),
+      targetGeneEnd.map(_.toString))
 }

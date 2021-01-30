@@ -22,6 +22,7 @@ import loamstream.util.TimeUtils
 import loamstream.loam.intake.metrics.Metrics
 import loamstream.loam.intake.metrics.Metric
 import loamstream.util.Fold
+import org.json4s.JsonAST.JValue
 
 /**
  * @author clint
@@ -81,13 +82,15 @@ trait AnnotationsSupport { self: Loggable with BedSupport with DgaSyntax =>
         
         val bedRows = downloadBed(url, auth).map(bedRowExpr)
         
-        val count: Fold[BedRow, Int, Int] = Fold.count
+        val doCount: Fold[BedRow, Int, Int] = Fold.count
         
-        val upload: Fold[BedRow, _, Unit] = Fold.foreach(sink.accept)
+        val doUpload: Fold[BedRow, _, Unit] = Fold.foreach(sink.accept)
         
-        //val size = bedRows.records.size
+        val f: Fold[BedRow, _, (Int, Unit)] = doCount |+| doUpload
         
-        //info(s"Found $size rows")
+        val (count, _) = f.process(bedRows.records)
+        
+        info(s"Uploaded $count rows")
       }
     }
   }
@@ -98,46 +101,40 @@ trait AnnotationsSupport { self: Loggable with BedSupport with DgaSyntax =>
   def downloadAnnotations(
       assemblyId: String = AssemblyIds.hg19,
       url: URI = AnnotationsSupport.Defaults.url,
-      httpClient: HttpClient = new SttpHttpClient): Source[(String, Source[Annotation])] = {
+      httpClient: HttpClient = new SttpHttpClient): Source[Annotation] = {
     
-    def annotations = {
-      info(s"Downloading region annotations from '$url' ...")
-    
-      //fetch all the annotations as JSON
-      val resp = TimeUtils.time(s"Hitting $url", info(_)) {
-        httpClient.post(
-          url = url.toString, 
-          headers = Headers.ContentType.applicationJson,
-          body = Some("{\"type\": \"Annotation\"}")) //TODO: Make this string with json4s
-      }
-          
-      import org.json4s.jackson.JsonMethods._
-          
-      val json = resp.map(parse(_)) match {
-        case Right(jv) => jv
-        case Left(message) => sys.error(s"Error accessing region annotations: '${message}'")
-      }
-      
-      val (_, tissueSource) = Dga.versionAndTissueSource()
-      
-      val tissueNamesById: Map[String, String] = {
-        tissueSource.collect { case Tissue(Some(id), Some(name)) => (id, name) }.records.toMap
-      }
-      
-      Annotations.fromJson(assemblyId, tissueNamesById)(json) match {
-        case Success(as) => as
-        case Failure(e) => throw new Exception(s"Error accessing region annotations: ", e) 
-      }
+    info(s"Downloading region annotations from '$url' ...")
+  
+    //fetch all the annotations as JSON
+    val resp = TimeUtils.time(s"Hitting $url", info(_)) {
+      httpClient.post(
+        url = url.toString, 
+        headers = Headers.ContentType.applicationJson,
+        body = Some("{\"type\": \"Annotation\"}")) //TODO: Make this string with json4s
+    }
+        
+    import org.json4s.jackson.JsonMethods._
+        
+    val json = resp.map(parse(_)) match {
+      case Right(jv) => jv
+      case Left(message) => sys.error(s"Error accessing region annotations: '${message}'")
     }
     
-    import Maps.Implicits._
+    val (_, tissueSource) = Dga.versionAndTissueSource()
     
-    val anns = Source.fromIterable(Seq(annotations))
+    val tissueIdsToNames: Map[String, String] = {
+      tissueSource.collect { case Tissue(Some(id), Some(name)) => (id, name) }.records.toMap
+    }
+      
+    import Json.JsonOps
     
-    anns.flatMap { anns =>
-      Source.fromIterable {
-        annotationTypes.strictMapValues(field => Source.fromIterable(field(anns)))
-      }
+    //TODO: 11?
+    val jvs = json.tryAsArray("11").getOrElse(Nil)
+      
+    //TODO: Don't drop failures, log them at a minimum
+    //Tries.sequence(jvs.map(Annotation.fromJson(assemblyId, tissueIdsToNames)))
+    Source.FromIterator {
+      jvs.iterator.map(Annotation.fromJson(assemblyId, tissueIdsToNames)).collect { case Success(a) => a }
     }
   }
   

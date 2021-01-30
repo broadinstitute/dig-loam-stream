@@ -13,7 +13,11 @@ trait Renderer {
 
 object Renderer {
   final case class CommonsCsv(csvFormat: CSVFormat) extends Renderer {
-    override def render(row: RenderableRow): String = csvFormat.format(row.values: _*)
+    override def render(row: RenderableRow): String = {
+      val unpacked = row.values.map(_.getOrElse(null)) //TODO: null ok?
+      
+      csvFormat.format(unpacked: _*)
+    }
   }  
 }
 

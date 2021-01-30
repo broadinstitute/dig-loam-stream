@@ -13,10 +13,14 @@ import scala.util.Try
  */
 trait RenderableRow extends HasHeaders with HasValues
 
-final case class LiteralRow(values: Seq[String], headers: Seq[String] = Nil) extends RenderableRow
+final case class LiteralRow(values: Seq[Option[String]], headers: Seq[String] = Nil) extends RenderableRow
 
 object LiteralRow {
-  def apply(values: String*): LiteralRow = new LiteralRow(values) 
+  def apply(values: String*): LiteralRow = new LiteralRow(values.map(Some(_)))
+  
+  def apply(headers: Seq[String], values: Seq[String])(implicit discriminator: DummyImplicit): LiteralRow = {
+    new LiteralRow(values = values.map(Some(_)), headers = headers)
+  }
 }
 
 trait SkippableRow[A <: SkippableRow[A]] { self: A =>
@@ -28,7 +32,7 @@ trait SkippableRow[A <: SkippableRow[A]] { self: A =>
 }
 
 trait HasValues {
-  def values: Seq[String]
+  def values: Seq[Option[String]]
 }
 
 trait HasHeaders {
@@ -58,7 +62,7 @@ trait KeyedRow extends RowWithSize {
 trait IndexedRow extends RowWithSize with RenderableRow {
   def getFieldByIndex(i: Int): String
   
-  def values: Seq[String] = (0 until size).map(getFieldByIndex)
+  def values: Seq[Option[String]] = (0 until size).map(getFieldByIndex).map(Option(_))
 }
 
 /**
@@ -106,18 +110,15 @@ final case class AggregatorVariantRow(
   
   //NB: Profiler-informed optimization: adding to a Buffer is 2x faster than ++ or .flatten
   //We expect this method to be called a lot - once per row being output.
-  override def values: Seq[String] = {
-    val buffer = new ArrayBuffer[String](fieldCount) //scalastyle:ignore magic.number
+  override def values: Seq[Option[String]] = {
+    val buffer = new ArrayBuffer[Option[String]](fieldCount) //scalastyle:ignore magic.number
     
-    def add(o: Option[Double]): Unit = o match {
-      case Some(d) => buffer += d.toString
-      case None => ()
-    }
+    def add(o: Option[Double]): Unit = buffer += (o.map(_.toString))
     
     //NB: ORDERING MATTERS :\
     
-    buffer += marker.underscoreDelimited
-    buffer += pvalue.toString
+    buffer += Some(marker.underscoreDelimited)
+    buffer += Some(pvalue.toString)
     
     add(zscore)
     add(stderr)

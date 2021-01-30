@@ -253,7 +253,16 @@ final case class AwsRowSink(
   }
   
   private[intake] def toJson(row: RenderableRow): JObject = {
-    val fields = row.headers.iterator.zip(row.values.iterator).map { case (h, v) => JField(h, JString(v))}
+    val fields = row.headers.iterator.zip(row.values.iterator).map { 
+      case (header, v) => {
+        val value: JValue = v match {
+          case Some(s) => JString(s)
+          case None => JNull
+        }
+        
+        JField(header, value)
+      }
+    }
     
     JObject(fields.toList)
   }

@@ -23,7 +23,10 @@ trait AwsFunSuite extends FunSuite with Loggable {
   
   protected val aws: AWS = new AWS(awsConfig)
 
-  def testWithPseudoDir(name: String)(body: String => Any): Unit = {
+  def testWithPseudoDir(
+      name: String, 
+      nukeTestDirOnSuccess: Boolean = true)(body: String => Any): Unit = {
+    
     test(name) {
       val mungedName = name.filter(_ != '/')
 
@@ -37,7 +40,9 @@ trait AwsFunSuite extends FunSuite with Loggable {
 
       //Test dir will be deleted after successful runs, but will live until the next run
       //if there's a failure.
-      nukeTestDir()
+      if(nukeTestDirOnSuccess) {
+        nukeTestDir()
+      }
     }
   }
 

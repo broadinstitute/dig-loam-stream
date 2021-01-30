@@ -21,5 +21,5 @@ final case class Tissue(id: Option[String], name: Option[String]) extends Render
   
   override def headers: Seq[String] = Seq("id", "name")
   
-  override def values: Seq[String] = Nil ++ id ++ name
+  override def values: Seq[Option[String]] = Seq(id, name)
 }

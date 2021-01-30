@@ -150,7 +150,7 @@ final class IntakeSyntaxTest extends FunSuite {
           
       val target = new MapFilterAndWriteTarget[Unit](
           store("/dev/null"), 
-          HeaderRow(Seq(MRKR.name, PValue.name)),
+          HeaderRow(MRKR.name, PValue.name),
           source, 
           Fold.foreach(_ => ()),
           Nil)
@@ -171,7 +171,7 @@ final class IntakeSyntaxTest extends FunSuite {
           
       val target = new MapFilterAndWriteTarget[Unit](
           store("/dev/null"), 
-          HeaderRow(Seq(MRKR.name, PValue.name)),
+          HeaderRow(MRKR.name, PValue.name),
           source, 
           Fold.foreach(_ => ()),
           Nil)
@@ -207,7 +207,7 @@ final class IntakeSyntaxTest extends FunSuite {
           
       val target = new MapFilterAndWriteTarget[Unit](
           store("/dev/null"), 
-          HeaderRow(Seq(MRKR.name, PValue.name)),
+          HeaderRow(MRKR.name, PValue.name),
           source, 
           Fold.foreach(_ => ()),
           Nil)
@@ -239,7 +239,7 @@ final class IntakeSyntaxTest extends FunSuite {
           
       val target = new MapFilterAndWriteTarget[Unit](
           store("/dev/null"), 
-          HeaderRow(Seq(MRKR.name, PValue.name)),
+          HeaderRow(MRKR.name, PValue.name),
           source, 
           Fold.foreach(_ => ()),
           Nil)
@@ -281,7 +281,7 @@ final class IntakeSyntaxTest extends FunSuite {
             
         val target = new MapFilterAndWriteTarget[Unit](
             store(outfile), 
-            HeaderRow(Seq(MRKR.name, PValue.name)),
+            HeaderRow(MRKR.name, PValue.name),
             source, 
             Fold.foreach(_ => ()),
             Nil)
@@ -335,7 +335,7 @@ ${v3.underscoreDelimited}${'\t'}1.4""".trim
             
         val target = new MapFilterAndWriteTarget[Unit](
             store(outfile), 
-            HeaderRow(Seq(MRKR.name, PValue.name)),
+            HeaderRow(MRKR.name, PValue.name),
             source, 
             Fold.foreach(_ => ()),
             Nil)

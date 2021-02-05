@@ -11,7 +11,7 @@ import loamstream.loam.intake.dga.Tissue
  */
 final class DgaTissueUploadTest extends AwsFunSuite with IntakeSyntax with DgaSyntax with Loggable {
   testWithPseudoDir(s"${getClass.getSimpleName}-Read_from_DGA_upload_to_S3") { testDir =>
-    val (versionSource, tissueSource) = Dga.versionAndTissueSource()
+    val (versionSource, tissueSource) = Dga.Tissues.versionAndTissueSource()
     
     assert(versionSource.records.next() === "3")
     

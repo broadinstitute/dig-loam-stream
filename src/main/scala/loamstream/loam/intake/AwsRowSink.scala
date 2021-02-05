@@ -110,38 +110,6 @@ final case class AwsRowSink(
     if(yes) {
       awsClient.deleteDir(prefix)
     }
-    
-    //get the initial key listing
-    //var resp = self.s3.list_objects_v2(Bucket=bucket, Prefix=prefix, Delimiter='/')
-
-    //fetch all the keys in this dataset that already exist
-    /*while(resp.get("KeyCount", 0) > 0) {
-      info(s"Deleting ${resp.get("KeyCount")} existing keys from ${path}...")
-
-      if(yes) {
-        val keys = resp("Contents").map(obj => ("Key" -> obj("Key")))
-
-        self.s3.delete_objects(
-          Bucket=bucket,
-          Delete={
-            "Objects" -> keys,
-            "Quiet" -> true
-          },
-        )
-
-        //bugger out if there are not more keys
-        if(!resp("IsTruncated")) {
-          break
-        }
-        
-        //get the next set of keys
-        resp = self.s3.list_objects_v2(
-          Bucket=self.bucket,
-          Prefix=prefix,
-          Delimiter='/',
-          ContinuationToken=resp("NextContinuationToken"))
-      }
-    }*/
   }
   
   /**
@@ -239,14 +207,14 @@ final case class AwsRowSink(
   /**
    * Write the last batch and then write the dataset to the database.
    */
-  def commit(metadata: JObject): Unit = uploadedSoFarBox.foreach { _ =>
+  def commit(metadata: JObject): Unit = uploadedSoFarBox.foreach { uploadedSoFar =>
     flush()
 
     //don't write metadata if there are no records
-    if(uploadedSoFarBox() > 0) {
+    if(uploadedSoFar > 0) {
       writeMetadata(metadata)
       
-      info(s"Committed ${uploadedSoFarBox} items to ${path}")
+      info(s"Committed ${uploadedSoFar} items to ${path}")
     } else {
       warn("No records; metadata not written!")
     }

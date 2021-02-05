@@ -1,9 +1,6 @@
 package loamstream.loam.intake
 
-import loamstream.util.LogContext
 import loamstream.model.Store
-import java.io.Closeable
-import RowFilters.ConcreteCloseablePredicate
 
 /**
  * @author clint
@@ -224,20 +221,6 @@ trait RowFilters { self: IntakeSyntax =>
       }
       
       result
-    }
-  }
-}
-
-object RowFilters {
-  final class ConcreteCloseablePredicate[A](toClose: Closeable)(p: Predicate[A]) extends Predicate[A] with Closeable {
-    override def apply(a: A): Boolean = p(a)
-    
-    override def close(): Unit = toClose.close()
-  }
-  
-  object ConcreteCloseablePredicate {
-    def apply[A](toClose: Closeable)(p: Predicate[A]): ConcreteCloseablePredicate[A] = {
-      new ConcreteCloseablePredicate(toClose)(p)
     }
   }
 }

@@ -1,5 +1,15 @@
 package loamstream.loam
 
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
+
+import loamstream.loam.intake.AggregatorVariantRow
+import loamstream.loam.intake.DataRow
+import loamstream.loam.intake.VariantRow
+
+
+
 /**
  * @author clint
  * Dec 17, 2019
@@ -44,4 +54,13 @@ package object intake {
   type AggregatorVariantRowTransform = Transform[AggregatorVariantRow]
   
   type CloseableAggregatorVariantRowTransform = CloseableTransform[AggregatorVariantRow]
+  
+  implicit final class CloseablePredicateOps[A](val cp: CloseablePredicate[A]) extends AnyVal {
+    def liftToTry: CloseablePredicate[Try[A]] = {
+      ConcreteCloseablePredicate[Try[A]](cp) { 
+        case Success(a) => cp(a)
+        case Failure(_) => false
+      }
+    }
+  }
 }

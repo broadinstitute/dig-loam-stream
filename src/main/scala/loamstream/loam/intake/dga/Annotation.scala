@@ -28,26 +28,66 @@ final case class Annotation private[dga] (
     source: Option[String],     //TODO: Optional for now
     assay: Option[String],      //TODO: Optional for now
     collection: Option[String], //TODO: Optional for now
-    biosampleId: String, 
+    biosampleId: String,
+    biosampleType: String,
     biosample: Option[String],
     method: Option[String], 
+    portalUsage: String,
     downloads: Seq[Annotation.Download]) extends Loggable {
+  
+  def allOptionalFieldsArePresent: Boolean = {
+    /*annotation_type (required)
+      annotation_id (required)
+      annotation_category (required)
+      portal_tissue (required)
+      portal_tissue_id (required)
+      annotation_source (required)
+      portal_usage(required)*/
+    
+    category.isDefined &&
+    tissueId.isDefined &&
+    //tissue: Option[String],
+    source.isDefined //&&
+    //assay.isDefined && //NOT REQUIRED
+    //collection.isDefined &&
+    //biosample: Option[String],
+    //method.isDefined 
+  }
   
   /**
    * Returns True if the annotation meets all criteria for ingesting.
    */
   def isUploadable: Boolean = {
+    val anyDownloads = downloads.nonEmpty
+    val portalUsageIsAcceptable = !portalUsageIsNone
+    
     //ignore any datasets with no annotationId, no biosampleId, or no valid datasets to load
-    val result = /*annotation_id.isDefined && */ /*biosampleId.isDefined && */downloads.nonEmpty
+    val result = {
+      /*annotation_id.isDefined && */ 
+      /*biosampleId.isDefined && */
+      anyDownloads && 
+      portalUsageIsAcceptable
+    }
     
     if(!result) {
-      warn(s"Skipping ${assembly}/${annotationId}: biosample id: ${biosampleId} downloads: ${downloads}")
+      def msg(specificPart: String) = {
+        s"Skipping ${assembly}/${annotationId}: biosample id: ${biosampleId} " +
+        s"because ${specificPart} ; downloads: ${downloads}"
+      }
+      
+      if(!anyDownloads) {
+        warn(msg("No bed files were available"))
+      } else if(!portalUsageIsAcceptable) {
+        warn(msg(s"portal_usage field is '${portalUsage}'"))
+      }
     }
     
     result
   }
   
   def notUploadable: Boolean = !isUploadable
+  
+  private[dga] def portalUsageIsNone: Boolean = portalUsage == "None"
   
   def toMetadata: Annotation.Metadata = Annotation.Metadata(
       sources = this.downloads,
@@ -78,6 +118,8 @@ object Annotation {
       annotationType <- json.tryAsString("annotation_type")
       fileDownloads <- filteredSortedFileDownloads(annotationId)
       biosampleId <- json.tryAsString("biosample_term_id")
+      biosampleType <- json.tryAsString("biosample_type")
+      portalUsage <- json.tryAsString("portal_usage")
       method = json.asStringOption("annotation_method")
       collection = json.asStringOption("collection")
       assay = json.asStringOption("underlying_assay")
@@ -98,12 +140,10 @@ object Annotation {
         assay = assay,
         collection = collection,
         biosampleId = biosampleId,
+        biosampleType = biosampleType,
         biosample = biosample,
-        //system_slims = system_slims,
-        //organ_slims = organ_slims, 
-        //dbxrefs = dbxrefs,
-        //harmonized_states = harmonized_states,
         method = method,
+        portalUsage = portalUsage,
         downloads = fileDownloads)
     }
   }

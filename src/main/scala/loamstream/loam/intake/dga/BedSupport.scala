@@ -23,38 +23,39 @@ import loamstream.util.LogContext
  * Jan 20, 2021
  */
 trait BedSupport {
-  /**
-   * Download the BED file in the URL and return a Source that will produce the data it contains
-   */
-  def downloadBed(
-      url: URI,
-      auth: HttpClient.Auth,
-      httpClient: HttpClient = new SttpHttpClient())(implicit context: LogContext): Source[DataRow] = {
-    
-    val extOpt = url.getPath.split("\\.").lastOption.map(_.trim.toLowerCase)
-
-    def bedReader: Reader = {
-      //download the source into memory
+  object Beds {
+    /**
+     * Download the BED file in the URL and return a Source that will produce the data it contains
+     */
+    def downloadBed(
+        url: URI,
+        auth: HttpClient.Auth,
+        httpClient: HttpClient = new SttpHttpClient())(implicit context: LogContext): Source[DataRow] = {
       
-      val bedData = TimeUtils.time(s"", context.info(_)) {
-        httpClient.getAsBytes(url.toString, Some(auth)).right.getOrElse {
-          throw new Exception(s"HTTP request failed: GET ${url}")
-        }
-      }
+      val extOpt = url.getPath.split("\\.").lastOption.map(_.trim.toLowerCase)
   
-      val bedStream = new ByteArrayInputStream(bedData)
-      
-      val unzippedBedStream: InputStream = extOpt match {
-        case Some("gz") | Some("gzip") => new GZIPInputStream(bedStream)
-        case Some("bz2") => new BZip2CompressorInputStream(bedStream)
-        case Some("zip") => new ZipInputStream(bedStream)
-        case Some("xz") => new XZCompressorInputStream(bedStream)
-        case _ => bedStream
+      def bedReader: Reader = {
+        //download the source into memory
+        val bedData = TimeUtils.time(s"Downloading ${url}", context.info(_)) {
+          httpClient.getAsBytes(url.toString, Some(auth)).right.getOrElse {
+            throw new Exception(s"HTTP request failed: GET ${url}")
+          }
+        }
+    
+        val bedStream = new ByteArrayInputStream(bedData)
+        
+        val unzippedBedStream: InputStream = extOpt match {
+          case Some("gz") | Some("gzip") => new GZIPInputStream(bedStream)
+          case Some("bz2") => new BZip2CompressorInputStream(bedStream)
+          case Some("zip") => new ZipInputStream(bedStream)
+          case Some("xz") => new XZCompressorInputStream(bedStream)
+          case _ => bedStream
+        }
+        
+        new InputStreamReader(unzippedBedStream)
       }
       
-      new InputStreamReader(unzippedBedStream)
+      Source.fromReader(bedReader, Source.Formats.tabDelimitedWithHeader)
     }
-    
-    Source.fromReader(bedReader, Source.Formats.tabDelimitedWithHeader)
   }
 }

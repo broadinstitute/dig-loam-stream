@@ -21,6 +21,8 @@ object Helpers {
     
     override def toString: String = columnNamesToValues.toString
     
+    override def hasField(name: String): Boolean = columnNamesToValues.exists { case (k, _) => k == name }
+    
     override def getFieldByName(name: String): String = {
       val opt = columnNamesToValues.collectFirst { case (n, v) if name == n => v }
       

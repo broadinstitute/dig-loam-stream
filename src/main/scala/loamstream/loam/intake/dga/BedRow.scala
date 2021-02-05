@@ -8,7 +8,10 @@ import loamstream.loam.intake.RenderableRow
  */
 final case class BedRow(
     biosampleId: String,    // e.g. UBERON:293289
+    biosampleType: String,
+    biosample: Option[String],
     tissueId: Option[String],   //TODO: Only Optional for now; e.g. UBERON:293289
+    tissue: Option[String],
     annotation: String,    // annotation type, e.g. binding_site
     category: Option[String], //TODO: Only Optional for now
     method: Option[String],  //TODO: Only Optional for now; e.g. MAC2
@@ -42,7 +45,10 @@ final case class BedRow(
 
   override def headers: Seq[String] = Seq(
     "biosampleId",
+    "biosampleType",
+    "biosample",
     "tissueId",
+    "tissue",
     "annotation",
     "category",
     "method",
@@ -59,7 +65,10 @@ final case class BedRow(
   
   override def values: Seq[Option[String]] = Seq(
       Option(biosampleId),
+      Option(biosampleType),
+      biosample,
       tissueId,
+      tissue,
       Option(annotation),
       category,
       method,

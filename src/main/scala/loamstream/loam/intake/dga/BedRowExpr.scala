@@ -12,13 +12,16 @@ import loamstream.loam.intake.LiteralColumnExpr
  * @author clint
  * Jan 20, 2021
  */
-final case class BedRowExpr(annotation: Annotation, annotationType: String) extends DataRowParser[BedRow] {
+final case class BedRowExpr(annotation: Annotation) extends DataRowParser[BedRow] {
   private val columns = new BedRowExpr.Columns(this)
   
   override def apply(row: DataRow): BedRow = {
     BedRow(
       biosampleId = columns.biosampleId(row),    // e.g. UBERON:293289
+      biosampleType = columns.biosampleType(row),
+      biosample = columns.biosample(row),
       tissueId = columns.tissueId(row),   // e.g. UBERON:293289
+      tissue = columns.tissue(row),
       annotation = columns.annotation(row),    // annotation type, e.g. binding_site
       category = columns.category(row),
       method = columns.method(row),  // e.g. MAC2
@@ -118,51 +121,21 @@ object BedRowExpr {
   final case class Columns(expr: BedRowExpr) {
     import BedRowExpr.Implicits.ColumnExprOps
     
-    /*
-     * biosample_term_id, biosample, biosampleId    // e.g. UBERON:293289
-portal_tissue_id, null, tissueId   // e.g. UBERON:293289
-annotation_type, (s3-sub-folder), annotation    // e.g. binding_site
-annotation_category, null, category
-annotation_method, method, method  // e.g. MAC2
-annotation_source, null, source   // e.g. ATAC-seq-peak
-underlying_assay, null, assay   // e.g. ATAC-seq
-disease_area, null, null
-collection_tag, null, collection // e.g. ENCODE
-     */
-    
     val biosampleId = LiteralColumnExpr(expr.annotation.biosampleId)
+    val biosampleType = LiteralColumnExpr(expr.annotation.biosampleType)
+    val biosample = LiteralColumnExpr(expr.annotation.biosample)
     val tissueId = LiteralColumnExpr(expr.annotation.tissueId)
-    val annotation = LiteralColumnExpr(expr.annotationType)
+    val tissue = LiteralColumnExpr(expr.annotation.tissue)
+    val annotation = LiteralColumnExpr(expr.annotation.annotationType)
     val category = LiteralColumnExpr(expr.annotation.category)
     val method = LiteralColumnExpr(expr.annotation.method)
     val source = LiteralColumnExpr(expr.annotation.source)
     val assay = LiteralColumnExpr(expr.annotation.assay)
     val collection = LiteralColumnExpr(expr.annotation.collection)
-    val chromosome = ColumnName("chromosome").or(ColumnName("chr")).or(ColumnName("chrom"))//.trim
+    val chromosome = ColumnName("chromosome").or(ColumnName("chr")).or(ColumnName("chrom"))
     val start = ColumnName("start").or(ColumnName("chromStart")).asLong
     val end = ColumnName("end").or(ColumnName("chromEnd")).asLong
-    val state = ColumnName("state").or(ColumnName("name"))//.trim
-    
-    /*val chr = ColumnName("chr").trim
-    val start = ColumnName("start").asInt
-    val end = ColumnName("end").asInt
-    val state = ColumnName("state").trim
-    val value = ColumnName("value").asDoubleWithNaValues(values = Set("."))
-    val strand = ColumnName("strand").trim
-    val thickStart = ColumnName("thickStart").asInt
-    val thickEnd = ColumnName("thickEnd").asInt
-    val itemRgb = ColumnName("itemRgb").trim
-    val blockCount = ColumnName("blockCount").asInt
-    val blockSizes = ColumnName("blockSizes").asInt
-    val blockStarts = ColumnName("blockStarts").asInt
-    val chrom = ColumnName("chrom").trim
-    val chromStart = ColumnName("chromStart").asInt
-    val chromEnd = ColumnName("chromEnd").asInt
-    val name: ColumnExpr[String] = annotationType match {
-      case "accessible_chromatin" => LiteralColumnExpr(annotationType)
-      case _ => ColumnName("state").or(ColumnName("name")).trim
-    }
-    val score = ColumnName("score").asDoubleWithNaValues(values = Set("."))*/
+    val state = ColumnName("state").or(ColumnName("name"))
   }
   
   //See https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html 

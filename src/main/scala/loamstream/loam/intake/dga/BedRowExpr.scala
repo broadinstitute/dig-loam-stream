@@ -7,6 +7,7 @@ import loamstream.loam.intake.ColumnName
 import loamstream.loam.intake.ColumnExpr
 import com.sun.org.apache.xalan.internal.xsltc.compiler.LiteralExpr
 import loamstream.loam.intake.LiteralColumnExpr
+import loamstream.loam.intake.ColumnTransforms
 
 /**
  * @author clint
@@ -36,19 +37,8 @@ final case class BedRowExpr(annotation: Annotation) extends DataRowParser[BedRow
       targetGeneStart = None,    // TODO only for annotation_type == "target_gene_prediction"
       targetGeneEnd = None    //TODO  only for annotation_type == "target_gene_prediction"
       )
-    /*
-     * 
-biosample_term_id, biosample, biosampleId    // e.g. UBERON:293289
-portal_tissue_id, null, tissueId   // e.g. UBERON:293289
-annotation_type, (s3-sub-folder), annotation    // e.g. binding_site
-annotation_category, null, category
-annotation_method, method, method  // e.g. MAC2
-annotation_source, null, source   // e.g. ATAC-seq-peak
-underlying_assay, null, assay   // e.g. ATAC-seq
-disease_area, null, null
-collection_tag, null, collection // e.g. ENCODE
 
-     * for row in df.itertuples(index=False, name='Annotation'):
+     /* for row in df.itertuples(index=False, name='Annotation'):
 
           	def col(name, alt=None):
                 return getattr(row, name, getattr(row, alt, None) if alt else None)
@@ -132,11 +122,28 @@ object BedRowExpr {
     val source = LiteralColumnExpr(expr.annotation.source)
     val assay = LiteralColumnExpr(expr.annotation.assay)
     val collection = LiteralColumnExpr(expr.annotation.collection)
-    val chromosome = ColumnName("chromosome").or(ColumnName("chr")).or(ColumnName("chrom"))
+    val chromosome = {
+      ColumnTransforms.ensureAlphabeticChromNames { 
+        ColumnName("chromosome").or(ColumnName("chr")).or(ColumnName("chrom"))
+      }
+    }
     val start = ColumnName("start").or(ColumnName("chromStart")).asLong
     val end = ColumnName("end").or(ColumnName("chromEnd")).asLong
-    val state = ColumnName("state").or(ColumnName("name"))
+    // the annotation name needs to be harmonized (accessible chromatin is special!)
+    val state = {
+      expr.annotation.annotationType match {
+        case ac @ "accessible_chromatin" => LiteralColumnExpr(ac) 
+        case _ => ColumnName("state").or(ColumnName("name")) 
+      }
+      
+      /* TODO: is this still relevant?
+       * if annot.harmonized_states is not None:
+                annotation_name = annot.harmonized_states.get(re.sub(r'^\d+_', '', annotation_name))
+       */
+    }
   }
+  
+  //TODO: Handle '.' values?
   
   //See https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html 
   private val pandasDefaultNaValues: Set[String] = Set(

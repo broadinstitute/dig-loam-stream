@@ -34,9 +34,9 @@ final case class BedRowExpr(annotation: Annotation) extends DataRowParser[BedRow
       start = columns.start(row),
       end = columns.end(row),
       state = columns.state(row), //was name
-      targetGene = None,    //TODO  only for annotation_type == "target_gene_prediction"
-      targetGeneStart = None,    // TODO only for annotation_type == "target_gene_prediction"
-      targetGeneEnd = None    //TODO  only for annotation_type == "target_gene_prediction"
+      targetGene = columns.targetGene(row),    //TODO  only for annotation_type == "target_gene_prediction"
+      targetGeneStart = columns.targetGeneStart(row),    // TODO only for annotation_type == "target_gene_prediction"
+      targetGeneEnd = columns.targetGeneEnd(row) //TODO  only for annotation_type == "target_gene_prediction"
       )
 
      /* for row in df.itertuples(index=False, name='Annotation'):
@@ -118,18 +118,18 @@ object BedRowExpr {
     val biosample = LiteralColumnExpr(expr.annotation.biosample)
     val tissueId = LiteralColumnExpr(expr.annotation.tissueId)
     val tissue = LiteralColumnExpr(expr.annotation.tissue)
-    val annotation = LiteralColumnExpr(expr.annotation.annotationType)
+    val annotation = LiteralColumnExpr(expr.annotation.annotationType).map(_.replaceAll("\\s+", "_"))
     val category = LiteralColumnExpr(expr.annotation.category)
     val method = LiteralColumnExpr(expr.annotation.method)
     val source = LiteralColumnExpr(expr.annotation.source)
     val assay = LiteralColumnExpr(expr.annotation.assay)
     val collection = LiteralColumnExpr(expr.annotation.collection)
     val chromosome = {
-      def stripLeadingChr(s: String): String = if(s.startsWith("chr")) s.drop("chr".size) else s
-      
-      ColumnTransforms.ensureAlphabeticChromNames { 
-        ColumnName("chromosome").or(ColumnName("chr")).or(ColumnName("chrom"))
-      }.map(_.trim).map(stripLeadingChr)
+      ColumnTransforms.ensureAlphabeticChromNames {
+        ColumnTransforms.normalizeChromNames {
+          ColumnName("chromosome").or(ColumnName("chr")).or(ColumnName("chrom"))
+        }
+      }.trim
     }
     val start = ColumnName("start").or(ColumnName("chromStart")).asLong
     val end = ColumnName("end").or(ColumnName("chromEnd")).asLong
@@ -145,6 +145,17 @@ object BedRowExpr {
                 annotation_name = annot.harmonized_states.get(re.sub(r'^\d+_', '', annotation_name))
        */
     }
+    
+    private def ifTargetGenePrediction(column: String): ColumnExpr[Option[String]] = {
+      expr.annotation.annotationType match {
+        case "target_gene_prediction" => ColumnName(column).asOption
+        case _ => LiteralColumnExpr(None) 
+      }
+    }
+    
+    val targetGene: ColumnExpr[Option[String]] = ifTargetGenePrediction("target_gene")
+    val targetGeneStart: ColumnExpr[Option[Long]] = ifTargetGenePrediction("target_gene_start").map(_.map(_.toLong))
+    val targetGeneEnd: ColumnExpr[Option[Long]] = ifTargetGenePrediction("target_gene_end").map(_.map(_.toLong))
   }
   
   //TODO: Handle '.' values?

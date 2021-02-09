@@ -5,6 +5,9 @@ import scala.collection.mutable.ArrayBuffer
 import loamstream.loam.intake.flip.Disposition
 import scala.util.Failure
 import scala.util.Try
+import org.json4s.JsonAST.JValue
+import org.json4s.JsonAST.JNull
+import org.json4s.JsonAST.JNothing
 
 
 /**
@@ -12,6 +15,23 @@ import scala.util.Try
  * Dec 17, 2019
  */
 trait RenderableRow extends HasHeaders with HasValues
+
+trait RenderableJsonRow extends RenderableRow {
+  def jsonValues: Seq[(String, JValue)]
+  
+  override def values: Seq[Option[String]] = {
+    import org.json4s.jackson.JsonMethods._
+    
+    jsonValues.collect { 
+      case (_, JNull | JNothing) => None
+      case (_, jv) =>Option(compact(render(jv))) 
+    }
+  }
+
+  override def headers: Seq[String] = jsonValues.collect { case (k, _) => k }
+}
+
+
 
 final case class LiteralRow(values: Seq[Option[String]], headers: Seq[String] = Nil) extends RenderableRow
 

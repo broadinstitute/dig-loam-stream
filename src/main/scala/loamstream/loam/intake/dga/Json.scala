@@ -3,13 +3,9 @@ package loamstream.loam.intake.dga
 import scala.util.Success
 import scala.util.Try
 
-import org.json4s.JArray
-import org.json4s.JObject
-import org.json4s.JString
-import org.json4s.JValue
+import org.json4s._
 import org.json4s.jackson.JsonMethods.compact
 import org.json4s.jackson.JsonMethods.render
-import org.json4s.jvalue2monadic
 
 import loamstream.util.Tries
 
@@ -18,6 +14,19 @@ import loamstream.util.Tries
  * Jan 20, 2021
  */
 object Json {
+  def toJValue[A](a: A): JValue = a match {
+    case s: String => JString(s)  
+    case i: Long => JLong(i)
+    case i: Int => JInt(i)
+    case d: Double => JDouble(d)
+    case f: Float => JDouble(f)
+    case bd: BigDecimal => JDecimal(bd)
+    case b: Boolean => JBool(b)
+    case _ => sys.error(s"Unexpected ${a.getClass.getName} value '${a}'")
+  }
+  
+  def toJValue[A](oa: Option[A]): JValue = oa.map(toJValue(_)).getOrElse(JNull)
+  
   implicit final class JsonOps(val jv: JValue) extends AnyVal {
     private def makeMessage(tpe: String, fieldName: String): String = {
       s"Couldn't find ${tpe} field '${fieldName}' in ${compact(render(jv))}"

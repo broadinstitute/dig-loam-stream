@@ -6,6 +6,8 @@ import loamstream.util.AwsClient.ContentType
 import loamstream.util.Maps
 import AwsRowSinkTest.MockAwsClient
 import java.util.UUID
+import org.json4s.JsonAST.JValue
+import loamstream.loam.intake.dga.Json
 
 /**
  * @author clint
@@ -48,6 +50,10 @@ final class AwsRowSinkTest extends FunSuite {
         
     assert(fileNames === expected)
   }
+
+  private def toJsonRow(row: RenderableRow): RenderableJsonRow = new RenderableJsonRow {
+    override def jsonValues: Seq[(String, JValue)] = row.headers.zip(row.values.map(Json.toJValue))
+  }
   
   test("accept / write / flush") {
     val headers = Seq("X", "Y", "Z")
@@ -56,7 +62,7 @@ final class AwsRowSinkTest extends FunSuite {
         LiteralRow(headers = headers, values = Seq("4", "3", "2")),
         LiteralRow(headers = headers, values = Seq("z", "x", "c")),
         LiteralRow(headers = headers, values = Seq("q", "w", "e")),
-        LiteralRow(headers = headers, values = Seq("f", "o", "o")))
+        LiteralRow(headers = headers, values = Seq("f", "o", "o"))).map(toJsonRow)
         
     val client = MockAwsClient.apply("some-bucket")
         
@@ -117,7 +123,7 @@ final class AwsRowSinkTest extends FunSuite {
         LiteralRow(headers = headers, values = Seq("4", "3", "2")),
         LiteralRow(headers = headers, values = Seq("z", "x", "c")),
         LiteralRow(headers = headers, values = Seq("q", "w", "e")),
-        LiteralRow(headers = headers, values = Seq("f", "o", "o")))
+        LiteralRow(headers = headers, values = Seq("f", "o", "o"))).map(toJsonRow)
         
     val client = MockAwsClient.apply("some-bucket")
         

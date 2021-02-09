@@ -41,7 +41,7 @@ final case class AwsRowSink(
     // :(
     yes: Boolean = false,
     private val fileIds: Iterator[Long] = AwsRowSink.Defaults.fileIdSequence,
-    private val uuid: String = AwsRowSink.Defaults.randomUUID) extends RowSink with Loggable {
+    private val uuid: String = AwsRowSink.Defaults.randomUUID) extends JsonRowSink with Loggable {
   
   private[this] val initializedBox: ValueBox[Boolean] = ValueBox(false)
   
@@ -53,7 +53,7 @@ final case class AwsRowSink(
     true
   }
   
-  override def accept(row: RenderableRow): Unit = write(toJson(row))
+  override def accept(row: RenderableJsonRow): Unit = write(toJson(row))
   
   override def close(): Unit = flush()
 
@@ -220,19 +220,8 @@ final case class AwsRowSink(
     }
   }
   
-  private[intake] def toJson(row: RenderableRow): JObject = {
-    val fields = row.headers.iterator.zip(row.values.iterator).map { 
-      case (header, v) => {
-        val value: JValue = v match {
-          case Some(s) => JString(s)
-          case None => JNull
-        }
-        
-        JField(header, value)
-      }
-    }
-    
-    JObject(fields.toList)
+  private[intake] def toJson(row: RenderableJsonRow): JObject = {
+    JObject(row.jsonValues.toList)
   }
 }
 /**

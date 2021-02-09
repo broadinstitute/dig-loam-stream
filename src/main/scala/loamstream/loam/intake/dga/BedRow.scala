@@ -1,12 +1,15 @@
 package loamstream.loam.intake.dga
 
 import loamstream.loam.intake.RenderableRow
+import loamstream.loam.intake.RenderableJsonRow
+import org.json4s.JsonAST.JValue
 
 /**
  * @author clint
  * Jan 20, 2021
  */
 final case class BedRow(
+    dataset: String,
     biosampleId: String,    // e.g. UBERON:293289
     biosampleType: String,
     biosample: Option[String],
@@ -25,61 +28,29 @@ final case class BedRow(
     targetGene: Option[String],    // only for annotation_type == "target_gene_prediction"
     targetGeneStart: Option[Long],    // only for annotation_type == "target_gene_prediction"
     targetGeneEnd: Option[Long]    // only for annotation_type == "target_gene_prediction"
-    /*chr: String,
-    start: Int,
-    end: Int,
-    state: String,
-    value: Double,
-    strand: String,
-    thickStart: Int,
-    thickEnd: Int,
-    itemRgb: String,
-    blockCount: Int,
-    blockSizes: Int,
-    blockStarts: Int,
-    chrom: Option[String],
-    chromStart: Option[Int],
-    chromEnd: Option[Int],
-    name: Option[String],
-    score: Option[Double]*/) extends RenderableRow {
+  ) extends RenderableJsonRow {
 
-  override def headers: Seq[String] = Seq(
-    "biosampleId",
-    "biosampleType",
-    "biosample",
-    "tissueId",
-    "tissue",
-    "annotation",
-    "category",
-    "method",
-    "source",
-    "assay",
-    "collection",
-    "chromosome",
-    "start",
-    "end",
-    "state",
-    "targetGene",
-    "targetGeneStart",
-    "targetGeneEnd")
+  import Json.toJValue
   
-  override def values: Seq[Option[String]] = Seq(
-      Option(biosampleId),
-      Option(biosampleType),
-      biosample,
-      tissueId,
-      tissue,
-      Option(annotation),
-      category,
-      method,
-      source,
-      assay,
-      collection,
-      Option(chromosome),
-      Option(start.toString),
-      Option(end.toString),
-      Option(state),
-      targetGene,
-      targetGeneStart.map(_.toString),
-      targetGeneEnd.map(_.toString))
+  override def jsonValues: Seq[(String, JValue)] = Seq(
+    "dataset" -> toJValue(dataset),
+    "biosampleId" -> toJValue(biosampleId),
+    "biosampleType" -> toJValue(biosampleType),
+    "biosample" -> toJValue(biosample),
+    "tissueId" -> toJValue(tissueId),
+    "tissue" -> toJValue(tissue),
+    "annotation" -> toJValue(annotation),
+    "category" -> toJValue(category),
+    "method" -> toJValue(method),
+    "source" -> toJValue(source),
+    "assay" -> toJValue(assay),
+    "collection" -> toJValue(collection),
+    "chromosome" -> toJValue(chromosome),
+    "start" -> toJValue(start),
+    "end" -> toJValue(end),
+    "state" -> toJValue(state),
+    "targetGene" -> toJValue(targetGene),
+    "targetGeneStart" -> toJValue(targetGeneStart),
+    "targetGeneEnd" -> toJValue(targetGeneEnd)
+  )
 }

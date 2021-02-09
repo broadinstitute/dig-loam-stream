@@ -46,7 +46,7 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
       
       val datasetName: String = toDatasetName(annotation)
       
-      val topicName: String = whitespaceToUnderscores(s"annotated_regions/${annotationType}")
+      val topicName: String = whitespaceToUnderscores(s"annotated_regions")
       
       //create the new dataset
       val sink = new AwsRowSink(
@@ -200,6 +200,25 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
             logCtx.warn(
                 s"Annotation '${annotation.annotationType}:${annotation.annotationId}' had type not found in" +
                 s"${annotationTypes.keys.mkString("[",",","]")}")
+          }
+          
+          result
+        }
+      }
+      
+      def succeeded(logTo: Store, append: Boolean = false): CloseablePredicate[Try[Annotation]] = {
+        succeeded(IntakeSyntax.Log.toFile(logTo, append))
+      }
+      
+      def succeeded(implicit logCtx: ToFileLogContext): CloseablePredicate[Try[Annotation]] = {
+        ConcreteCloseablePredicate[Try[Annotation]](logCtx) { attempt =>
+          val result = attempt.isSuccess
+          
+          if(!result) {
+            //Use recover to succinctly access the underlying exception, just for the logging side-effect.
+            attempt.recover { 
+              case e => logCtx.warn(s"Couldn't parse annotation due to '${e.getMessage}'", e)
+            }
           }
           
           result

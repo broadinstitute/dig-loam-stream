@@ -16,6 +16,10 @@ trait RowSink extends Closeable {
   def accept(row: RenderableRow): Unit
 }
 
+trait JsonRowSink extends Closeable {
+  def accept(row: RenderableJsonRow): Unit
+}
+
 object RowSink {
   final case class ToFile(path: Path, csvFormat: CSVFormat = Source.Defaults.csvFormat) extends RowSink {
     private lazy val writer: Writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8)

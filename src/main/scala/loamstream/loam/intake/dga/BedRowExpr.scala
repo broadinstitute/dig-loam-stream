@@ -18,6 +18,7 @@ final case class BedRowExpr(annotation: Annotation) extends DataRowParser[BedRow
   
   override def apply(row: DataRow): BedRow = {
     BedRow(
+      dataset = columns.dataset(row),
       biosampleId = columns.biosampleId(row),    // e.g. UBERON:293289
       biosampleType = columns.biosampleType(row),
       biosample = columns.biosample(row),
@@ -111,6 +112,7 @@ object BedRowExpr {
   final case class Columns(expr: BedRowExpr) {
     import BedRowExpr.Implicits.ColumnExprOps
     
+    val dataset = LiteralColumnExpr(expr.annotation.annotationId)
     val biosampleId = LiteralColumnExpr(expr.annotation.biosampleId)
     val biosampleType = LiteralColumnExpr(expr.annotation.biosampleType)
     val biosample = LiteralColumnExpr(expr.annotation.biosample)
@@ -123,9 +125,11 @@ object BedRowExpr {
     val assay = LiteralColumnExpr(expr.annotation.assay)
     val collection = LiteralColumnExpr(expr.annotation.collection)
     val chromosome = {
+      def stripLeadingChr(s: String): String = if(s.startsWith("chr")) s.drop("chr".size) else s
+      
       ColumnTransforms.ensureAlphabeticChromNames { 
         ColumnName("chromosome").or(ColumnName("chr")).or(ColumnName("chrom"))
-      }
+      }.map(_.trim).map(stripLeadingChr)
     }
     val start = ColumnName("start").or(ColumnName("chromStart")).asLong
     val end = ColumnName("end").or(ColumnName("chromEnd")).asLong

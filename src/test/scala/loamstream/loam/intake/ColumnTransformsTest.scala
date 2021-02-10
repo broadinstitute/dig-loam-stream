@@ -59,4 +59,16 @@ final class ColumnTransformsTest extends FunSuite {
     
     assert(actual === expected)
   }
+  
+  test("Problematic chromosome") {
+    val row = Helpers.csvRows(
+        Seq("A", "B"),
+        Seq("chr11_KI270721v1_random", "foo")).head
+    
+    val expr = ColumnTransforms.normalizeChromNames(ColumnName("A"))
+    
+    intercept[Exception] {
+      expr(row)
+    }
+  }
 }

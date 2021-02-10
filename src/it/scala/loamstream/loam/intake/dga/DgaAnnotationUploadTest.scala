@@ -28,11 +28,12 @@ final class DgaAnnotationsUploadTest extends AwsFunSuite with DgaSyntax with Log
     val uploadableAnnotations = annotations.
       filter(Dga.Annotations.Predicates.isUploadable(logCtx).liftToTry).
       filter(Dga.Annotations.Predicates.hasAnnotationTypeWeCareAbout(logCtx).liftToTry).
+      filter(Dga.Annotations.Predicates.succeeded(logCtx)).
       collect { case Success(a) => a } //TODO
       
     //TODO: FIXME: Process more 
     val firstN = uploadableAnnotations.take(10).records.foreach {
-      Dga.Annotations.uploadAnnotatedDataset(auth, awsClient, yes = true)
+      Dga.Annotations.uploadAnnotatedDataset(auth, awsClient, logCtx, yes = true)
     }
   }
 }

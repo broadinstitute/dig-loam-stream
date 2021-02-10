@@ -8,15 +8,16 @@ import loamstream.loam.intake.ColumnExpr
 import com.sun.org.apache.xalan.internal.xsltc.compiler.LiteralExpr
 import loamstream.loam.intake.LiteralColumnExpr
 import loamstream.loam.intake.ColumnTransforms
+import scala.util.Try
 
 /**
  * @author clint
  * Jan 20, 2021
  */
-final case class BedRowExpr(annotation: Annotation) extends DataRowParser[BedRow] {
+final case class BedRowExpr(annotation: Annotation) extends DataRowParser[Try[BedRow]] {
   private val columns = new BedRowExpr.Columns(this)
   
-  override def apply(row: DataRow): BedRow = {
+  override def apply(row: DataRow): Try[BedRow] = Try {
     BedRow(
       dataset = columns.dataset(row),
       biosampleId = columns.biosampleId(row),    // e.g. UBERON:293289
@@ -124,14 +125,16 @@ object BedRowExpr {
     val source = LiteralColumnExpr(expr.annotation.source)
     val assay = LiteralColumnExpr(expr.annotation.assay)
     val collection = LiteralColumnExpr(expr.annotation.collection)
-    val chromosome = {
+    val chromosome = /*handleNaValues*/ {
       ColumnTransforms.ensureAlphabeticChromNames {
         ColumnTransforms.normalizeChromNames {
           ColumnName("chromosome").or(ColumnName("chr")).or(ColumnName("chrom"))
         }
       }.trim
     }
-    val start = ColumnName("start").or(ColumnName("chromStart")).asLong
+    val start = /*handleNaValues*/ {
+      ColumnName("start").or(ColumnName("chromStart")).asLong
+    }
     val end = ColumnName("end").or(ColumnName("chromEnd")).asLong
     // the annotation name needs to be harmonized (accessible chromatin is special!)
     val state = {
@@ -159,6 +162,17 @@ object BedRowExpr {
   }
   
   //TODO: Handle '.' values?
+  
+  import scala.reflect.runtime.universe.TypeTag
+  
+  private def handleNaValues[A : TypeTag](expr: ColumnExpr[A])(): ColumnExpr[Option[A]] = {
+    expr.map { a =>
+      val s = a.toString.trim
+      
+      if(pandasDefaultNaValues.contains(s)) { None }
+      else { Some(a) }
+    }
+  }
   
   //See https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html 
   private val pandasDefaultNaValues: Set[String] = Set(

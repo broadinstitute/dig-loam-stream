@@ -19,6 +19,11 @@ import loamstream.loam.intake.IntakeSyntax
 import loamstream.loam.intake.ToFileLogContext
 import loamstream.loam.intake.ConcreteCloseablePredicate
 import loamstream.util.CanBeClosed
+import loamstream.loam.intake.CloseableTransform
+import loamstream.loam.intake.ConcreteCloseableTransform
+import scala.util.Success
+import loamstream.loam.intake.DataRow
+import scala.util.Failure
 
 /**
  * @author clint
@@ -39,6 +44,7 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
         annotation: Annotation,
         auth: Auth,
         awsClient: AwsClient,
+        logCtx: ToFileLogContext, 
         yes: Boolean = false) {
       
       import annotation.annotationId 
@@ -73,7 +79,11 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
         
         val bedRowExpr = BedRowExpr(annotation)
         
-        val bedRows = Beds.downloadBed(url, auth).map(bedRowExpr)
+        val bedRowAttempts = Beds.downloadBed(url, auth).map(row => (row, bedRowExpr(row)))
+        
+        val bedRows = {
+          bedRowAttempts.map(Transforms.logFailures(logCtx)).collect { case (_, Success(bedRow)) => bedRow }
+        }
         
         val (count, _) = TimeUtils.time(s"Uploading '${datasetName}'", info(_)) {
           countAndUpload.process(bedRows.records)
@@ -97,14 +107,28 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
     def uploadAnnotatedDataset(
         auth: Auth,
         awsClient: AwsClient,
+        logTo: Store, 
+        append: Boolean,
         yes: Boolean = false)(annotation: Annotation): Unit = {
+      
+      uploadAnnotatedDataset(auth, awsClient, IntakeSyntax.Log.toFile(logTo, append), yes)(annotation)
+    }
+      
+    /**
+     * Download region annotations loaded from DGA and upload them to S3
+     */
+    def uploadAnnotatedDataset(
+        auth: Auth,
+        awsClient: AwsClient,
+        logCtx: ToFileLogContext,
+        yes: Boolean)(annotation: Annotation): Unit = {
       
       import annotation.annotationId 
       import annotation.annotationType
       
       info(s"Creating ${annotationType} dataset ${annotationId}")
       
-      val ops = new UploadOps(annotation, auth, awsClient, yes)
+      val ops = new UploadOps(annotation, auth, awsClient, logCtx, yes = yes)
       
       ops.commitAndCloseSinkAfter { sink =>
         // if the metadata matches what's in HDFS already it can be skipped
@@ -164,6 +188,23 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
     private def whitespaceToUnderscores(s: String) = s.toLowerCase.replaceAll("\\s+", "_")
     
     private def toDatasetName(a: Annotation): String = whitespaceToUnderscores(a.annotationId)
+    
+    object Transforms {
+      def logFailures(logTo: Store, append: Boolean = false): CloseableTransform[(DataRow, Try[BedRow])] = {
+        logFailures(IntakeSyntax.Log.toFile(logTo, append))
+      }
+      
+      def logFailures(implicit logCtx: ToFileLogContext): CloseableTransform[(DataRow, Try[BedRow])] = {
+        ConcreteCloseableTransform(logCtx) { 
+          case t @ (_, Success(_)) => t
+          case t @ (row, Failure(e)) => {
+            logCtx.warn(s"Parsing BED row $row failed with ${e.getMessage}", e)
+            
+            t
+          }
+        }
+      }
+    }
     
     object Predicates {
       /**

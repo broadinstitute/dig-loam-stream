@@ -10,6 +10,115 @@ import loamstream.loam.intake.Helpers
  * Feb 11, 2021
  */
 final class BedRowExprTest extends FunSuite {
+  test("Apply - good input") {
+    val chromColumnNames = Seq("chromosome", "chr", "chrom")
+    val startColumnNames = Seq("start", "chromStart")
+    val endColumnNames = Seq("end", "chromEnd")
+    val stateColumnNames = Seq("state", "name")
+    
+    val annotations = Seq(
+        annotation.copy(annotationType = "accessible_chromatin"),
+        annotation.copy(annotationType = "target_gene_prediction"),
+        annotation)
+    
+    for {
+      chromColumn <- chromColumnNames
+      startColumn <- startColumnNames
+      endColumn <- endColumnNames
+      stateColumn <- stateColumnNames
+      ann <- annotations
+    } {
+      val row = Helpers.csvRow(
+          "foo" -> "bar", 
+          chromColumn -> "cHr14",
+          startColumn -> "5432",
+          "baz" -> "blerg",
+          endColumn -> "123456",
+          stateColumn -> "asdfghjkl",
+          "zuh" -> "bip",
+          "target_gene" -> "qwerty",
+          "target_gene_start" -> "456",
+          "target_gene_end" -> "789")
+       
+      val expr = BedRowExpr(ann)          
+          
+      val bedRow = expr(row).get
+      
+      assert(bedRow.dataset === ann.annotationId)
+      assert(bedRow.biosampleId === ann.biosampleId)
+      assert(bedRow.biosampleType === ann.biosampleType)
+      assert(bedRow.biosample === ann.biosample)
+      assert(bedRow.tissueId === ann.tissueId)
+      assert(bedRow.tissue === ann.tissue)
+      assert(bedRow.annotation === ann.annotationType.replaceAll("\\s+", "_"))
+      assert(bedRow.category === ann.category)
+      assert(bedRow.method === ann.method)
+      assert(bedRow.source === ann.source)
+      assert(bedRow.assay === ann.assay)
+      assert(bedRow.collection === ann.collection)
+      assert(bedRow.chromosome === "14")
+      assert(bedRow.start === 5432L)
+      assert(bedRow.end === 123456L)
+      
+      val expectedState = if(ann.annotationType == "accessible_chromatin") "accessible_chromatin" else "asdfghjkl"
+      
+      assert(bedRow.state === expectedState)
+        
+      val (expectedTargetGene: Option[String], 
+           expectedTargetGeneStart: Option[Long], 
+           expectedTargetGeneEnd: Option[Long]) = {
+        
+        if(ann.annotationType == "target_gene_prediction") { (Some("qwerty"), Some(456L), Some(789L)) }
+        else { (None, None, None) }
+      }
+      
+      assert(bedRow.targetGene === expectedTargetGene)
+      assert(bedRow.targetGeneStart === expectedTargetGeneStart)
+      assert(bedRow.targetGeneEnd === expectedTargetGeneEnd)
+    }
+  }
+  
+  test("Apply - bad input") {
+    val chromColumnNames = Seq("chromosome", "chr", "chrom")
+    val startColumnNames = Seq("start", "chromStart")
+    val endColumnNames = Seq("end", "chromEnd")
+    val stateColumnNames = Seq("state", "name")
+
+    def doTest(
+        badChrom: Boolean = false, 
+        badStart: Boolean = false, 
+        badEnd: Boolean = false, 
+        badState: Boolean = false): Unit = {
+      for {
+        chromColumn <- chromColumnNames
+        startColumn <- startColumnNames
+        endColumn <- endColumnNames
+        stateColumn <- stateColumnNames
+      } {
+        val row = Helpers.csvRow(
+            "foo" -> "bar", 
+            chromColumn -> (if(badChrom) "" else "cHr14"),
+            startColumn -> (if(badStart) "hello" else "5432"),
+            "baz" -> "blerg",
+            endColumn -> (if(badEnd) "lol" else "123456"),
+            stateColumn -> (if(badState) "" else "asdfghjkl"),
+            "zuh" -> "bip",
+            "target_gene" -> "qwerty",
+            "target_gene_start" -> "456",
+            "target_gene_end" -> "789")
+         
+        val expr = BedRowExpr(annotation)         
+        
+        assert(expr(row).isFailure)
+      }
+    }
+    
+    doTest(badChrom = true)
+    doTest(badStart = true)
+    doTest(badEnd = true)
+    doTest(badState = true)
+  }
+  
   test("literal columns") {
     def doTest[A](column: BedRowExpr.Columns => ColumnExpr[A], expected: Annotation => A): Unit = {
       val row: DataRow = EmptyDataRow

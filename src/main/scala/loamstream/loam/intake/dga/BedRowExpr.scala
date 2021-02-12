@@ -15,7 +15,7 @@ import scala.util.Try
  * Jan 20, 2021
  */
 final case class BedRowExpr(annotation: Annotation) extends DataRowParser[Try[BedRow]] {
-  private val columns = new BedRowExpr.Columns(this)
+  private val columns = new BedRowExpr.Columns(annotation)
   
   override def apply(row: DataRow): Try[BedRow] = Try {
     def requiredField[A](oa: Option[A], name: String): A = {
@@ -68,22 +68,22 @@ object BedRowExpr {
     }
   }
   
-  final case class Columns(expr: BedRowExpr) {
+  final case class Columns(ann: Annotation) {
     import BedRowExpr.Implicits.ColumnExprOps
     import BedRowExpr.Implicits.ColumnExprOptionOps
     
-    val dataset = LiteralColumnExpr(expr.annotation.annotationId)
-    val biosampleId = LiteralColumnExpr(expr.annotation.biosampleId)
-    val biosampleType = LiteralColumnExpr(expr.annotation.biosampleType)
-    val biosample = LiteralColumnExpr(expr.annotation.biosample)
-    val tissueId = LiteralColumnExpr(expr.annotation.tissueId)
-    val tissue = LiteralColumnExpr(expr.annotation.tissue)
-    val annotation = LiteralColumnExpr(expr.annotation.annotationType).map(_.replaceAll("\\s+", "_"))
-    val category = LiteralColumnExpr(expr.annotation.category)
-    val method = LiteralColumnExpr(expr.annotation.method)
-    val source = LiteralColumnExpr(expr.annotation.source)
-    val assay = LiteralColumnExpr(expr.annotation.assay)
-    val collection = LiteralColumnExpr(expr.annotation.collection)
+    val dataset = LiteralColumnExpr(ann.annotationId)
+    val biosampleId = LiteralColumnExpr(ann.biosampleId)
+    val biosampleType = LiteralColumnExpr(ann.biosampleType)
+    val biosample = LiteralColumnExpr(ann.biosample)
+    val tissueId = LiteralColumnExpr(ann.tissueId)
+    val tissue = LiteralColumnExpr(ann.tissue)
+    val annotation = LiteralColumnExpr(ann.annotationType).map(_.replaceAll("\\s+", "_"))
+    val category = LiteralColumnExpr(ann.category)
+    val method = LiteralColumnExpr(ann.method)
+    val source = LiteralColumnExpr(ann.source)
+    val assay = LiteralColumnExpr(ann.assay)
+    val collection = LiteralColumnExpr(ann.collection)
     val chromosome = {
       ColumnTransforms.ensureAlphabeticChromNamesOpt {
         ColumnTransforms.normalizeChromNamesOpt {
@@ -91,27 +91,24 @@ object BedRowExpr {
         }
       }
     }
-    val start = /*handleNaValues*/ {
+    val start = {
       ColumnName("start").or(ColumnName("chromStart")).asOptionWithNaValues.asLongOption
     }
     val end = ColumnName("end").or(ColumnName("chromEnd")).asOptionWithNaValues.asLongOption
+    
     // the annotation name needs to be harmonized (accessible chromatin is special!)
-    val state = {
-      expr.annotation.annotationType match {
-        case ac @ "accessible_chromatin" => LiteralColumnExpr(Option(ac)) 
-        case _ => ColumnName("state").or(ColumnName("name")).asOptionWithNaValues 
-      }
-      
-      /* TODO: is this still relevant?
-       * if annot.harmonized_states is not None:
-                annotation_name = annot.harmonized_states.get(re.sub(r'^\d+_', '', annotation_name))
-       */
+    val state = ann.annotationType match {
+      case ac @ "accessible_chromatin" => LiteralColumnExpr(Option(ac)) 
+      case _ => ColumnName("state").or(ColumnName("name")).asOptionWithNaValues 
     }
-  
-    
-    
+      
+    /* TODO: is this still relevant?
+     * if annot.harmonized_states is not None:
+              annotation_name = annot.harmonized_states.get(re.sub(r'^\d+_', '', annotation_name))
+     */
+
     private def ifTargetGenePrediction(column: String): ColumnExpr[Option[String]] = {
-      expr.annotation.annotationType match {
+      ann.annotationType match {
         case "target_gene_prediction" => ColumnName(column).asOptionWithNaValues
         case _ => LiteralColumnExpr(None) 
       }

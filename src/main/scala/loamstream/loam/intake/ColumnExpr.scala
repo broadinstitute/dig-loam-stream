@@ -15,6 +15,8 @@ import loamstream.util.Iterators
  */
 sealed abstract class ColumnExpr[A : TypeTag] extends 
     ColumnExpr.ArithmeticOps[A] with ColumnExpr.TypeOps[A] with ColumnExpr.BooleanOps[A] with DataRowParser[A] {
+
+  protected def eval(row: DataRow): A
   
   protected[intake] def tpe: TypeTag[A] = implicitly[TypeTag[A]]
   
@@ -37,8 +39,6 @@ sealed abstract class ColumnExpr[A : TypeTag] extends
   final def ~>(name: ColumnName): NamedColumnDef[A] = NamedColumnDef(name, this)
   
   def applyOpt(row: DataRow): Option[A] = Try(apply(row)).toOption 
-  
-  protected def eval(row: DataRow): A
   
   def isDefinedAt(row: DataRow): Boolean = true
   

@@ -22,37 +22,18 @@ final case class Annotation private[dga] (
     assembly: String,
     annotationType: String,
     annotationId: String,
-    category: Option[String],   //TODO: Optional for now
-    tissueId: Option[String],   //TODO: Optional for now
+    category: Option[String],
+    tissueId: Option[String],
     tissue: Option[String],
-    source: Option[String],     //TODO: Optional for now
-    assay: Option[String],      //TODO: Optional for now
-    collection: Option[String], //TODO: Optional for now
+    source: Option[String],
+    assay: Seq[String],
+    collection: Option[String],
     biosampleId: String,
     biosampleType: String,
     biosample: Option[String],
     method: Option[String], 
     portalUsage: String,
     downloads: Seq[Annotation.Download]) extends Loggable {
-  
-  def allOptionalFieldsArePresent: Boolean = {
-    /*annotation_type (required)
-      annotation_id (required)
-      annotation_category (required)
-      portal_tissue (required)
-      portal_tissue_id (required)
-      annotation_source (required)
-      portal_usage(required)*/
-    
-    category.isDefined &&
-    tissueId.isDefined &&
-    //tissue: Option[String],
-    source.isDefined //&&
-    //assay.isDefined && //NOT REQUIRED
-    //collection.isDefined &&
-    //biosample: Option[String],
-    //method.isDefined 
-  }
   
   /**
    * Returns True if the annotation meets all criteria for ingesting.
@@ -61,10 +42,8 @@ final case class Annotation private[dga] (
     val anyDownloads = downloads.nonEmpty
     val portalUsageIsAcceptable = !portalUsageIsNone
     
-    //ignore any datasets with no annotationId, no biosampleId, or no valid datasets to load
+    //ignore any datasets with no no valid datasets to load and portalUsage != "None"
     val result = {
-      /*annotation_id.isDefined && */ 
-      /*biosampleId.isDefined && */
       anyDownloads && 
       portalUsageIsAcceptable
     }
@@ -121,8 +100,8 @@ object Annotation {
       biosampleType <- json.tryAsString("biosample_type")
       portalUsage <- json.tryAsString("portal_usage")
       method = json.asStringOption("annotation_method")
-      collection = json.asStringOption("collection")
-      assay = json.asStringOption("underlying_assay")
+      collection = json.asStringOption("collection") //TODO where does this come from?
+      assay = json.tryAsStringArray("underlying_assay").toOption.getOrElse(Nil)
       source = json.asStringOption("annotation_source")
       category = json.asStringOption("annotation_category")
       tissueId = json.asStringOption("portal_tissue_id")
@@ -149,7 +128,7 @@ object Annotation {
   }
   
   //only keep files of the right format, assembly and have been released
-  private def isValidDownload(
+  private[dga] def isValidDownload(
       assemblyId: String, 
       annotationId: String)(download: Annotation.Download)(implicit ctx: LogContext): Boolean = {
     
@@ -199,6 +178,15 @@ object Annotation {
   }
   
   object Download {
+    private[dga] def apply(assemblyId: String, url: URI, status: Status, md5Sum: String): Download = {
+      Download(
+          assemblyId = assemblyId, 
+          url = url, 
+          file = Paths.get(url.getPath), 
+          status = status, 
+          md5Sum = md5Sum)
+    }
+    
     def fromJson(assemblyId: String)(json: JValue): Try[Download] = {
       for {
         url <- json.tryAsString("files_href").map(URI.create(_))
@@ -207,27 +195,28 @@ object Annotation {
       } yield Download(
           assemblyId = assemblyId, 
           url = url, 
-          file = Paths.get(url.getPath), 
           status = status, 
           md5Sum = md5Sum)
     }
   }
   
-  sealed trait Status {
+  sealed abstract class Status(val name: String) {
     def countsAsReleased: Boolean = this match {
       case Status.Released | Status.Uploading => true
       case _ => false
     }
+    
+    override def toString: String = name
   }
   
   object Status {
-    case object Released extends Status
-    case object Uploading extends Status
-    case object Other extends Status
+    case object Released extends Status("released")
+    case object Uploading extends Status("uploading")
+    case object Other extends Status("other")
     
-    def fromString(s: String): Status = s match {
-      case "released" => Released
-      case "uploading" => Uploading
+    def fromString(s: String): Status = s.toLowerCase match {
+      case Released.name => Released
+      case Uploading.name => Uploading
       case _ => Other
     }
   }

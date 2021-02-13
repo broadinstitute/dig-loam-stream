@@ -27,6 +27,8 @@ object Json {
   
   def toJValue[A](oa: Option[A]): JValue = oa.map(toJValue(_)).getOrElse(JNull)
   
+  def toJValue[A](as: Seq[A])(implicit discriminator: DummyImplicit): JValue = JArray(as.toList.map(toJValue(_)))
+  
   implicit final class JsonOps(val jv: JValue) extends AnyVal {
     private def makeMessage(tpe: String, fieldName: String): String = {
       s"Couldn't find ${tpe} field '${fieldName}' in ${compact(render(jv))}"

@@ -52,7 +52,7 @@ final class AwsRowSinkTest extends FunSuite {
   }
 
   private def toJsonRow(row: RenderableRow): RenderableJsonRow = new RenderableJsonRow {
-    override def jsonValues: Seq[(String, JValue)] = row.headers.zip(row.values.map(Json.toJValue))
+    override def jsonValues: Seq[(String, JValue)] = row.headers.zip(row.values.map(Json.toJValue(_)))
   }
   
   test("accept / write / flush") {

@@ -294,8 +294,8 @@ final class BedRowExprTest extends FunSuite {
   private val tissueId: Option[String] = Some("sdgpl89dg")
   private val tissue: Option[String] = Some("v9j0 8sdf")
   private val source: Option[String] = Some("c8bvfxf")
-  private val assay: Seq[String] = Seq("sdog89dfsdfgas", "sadxccvbvbmbnm")
-  private val collections: Seq[String] = Seq("vcb8ouxd.","mf")
+  private val assay: Option[Seq[String]] = Some(Seq("sdog89dfsdfgas", "sadxccvbvbmbnm"))
+  private val collections: Option[Seq[String]] = Some(Seq("vcb8ouxd.","mf"))
   private val biosampleId: String = "ldsfgkn b"
   private val biosampleType: String = "dlskjflsdfa1"
   private val biosample: Option[String] = Some(",mvn,vnmv,b")

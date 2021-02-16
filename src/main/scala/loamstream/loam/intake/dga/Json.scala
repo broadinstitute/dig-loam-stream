@@ -46,8 +46,6 @@ object Json {
       case _ => None 
     }
     
-    def asOptionalStringArray(fieldName: String): Seq[String] = tryAsStringArray(fieldName).toOption.getOrElse(Nil)
-    
     def tryAsArray(fieldName: String): Try[Seq[JValue]] = (jv \ fieldName) match {
       case JArray(jvs) => Success(jvs)
       case _ => Tries.failure(makeMessage("string", fieldName)) 

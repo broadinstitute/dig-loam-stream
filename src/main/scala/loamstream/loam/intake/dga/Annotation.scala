@@ -26,8 +26,8 @@ final case class Annotation private[dga] (
     tissueId: Option[String],
     tissue: Option[String],
     source: Option[String],
-    assay: Seq[String],
-    collection: Seq[String],
+    assay: Option[Seq[String]],
+    collection: Option[Seq[String]],
     biosampleId: String,
     biosampleType: String,
     biosample: Option[String],
@@ -100,8 +100,8 @@ object Annotation {
       biosampleType <- json.tryAsString("biosample_type")
       portalUsage <- json.tryAsString("portal_usage")
       method = json.asStringOption("annotation_method")
-      collections = json.asOptionalStringArray("collection_tags")
-      assay = json.tryAsStringArray("underlying_assay").toOption.getOrElse(Nil)
+      collections = json.tryAsStringArray("collection_tags").toOption
+      assay = json.tryAsStringArray("underlying_assay").toOption
       source = json.asStringOption("annotation_source")
       category = json.asStringOption("annotation_category")
       tissueId = json.asStringOption("portal_tissue_id")

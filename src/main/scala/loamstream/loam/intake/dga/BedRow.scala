@@ -19,8 +19,8 @@ final case class BedRow(
     category: Option[String], //TODO: Only Optional for now
     method: Option[String],  //TODO: Only Optional for now; e.g. MAC2
     source: Option[String],   //TODO: Only Optional for now; e.g. ATAC-seq-peak
-    assay: Seq[String],   //TODO: Only Optional for now; e.g. ATAC-seq
-    collection: Seq[String], //TODO: Only Optional for now; e.g. ENCODE
+    assay: Option[Seq[String]],   //TODO: Only Optional for now; e.g. ATAC-seq
+    collection: Option[Seq[String]], //TODO: Only Optional for now; e.g. ENCODE
     chromosome: String,
     start: Long,
     end: Long,

@@ -29,7 +29,7 @@ final class AnnotationTest extends FunSuite with Loggable {
       tissue = Some("some-tissue"),
       source = Some("cCRE definitions"),
       assay = Seq("ChIP-seq", "DNase-seq"),
-      collection = None, //TODO
+      collection = Nil,
       biosampleId = "EFO:0001196",
       biosampleType = "some-biosample-type",
       biosample = Some("some-biosample"),
@@ -61,7 +61,7 @@ final class AnnotationTest extends FunSuite with Loggable {
       tissue = Some("some-tissue"),
       source = Some("cCRE definitions"),
       assay = Seq("ChIP-seq", "DNase-seq"),
-      collection = None, //TODO
+      collection = Nil,
       biosampleId = "EFO:0001196",
       biosampleType = "some-biosample-type",
       biosample = Some("some-biosample"),
@@ -91,7 +91,7 @@ final class AnnotationTest extends FunSuite with Loggable {
       tissue = Some("some-tissue"),
       source = Some("cCRE definitions"),
       assay = Seq("ChIP-seq", "DNase-seq"),
-      collection = None, //TODO
+      collection = Nil,
       biosampleId = "EFO:0001196",
       biosampleType = "some-biosample-type",
       biosample = Some("some-biosample"),
@@ -125,7 +125,7 @@ final class AnnotationTest extends FunSuite with Loggable {
       tissue = Some("some-tissue"),
       source = Some("cCRE definitions"),
       assay = Seq("ChIP-seq", "DNase-seq"),
-      collection = None, //TODO
+      collection = Seq("ENCODE", "FoOoO"),
       biosampleId = "EFO:0001196",
       biosampleType = "some-biosample-type",
       biosample = Some("some-biosample"),
@@ -245,7 +245,8 @@ object AnnotationTest {
             ],
             "annotation_source": "cCRE definitions",
             "collection_tags": [
-                "ENCODE"
+                "ENCODE",
+                "FoOoO"
             ],
             "publications": [
                 "doi:10.1038/s41586-020-2493-4",

@@ -27,7 +27,7 @@ final case class Annotation private[dga] (
     tissue: Option[String],
     source: Option[String],
     assay: Seq[String],
-    collection: Option[String],
+    collection: Seq[String],
     biosampleId: String,
     biosampleType: String,
     biosample: Option[String],
@@ -100,7 +100,7 @@ object Annotation {
       biosampleType <- json.tryAsString("biosample_type")
       portalUsage <- json.tryAsString("portal_usage")
       method = json.asStringOption("annotation_method")
-      collection = json.asStringOption("collection") //TODO where does this come from?
+      collections = json.asOptionalStringArray("collection_tags")
       assay = json.tryAsStringArray("underlying_assay").toOption.getOrElse(Nil)
       source = json.asStringOption("annotation_source")
       category = json.asStringOption("annotation_category")
@@ -117,7 +117,7 @@ object Annotation {
         tissue = tissue,
         source = source,
         assay = assay,
-        collection = collection,
+        collection = collections,
         biosampleId = biosampleId,
         biosampleType = biosampleType,
         biosample = biosample,

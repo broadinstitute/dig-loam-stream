@@ -22,6 +22,9 @@ object Json {
     case f: Float => JDouble(f)
     case bd: BigDecimal => JDecimal(bd)
     case b: Boolean => JBool(b)
+    case None => JNull
+    case Some(value) => toJValue(value)
+    case as: Seq[_] => JArray(as.toList.map(toJValue(_)))
     case _ => sys.error(s"Unexpected ${a.getClass.getName} value '${a}'")
   }
   

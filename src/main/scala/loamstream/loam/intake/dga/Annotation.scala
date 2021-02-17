@@ -33,6 +33,7 @@ final case class Annotation private[dga] (
     biosample: Option[String],
     method: Option[String], 
     portalUsage: String,
+    harmonizedStates: Option[Map[String, String]],
     downloads: Seq[Annotation.Download]) extends Loggable {
   
   /**
@@ -107,6 +108,7 @@ object Annotation {
       tissueId = json.asStringOption("portal_tissue_id")
       biosample = tissueIdsToNames.get(biosampleId)
       tissue = tissueId.flatMap(tissueIdsToNames.get)
+      harmonizedStates = json.tryAs[Map[String, String]]("harmonized_states").toOption
     } yield {
       Annotation(
         assembly = assembly,
@@ -123,6 +125,7 @@ object Annotation {
         biosample = biosample,
         method = method,
         portalUsage = portalUsage,
+        harmonizedStates = harmonizedStates,
         downloads = fileDownloads)
     }
   }

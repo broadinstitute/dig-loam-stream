@@ -41,7 +41,7 @@ final class CsvRowTest extends FunSuite with CsvRowTest.RowHelpers {
     assert(firstRow.getFieldByIndex(1) === "hello")
     assert(firstRow.getFieldByIndex(2) === "blah_123")
     
-    assert(firstRow.values.toList === Seq("1", "hello", "blah_123"))
+    assert(firstRow.values.toList === (Seq("1", "hello", "blah_123").map(Option(_))))
     
     val skipped = firstRow.skip
     

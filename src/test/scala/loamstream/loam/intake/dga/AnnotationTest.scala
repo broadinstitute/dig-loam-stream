@@ -35,6 +35,7 @@ final class AnnotationTest extends FunSuite with Loggable {
       biosample = Some("some-biosample"),
       method = Some("ENCODE-cCREs"), 
       portalUsage = "facet",
+      harmonizedStates = Some(Map("x" -> "y")),
       downloads = downloads)
       
     assert(annotation.isUploadable === true)
@@ -67,6 +68,7 @@ final class AnnotationTest extends FunSuite with Loggable {
       biosample = Some("some-biosample"),
       method = Some("ENCODE-cCREs"), 
       portalUsage = "facet",
+      harmonizedStates = Some(Map("x" -> "y")),
       downloads = Nil)
       
     assert(a.portalUsageIsNone === false)
@@ -97,6 +99,7 @@ final class AnnotationTest extends FunSuite with Loggable {
       biosample = Some("some-biosample"),
       method = Some("ENCODE-cCREs"), 
       portalUsage = "facet",
+      harmonizedStates = Some(Map("x" -> "y")),
       downloads = downloads)
       
     val expected = Annotation.Metadata(downloads, Some("ENCODE-cCREs"))
@@ -131,6 +134,7 @@ final class AnnotationTest extends FunSuite with Loggable {
       biosample = Some("some-biosample"),
       method = Some("ENCODE-cCREs"), 
       portalUsage = "facet",
+      harmonizedStates = Some(Map("x" -> "y", "abc" -> "xyz")),
       downloads = expectedDownloads)
     
     assert(annotation === expected)
@@ -283,7 +287,7 @@ object AnnotationTest {
             "project": "AMP",
             "biosample_term_name": "IMR-90",
             "portal_usage": "facet",
-            "harmonized_states": null,
+            "harmonized_states": {"x": "y", "abc": "xyz"},
             "dataset_status": "proposed",
             "biosample_type": "some-biosample-type"
         }

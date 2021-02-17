@@ -14,18 +14,23 @@ import loamstream.util.Tries
  * Jan 20, 2021
  */
 object Json {
-  def toJValue[A](a: A): JValue = a match {
-    case s: String => JString(s)  
-    case i: Long => JLong(i)
-    case i: Int => JInt(i)
-    case d: Double => JDouble(d)
-    case f: Float => JDouble(f)
-    case bd: BigDecimal => JDecimal(bd)
-    case b: Boolean => JBool(b)
-    case None => JNull
-    case Some(value) => toJValue(value)
-    case as: Seq[_] => JArray(as.toList.map(toJValue(_)))
-    case _ => sys.error(s"Unexpected ${a.getClass.getName} value '${a}'")
+  def toJValue[A](a: A): JValue = {
+    import org.json4s.JsonDSL._
+    
+    //TODO: There must be a better way :(
+    a match {
+      case s: String => s  
+      case l: Long => l
+      case i: Int => i
+      case d: Double => d
+      case f: Float => f
+      case bd: BigDecimal => bd
+      case b: Boolean => b
+      case None => JNull
+      case Some(value) => toJValue(value)
+      case as: Seq[_] => JArray(as.map(toJValue(_)).toList)
+      case _ => sys.error(s"Unexpected ${a.getClass.getName} value '${a}'")
+    }
   }
   
   def toJValue[A](oa: Option[A]): JValue = oa.map(toJValue(_)).getOrElse(JNull)
@@ -61,6 +66,10 @@ object Json {
     def tryAsObject(fieldName: String): Try[Map[String, JValue]] = (jv \ fieldName) match {
       case jobj: JObject => Success(jobj.obj.toMap)
       case _ => Tries.failure(makeMessage("string", fieldName)) 
+    }
+    
+    def tryAs[A](fieldName: String)(implicit mf: Manifest[A], formats: Formats = DefaultFormats): Try[A] = Try {
+      (jv \ fieldName).extract[A]
     }
   }
 }

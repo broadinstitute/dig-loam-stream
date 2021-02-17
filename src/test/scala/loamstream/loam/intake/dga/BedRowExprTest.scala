@@ -221,11 +221,13 @@ final class BedRowExprTest extends FunSuite {
     }
   }
 
-  test("state column") {
+  test("state column - unprefixed, no harmonized states") {
     val columnNames = Seq("state", "name")
 
     doNaValuesTest()(_.state, columnNames: _*)
 
+    assert(annotation.harmonizedStates.isEmpty)
+    
     for {
       columnName <- columnNames
     } {
@@ -233,9 +235,49 @@ final class BedRowExprTest extends FunSuite {
 
       assert(columns.state(row) === Some("blah"))
 
-      val newColumns = columns.copy(ann = annotation.copy(annotationType = "accessible_chromatin"))
+      {
+        val newColumns = columns.copy(ann = annotation.copy(annotationType = "accessible_chromatin"))
+        
+        assert(newColumns.state(row) === Some("accessible_chromatin"))
+      }
 
-      assert(newColumns.state(row) === Some("accessible_chromatin"))
+      {
+        val newColumns = {
+          columns.copy(ann = annotation.copy(harmonizedStates = Some(Map("x" -> "y", "blah" -> "blerg"))))
+        }
+        
+        assert(newColumns.state(row) === Some("blerg"))
+      }
+    }
+  }
+  
+  test("state column - prefixed") {
+    val columnNames = Seq("state", "name")
+
+    doNaValuesTest()(_.state, columnNames: _*)
+
+    assert(annotation.harmonizedStates.isEmpty)
+    
+    for {
+      columnName <- columnNames
+    } {
+      val row = Helpers.csvRow("foo" -> "bar", columnName -> "54321_blah")
+
+      assert(columns.state(row) === Some("blah"))
+
+      {
+        val newColumns = columns.copy(ann = annotation.copy(annotationType = "accessible_chromatin"))
+        
+        assert(newColumns.state(row) === Some("accessible_chromatin"))
+      }
+
+      {
+        val newColumns = {
+          columns.copy(ann = annotation.copy(harmonizedStates = Some(Map("x" -> "y", "blah" -> "blerg"))))
+        }
+        
+        assert(newColumns.state(row) === Some("blerg"))
+      }
     }
   }
 
@@ -317,6 +359,7 @@ final class BedRowExprTest extends FunSuite {
     biosample = biosample,
     method = method,
     portalUsage = portalUsage,
+    harmonizedStates = None,
     downloads = Nil)
 
   private val columns = BedRowExpr.Columns(annotation)

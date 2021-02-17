@@ -9,6 +9,7 @@ import com.sun.org.apache.xalan.internal.xsltc.compiler.LiteralExpr
 import loamstream.loam.intake.LiteralColumnExpr
 import loamstream.loam.intake.ColumnTransforms
 import scala.util.Try
+import scala.util.matching.Regex
 
 /**
  * @author clint
@@ -36,11 +37,11 @@ final case class BedRowExpr(annotation: Annotation) extends DataRowParser[Try[Be
       method = columns.method(row),  // e.g. MAC2
       source = columns.source(row),   // e.g. ATAC-seq-peak
       assay = columns.assay(row),   // e.g. ATAC-seq
-      collection = columns.collection(row), // e.g. ENCODE
+      collection = columns.collection(row), 
       chromosome = requiredField(columns.chromosome(row), "chromosome"),
       start = requiredField(columns.start(row), "start"),
       end = requiredField(columns.end(row), "end"),
-      state = requiredField(columns.state(row), "state"), //was name
+      state = requiredField(columns.state(row), "state"), 
       targetGene = columns.targetGene(row),    //TODO  only for annotation_type == "target_gene_prediction"
       targetGeneStart = columns.targetGeneStart(row),    // TODO only for annotation_type == "target_gene_prediction"
       targetGeneEnd = columns.targetGeneEnd(row) //TODO  only for annotation_type == "target_gene_prediction"
@@ -65,6 +66,10 @@ object BedRowExpr {
       }
       
       def asLongOption(implicit ev: A =:= String): ColumnExpr[Option[Long]] = expr.map(_.map(a => ev(a).toLong))
+      
+      def remove(regex: String)(implicit ev: A =:= String): ColumnExpr[Option[String]] = {
+        expr.map(_.map(_.replaceAll(regex, "")))
+      }
     }
   }
   
@@ -97,15 +102,21 @@ object BedRowExpr {
     val end = ColumnName("end").or(ColumnName("chromEnd")).asOptionWithNaValues.asLongOption
     
     // the annotation name needs to be harmonized (accessible chromatin is special!)
-    val state = ann.annotationType match {
-      case ac @ "accessible_chromatin" => LiteralColumnExpr(Option(ac)) 
-      case _ => ColumnName("state").or(ColumnName("name")).asOptionWithNaValues 
+    val state = {
+      val baseExpr = (ann.annotationType match {
+        case ac @ "accessible_chromatin" => LiteralColumnExpr(Option(ac)) 
+        case _ => ColumnName("state").or(ColumnName("name")).asOptionWithNaValues 
+      }).map {
+        //Strip any leading digit prefix, if present
+        _.map(_.replaceAll("^\\d+_", ""))
+      }
+
+      //Look up the base value in harmnoizedStates mapping, and use the mapped value, if one is found. 
+      ann.harmonizedStates match {
+        case Some(hs) => baseExpr.map(_.flatMap(hs.get))
+        case None => baseExpr
+      }
     }
-      
-    /* TODO: is this still relevant?
-     * if annot.harmonized_states is not None:
-              annotation_name = annot.harmonized_states.get(re.sub(r'^\d+_', '', annotation_name))
-     */
 
     private def ifTargetGenePrediction(column: String): ColumnExpr[Option[String]] = {
       ann.annotationType match {

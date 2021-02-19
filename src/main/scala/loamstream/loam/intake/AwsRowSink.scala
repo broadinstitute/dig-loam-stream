@@ -186,12 +186,6 @@ final case class AwsRowSink(
       //write the batched records to the bucket
       if(yes) {
         awsClient.put(key, body, contentType = Some(AwsClient.ContentType.ApplicationJson))
-        
-        /*self.s3.put_object(
-            Bucket=self.bucket,
-            Key=key,
-            Body=body,
-            ContentType="application/json")*/
       }
 
       info(s"Wrote ${key}")
@@ -207,16 +201,20 @@ final case class AwsRowSink(
   /**
    * Write the last batch and then write the dataset to the database.
    */
-  def commit(metadata: JObject): Unit = uploadedSoFarBox.foreach { uploadedSoFar =>
-    flush()
-
-    //don't write metadata if there are no records
-    if(uploadedSoFar > 0) {
-      writeMetadata(metadata)
-      
-      info(s"Committed ${uploadedSoFar} items to ${path}")
-    } else {
-      warn("No records; metadata not written!")
+  def commit(metadata: JObject): Unit = uploadedSoFarBox.foreach { _ =>
+      flush()
+    
+      for {
+        uploadedSoFar <- uploadedSoFarBox
+      } {
+      //don't write metadata if there are no records
+      if(uploadedSoFar > 0) {
+        writeMetadata(metadata)
+        
+        info(s"Committed ${uploadedSoFar} items to ${path}")
+      } else {
+        warn("No records; metadata not written!")
+      }
     }
   }
   

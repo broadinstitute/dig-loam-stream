@@ -207,16 +207,10 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
     }
     
     object Predicates {
-      /**
-       * Pass rows where 0 < maf <= 0.5
-       */
       def isUploadable(logTo: Store, append: Boolean = false): CloseablePredicate[Annotation] = {
         isUploadable(IntakeSyntax.Log.toFile(logTo, append))
       }
       
-      /**
-       * Pass rows where 0 < maf <= 0.5
-       */
       def isUploadable(implicit logCtx: ToFileLogContext): CloseablePredicate[Annotation] = {
         ConcreteCloseablePredicate[Annotation](logCtx) { annotation =>
           val result = annotation.isUploadable

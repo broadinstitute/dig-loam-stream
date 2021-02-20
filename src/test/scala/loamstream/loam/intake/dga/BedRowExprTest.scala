@@ -146,7 +146,7 @@ final class BedRowExprTest extends FunSuite {
       columnNames: String*): Unit = {
     
     val rows = for {
-      v <- pandasDefaultNaValues.toSeq
+      v <- naValues.toSeq
       columnName <- columnNames
     } yield Helpers.csvRow("foo" -> "bar", columnName -> v)
 
@@ -156,8 +156,8 @@ final class BedRowExprTest extends FunSuite {
   }
 
   //See https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html
-  private val pandasDefaultNaValues: Set[String] = Set(
-    "", "#N/A", "#N/A N/A", "#NA", "-1.#IND", "-1.#QNAN", "-NaN", "-nan",
+  private val naValues: Set[String] = Set(
+    "", ".", "#N/A", "#N/A N/A", "#NA", "-1.#IND", "-1.#QNAN", "-NaN", "-nan",
     "1.#IND", "1.#QNAN", "<NA>", "N/A", "NA", "NULL", "NaN", "n/a", "nan", "null")
 
   test("chromosome column") {

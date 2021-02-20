@@ -132,7 +132,7 @@ object BedRowExpr {
   
   //See https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html 
   private val pandasDefaultNaValues: java.util.Set[String] = asJavaSet(
-       "", "#N/A", "#N/A N/A", "#NA", "-1.#IND", "-1.#QNAN", "-NaN", "-nan", 
+       "", ".", "#N/A", "#N/A N/A", "#NA", "-1.#IND", "-1.#QNAN", "-NaN", "-nan", 
        "1.#IND", "1.#QNAN", "<NA>", "N/A", "NA", "NULL", "NaN", "n/a", "nan", "null")
   
   private def asJavaSet[A](as: A*): java.util.Set[A] = {

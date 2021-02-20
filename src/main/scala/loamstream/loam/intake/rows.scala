@@ -92,13 +92,13 @@ trait IndexedRow extends RowWithSize with RenderableRow {
 final case class AggregatorVariantRow(
   marker: Variant,
   pvalue: Double,
-  zscore: Option[Double] = None,
+  zscore: Option[Double] = None, //None
   stderr: Option[Double] = None,
   beta: Option[Double] = None,
-  oddsRatio: Option[Double] = None,
+  oddsRatio: Option[Double] = None, //None
   eaf: Option[Double] = None,
   maf: Option[Double] = None,
-  n: Option[Double] = None,
+  n: Option[Double] = None, //None
   derivedFromRecordNumber: Option[Long] = None) extends RenderableRow {
   
   import AggregatorVariantRow.fieldCount
@@ -106,24 +106,20 @@ final case class AggregatorVariantRow(
   override def headers: Seq[String] = {
     val buffer = new ArrayBuffer[String](fieldCount) //scalastyle:ignore magic.number
     
-    def add(o: Option[_], columnName: ColumnName): Unit = {
-      if(o.isDefined) { 
-        buffer += columnName.name
-      }
-    }
+    def add(columnName: ColumnName): Unit = buffer += columnName.name
     
     //TODO: This will be wrong is non-default column names were used :( :( 
     
-    buffer += AggregatorColumnNames.marker.name
-    buffer += AggregatorColumnNames.pvalue.name
+    add(AggregatorColumnNames.marker)
+    add(AggregatorColumnNames.pvalue)
     
-    add(zscore, AggregatorColumnNames.zscore)
-    add(stderr, AggregatorColumnNames.stderr)
-    add(beta, AggregatorColumnNames.beta)
-    add(oddsRatio, AggregatorColumnNames.odds_ratio)
-    add(eaf, AggregatorColumnNames.eaf)
-    add(maf, AggregatorColumnNames.maf)
-    add(n, AggregatorColumnNames.n)
+    add(AggregatorColumnNames.zscore)
+    add(AggregatorColumnNames.stderr)
+    add(AggregatorColumnNames.beta)
+    add(AggregatorColumnNames.odds_ratio)
+    add(AggregatorColumnNames.eaf)
+    add(AggregatorColumnNames.maf)
+    add(AggregatorColumnNames.n)
     
     buffer
   }

@@ -51,8 +51,9 @@ final class ProcessRealDataTest extends FunSuite with Loggable {
         stderrDef = Some(NamedColumnDef(SE, SE.asDouble)),
         betaDef = Some(beta(BETA, destColumn = BETA)),
         eafDef = Some(eaf(A1FREQ, destColumn = EAF_PH)),
-        mafDef = Some(NamedColumnDef(MAF_PH, A1FREQ.asDouble.complementIf(_ > 0.5))))
-  }
+        mafDef = Some(NamedColumnDef(MAF_PH, A1FREQ.asDouble.complementIf(_ > 0.5))),
+        failFast = true)
+    }
         
     val flipDetector: FlipDetector = new FlipDetector.Default(
         referenceDir = path("src/test/resources/intake/reference-first-1M-of-chrom1"),
@@ -110,7 +111,7 @@ final class ProcessRealDataTest extends FunSuite with Loggable {
         
         def asString(fieldName: String): (String, (String, String) => Unit) = { 
           fieldName ->  { (lhs, rhs) => 
-            assert(lhs == rhs, s"Field '$fieldName' didn't match")
+            assert(lhs === rhs, s"Field '$fieldName' didn't match")
           }
         }
         
@@ -137,19 +138,22 @@ final class ProcessRealDataTest extends FunSuite with Loggable {
       rhs: DataRow, 
       expectations: Iterable[(String, (String, String) => Unit)]): Unit = {
     
-    try {
-      expectations.foreach { case (fieldName, doAssertion) => 
-        doAssertion(lhs.getFieldByName(fieldName), rhs.getFieldByName(fieldName))
-      }
-    } catch {
-      case NonFatal(e) => {
-        val msg = {
-          def mkString(row: DataRow): String = row.values.mkString(" ")
+    expectations.foreach { case (fieldName, doAssertion) =>
+      try {
+        doAssertion(
+            lhs.getFieldByName(fieldName), 
+            rhs.getFieldByName(fieldName))
+      } catch {
+        case NonFatal(e) => {
+          val msg = {
+            def mkString(row: DataRow): String = row.values.mkString(" ")
+            
+            s"Rows didn't match when comparing field '$fieldName': \nactual: '${mkString(lhs)}'\n" + 
+            s"expected: '${mkString(rhs)}', '$lhs' != '$rhs'"
+          }
           
-          s"Rows didn't match: \nactual: '${mkString(lhs)}'\nexpected: '${mkString(rhs)}', '$lhs' != '$rhs'"
+          throw new Exception(msg, e)
         }
-        
-        throw new Exception(msg, e)
       }
     }
     

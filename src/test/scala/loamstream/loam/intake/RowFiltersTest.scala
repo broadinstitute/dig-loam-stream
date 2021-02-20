@@ -48,8 +48,8 @@ final class RowFiltersTest extends FunSuite {
       val actual = filtered.map(_.values.toIndexedSeq)
       
       val expected = Seq(
-          Seq("G", "C", "42"),
-          Seq("A", "T", "42"))
+          Seq("G", "C", "42").map(Option(_)),
+          Seq("A", "T", "42").map(Option(_)))
      
       assert(actual === expected)
       
@@ -89,8 +89,8 @@ final class RowFiltersTest extends FunSuite {
       val actual = filtered.map(_.values.toIndexedSeq)
       
       val expected = Seq(
-          Seq("G", "C", "42"),
-          Seq("A", "T", "42"))
+          Seq("G", "C", "42").map(Option(_)),
+          Seq("A", "T", "42").map(Option(_)))
      
       assert(actual === expected)
       
@@ -123,7 +123,7 @@ final class RowFiltersTest extends FunSuite {
           
       val filtered = rows.filter(predicate)
       
-      val actual = filtered.map(_.values.mkString(" ")).toIndexedSeq
+      val actual = filtered.map(_.values.map(_.get).mkString(" ")).toIndexedSeq
       
       val expected = Seq(
           "2 42",
@@ -160,7 +160,7 @@ final class RowFiltersTest extends FunSuite {
           
       val filtered = rows.filter(predicate)
       
-      val actual = filtered.map(_.values.mkString(" ")).records.toIndexedSeq
+      val actual = filtered.map(_.values.map(_.get).mkString(" ")).records.toIndexedSeq
       
       val expected = Seq("15 90225158 C T 0.00157008 8.44 1 15:90225158:C:T 15 90768390")
           

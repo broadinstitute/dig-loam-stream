@@ -77,26 +77,31 @@ final case class Annotation private[dga] (
 object Annotation {
   import Json.JsonOps
   
+  private def allFileDownloads(assemblyId: String, json: JValue): Try[Iterable[Download]] = {
+    json.tryAsObject("file_download").flatMap { downloadsById =>
+      val downloadJVs = downloadsById.values.collect { case arr: JArray => arr }.flatMap(_.arr)
+      
+      Tries.sequence(downloadJVs.map(Download.fromJson(assemblyId)))
+    }
+  }
+    
+  private def filteredSortedFileDownloads(
+      assemblyId: String, 
+      annotationId: String, 
+      json: JValue)(implicit ctx: LogContext): Try[Seq[Download]] = {
+    
+    allFileDownloads(assemblyId, json)
+      .map(_.filter(isValidDownload(assemblyId, annotationId)).toSeq.sortBy(_.md5Sum))
+  }
+  
   def fromJson(
-      assembly: String, 
+      assemblyId: String, 
       tissueIdsToNames: Map[String, String])(json: JValue)(implicit ctx: LogContext): Try[Annotation] = {
-    
-    def allFileDownloads: Try[Iterable[Download]] = {
-      json.tryAsObject("file_download").flatMap { downloadsById =>
-        val downloadJVs = downloadsById.values.collect { case arr: JArray => arr }.flatMap(_.arr)
-        
-        Tries.sequence(downloadJVs.map(Download.fromJson(assembly)))
-      }
-    }
-    
-    def filteredSortedFileDownloads(annotationId: String): Try[Seq[Download]] = {
-      allFileDownloads.map(_.filter(isValidDownload(assembly, annotationId)).toSeq.sortBy(_.md5Sum))
-    }
     
     for {
       annotationId <- json.tryAsString("annotation_id")
       annotationType <- json.tryAsString("annotation_type")
-      fileDownloads <- filteredSortedFileDownloads(annotationId)
+      fileDownloads <- filteredSortedFileDownloads(assemblyId, annotationId, json)
       biosampleId <- json.tryAsString("biosample_term_id")
       biosampleType <- json.tryAsString("biosample_type")
       portalUsage <- json.tryAsString("portal_usage")
@@ -111,7 +116,7 @@ object Annotation {
       harmonizedStates = json.tryAs[Map[String, String]]("harmonized_states").toOption
     } yield {
       Annotation(
-        assembly = assembly,
+        assembly = assemblyId,
         annotationId = annotationId,
         annotationType = annotationType,
         category = category,
@@ -247,7 +252,7 @@ object Annotation {
       val annotationMethodPart: Option[JField] = annotationMethod.map("method" -> JString(_))
       
       val fields: Seq[JField] = Seq(
-        "sources" -> JArray(this.sources.toList.map(_.toJson)),
+        "sources" -> JArray(this.sources.toList.map(_.toJson))
       ) ++ annotationMethodPart
       
       JObject(fields: _*)

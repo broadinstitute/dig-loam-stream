@@ -38,7 +38,7 @@ final class DataRowTest extends FunSuite {
       oddsRatio,
       eaf,
       maf,
-      n).map(_.toString)
+      n).map(_.toString).map(Option(_))
       
     assert(row.values === expected)
   }
@@ -55,13 +55,16 @@ final class DataRowTest extends FunSuite {
       maf = None,
       n = Some(n))
       
-    val expected = Seq(
-      marker.underscoreDelimited,
-      pvalue,
-      zscore,
-      beta,
-      eaf,
-      n).map(_.toString)
+    val expected: Seq[Option[String]] = Seq(
+      Some(marker.underscoreDelimited),
+      Some(pvalue.toString),
+      Some(zscore.toString),
+      None,
+      Some(beta.toString),
+      None,
+      Some(eaf.toString),
+      None,
+      Some(n.toString))
       
     assert(row.values === expected)
   }

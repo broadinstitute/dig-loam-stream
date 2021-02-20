@@ -9,7 +9,8 @@ import loamstream.model.Store
 trait RowFilters { self: IntakeSyntax =>
   
   private def asString(r: RenderableRow): String = r.headers.iterator.zip(r.values.iterator).map { 
-    case (h, v) => s"(${h},${v})"
+    case (h, Some(v)) => s"(${h},${v})"
+    case (h, None) => s"(${h},.)"
   }.mkString(",")
   
   object DataRowFilters {
@@ -22,7 +23,9 @@ trait RowFilters { self: IntakeSyntax =>
         refColumn: ColumnExpr[String], 
         altColumn: ColumnExpr[String],
         logStore: Store,
-        append: Boolean = false): CloseableDataRowPredicate = noDsNorIs(refColumn, altColumn)(Log.toFile(logStore, append))
+        append: Boolean = false): CloseableDataRowPredicate = {
+      noDsNorIs(refColumn, altColumn)(Log.toFile(logStore, append))
+    }
     
     /**
      * Pass rows with no 'D's or 'I's in either refColumn or altColumn
@@ -87,8 +90,8 @@ trait RowFilters { self: IntakeSyntax =>
   
   object AggregatorVariantRowFilters {
     /**
-     * Given a DataRowPredicate and a place to log rows that don't pass the predicate, return a CloseableDataRowPredicate
-     * That applies `p` and writes a message for each row that doesn't pass to `store`.
+     * Given a DataRowPredicate and a place to log rows that don't pass the predicate, return a 
+     * CloseableDataRowPredicate That applies `p` and writes a message for each row that doesn't pass to `store`.
      */
     def logToFile(
         store: Store, 

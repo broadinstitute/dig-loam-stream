@@ -161,7 +161,9 @@ object ColumnExpr {
     override def eval(row: DataRow): A = rowParser(row)
   }
   
-  def fromPartialRowParser[A: TypeTag](rowParser: PartialDataRowParser[A]): ColumnExpr[A] = new PartialColumnExpr(rowParser)
+  def fromPartialRowParser[A: TypeTag](rowParser: PartialDataRowParser[A]): ColumnExpr[A] = {
+    new PartialColumnExpr(rowParser)
+  }
   
   implicit final class ExprOps[A](val a: A) extends AnyVal {
     def +(rhs: ColumnExpr[A])(implicit ev: Numeric[A], tt: TypeTag[A]): ColumnExpr[A] = LiteralColumnExpr(a) + rhs

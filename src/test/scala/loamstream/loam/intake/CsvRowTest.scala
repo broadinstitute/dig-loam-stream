@@ -53,7 +53,7 @@ final class CsvRowTest extends FunSuite with CsvRowTest.RowHelpers {
     assert(skipped.isSkipped === true)
     assert(skipped.notSkipped === false)
     
-    assert(firstRow.values.toList === Seq("1", "hello", "blah_123"))
+    assert(firstRow.values.toList === Seq("1", "hello", "blah_123").map(Option(_)))
     
     assert(firstRow.values.toList === skipped.values.toList)
   }

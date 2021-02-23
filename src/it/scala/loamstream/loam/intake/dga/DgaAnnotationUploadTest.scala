@@ -1,13 +1,14 @@
 package loamstream.util
 
-import loamstream.loam.intake.dga.Annotation
-import loamstream.loam.intake.dga.AnnotationsSupport
+import java.io.File
+import java.nio.file.{ Paths => JPaths }
+
+import scala.util.Success
+
+import loamstream.loam.intake.ToFileLogContext
 import loamstream.loam.intake.dga.AssemblyIds
 import loamstream.loam.intake.dga.DgaSyntax
 import loamstream.util.HttpClient.Auth
-import scala.util.Success
-import loamstream.loam.intake.ToFileLogContext
-import java.nio.file.{Paths => JPaths}
 
 /**
  * @author clint
@@ -20,7 +21,24 @@ final class DgaAnnotationsUploadTest extends AwsFunSuite with DgaSyntax with Log
     
     val awsClient = new AwsClient.Default(aws)
     
-    val annotations = Dga.Annotations.downloadAnnotations(AssemblyIds.hg19)
+    val annotationJsonFile = "/home/clint/workspace/dig-aggregator-intake/dga/annotations/raw-json-output-2021-02-22.json"
+  
+    def cannedAnnotationData: String = CanBeClosed.using(scala.io.Source.fromFile(new File(annotationJsonFile))) {
+      _.mkString
+    }
+    
+    val tissueJsonFile = "/home/clint/workspace/dig-aggregator-intake/dga/tissues/ontology/raw-dga-output.json"
+    
+    def cannedTissueData: String = CanBeClosed.using(scala.io.Source.fromFile(new File(annotationJsonFile))) {
+      _.mkString
+    }
+    
+    val (_, tissueSource) = Dga.Tissues.versionAndTissueSource(cannedTissueData)
+    
+    val annotations = Dga.Annotations.downloadAnnotations(
+        AssemblyIds.hg19,
+        annotationJsonString = cannedAnnotationData, 
+        tissueSource = tissueSource)
     
     //TODO
     val logCtx = new ToFileLogContext(JPaths.get("./bad-annotations"))
@@ -44,7 +62,7 @@ final class DgaAnnotationsUploadTest extends AwsFunSuite with DgaSyntax with Log
         "tstsr798156")
     
     //TODO: FIXME: Process more 
-    val firstN = uploadableAnnotations.filter(a => annotationIdsToUpload.contains(a.annotationId)).records.foreach {
+    val firstN = uploadableAnnotations.take(10).records.foreach {
       Dga.Annotations.uploadAnnotatedDataset(auth, awsClient, logCtx, yes = true)
     }
   }

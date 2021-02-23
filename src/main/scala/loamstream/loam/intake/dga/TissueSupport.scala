@@ -13,6 +13,7 @@ import loamstream.util.HttpClient
 import loamstream.util.Loggable
 import loamstream.util.SttpHttpClient
 import loamstream.util.TimeUtils
+import org.json4s.jackson.JsonMethods._
 
 /**
  * @author clint
@@ -20,11 +21,20 @@ import loamstream.util.TimeUtils
  */
 trait TissueSupport { self: Loggable =>
   object Tissues {
-    def versionAndTissueSource(
-          url: String = Defaults.tissueUrl,
-          httpClient: HttpClient = new SttpHttpClient()): (Source[String], Source[Tissue]) = {
+    def versionAndTissueSource(jsonData: => String): (Source[String], Source[Tissue]) = {
+      
+      def getVersion(json: JValue): String = (json \ "version") match {
+        case JString(v) => v
+        case n: JNumber => n.values.toString
+        case jv => sys.error(s"Couldn't determine tissue ontology version, got $jv from '${pretty(json)}'")
+      }
+      
+      def toTissue(row: DataRow): Tissue = {
+        val tid = ColumnName("tissue_id")
+        val name = ColumnName("name")
         
-      import org.json4s.jackson.JsonMethods._
+        Tissue(id = row.getFieldByNameOpt("tissue_id"), name = row.getFieldByNameOpt("name")) 
+      }
       
       def getTissueRows(json: JValue): Iterable[JObject] = {
         (json \ "tissues") match {
@@ -37,37 +47,29 @@ trait TissueSupport { self: Loggable =>
         }
       }
       
-      def getVersion(json: JValue): String = (json \ "version") match {
-        case JString(v) => v
-        case n: JNumber => n.values.toString
-        case jv => sys.error(s"Couldn't determine tissue ontology version, got $jv from '${pretty(json)}'")
-      }
+      val json = parse(jsonData)
       
-      def getJson: JValue = {
-        httpClient.post(url, headers = Headers.ContentType.applicationJson).map(parse(_)) match {
-          case Right(json) => json
-          case Left(message) => sys.error(s"Error accessing tissue ontology: '${message}'")
-        }
-      }
-      
-      def toTissue(row: DataRow): Tissue = {
-        val tid = ColumnName("tissue_id")
-        val name = ColumnName("name")
-        
-        Tissue(id = row.getFieldByNameOpt("tissue_id"), name = row.getFieldByNameOpt("name")) 
-      }
-      
-      lazy val json = TimeUtils.time(s"Hitting $url", info(_)) {
-        getJson
-      }
-        
-      val version = Source.FromIterator {
-        Iterator(getVersion(json).trim)
+      val version = Source.producing {
+        getVersion(json).trim
       }
         
       val rows = Source.fromJson(getTissueRows)(json).map(toTissue)
 
       version -> rows
+    }
+    
+    def versionAndTissueSource(
+          url: String = Defaults.tissueUrl,
+          httpClient: HttpClient = new SttpHttpClient()): (Source[String], Source[Tissue]) = {
+      
+      def getJson: String = TimeUtils.time(s"Hitting $url", info(_)) {
+        httpClient.post(url, headers = Headers.ContentType.applicationJson) match {
+          case Right(json) => json
+          case Left(message) => sys.error(s"Error accessing tissue ontology: '${message}'")
+        }
+      }
+      
+      versionAndTissueSource(getJson)
     }
     
     object Defaults {

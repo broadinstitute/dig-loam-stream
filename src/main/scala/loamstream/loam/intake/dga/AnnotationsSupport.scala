@@ -34,9 +34,9 @@ import scala.util.Failure
 trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
   object Annotations {
     val annotationTypes: Set[String] = Set(
-      "accessible chromatin",
-      "chromatin state",
-      "binding sites")
+      "accessible_chromatin",
+      "chromatin_state",
+      "binding_sites")
     
     private final class UploadOps(
         annotation: Annotation,
@@ -153,7 +153,7 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
       info(s"Downloading region annotations from '$url' ...")
     
       //fetch all the annotations as JSON
-      val resp = TimeUtils.time(s"Hitting $url", info(_)) {
+      def resp = TimeUtils.time(s"Hitting $url", info(_)) {
         httpClient.post(
           url = url.toString, 
           headers = Headers.ContentType.applicationJson,
@@ -162,12 +162,27 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
           
       import org.json4s.jackson.JsonMethods._
           
-      val json = resp.map(parse(_)) match {
-        case Right(jv) => jv
+      def jsonData = resp match {
+        case Right(jsonData) => jsonData
         case Left(message) => sys.error(s"Error accessing region annotations: '${message}'")
       }
       
       val (_, tissueSource) = Tissues.versionAndTissueSource()
+      
+      downloadAnnotations(assemblyId, jsonData, tissueSource)
+    }
+    
+    /**
+     * Download all the annotations available.
+     */
+    def downloadAnnotations(
+        assemblyId: String, 
+        annotationJsonString: => String,
+        tissueSource: Source[Tissue]): Source[Try[Annotation]] = {
+      
+      import org.json4s.jackson.JsonMethods._
+          
+      val annotationJson = parse(annotationJsonString)
       
       val tissueIdsToNames: Map[String, String] = {
         tissueSource.collect { case Tissue(Some(id), Some(name)) => (id, name) }.records.toMap
@@ -176,7 +191,7 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
       import Json.JsonOps
       
       //NB: I have no idea what '11' means, if anything, but it's what's present in the JSON from DGA. 
-      val jvs = json.tryAsArray("11").getOrElse(Nil)
+      val jvs = annotationJson.tryAsArray("11").getOrElse(Nil)
         
       Source.FromIterator {
         jvs.iterator.map(Annotation.fromJson(assemblyId, tissueIdsToNames))

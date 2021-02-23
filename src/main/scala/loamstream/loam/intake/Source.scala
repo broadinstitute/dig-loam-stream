@@ -104,6 +104,8 @@ object Source extends Loggable {
     def apply[R](iterator: => Iterator[R]): FromIterator[R] = new FromIterator(iterator)
   }
   
+  def fromIterator[R](rs: => Iterator[R]): Source[R] = FromIterator(rs)
+  
   def fromIterable[R](rs: Iterable[R]): Source[R] = FromIterator(rs.iterator)
 
   private def isGzipped(path: Path): Boolean = path.getFileName.toString.endsWith(".gz")

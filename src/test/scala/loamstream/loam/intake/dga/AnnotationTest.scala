@@ -121,7 +121,7 @@ final class AnnotationTest extends FunSuite with Loggable {
     
     val expected = Annotation(
       assembly = AssemblyIds.hg19,
-      annotationType = "candidate regulatory regions",//Spaces will be dealt with by BedRowExpr
+      annotationType = "candidate_regulatory_regions",
       annotationId = "DSR249FPB",
       category = Some("cis-regulatory elements"),
       tissueId = Some("UBERON:0002048"),

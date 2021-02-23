@@ -16,7 +16,7 @@ import scala.util.matching.Regex
  * Jan 20, 2021
  */
 final case class BedRowExpr(annotation: Annotation) extends DataRowParser[Try[BedRow]] {
-  private val columns = new BedRowExpr.Columns(annotation)
+  /*private */ val columns = new BedRowExpr.Columns(annotation)
   
   override def apply(row: DataRow): Try[BedRow] = Try {
     def requiredField[A](oa: Option[A], name: String): A = {
@@ -83,7 +83,7 @@ object BedRowExpr {
     val biosample = LiteralColumnExpr(ann.biosample)
     val tissueId = LiteralColumnExpr(ann.tissueId)
     val tissue = LiteralColumnExpr(ann.tissue)
-    val annotation = LiteralColumnExpr(ann.annotationType).map(_.replaceAll("\\s+", "_"))
+    val annotation = LiteralColumnExpr(ann.annotationType)
     val category = LiteralColumnExpr(ann.category)
     val method = LiteralColumnExpr(ann.method)
     val source = LiteralColumnExpr(ann.source)

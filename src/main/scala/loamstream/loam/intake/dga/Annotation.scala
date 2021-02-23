@@ -77,6 +77,8 @@ final case class Annotation private[dga] (
 object Annotation {
   import Json.JsonOps
   
+  private[dga] def spacesToUnderscores(s: String): String = s.replaceAll("\\s+", "_")
+  
   private def allFileDownloads(assemblyId: String, json: JValue): Try[Iterable[Download]] = {
     json.tryAsObject("file_download").flatMap { downloadsById =>
       val downloadJVs = downloadsById.values.collect { case arr: JArray => arr }.flatMap(_.arr)
@@ -118,7 +120,7 @@ object Annotation {
       Annotation(
         assembly = assemblyId,
         annotationId = annotationId,
-        annotationType = annotationType,
+        annotationType = spacesToUnderscores(annotationType),
         category = category,
         tissueId = tissueId,
         tissue = tissue,

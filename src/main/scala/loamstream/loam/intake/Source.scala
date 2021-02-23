@@ -78,6 +78,8 @@ sealed trait Source[R] {
   
 object Source extends Loggable {
   
+  def empty[A]: Source[A] = Source.fromIterable(Nil)
+  
   def producing[A](a: => A): Source[A] = Source.FromIterator(Iterator(a))
   
   object Formats {

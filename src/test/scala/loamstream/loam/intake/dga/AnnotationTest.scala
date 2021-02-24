@@ -22,7 +22,7 @@ final class AnnotationTest extends FunSuite with Loggable {
     
     val annotation = Annotation(
       assembly = AssemblyIds.hg19,
-      annotationType = "candidate_regulatory_regions",
+      annotationType = AnnotationType.CandidateRegulatoryRegions,
       annotationId = "DSR249FPB",
       category = Some("cis-regulatory elements"),
       tissueId = Some("UBERON:0002048"),
@@ -55,7 +55,7 @@ final class AnnotationTest extends FunSuite with Loggable {
   test("portalUsageIsNone") {
     val a = Annotation(
       assembly = AssemblyIds.hg19,
-      annotationType = "candidate_regulatory_regions",
+      annotationType = AnnotationType.CandidateRegulatoryRegions,
       annotationId = "DSR249FPB",
       category = Some("cis-regulatory elements"),
       tissueId = Some("UBERON:0002048"),
@@ -86,7 +86,7 @@ final class AnnotationTest extends FunSuite with Loggable {
     
     val annotation = Annotation(
       assembly = AssemblyIds.hg19,
-      annotationType = "candidate_regulatory_regions",
+      annotationType = AnnotationType.CandidateRegulatoryRegions,
       annotationId = "DSR249FPB",
       category = Some("cis-regulatory elements"),
       tissueId = Some("UBERON:0002048"),
@@ -121,7 +121,7 @@ final class AnnotationTest extends FunSuite with Loggable {
     
     val expected = Annotation(
       assembly = AssemblyIds.hg19,
-      annotationType = "candidate_regulatory_regions",
+      annotationType = AnnotationType.CandidateRegulatoryRegions,
       annotationId = "DSR249FPB",
       category = Some("cis-regulatory elements"),
       tissueId = Some("UBERON:0002048"),

@@ -16,7 +16,7 @@ import scala.util.matching.Regex
  * Jan 20, 2021
  */
 final case class BedRowExpr(annotation: Annotation) extends DataRowParser[Try[BedRow]] {
-  /*private */ val columns = new BedRowExpr.Columns(annotation)
+  private val columns = new BedRowExpr.Columns(annotation)
   
   override def apply(row: DataRow): Try[BedRow] = Try {
     def requiredField[A](oa: Option[A], name: String): A = {
@@ -32,7 +32,7 @@ final case class BedRowExpr(annotation: Annotation) extends DataRowParser[Try[Be
       biosample = columns.biosample(row),
       tissueId = columns.tissueId(row),   // e.g. UBERON:293289
       tissue = columns.tissue(row),
-      annotation = columns.annotation(row),    // annotation type, e.g. binding_site
+      annotation = columns.annotation(row).name,    // annotation type, e.g. binding_site
       category = columns.category(row),
       method = columns.method(row),  // e.g. MAC2
       source = columns.source(row),   // e.g. ATAC-seq-peak
@@ -104,7 +104,7 @@ object BedRowExpr {
     // the annotation name needs to be harmonized (accessible chromatin is special!)
     val state = {
       val baseExpr = (ann.annotationType match {
-        case ac @ "accessible_chromatin" => LiteralColumnExpr(Option(ac)) 
+        case ac @ AnnotationType.AccessibleChromatin => LiteralColumnExpr(Option(ac.name)) 
         case _ => ColumnName("state").or(ColumnName("name")).asOptionWithNaValues 
       }).map {
         //Strip any leading digit prefix, if present
@@ -120,7 +120,7 @@ object BedRowExpr {
 
     private def ifTargetGenePrediction(column: String): ColumnExpr[Option[String]] = {
       ann.annotationType match {
-        case "target_gene_prediction" => ColumnName(column).asOptionWithNaValues
+        case AnnotationType.TargetGenePrediction => ColumnName(column).asOptionWithNaValues
         case _ => LiteralColumnExpr(None) 
       }
     }

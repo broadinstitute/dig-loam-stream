@@ -17,8 +17,8 @@ final class BedRowExprTest extends FunSuite {
     val stateColumnNames = Seq("state", "name")
     
     val annotations = Seq(
-        annotation.copy(annotationType = "accessible_chromatin"),
-        annotation.copy(annotationType = "target_gene_prediction"),
+        annotation.copy(annotationType = AnnotationType.AccessibleChromatin),
+        annotation.copy(annotationType = AnnotationType.TargetGenePrediction),
         annotation)
     
     for {
@@ -50,7 +50,7 @@ final class BedRowExprTest extends FunSuite {
       assert(bedRow.biosample === ann.biosample)
       assert(bedRow.tissueId === ann.tissueId)
       assert(bedRow.tissue === ann.tissue)
-      assert(bedRow.annotation === ann.annotationType)
+      assert(bedRow.annotation === ann.annotationType.name)
       assert(bedRow.category === ann.category)
       assert(bedRow.method === ann.method)
       assert(bedRow.source === ann.source)
@@ -60,7 +60,9 @@ final class BedRowExprTest extends FunSuite {
       assert(bedRow.start === 5432L)
       assert(bedRow.end === 123456L)
       
-      val expectedState = if(ann.annotationType == "accessible_chromatin") "accessible_chromatin" else "asdfghjkl"
+      val expectedState = {
+        if(ann.annotationType == AnnotationType.AccessibleChromatin) "accessible_chromatin" else "asdfghjkl"
+      }
       
       assert(bedRow.state === expectedState)
         
@@ -68,7 +70,7 @@ final class BedRowExprTest extends FunSuite {
            expectedTargetGeneStart: Option[Long], 
            expectedTargetGeneEnd: Option[Long]) = {
         
-        if(ann.annotationType == "target_gene_prediction") { (Some("qwerty"), Some(456L), Some(789L)) }
+        if(ann.annotationType == AnnotationType.TargetGenePrediction) { (Some("qwerty"), Some(456L), Some(789L)) }
         else { (None, None, None) }
       }
       
@@ -236,7 +238,7 @@ final class BedRowExprTest extends FunSuite {
       assert(columns.state(row) === Some("blah"))
 
       {
-        val newColumns = columns.copy(ann = annotation.copy(annotationType = "accessible_chromatin"))
+        val newColumns = columns.copy(ann = annotation.copy(annotationType = AnnotationType.AccessibleChromatin))
         
         assert(newColumns.state(row) === Some("accessible_chromatin"))
       }
@@ -266,7 +268,7 @@ final class BedRowExprTest extends FunSuite {
       assert(columns.state(row) === Some("blah"))
 
       {
-        val newColumns = columns.copy(ann = annotation.copy(annotationType = "accessible_chromatin"))
+        val newColumns = columns.copy(ann = annotation.copy(annotationType = AnnotationType.AccessibleChromatin))
         
         assert(newColumns.state(row) === Some("accessible_chromatin"))
       }
@@ -288,11 +290,11 @@ final class BedRowExprTest extends FunSuite {
     
     val row = Helpers.csvRow("foo" -> "bar", columnName -> expected.toString)
     
-    assert(columns.ann.annotationType !== "target_gene_prediction")
+    assert(columns.ann.annotationType !== AnnotationType.TargetGenePrediction)
     
     assert(column(columns)(row) === None)
     
-    val newColumns = BedRowExpr.Columns(annotation.copy(annotationType = "target_gene_prediction"))
+    val newColumns = BedRowExpr.Columns(annotation.copy(annotationType = AnnotationType.TargetGenePrediction))
     
     doNaValuesTest(newColumns)(column, columnName)
     
@@ -330,7 +332,7 @@ final class BedRowExprTest extends FunSuite {
   }
 
   private val assembly: String = "asdasdasfa"
-  private val annotationType: String = "asfkahskjgs"
+  private val annotationType: AnnotationType = AnnotationType.CaQTL
   private val annotationId: String = "ASKJhkjasf"
   private val category: Option[String] = Some("fhdolhujd")
   private val tissueId: Option[String] = Some("sdgpl89dg")

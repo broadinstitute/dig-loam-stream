@@ -33,10 +33,10 @@ import scala.util.Failure
  */
 trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
   object Annotations {
-    val annotationTypes: Set[String] = Set(
-      "accessible_chromatin",
-      "chromatin_state",
-      "binding_sites")
+    val ingestibleAnnotationTypes: Set[AnnotationType] = Set(
+        AnnotationType.AccessibleChromatin, 
+        AnnotationType.ChromatinState, 
+        AnnotationType.BindingSites)
     
     private final class UploadOps(
         annotation: Annotation,
@@ -242,12 +242,12 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
       
       def hasAnnotationTypeWeCareAbout(implicit logCtx: ToFileLogContext): CloseablePredicate[Annotation] = {
         ConcreteCloseablePredicate[Annotation](logCtx) { annotation =>
-          val result = annotationTypes.contains(annotation.annotationType)
+          val result = ingestibleAnnotationTypes.contains(annotation.annotationType)
           
           if(!result) {
             logCtx.warn(
-                s"Annotation '${annotation.annotationType}:${annotation.annotationId}' had type not found in" +
-                s"${annotationTypes.mkString("[",",","]")}")
+                s"Annotation '${annotation.annotationType.name}:${annotation.annotationId}' had type not found in" +
+                s"${ingestibleAnnotationTypes.map(_.name).mkString("[",",","]")}")
           }
           
           result

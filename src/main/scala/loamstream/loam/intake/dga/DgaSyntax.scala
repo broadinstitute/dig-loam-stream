@@ -17,3 +17,5 @@ import loamstream.util.Loggable
 trait DgaSyntax { 
   object Dga extends TissueSupport with AnnotationsSupport with BedSupport with Loggable
 }
+
+object DgaSyntax extends DgaSyntax

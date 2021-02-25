@@ -19,7 +19,6 @@ import org.json4s._
  * @see Annotation in processors/vendors/dga/download.py
  */
 final case class Annotation private[dga] (
-    assembly: String,
     annotationType: AnnotationType,
     annotationId: String,
     category: Option[String],
@@ -51,7 +50,7 @@ final case class Annotation private[dga] (
     
     if(!result) {
       def msg(specificPart: String) = {
-        s"Skipping ${assembly}/${annotationId}: biosample id: ${biosampleId} " +
+        s"Skipping ${annotationId}: biosample id: ${biosampleId} " +
         s"because ${specificPart} ; downloads: ${downloads}"
       }
       
@@ -79,31 +78,28 @@ object Annotation {
   
   private[dga] def spacesToUnderscores(s: String): String = s.replaceAll("\\s+", "_")
   
-  private def allFileDownloads(assemblyId: String, json: JValue): Try[Iterable[Download]] = {
+  private def allFileDownloads(json: JValue): Try[Iterable[Download]] = {
     json.tryAsObject("file_download").flatMap { downloadsById =>
       val downloadJVs = downloadsById.values.collect { case arr: JArray => arr }.flatMap(_.arr)
       
-      Tries.sequence(downloadJVs.map(Download.fromJson(assemblyId)))
+      Tries.sequence(downloadJVs.map(Download.fromJson))
     }
   }
     
   private def filteredSortedFileDownloads(
-      assemblyId: String, 
       annotationId: String, 
       json: JValue)(implicit ctx: LogContext): Try[Seq[Download]] = {
     
-    allFileDownloads(assemblyId, json)
-      .map(_.filter(isValidDownload(assemblyId, annotationId)).toSeq.sortBy(_.md5Sum))
+    allFileDownloads(json).map(_.filter(isValidDownload(annotationId)).toSeq.sortBy(_.md5Sum))
   }
   
   def fromJson(
-      assemblyId: String, 
       tissueIdsToNames: Map[String, String])(json: JValue)(implicit ctx: LogContext): Try[Annotation] = {
     
     for {
       annotationId <- json.tryAsString("annotation_id")
       annotationType <- json.tryAsString("annotation_type").flatMap(AnnotationType.tryFromString)
-      fileDownloads <- filteredSortedFileDownloads(assemblyId, annotationId, json)
+      fileDownloads <- filteredSortedFileDownloads(annotationId, json)
       biosampleId <- json.tryAsString("biosample_term_id")
       biosampleType <- json.tryAsString("biosample_type")
       portalUsage <- json.tryAsString("portal_usage")
@@ -118,7 +114,6 @@ object Annotation {
       harmonizedStates = json.tryAs[Map[String, String]]("harmonized_states").toOption
     } yield {
       Annotation(
-        assembly = assemblyId,
         annotationId = annotationId,
         annotationType = annotationType,
         category = category,
@@ -139,7 +134,6 @@ object Annotation {
   
   //only keep files of the right format, assembly and have been released
   private[dga] def isValidDownload(
-      assemblyId: String, 
       annotationId: String)(download: Annotation.Download)(implicit ctx: LogContext): Boolean = {
     
     def fileName: String = s"${annotationId}/${download.file}"
@@ -164,17 +158,21 @@ object Annotation {
       bed
     }
     
-    def assembliesMatch: Boolean = {
-      val asmsMatch = AssemblyMap.matchAssemblies(download.assemblyId, assemblyId)
+    def assemblyMatchesHg19: Boolean = {
+      
+      val hg19 = AssemblyIds.hg19
+      
+      val asmsMatch = AssemblyMap.matchAssemblies(download.assemblyId, hg19)
       
       if(!asmsMatch) {
-        ctx.warn(s"File ${fileName} does not match assembly ${assemblyId}; skipping...")
+        ctx.warn(s"File ${fileName} with assembly Id '${download.assemblyId}' " +
+                 s"does not match assembly ${hg19}; skipping...")
       }
       
       asmsMatch
     }
     
-    isReleased && isBed && assembliesMatch 
+    isReleased && isBed && assemblyMatchesHg19 
   }
   
   final case class Download private (assemblyId: String, url: URI, file: Path, status: Status, md5Sum: String) {
@@ -197,9 +195,10 @@ object Annotation {
           md5Sum = md5Sum)
     }
     
-    def fromJson(assemblyId: String)(json: JValue): Try[Download] = {
+    def fromJson(json: JValue): Try[Download] = {
       for {
         url <- json.tryAsString("files_href").map(URI.create(_))
+        assemblyId <- json.tryAsString("files_assembly")
         status <- json.tryAsString("files_status").map(_.toLowerCase).map(Status.fromString)
         md5Sum <- json.tryAsString("files_md5sum")
       } yield Download(

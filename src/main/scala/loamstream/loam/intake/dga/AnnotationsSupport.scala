@@ -146,7 +146,6 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
      * Download all the annotations available.
      */
     def downloadAnnotations(
-        assemblyId: String = AssemblyIds.hg19,
         url: URI = AnnotationsSupport.Defaults.url,
         httpClient: HttpClient = new SttpHttpClient): Source[Try[Annotation]] = {
       
@@ -169,14 +168,13 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
       
       val (_, tissueSource) = Tissues.versionAndTissueSource()
       
-      downloadAnnotations(assemblyId, jsonData, tissueSource)
+      downloadAnnotations(jsonData, tissueSource)
     }
     
     /**
      * Download all the annotations available.
      */
     def downloadAnnotations(
-        assemblyId: String, 
         annotationJsonString: => String,
         tissueSource: Source[Tissue]): Source[Try[Annotation]] = {
       
@@ -194,7 +192,7 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
       val jvs = annotationJson.tryAsArray("11").getOrElse(Nil)
         
       Source.FromIterator {
-        jvs.iterator.map(Annotation.fromJson(assemblyId, tissueIdsToNames))
+        jvs.iterator.map(Annotation.fromJson(tissueIdsToNames))
       }
     }
     

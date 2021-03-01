@@ -70,24 +70,28 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
       //create the metadata for this dataset
       val metadata = annotation.toMetadata
       
-      def processDownload(download: Annotation.Download): Unit = {
+      def processDownload(download: Annotation.Download): Try[Unit] = {
         import download.url
             
         info(s"Processing ${url}...")
         
         val bedRowExpr = BedRowExpr(annotation)
         
-        val bedRowAttempts = Beds.downloadBed(url, auth).map(row => (row, bedRowExpr(row)))
-        
-        val bedRows = {
-          bedRowAttempts.map(Transforms.logFailures(logCtx)).collect { case (_, Success(bedRow)) => bedRow }
+        for {
+          rawBedRows <- Beds.downloadBed(url, auth)
+        } yield {
+          val bedRowAttempts: Source[(DataRow, Try[BedRow])] = rawBedRows.map(row => (row, bedRowExpr(row)))
+          
+          val bedRows = {
+            bedRowAttempts.map(Transforms.logFailures(logCtx)).collect { case (_, Success(bedRow)) => bedRow }
+          }
+          
+          val (count, _) = TimeUtils.time(s"Uploading '${datasetName}'", info(_)) {
+            countAndUpload.process(bedRows.records)
+          }
+          
+          info(s"Uploaded ${count} rows to '${datasetName}'")
         }
-        
-        val (count, _) = TimeUtils.time(s"Uploading '${datasetName}'", info(_)) {
-          countAndUpload.process(bedRows.records)
-        }
-        
-        info(s"Uploaded ${count} rows to '${datasetName}'")
       }
       
       def commitAndCloseSinkAfter(f: AwsRowSink => Any): Unit = {
@@ -218,6 +222,60 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
     }
     
     object Predicates {
+      def bedExists(
+          logTo: Store, 
+          append: Boolean = false, 
+          httpClient: HttpClient = new SttpHttpClient,
+          auth: Option[HttpClient.Auth] = None): CloseablePredicate[URI] = {
+        
+        bedExists(httpClient, auth)(IntakeSyntax.Log.toFile(logTo, append))
+      }
+      
+      def bedExists(
+          httpClient: HttpClient, 
+          auth: Option[HttpClient.Auth])(implicit logCtx: ToFileLogContext): CloseablePredicate[URI] = {
+        
+        ConcreteCloseablePredicate[URI](logCtx) { uri =>
+          val result = Try(httpClient.contentLength(uri.toString, auth)) match {
+            case Success(Right(n)) => n > 0
+            case _ => false
+          }
+          
+          if(!result) {
+            logCtx.warn(s"Could not access '${uri}', skipping it")
+          }
+           
+          result
+        }
+      }
+
+      def hasAnyBeds(
+          logTo: Store, 
+          append: Boolean = false, 
+          httpClient: HttpClient = new SttpHttpClient,
+          auth: Option[HttpClient.Auth] = None): CloseablePredicate[Annotation] = {
+        
+        hasAnyBeds(httpClient, auth)(IntakeSyntax.Log.toFile(logTo, append))
+      }
+      
+      def hasAnyBeds(
+          httpClient: HttpClient, 
+          auth: Option[HttpClient.Auth])(implicit logCtx: ToFileLogContext): CloseablePredicate[Annotation] = {
+        
+        val p: CloseablePredicate[URI] = bedExists(httpClient, auth)(logCtx)
+        
+        ConcreteCloseablePredicate[Annotation](logCtx) { annotation =>
+          
+          val result = annotation.downloads.iterator.map(_.url).exists(p)
+          
+          if(!result) {
+            logCtx.warn(s"Annotation '${annotation.annotationId}' has no accessible .beds, skipping it")
+          }
+           
+          result
+        }
+      }
+      
       def isUploadable(logTo: Store, append: Boolean = false): CloseablePredicate[Annotation] = {
         isUploadable(IntakeSyntax.Log.toFile(logTo, append))
       }

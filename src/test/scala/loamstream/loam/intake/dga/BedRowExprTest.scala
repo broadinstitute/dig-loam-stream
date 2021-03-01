@@ -347,7 +347,6 @@ final class BedRowExprTest extends FunSuite {
   private val portalUsage: String = "asdasdasdasdasd"
 
   private val annotation = Annotation(
-    assembly = assembly,
     annotationType = annotationType,
     annotationId = annotationId,
     category = category,

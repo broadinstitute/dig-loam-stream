@@ -21,7 +21,6 @@ final class AnnotationTest extends FunSuite with Loggable {
         "ca504ff2221f70a3b98802e36205616e"))
     
     val annotation = Annotation(
-      assembly = AssemblyIds.hg19,
       annotationType = AnnotationType.CandidateRegulatoryRegions,
       annotationId = "DSR249FPB",
       category = Some("cis-regulatory elements"),
@@ -54,7 +53,6 @@ final class AnnotationTest extends FunSuite with Loggable {
 
   test("portalUsageIsNone") {
     val a = Annotation(
-      assembly = AssemblyIds.hg19,
       annotationType = AnnotationType.CandidateRegulatoryRegions,
       annotationId = "DSR249FPB",
       category = Some("cis-regulatory elements"),
@@ -85,7 +83,6 @@ final class AnnotationTest extends FunSuite with Loggable {
         "ca504ff2221f70a3b98802e36205616e"))
     
     val annotation = Annotation(
-      assembly = AssemblyIds.hg19,
       annotationType = AnnotationType.CandidateRegulatoryRegions,
       annotationId = "DSR249FPB",
       category = Some("cis-regulatory elements"),
@@ -110,7 +107,7 @@ final class AnnotationTest extends FunSuite with Loggable {
   test("fromJson - good input") {
     val idsToNames = Map("UBERON:0002048" -> "some-tissue", "EFO:0001196" -> "some-biosample")
     
-    val annotation = Annotation.fromJson(AssemblyIds.hg19, idsToNames)(parse(AnnotationTest.goodJson)).get
+    val annotation = Annotation.fromJson(idsToNames)(parse(AnnotationTest.goodJson)).get
     
     val expectedDownloads = Seq(
       Annotation.Download(
@@ -120,7 +117,6 @@ final class AnnotationTest extends FunSuite with Loggable {
         "ca504ff2221f70a3b98802e36205616e"))
     
     val expected = Annotation(
-      assembly = AssemblyIds.hg19,
       annotationType = AnnotationType.CandidateRegulatoryRegions,
       annotationId = "DSR249FPB",
       category = Some("cis-regulatory elements"),
@@ -143,9 +139,9 @@ final class AnnotationTest extends FunSuite with Loggable {
   test("fromJson - bad input") {
     import Annotation.fromJson
     
-    assert(fromJson("a0", Map.empty)(parse("{}")).isFailure)
+    assert(fromJson(Map.empty)(parse("{}")).isFailure)
     
-    assert(fromJson("a0", Map.empty)(parse("""{"lalala":"asdf"}""")).isFailure)
+    assert(fromJson(Map.empty)(parse("""{"lalala":"asdf"}""")).isFailure)
   }
   
   ignore("isValidDownload") {
@@ -162,7 +158,7 @@ final class AnnotationTest extends FunSuite with Loggable {
             "files_md5sum": "m0"
           }""")
           
-    val download = Annotation.Download.fromJson("a0")(json).get
+    val download = Annotation.Download.fromJson(json).get
     
     val expected = Annotation.Download("a0", URI.create("http://example.com/0.bed"), Status.Released, "m0")
     

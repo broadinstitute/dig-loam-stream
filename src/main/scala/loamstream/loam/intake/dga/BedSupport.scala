@@ -17,6 +17,7 @@ import loamstream.util.HttpClient
 import loamstream.util.SttpHttpClient
 import loamstream.util.TimeUtils
 import loamstream.util.LogContext
+import scala.util.Try
 
 /**
  * @author clint
@@ -30,11 +31,11 @@ trait BedSupport {
     def downloadBed(
         url: URI,
         auth: HttpClient.Auth,
-        httpClient: HttpClient = new SttpHttpClient())(implicit context: LogContext): Source[DataRow] = {
+        httpClient: HttpClient = new SttpHttpClient())(implicit context: LogContext): Try[Source[DataRow]] = {
       
       val extOpt = url.getPath.split("\\.").lastOption.map(_.trim.toLowerCase)
   
-      def bedReader: Reader = {
+      def tryBedReader: Try[Reader] = Try {
         //download the source into memory
         val bedData = TimeUtils.time(s"Downloading ${url}", context.info(_)) {
           httpClient.getAsBytes(url.toString, Some(auth)).right.getOrElse {
@@ -55,7 +56,7 @@ trait BedSupport {
         new InputStreamReader(unzippedBedStream)
       }
       
-      Source.fromReader(bedReader, Source.Formats.tabDelimitedWithHeader)
+      tryBedReader.map(bedReader => Source.fromReader(bedReader, Source.Formats.tabDelimitedWithHeader))
     }
   }
 }

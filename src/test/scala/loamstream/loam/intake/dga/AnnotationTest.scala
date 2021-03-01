@@ -154,13 +154,14 @@ final class AnnotationTest extends FunSuite with Loggable {
     
     val json = parse("""{
             "files_href": "http://example.com/0.bed",
+            "files_assembly": "GRCh37",
             "files_status": "released",
             "files_md5sum": "m0"
           }""")
           
     val download = Annotation.Download.fromJson(json).get
     
-    val expected = Annotation.Download("a0", URI.create("http://example.com/0.bed"), Status.Released, "m0")
+    val expected = Annotation.Download("GRCh37", URI.create("http://example.com/0.bed"), Status.Released, "m0")
     
     assert(download === expected)
   }

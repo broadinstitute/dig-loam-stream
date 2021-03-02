@@ -36,20 +36,13 @@ object AnnotationType {
       EQTL,
       CaQTL,
       BindingFootprint)
+      
+  private lazy val namesToValues: Map[String, AnnotationType] = values.map(at => at.name -> at).toMap
   
-  def fromString(s: String): Option[AnnotationType] = s.trim.replaceAll("\\s+", "_").toLowerCase match {
-    case AccessibleChromatin() => Some(AccessibleChromatin)
-    case ChromatinState() => Some(ChromatinState)
-    case BindingSites() => Some(BindingSites)
-    case TargetGenePrediction() => Some(TargetGenePrediction)
+  def fromString(s: String): Option[AnnotationType] = {
+    val normalizedName = s.trim.replaceAll("\\s+", "_").toLowerCase
     
-    case CandidateRegulatoryRegions() => Some(CandidateRegulatoryRegions)
-    case HistoneModifications() => Some(HistoneModifications)
-    case VariantAllelicEffects() => Some(VariantAllelicEffects)
-    case EQTL() => Some(EQTL)
-    case CaQTL() => Some(CaQTL)
-    case BindingFootprint() => Some(BindingFootprint)
-    case _ => None
+    namesToValues.get(normalizedName)
   }
   
   def tryFromString(s: String): Try[AnnotationType] = fromString(s) match {

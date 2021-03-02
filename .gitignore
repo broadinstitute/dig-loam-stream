@@ -50,3 +50,4 @@ src/main/loam/loam
 job-outputs
 prof
 profile-sbt.sh
+.bsp

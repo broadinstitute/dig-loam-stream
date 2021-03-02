@@ -36,7 +36,6 @@ final class DgaAnnotationsUploadTest extends AwsFunSuite with DgaSyntax with Log
     val (_, tissueSource) = Dga.Tissues.versionAndTissueSource(cannedTissueData)
     
     val annotations = Dga.Annotations.downloadAnnotations(
-        AssemblyIds.hg19,
         annotationJsonString = cannedAnnotationData, 
         tissueSource = tissueSource)
     
@@ -63,6 +62,7 @@ final class DgaAnnotationsUploadTest extends AwsFunSuite with DgaSyntax with Log
     
     //TODO: FIXME: Process more 
     val firstN = uploadableAnnotations.take(10).records.foreach {
+      
       Dga.Annotations.uploadAnnotatedDataset(auth, awsClient, logCtx, yes = true)
     }
   }

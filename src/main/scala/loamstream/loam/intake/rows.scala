@@ -100,14 +100,13 @@ final case class AggregatorVariantRow(
   n: Option[Double] = None,
   eaf: Option[Double] = None,  
   maf: Option[Double] = None,
-  mafCasesControls: Option[Long] = None,
   alleleCount: Option[Long] = None,
   alleleCountCases: Option[Long] = None, 
   alleleCountControls: Option[Long] = None,
-  heterozygousCountCases: Option[Long] = None, 
-  heterozygousCountControls: Option[Long] = None, 
-  homozygousCountCases: Option[Long] = None, 
-  homozygousCountControls: Option[Long] = None, 
+  heterozygousCases: Option[Long] = None, 
+  heterozygousControls: Option[Long] = None, 
+  homozygousCases: Option[Long] = None, 
+  homozygousControls: Option[Long] = None, 
   derivedFromRecordNumber: Option[Long] = None) extends RenderableJsonRow {
   
   override def jsonValues: Seq[(String, JValue)] = {
@@ -139,14 +138,13 @@ final case class AggregatorVariantRow(
       AggregatorJsonKeys.stdErr -> toJson(stderr),
       AggregatorJsonKeys.zScore -> toJson(zscore),
       AggregatorJsonKeys.n -> toJson(n),
-      AggregatorJsonKeys.mafCasesControls -> toJson(mafCasesControls),
       AggregatorJsonKeys.alleleCount -> toJson(alleleCount),
       AggregatorJsonKeys.alleleCountCases -> toJson(alleleCountCases), 
       AggregatorJsonKeys.alleleCountControls -> toJson(alleleCountControls),
-      AggregatorJsonKeys.heterozygousCountCases -> toJson(heterozygousCountCases), 
-      AggregatorJsonKeys.heterozygousCountControls -> toJson(heterozygousCountControls), 
-      AggregatorJsonKeys.homozygousCountCases -> toJson(homozygousCountCases), 
-      AggregatorJsonKeys.homozygousCountControls -> toJson(homozygousCountControls), 
+      AggregatorJsonKeys.heterozygousCases -> toJson(heterozygousCases), 
+      AggregatorJsonKeys.heterozygousControls -> toJson(heterozygousControls), 
+      AggregatorJsonKeys.homozygousCases -> toJson(homozygousCases), 
+      AggregatorJsonKeys.homozygousControls -> toJson(homozygousControls), 
     )
   }
   
@@ -175,14 +173,13 @@ final case class AggregatorVariantRow(
     add(maf)
     add(n)
    
-    add(mafCasesControls)
     add(alleleCount)
     add(alleleCountCases) 
     add(alleleCountControls)
-    add(heterozygousCountCases) 
-    add(heterozygousCountControls) 
-    add(homozygousCountCases) 
-    add(homozygousCountControls) 
+    add(heterozygousCases) 
+    add(heterozygousControls) 
+    add(homozygousCases) 
+    add(homozygousControls) 
     
     buffer 
   }
@@ -202,16 +199,7 @@ object AggregatorVariantRow {
       AggregatorColumnNames.odds_ratio,
       AggregatorColumnNames.eaf,
       AggregatorColumnNames.maf,
-      AggregatorColumnNames.n,
-      
-      AggregatorColumnNames.mafCasesControls,
-      AggregatorColumnNames.alleleCountCasesControls,
-      AggregatorColumnNames.alleleCountCases,
-      AggregatorColumnNames.alleleCountControls,
-      AggregatorColumnNames.heterozygousCountCases,
-      AggregatorColumnNames.heterozygousCountControls, 
-      AggregatorColumnNames.homozygousCountCases,
-      AggregatorColumnNames.homozygousCountControls).map(_.name) 
+      AggregatorColumnNames.n).map(_.name) 
   }
 }
 

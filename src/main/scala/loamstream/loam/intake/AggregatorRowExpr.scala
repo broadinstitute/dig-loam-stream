@@ -19,14 +19,13 @@ final case class AggregatorRowExpr(
     eafDef: Option[NamedColumnDef[Double]] = None,
     mafDef: Option[NamedColumnDef[Double]] = None,
     nDef: Option[NamedColumnDef[Double]] = None,
-    mafCasesControlsDef: Option[NamedColumnDef[Long]] = None,
-    alleleCountCasesControlsDef: Option[NamedColumnDef[Long]] = None,
-    alleleCountCasesDef: Option[NamedColumnDef[Long]] = None, 
+    alleleCountDef: Option[NamedColumnDef[Long]] = None,
+    alleleCountCasesDef: Option[NamedColumnDef[Long]] = None,
     alleleCountControlsDef: Option[NamedColumnDef[Long]] = None,
-    heterozygousCountCasesDef: Option[NamedColumnDef[Long]] = None, 
-    heterozygousCountControlsDef: Option[NamedColumnDef[Long]] = None, 
-    homozygousCountCasesDef: Option[NamedColumnDef[Long]] = None, 
-    homozygousCountControlsDef: Option[NamedColumnDef[Long]] = None, 
+    heterozygousCasesDef: Option[NamedColumnDef[Long]] = None, 
+    heterozygousControlsDef: Option[NamedColumnDef[Long]] = None, 
+    homozygousCasesDef: Option[NamedColumnDef[Long]] = None, 
+    homozygousControlsDef: Option[NamedColumnDef[Long]] = None, 
     derivedFromRecordNumberDef: Option[NamedColumnDef[Long]] = None,
     failFast: Boolean = false) extends TaggedRowParser[VariantRow.Parsed] {
   
@@ -47,14 +46,13 @@ final case class AggregatorRowExpr(
       eafDef ++
       mafDef ++
       nDef ++
-      mafCasesControlsDef ++
-      alleleCountCasesControlsDef ++
+      alleleCountDef ++
       alleleCountCasesDef ++
       alleleCountControlsDef ++
-      heterozygousCountCasesDef ++ 
-      heterozygousCountControlsDef ++ 
-      homozygousCountCasesDef ++ 
-      homozygousCountControlsDef).map(_.name).toSeq
+      heterozygousCasesDef ++ 
+      heterozygousControlsDef ++ 
+      homozygousCasesDef ++ 
+      homozygousControlsDef).map(_.name).toSeq
     }
   }
   
@@ -90,6 +88,13 @@ final case class AggregatorRowExpr(
         eaf = eafDef.map(_.apply(row)),
         maf = mafDef.map(_.apply(row)),
         n = nDef.map(_.apply(row)),
+        alleleCount = alleleCountDef.map(_.apply(row)),
+        alleleCountCases = alleleCountCasesDef.map(_.apply(row)), 
+        alleleCountControls = alleleCountControlsDef.map(_.apply(row)),
+        heterozygousCases = heterozygousCasesDef.map(_.apply(row)), 
+        heterozygousControls = heterozygousControlsDef.map(_.apply(row)), 
+        homozygousCases = homozygousCasesDef.map(_.apply(row)), 
+        homozygousControls = homozygousControlsDef.map(_.apply(row)),
         derivedFromRecordNumber = Some(row.recordNumber)))
         
     def skipped(cause: Option[Failure[VariantRow.Parsed]]) = VariantRow.Skipped(row, aggRowOpt = None, cause = cause)

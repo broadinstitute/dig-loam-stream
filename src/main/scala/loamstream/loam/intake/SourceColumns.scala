@@ -60,15 +60,7 @@ final case class SourceColumns(
       oddsRatio.map(AggregatorColumnNames.odds_ratio -> _) ++
       eaf.map(AggregatorColumnNames.eaf -> _) ++
       maf.map(AggregatorColumnNames.maf -> _) ++ 
-      n.map(AggregatorColumnNames.n -> _) ++
-      mafCasesControls.map(AggregatorColumnNames.mafCasesControls -> _) ++
-      alleleCountCasesControls.map(AggregatorColumnNames.alleleCountCasesControls -> _) ++
-      alleleCountCases.map(AggregatorColumnNames.alleleCountCases -> _) ++
-      alleleCountControls.map(AggregatorColumnNames.alleleCountControls -> _) ++
-      heterozygousCountCases.map(AggregatorColumnNames.heterozygousCountCases -> _) ++
-      heterozygousCountControls.map(AggregatorColumnNames.heterozygousCountControls -> _) ++ 
-      homozygousCountCases.map(AggregatorColumnNames.homozygousCountCases -> _) ++
-      homozygousCountControls.map(AggregatorColumnNames.homozygousCountControls -> _)
+      n.map(AggregatorColumnNames.n -> _)
   }
       
   def asConfigFileContents: String = {
@@ -125,14 +117,6 @@ object SourceColumns {
         oddsRatio = Option(AggregatorColumnNames.odds_ratio),
         eaf = Option(AggregatorColumnNames.eaf),
         maf = Option(AggregatorColumnNames.maf),
-        n = Option(AggregatorColumnNames.n),
-        mafCasesControls = Option(AggregatorColumnNames.mafCasesControls),
-        alleleCountCasesControls = Option(AggregatorColumnNames.alleleCountCasesControls),
-        alleleCountCases = Option(AggregatorColumnNames.alleleCountCases),
-        alleleCountControls = Option(AggregatorColumnNames.alleleCountControls),
-        heterozygousCountCases = Option(AggregatorColumnNames.heterozygousCountCases),
-        heterozygousCountControls = Option(AggregatorColumnNames.heterozygousCountControls), 
-        homozygousCountCases = Option(AggregatorColumnNames.homozygousCountCases),
-        homozygousCountControls = Option(AggregatorColumnNames.homozygousCountControls))
+        n = Option(AggregatorColumnNames.n))
   }
 }

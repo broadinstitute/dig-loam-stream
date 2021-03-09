@@ -23,12 +23,11 @@ object AggregatorJsonKeys {
   val zScore = "zScore"
   val n = "n"
 
-  val mafCasesControls = "mafCasesControls"
   val alleleCount = "alleleCount"
   val alleleCountCases = "alleleCountCases"
   val alleleCountControls = "alleleCountControls"
-  val heterozygousCountCases = "heterozygousCountCases"
-  val heterozygousCountControls = "heterozygousCountControls"
-  val homozygousCountCases = "homozygousCountCases"
-  val homozygousCountControls = "homozygousCountControls"
+  val heterozygousCases = "heterozygousCases"
+  val heterozygousControls = "heterozygousControls"
+  val homozygousCases = "homozygousCases"
+  val homozygousControls = "homozygousControls"
 }

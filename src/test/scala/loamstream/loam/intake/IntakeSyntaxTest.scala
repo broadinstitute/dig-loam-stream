@@ -138,7 +138,15 @@ final class IntakeSyntaxTest extends FunSuite {
   
   private val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, MRKR.map(Variant.from))
     
+  private val metadata = AggregatorMetadata(
+    dataset = "asdasdasd",
+    phenotype = "akjdslfhsdf",
+    ancestry = Ancestry.AA,
+    tech = TechType.ExChip,
+    quantitative = None)
+  
   private val expr = AggregatorRowExpr(
+      metadata = metadata,
       markerDef = markerDef,
       pvalueDef = AggregatorColumnDefs.pvalue(PValue))
     

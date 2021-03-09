@@ -16,6 +16,8 @@ import scala.collection.mutable.Buffer
 import scala.collection.mutable.ArrayBuffer
 import loamstream.loam.intake.RowSink
 import loamstream.loam.intake.RenderableRow
+import loamstream.loam.intake.Ancestry
+import loamstream.loam.intake.TechType
 
 
 /**
@@ -37,6 +39,13 @@ final class MetricTest extends FunSuite {
     val c = "1_123451_A_T"
   }
   
+  private val metadata = AggregatorMetadata(
+    dataset = "asdasdasd",
+    phenotype = "akjdslfhsdf",
+    ancestry = Ancestry.AA,
+    tech = TechType.ExChip,
+    quantitative = None)
+  
   private val csvData = s"""|${Marker.name} ${Pvalue.name}
                             |${Vars.x} 6
                             |${Vars.y} 4
@@ -51,9 +60,10 @@ final class MetricTest extends FunSuite {
   private val markerVariantDef = MarkerColumnDef(AggregatorColumnNames.marker, Marker.map(Variant.from))
   
   private val defaultRowExpr: AggregatorRowExpr = AggregatorRowExpr(
-        markerDef = markerVariantDef,
-        pvalueDef = AggregatorColumnDefs.pvalue(Pvalue))
-  
+      metadata = metadata,
+      markerDef = markerVariantDef,
+      pvalueDef = AggregatorColumnDefs.pvalue(Pvalue))
+
   private val rowsNoFlips = {
     source.tagFlips(markerVariantDef, new MetricTest.MockFlipDetector(Set.empty)).map(defaultRowExpr)
   }
@@ -116,6 +126,7 @@ final class MetricTest extends FunSuite {
     val flipDetector = new MetricTest.MockFlipDetector(Set.empty)
                       
     val toAggregatorFormat: AggregatorRowExpr = AggregatorRowExpr(
+        metadata = metadata,
         markerDef = MarkerColumnDef(marker, marker.map(Variant.from)),
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
         zscoreDef = Some(AggregatorColumnDefs.zscore(zscore)),
@@ -145,6 +156,7 @@ final class MetricTest extends FunSuite {
     val flipDetector = new MetricTest.MockFlipDetector(Set(Vars.y, Vars.a, Vars.b).map(Variant.from))
     
     val toAggregatorFormat: AggregatorRowExpr = AggregatorRowExpr(
+        metadata = metadata,
         markerDef = markerVariantDef,
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
         zscoreDef = Some(AggregatorColumnDefs.zscore(zscore)),
@@ -177,6 +189,7 @@ final class MetricTest extends FunSuite {
     val flipDetector = new MetricTest.MockFlipDetector(Set.empty)
     
     val toAggregatorFormat: AggregatorRowExpr = AggregatorRowExpr(
+        metadata = metadata,
         markerDef = MarkerColumnDef(Marker, marker.map(Variant.from)),
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
         zscoreDef = Some(AggregatorColumnDefs.zscore(zscore)),
@@ -209,6 +222,7 @@ final class MetricTest extends FunSuite {
     val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, marker.map(Variant.from))
     
     val toAggregatorFormat: AggregatorRowExpr = AggregatorRowExpr(
+        metadata = metadata,
         markerDef = markerDef,
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
         zscoreDef = Some(AggregatorColumnDefs.zscore(zscore)),
@@ -240,6 +254,7 @@ final class MetricTest extends FunSuite {
     val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, marker.map(Variant.from))
     
     val toAggregatorFormat: AggregatorRowExpr = AggregatorRowExpr(
+        metadata = metadata,
         markerDef = markerDef,
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue))
     
@@ -276,6 +291,7 @@ final class MetricTest extends FunSuite {
       val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, marker.map(Variant.from))
       
       val toAggregatorFormat: AggregatorRowExpr = AggregatorRowExpr(
+          metadata = metadata,
           markerDef = markerDef,
           pvalueDef = AggregatorColumnDefs.pvalue(Pvalue))
       
@@ -325,6 +341,7 @@ final class MetricTest extends FunSuite {
     val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, marker.map(Variant.from))
     
     val toAggregatorFormat: AggregatorRowExpr = AggregatorRowExpr(
+        metadata = metadata,
         markerDef = markerDef,
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue))
     
@@ -367,6 +384,7 @@ final class MetricTest extends FunSuite {
     val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, marker.map(Variant.from))
     
     val toAggregatorFormat: AggregatorRowExpr = AggregatorRowExpr(
+        metadata = metadata,
         markerDef = markerDef,
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue))
     
@@ -412,6 +430,7 @@ final class MetricTest extends FunSuite {
     val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, marker.map(Variant.from))
     
     val toAggregatorFormat: AggregatorRowExpr = AggregatorRowExpr(
+        metadata = metadata,
         markerDef = markerDef,
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue))
     
@@ -459,6 +478,7 @@ final class MetricTest extends FunSuite {
     val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, marker.map(Variant.from))
     
     val toAggregatorFormat: AggregatorRowExpr = AggregatorRowExpr(
+        metadata = metadata,
         markerDef = markerDef,
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue))
     
@@ -504,6 +524,7 @@ final class MetricTest extends FunSuite {
     val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, marker.map(Variant.from))
     
     val toAggregatorFormat: AggregatorRowExpr = AggregatorRowExpr(
+        metadata = metadata,
         markerDef = markerDef,
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue))
     
@@ -515,11 +536,21 @@ final class MetricTest extends FunSuite {
       if(skipped.contains(row.derivedFrom.marker)) row.skip else row
     }
                       
+    def makeRow(variant: Variant, pvalue: Double, derivedFromRecordNumber: Option[Long]) = {
+      AggregatorVariantRow(
+          marker = variant, 
+          pvalue = 99, 
+          dataset = metadata.dataset,
+          phenotype = metadata.phenotype,
+          ancestry = metadata.ancestry,
+          derivedFromRecordNumber = derivedFromRecordNumber)
+    }
+                      
     val expected = Seq(
-        AggregatorVariantRow(Variant(Vars.x), 99, derivedFromRecordNumber = Some(1)),
-        AggregatorVariantRow(Variant(Vars.z), 99, derivedFromRecordNumber = Some(3)),
-        AggregatorVariantRow(Variant(Vars.b), 99, derivedFromRecordNumber = Some(5)),
-        AggregatorVariantRow(Variant(Vars.c), 99, derivedFromRecordNumber = Some(6)))
+        makeRow(Variant(Vars.x), 99, derivedFromRecordNumber = Some(1)),
+        makeRow(Variant(Vars.z), 99, derivedFromRecordNumber = Some(3)),
+        makeRow(Variant(Vars.b), 99, derivedFromRecordNumber = Some(5)),
+        makeRow(Variant(Vars.c), 99, derivedFromRecordNumber = Some(6)))
     
     val written: Buffer[RenderableRow] = new ArrayBuffer                       
       

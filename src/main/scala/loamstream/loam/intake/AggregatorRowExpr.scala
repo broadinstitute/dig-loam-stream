@@ -9,6 +9,7 @@ import scala.util.Success
  * Oct 14, 2020
  */
 final case class AggregatorRowExpr(
+    metadata: AggregatorMetadata,
     markerDef: MarkerColumnDef,
     pvalueDef: NamedColumnDef[Double],
     zscoreDef: Option[NamedColumnDef[Double]] = None,
@@ -18,7 +19,22 @@ final case class AggregatorRowExpr(
     eafDef: Option[NamedColumnDef[Double]] = None,
     mafDef: Option[NamedColumnDef[Double]] = None,
     nDef: Option[NamedColumnDef[Double]] = None,
+    mafCasesControlsDef: Option[NamedColumnDef[Long]] = None,
+    alleleCountCasesControlsDef: Option[NamedColumnDef[Long]] = None,
+    alleleCountCasesDef: Option[NamedColumnDef[Long]] = None, 
+    alleleCountControlsDef: Option[NamedColumnDef[Long]] = None,
+    heterozygousCountCasesDef: Option[NamedColumnDef[Long]] = None, 
+    heterozygousCountControlsDef: Option[NamedColumnDef[Long]] = None, 
+    homozygousCountCasesDef: Option[NamedColumnDef[Long]] = None, 
+    homozygousCountControlsDef: Option[NamedColumnDef[Long]] = None, 
+    derivedFromRecordNumberDef: Option[NamedColumnDef[Long]] = None,
     failFast: Boolean = false) extends TaggedRowParser[VariantRow.Parsed] {
+  
+  private object metadataColumnDefs {
+    val dataset = LiteralColumnExpr(metadata.dataset)
+    val phenotype = LiteralColumnExpr(metadata.phenotype)
+    val ancestry = LiteralColumnExpr(metadata.ancestry)
+  }
   
   def columnNames: Seq[ColumnName] = {
     //NB: Note that this order matters. :\ 
@@ -30,7 +46,15 @@ final case class AggregatorRowExpr(
       oddsRatioDef ++
       eafDef ++
       mafDef ++
-      nDef).map(_.name).toSeq
+      nDef ++
+      mafCasesControlsDef ++
+      alleleCountCasesControlsDef ++
+      alleleCountCasesDef ++
+      alleleCountControlsDef ++
+      heterozygousCountCasesDef ++ 
+      heterozygousCountControlsDef ++ 
+      homozygousCountCasesDef ++ 
+      homozygousCountControlsDef).map(_.name).toSeq
     }
   }
   
@@ -56,6 +80,9 @@ final case class AggregatorRowExpr(
       aggRow = AggregatorVariantRow(
         marker = row.marker,
         pvalue = pvalueDef.apply(row),
+        dataset = metadataColumnDefs.dataset(row),
+        phenotype = metadataColumnDefs.phenotype(row),
+        ancestry = metadataColumnDefs.ancestry(row),
         zscore = zscoreDef.map(_.apply(row)),
         stderr = stderrDef.map(_.apply(row)),
         beta = betaDef.map(_.apply(row)),

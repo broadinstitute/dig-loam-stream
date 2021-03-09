@@ -16,11 +16,17 @@ final class DataRowTest extends FunSuite {
   private val eaf: Double = 13.14
   private val maf: Double = 14.15
   private val n: Double = 16.17
+  private val dataset: String = "asjhkasdfjksdhf"
+  private val phenotype: String = "jiguhsfkjghksfgh"
+  private val ancestry: Ancestry = Ancestry.AA
   
   test("values - all fields supplied") {
     val row = AggregatorVariantRow(
       marker = marker,
       pvalue = pvalue,
+      dataset = dataset,
+      phenotype = phenotype,
+      ancestry = ancestry,
       zscore = Some(zscore),
       stderr = Some(stderr),
       beta = Some(beta),
@@ -47,6 +53,9 @@ final class DataRowTest extends FunSuite {
     val row = AggregatorVariantRow(
       marker = marker,
       pvalue = pvalue,
+      dataset = dataset,
+      phenotype = phenotype,
+      ancestry = ancestry,
       zscore = Some(zscore),
       stderr = None,
       beta = Some(beta),

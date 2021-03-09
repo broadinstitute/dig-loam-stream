@@ -9,8 +9,8 @@ import loamstream.model.Store
 trait RowFilters { self: IntakeSyntax =>
   
   private def asString(r: RenderableRow): String = r.headers.iterator.zip(r.values.iterator).map { 
-    case (h, Some(v)) => s"(${h},${v})"
-    case (h, None) => s"(${h},.)"
+    case (h, Some(v)) => s"(${h}:${v})"
+    case (h, None) => s"(${h}:.)"
   }.mkString(",")
   
   object DataRowFilters {

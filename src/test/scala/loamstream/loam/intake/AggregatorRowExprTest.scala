@@ -15,7 +15,15 @@ final class AggregatorRowExprTest extends FunSuite {
       
       val markerDef = MarkerColumnDef(MRKR, MRKR.map(Variant.from))
       
+      val metadata = AggregatorMetadata(
+        dataset = "asdasdasd",
+        phenotype = "akjdslfhsdf",
+        ancestry = Ancestry.AA,
+        tech = TechType.ExChip,
+        quantitative = None)
+      
       val expr = AggregatorRowExpr(
+          metadata = metadata,
           failFast = failFast,
           markerDef = markerDef,
           pvalueDef = AggregatorColumnDefs.PassThru.pvalue(PV),
@@ -53,7 +61,15 @@ final class AggregatorRowExprTest extends FunSuite {
     //Actual expr doesn't matter
     val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, LiteralColumnExpr("1_123_A_T").map(Variant.from))
     
+    val metadata = AggregatorMetadata(
+        dataset = "asdasdasd",
+        phenotype = "akjdslfhsdf",
+        ancestry = Ancestry.AA,
+        tech = TechType.ExChip,
+        quantitative = None)
+    
     val expr = AggregatorRowExpr(
+      metadata = metadata,
       failFast = true,
       markerDef = markerDef,
       pvalueDef = AggregatorColumnDefs.pvalue(LiteralColumnExpr(42.0))) //actual expr doesn't matter

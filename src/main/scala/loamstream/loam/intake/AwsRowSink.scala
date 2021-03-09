@@ -35,6 +35,8 @@ object AwsRowSink {
 final case class AwsRowSink(
     topic: String,
     name: String,
+    techType: Option[TechType],
+    phenotype: Option[String],
     awsClient: AwsClient,
     batchSize: Int = AwsRowSink.Defaults.batchSize,
     baseDir: Option[String] = AwsRowSink.Defaults.baseDir,
@@ -78,7 +80,17 @@ final case class AwsRowSink(
     
     val baseDirPart = baseDir.map(addTrailingSlashIfNeeded).getOrElse("")
     
-    s"${baseDirPart}${topic}/${name}"
+    val techTypePart = techType match {
+      case Some(tt) => s"${tt.name}/"
+      case None => ""
+    }
+    
+    val phenotypePart = phenotype match {
+      case Some(p) => s"/${p}"
+      case None => ""
+    }
+    
+    s"${baseDirPart}${topic}/${techTypePart}${name}${phenotypePart}"
   }
 
   /**

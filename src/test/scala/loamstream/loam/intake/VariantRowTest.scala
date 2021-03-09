@@ -61,7 +61,7 @@ final class VariantRowTest extends FunSuite with CsvRowTest.RowHelpers {
     
     val tagged = VariantRow.Tagged(delegate, marker, marker, disp)
     
-    val dataRow = AggregatorVariantRow(marker, 42.0)
+    val dataRow = AggregatorVariantRow(marker, 42.0, dataset = "asd", phenotype = "fdg", ancestry = Ancestry.AA)
     
     val transformed = VariantRow.Transformed(tagged, dataRow)
     
@@ -73,7 +73,13 @@ final class VariantRowTest extends FunSuite with CsvRowTest.RowHelpers {
     
     val furtherTransformed = transformed.transform(incPvalue)
     
-    assert(furtherTransformed === VariantRow.Transformed(tagged, AggregatorVariantRow(marker, 43.0)))
+    {
+      val expected = VariantRow.Transformed(
+          tagged, 
+          AggregatorVariantRow(marker, 43.0, dataset = "asd", phenotype = "fdg", ancestry = Ancestry.AA))
+
+      assert(furtherTransformed === expected)
+    }
   }
   
   test("Skipped") {
@@ -85,7 +91,7 @@ final class VariantRowTest extends FunSuite with CsvRowTest.RowHelpers {
     
     val tagged = VariantRow.Tagged(delegate, marker, marker, disp)
     
-    val dataRow = AggregatorVariantRow(marker, 42.0)
+    val dataRow = AggregatorVariantRow(marker, 42.0, dataset = "asd", phenotype = "fdg", ancestry = Ancestry.AA)
     
     def doTest(dataRowOpt: Option[AggregatorVariantRow]): Unit = {
       val skipped = VariantRow.Skipped(tagged, dataRowOpt)

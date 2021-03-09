@@ -38,6 +38,7 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
     import AggregatorColumnDefs._
     
     AggregatorRowExpr(
+      metadata = ???, //NB: Just compile
       markerDef = marker(
           chromColumn = CHR, 
           posColumn = BP, 

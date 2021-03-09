@@ -33,8 +33,8 @@ final class AggregatorMetadataTest extends FunSuite {
       val dataset = "some-dataset"
       val phenotype = "some-phenotype"
       val varIdFormat = "{alt}_{ref}_{pos}_{chrom}"
-      val ancestry = "some ancestry"
-      val tech = "some tech"
+      val ancestry = Ancestry.AA
+      val tech = TechType.ExChip
       val properties = Seq("x" -> "123", "a" -> "456")
     
       val m = AggregatorMetadata(

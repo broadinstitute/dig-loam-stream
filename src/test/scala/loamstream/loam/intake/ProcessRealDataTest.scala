@@ -39,8 +39,16 @@ final class ProcessRealDataTest extends FunSuite with Loggable {
     import ColumnNames._
     import AggregatorColumnDefs._
   
+    val metadata = AggregatorMetadata(
+        dataset = "asdasdasd",
+        phenotype = "akjdslfhsdf",
+        ancestry = Ancestry.AA,
+        tech = TechType.ExChip,
+        quantitative = None)
+    
     val toAggregatorRows: AggregatorRowExpr = {
       AggregatorRowExpr(
+        metadata = metadata,
         markerDef = marker(
                       chromColumn = CHR, 
                       posColumn = BP, 

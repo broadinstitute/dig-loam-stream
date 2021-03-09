@@ -5,6 +5,8 @@ import org.scalatest.FunSuite
 import loamstream.loam.intake.DataRow
 import loamstream.loam.intake.LiteralColumnExpr
 import loamstream.loam.intake.IntakeSyntax
+import loamstream.loam.intake.Ancestry
+import loamstream.loam.intake.TechType
 
 
 
@@ -28,7 +30,15 @@ final class VarIdTransformationTest extends FunSuite {
     varIdColumnName,
     variantExpr)
     
+  private val metadata = AggregatorMetadata(
+    dataset = "asdasdasd",
+    phenotype = "akjdslfhsdf",
+    ancestry = Ancestry.AA,
+    tech = TechType.ExChip,
+    quantitative = None)
+    
   private val toAggregatorRow: AggregatorRowExpr = AggregatorRowExpr(
+    metadata = metadata,
     markerDef = varIdDef,
     pvalueDef = NamedColumnDef(AggregatorColumnNames.pvalue, LiteralColumnExpr(42.0)))
   

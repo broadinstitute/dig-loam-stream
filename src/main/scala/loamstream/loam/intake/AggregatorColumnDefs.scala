@@ -24,8 +24,10 @@ object AggregatorColumnDefs {
     val chromExpr = {
       val chromStringColumn = chromColumn.asString
       
-      if(forceAlphabeticChromNames) { ColumnTransforms.ensureAlphabeticChromNames(chromStringColumn) }
-      else { chromStringColumn }
+      ColumnTransforms.normalizeChromNames {
+        if(forceAlphabeticChromNames) { ColumnTransforms.ensureAlphabeticChromNames(chromStringColumn) }
+        else { chromStringColumn }
+      }
     }
     
     //"{chrom}_{pos}_{ref}_{alt}"

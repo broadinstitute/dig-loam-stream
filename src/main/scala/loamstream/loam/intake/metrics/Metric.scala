@@ -61,6 +61,12 @@ object Metric {
     }
   }
   
+  private object WithMarkerZSeBeta {
+    def unapply(avr: AggregatorVariantRow): Option[(Variant, Option[Double], Option[Double], Option[Double])] = {
+      Some((avr.marker, avr.zscore, avr.stderr, avr.beta))
+    }
+  }
+  
   def countWithDisagreeingBetaStderrZscore(epsilon: Double = 1e-8d): Metric[Int] = {
     //z = beta / se  or  -(beta / se) if flipped
     
@@ -75,7 +81,7 @@ object Metric {
     val agreesFn: VariantRow.Parsed => Boolean = { 
       case VariantRow.Transformed(
           sourceRow, 
-          AggregatorVariantRow(marker, _, Some(z), Some(se), Some(beta), _, _, _, _, _)) => {
+          WithMarkerZSeBeta(marker, Some(z), Some(se), Some(beta))) => {
             
         if(isFlipped(sourceRow)) {
           agrees(z, -(beta / se))

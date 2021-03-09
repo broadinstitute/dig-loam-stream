@@ -5,9 +5,7 @@ import scala.collection.mutable.ArrayBuffer
 import loamstream.loam.intake.flip.Disposition
 import scala.util.Failure
 import scala.util.Try
-import org.json4s.JsonAST.JValue
-import org.json4s.JsonAST.JNull
-import org.json4s.JsonAST.JNothing
+import org.json4s.JsonAST._
 
 
 /**
@@ -92,44 +90,77 @@ trait IndexedRow extends RowWithSize with RenderableRow {
 final case class AggregatorVariantRow(
   marker: Variant,
   pvalue: Double,
-  zscore: Option[Double] = None, //None
+  dataset: String,
+  phenotype: String,
+  ancestry: Ancestry,
+  zscore: Option[Double] = None,
   stderr: Option[Double] = None,
   beta: Option[Double] = None,
-  oddsRatio: Option[Double] = None, //None
-  eaf: Option[Double] = None,
+  oddsRatio: Option[Double] = None,
+  n: Option[Double] = None,
+  eaf: Option[Double] = None,  
   maf: Option[Double] = None,
-  n: Option[Double] = None, //None
-  derivedFromRecordNumber: Option[Long] = None) extends RenderableRow {
+  mafCasesControls: Option[Long] = None,
+  alleleCount: Option[Long] = None,
+  alleleCountCases: Option[Long] = None, 
+  alleleCountControls: Option[Long] = None,
+  heterozygousCountCases: Option[Long] = None, 
+  heterozygousCountControls: Option[Long] = None, 
+  homozygousCountCases: Option[Long] = None, 
+  homozygousCountControls: Option[Long] = None, 
+  derivedFromRecordNumber: Option[Long] = None) extends RenderableJsonRow {
   
-  import AggregatorVariantRow.fieldCount
-  
-  override def headers: Seq[String] = {
-    val buffer = new ArrayBuffer[String](fieldCount) //scalastyle:ignore magic.number
-    
-    def add(columnName: ColumnName): Unit = buffer += columnName.name
-    
-    //TODO: This will be wrong is non-default column names were used :( :( 
-    
-    add(AggregatorColumnNames.marker)
-    add(AggregatorColumnNames.pvalue)
-    
-    add(AggregatorColumnNames.zscore)
-    add(AggregatorColumnNames.stderr)
-    add(AggregatorColumnNames.beta)
-    add(AggregatorColumnNames.odds_ratio)
-    add(AggregatorColumnNames.eaf)
-    add(AggregatorColumnNames.maf)
-    add(AggregatorColumnNames.n)
-    
-    buffer
+  override def jsonValues: Seq[(String, JValue)] = {
+    def toJson(o: Option[_]): JValue = o match {
+      case Some(d: Double) => JDouble(d)
+      case Some(l: Long) => JLong(l)
+      case Some(s: String) => JString(s)
+      case _ => JNull
+    }
+
+    //TODO: Something faster?  Don't make an array of parts and throw it away?
+    def multiAllelic: Boolean = marker.alt.split(',').size > 1
+
+    Seq(
+      AggregatorJsonKeys.varId -> JString(marker.underscoreDelimited),
+      AggregatorJsonKeys.chromosome -> JString(marker.chrom), 
+      AggregatorJsonKeys.position -> JLong(marker.pos),
+      AggregatorJsonKeys.reference -> JString(marker.ref),
+      AggregatorJsonKeys.alt -> JString(marker.alt),
+      AggregatorJsonKeys.multiAllelic -> JBool(multiAllelic),
+      AggregatorJsonKeys.dataset -> JString(dataset),
+      AggregatorJsonKeys.phenotype -> JString(phenotype),
+      AggregatorJsonKeys.ancestry -> JString(ancestry.name),
+      AggregatorJsonKeys.pValue -> JString(pvalue.toString),
+      AggregatorJsonKeys.beta -> toJson(beta),
+      AggregatorJsonKeys.oddsRatio -> toJson(oddsRatio),
+      AggregatorJsonKeys.eaf -> toJson(eaf),
+      AggregatorJsonKeys.maf -> toJson(maf),
+      AggregatorJsonKeys.stdErr -> toJson(stderr),
+      AggregatorJsonKeys.zScore -> toJson(zscore),
+      AggregatorJsonKeys.n -> toJson(n),
+      AggregatorJsonKeys.mafCasesControls -> toJson(mafCasesControls),
+      AggregatorJsonKeys.alleleCount -> toJson(alleleCount),
+      AggregatorJsonKeys.alleleCountCases -> toJson(alleleCountCases), 
+      AggregatorJsonKeys.alleleCountControls -> toJson(alleleCountControls),
+      AggregatorJsonKeys.heterozygousCountCases -> toJson(heterozygousCountCases), 
+      AggregatorJsonKeys.heterozygousCountControls -> toJson(heterozygousCountControls), 
+      AggregatorJsonKeys.homozygousCountCases -> toJson(homozygousCountCases), 
+      AggregatorJsonKeys.homozygousCountControls -> toJson(homozygousCountControls), 
+    )
   }
+  
+  //TODO: This will be wrong if non-default column names were used :( :(
+  override def headers: Seq[String] = AggregatorVariantRow.defaultHeaders
   
   //NB: Profiler-informed optimization: adding to a Buffer is 2x faster than ++ or .flatten
   //We expect this method to be called a lot - once per row being output.
   override def values: Seq[Option[String]] = {
+    import AggregatorVariantRow.fieldCount
+    
     val buffer = new ArrayBuffer[Option[String]](fieldCount) //scalastyle:ignore magic.number
     
-    def add(o: Option[Double]): Unit = buffer += (o.map(_.toString))
+    def add(o: Option[_]): Unit = buffer += (o.map(_.toString))
     
     //NB: ORDERING MATTERS :\
     
@@ -143,13 +174,45 @@ final case class AggregatorVariantRow(
     add(eaf)
     add(maf)
     add(n)
+   
+    add(mafCasesControls)
+    add(alleleCount)
+    add(alleleCountCases) 
+    add(alleleCountControls)
+    add(heterozygousCountCases) 
+    add(heterozygousCountControls) 
+    add(homozygousCountCases) 
+    add(homozygousCountControls) 
     
     buffer 
   }
 }
 
 object AggregatorVariantRow {
-  private val fieldCount: Int = 10 //scalastyle:ignore magic.number
+  private val fieldCount: Int = 18 //scalastyle:ignore magic.number
+  
+  val defaultHeaders: Seq[String] = {
+    Seq(
+      AggregatorColumnNames.marker,
+      AggregatorColumnNames.pvalue,
+      
+      AggregatorColumnNames.zscore,
+      AggregatorColumnNames.stderr,
+      AggregatorColumnNames.beta,
+      AggregatorColumnNames.odds_ratio,
+      AggregatorColumnNames.eaf,
+      AggregatorColumnNames.maf,
+      AggregatorColumnNames.n,
+      
+      AggregatorColumnNames.mafCasesControls,
+      AggregatorColumnNames.alleleCountCasesControls,
+      AggregatorColumnNames.alleleCountCases,
+      AggregatorColumnNames.alleleCountControls,
+      AggregatorColumnNames.heterozygousCountCases,
+      AggregatorColumnNames.heterozygousCountControls, 
+      AggregatorColumnNames.homozygousCountCases,
+      AggregatorColumnNames.homozygousCountControls).map(_.name) 
+  }
 }
 
 /**

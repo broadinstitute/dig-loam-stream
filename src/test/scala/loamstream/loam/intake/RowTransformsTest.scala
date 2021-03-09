@@ -20,32 +20,55 @@ final class RowTransformsTest extends FunSuite {
   import Helpers.linesFrom
   import Helpers.Implicits.LogFileOps
   
+  private val metadata = AggregatorMetadata(
+    dataset = "asdasdasd",
+    phenotype = "akjdslfhsdf",
+    ancestry = Ancestry.AA,
+    tech = TechType.ExChip,
+    quantitative = None)
+    
+  private def makeRow(
+      marker: Variant, 
+      pvalue: Double, 
+      eaf: Option[Double] = None, 
+      maf: Option[Double] = None): AggregatorVariantRow = {
+    
+    AggregatorVariantRow(
+      marker = marker,
+      pvalue = pvalue,
+      dataset = metadata.dataset,
+      phenotype = metadata.phenotype,
+      ancestry = metadata.ancestry,
+      eaf = eaf,
+      maf = maf)
+  }
+  
   test("upperCaseAlleles") {
     val rows = Seq(
-        AggregatorVariantRow(marker = v0, pvalue = 42.0),
-        AggregatorVariantRow(marker = v1, pvalue = 42.0),
-        AggregatorVariantRow(marker = v2, pvalue = 42.0))
+        makeRow(marker = v0, pvalue = 42.0),
+        makeRow(marker = v1, pvalue = 42.0),
+        makeRow(marker = v2, pvalue = 42.0))
         
     val actual = rows.map(Transforms.DataRowTransforms.upperCaseAlleles)
     
     val expected = Seq(
-        AggregatorVariantRow(marker = v0.toUpperCase, pvalue = 42.0),
-        AggregatorVariantRow(marker = v1.toUpperCase, pvalue = 42.0),
-        AggregatorVariantRow(marker = v2.toUpperCase, pvalue = 42.0))
+        makeRow(marker = v0.toUpperCase, pvalue = 42.0),
+        makeRow(marker = v1.toUpperCase, pvalue = 42.0),
+        makeRow(marker = v2.toUpperCase, pvalue = 42.0))
         
     assert(actual === expected)
   }
   
   test("clampPvalues") {
     val rows = Seq(
-        AggregatorVariantRow(marker = v0, pvalue = 0.0),
-        AggregatorVariantRow(marker = v1, pvalue = 42.0),
-        AggregatorVariantRow(marker = v2, pvalue = 0.0))
+        makeRow(marker = v0, pvalue = 0.0),
+        makeRow(marker = v1, pvalue = 42.0),
+        makeRow(marker = v2, pvalue = 0.0))
         
     val expected = Seq(
-        AggregatorVariantRow(marker = v0, pvalue = Double.MinPositiveValue),
-        AggregatorVariantRow(marker = v1, pvalue = 42.0),
-        AggregatorVariantRow(marker = v2, pvalue = Double.MinPositiveValue))
+        makeRow(marker = v0, pvalue = Double.MinPositiveValue),
+        makeRow(marker = v1, pvalue = 42.0),
+        makeRow(marker = v2, pvalue = Double.MinPositiveValue))
         
     withLogStore { logStore =>
       val transform = Transforms.DataRowTransforms.clampPValues(logStore, append = true)

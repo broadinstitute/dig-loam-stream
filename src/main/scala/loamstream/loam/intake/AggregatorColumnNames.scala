@@ -18,6 +18,16 @@ object AggregatorColumnNames {
   val maf: ColumnName =        "maf".asColumnName
   val n: ColumnName =          "n".asColumnName
   
+  //TODO: What should these new names be?
+  val mafCasesControls: ColumnName = "maf_cases_controls".asColumnName
+  val alleleCountCasesControls: ColumnName = "allele_count_cases_controls".asColumnName
+  val alleleCountCases: ColumnName = "allele_count_cases".asColumnName 
+  val alleleCountControls: ColumnName = "allele_count_controls".asColumnName
+  val heterozygousCountCases: ColumnName = "heterozygous_count_cases".asColumnName 
+  val heterozygousCountControls: ColumnName = "heterozygous_count_controls".asColumnName 
+  val homozygousCountCases: ColumnName = "homozygous_count_cases".asColumnName 
+  val homozygousCountControls: ColumnName = "homozygous_count_controls".asColumnName 
+  
   lazy val values: Seq[ColumnName] = Seq(
       marker,
       pvalue,
@@ -27,5 +37,13 @@ object AggregatorColumnNames {
       odds_ratio,
       eaf,
       maf,
-      n)
+      n,
+      mafCasesControls,
+      alleleCountCasesControls,
+      alleleCountCases, 
+      alleleCountControls,
+      heterozygousCountCases, 
+      heterozygousCountControls, 
+      homozygousCountCases, 
+      homozygousCountControls)
 }

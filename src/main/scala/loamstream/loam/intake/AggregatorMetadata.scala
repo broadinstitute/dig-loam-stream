@@ -16,9 +16,9 @@ final case class AggregatorMetadata(
     dataset: String,
     phenotype: String,
     varIdFormat: String = Defaults.varIdFormat,
-    ancestry: String,
+    ancestry: Ancestry,
     author: Option[String] = None,
-    tech: String,
+    tech: TechType,
     quantitative: Option[AggregatorMetadata.Quantitative],
     properties: Seq[(String, String)] = Nil) {
     
@@ -42,8 +42,8 @@ final case class AggregatorMetadata(
     }
     
     s"""|dataset ${dataset} ${phenotype}
-        |ancestry ${escape(ancestry)}
-        |tech ${escape(tech)}
+        |ancestry ${escape(ancestry.name)}
+        |tech ${escape(tech.name)}
         |${quantitativePart}
         |var_id ${varIdFormat}
         |${authorPart}""".stripMargin.trim
@@ -102,35 +102,47 @@ object AggregatorMetadata extends ConfigParser[AggregatorMetadata] {
     def toMetadata: Try[AggregatorMetadata] = {
       for {
         ph <- Options.toTry(phenotype)("Expected phenotype to be present")
+        tt <- TechType.tryFromString(tech)
+        an <- Ancestry.tryFromString(ancestry) 
       } yield {
         AggregatorMetadata(
           dataset = dataset,
           phenotype = ph,
           varIdFormat = varIdFormat,
-          ancestry = ancestry,
+          ancestry = an,
           author = author,
-          tech = tech,
+          tech = tt,
           quantitative = quantitative)
       }
     }
     
-    def toNoPhenotype: NoPhenotype = {
-      NoPhenotype(
-        dataset = dataset,
-        varIdFormat = varIdFormat,
-        ancestry = ancestry,
-        author = author,
-        tech = tech,
-        quantitative = quantitative)
+    def toNoPhenotype: Try[NoPhenotype] = {
+      for {
+        tt <- TechType.tryFromString(tech)
+        an <- Ancestry.tryFromString(ancestry)
+      } yield {
+        NoPhenotype(
+          dataset = dataset,
+          varIdFormat = varIdFormat,
+          ancestry = an,
+          author = author,
+          tech = tt,
+          quantitative = quantitative)
+      }
     }
     
-    def toNoPhenotypeOrQuantitative: NoPhenotypeOrQuantitative = {
-      NoPhenotypeOrQuantitative(
-        dataset = dataset,
-        varIdFormat = varIdFormat,
-        ancestry = ancestry,
-        author = author,
-        tech = tech)
+    def toNoPhenotypeOrQuantitative: Try[NoPhenotypeOrQuantitative] = {
+      for {
+        tt <- TechType.tryFromString(tech)
+        an <- Ancestry.tryFromString(ancestry)
+      } yield {
+        NoPhenotypeOrQuantitative(
+          dataset = dataset,
+          varIdFormat = varIdFormat,
+          ancestry = an,
+          author = author,
+          tech = tt)
+      }
     }
   }
   
@@ -151,9 +163,9 @@ object AggregatorMetadata extends ConfigParser[AggregatorMetadata] {
   final case class NoPhenotype(
       dataset: String,
       varIdFormat: String = Defaults.varIdFormat,
-      ancestry: String,
+      ancestry: Ancestry,
       author: Option[String],
-      tech: String,
+      tech: TechType,
       quantitative: Option[Quantitative]) {
     
     def toMetadata(phenotype: String): AggregatorMetadata = {
@@ -175,16 +187,16 @@ object AggregatorMetadata extends ConfigParser[AggregatorMetadata] {
       
       //NB: Marshal the contents of loamstream.intake.metadata into a Metadata instance.
       //Names of fields in Metadata and keys under loamstream.intake.metadata must match.
-      Try(config.as[Parsed](Defaults.configKey)).map(_.toNoPhenotype)
+      Try(config.as[Parsed](Defaults.configKey)).flatMap(_.toNoPhenotype)
     }
   }
   
   final case class NoPhenotypeOrQuantitative(
       dataset: String,
       varIdFormat: String = Defaults.varIdFormat,
-      ancestry: String,
+      ancestry: Ancestry,
       author: Option[String],
-      tech: String) {
+      tech: TechType) {
     
     def toMetadata(phenotype: String, quantitative: Option[Quantitative]): AggregatorMetadata = {
       AggregatorMetadata(
@@ -205,7 +217,7 @@ object AggregatorMetadata extends ConfigParser[AggregatorMetadata] {
       
       //NB: Marshal the contents of loamstream.intake.metadata into a Metadata instance.
       //Names of fields in Metadata and keys under loamstream.intake.metadata must match.
-      Try(config.as[Parsed](Defaults.configKey)).map(_.toNoPhenotypeOrQuantitative)
+      Try(config.as[Parsed](Defaults.configKey)).flatMap(_.toNoPhenotypeOrQuantitative)
     }
   }
 }

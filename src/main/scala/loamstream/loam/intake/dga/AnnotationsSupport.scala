@@ -56,6 +56,8 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
       val sink = new AwsRowSink(
           topic = topicName,
           name = datasetName,
+          techType = None,
+          phenotype = None,
           awsClient = awsClient,
           yes = yes)
       

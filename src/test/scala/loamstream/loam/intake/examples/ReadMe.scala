@@ -10,6 +10,8 @@ import loamstream.loam.intake.AggregatorCommands
 import loamstream.loam.intake.AggregatorIntakeConfig
 import loamstream.loam.intake.SourceColumns
 import loamstream.conf.LsSettings
+import loamstream.loam.intake.Ancestry
+import loamstream.loam.intake.TechType
 
 /**
  * @author clint
@@ -170,9 +172,9 @@ object ReadMe extends loamstream.LoamFile with AggregatorCommands {
     phenotype = "some-phenotype",
     //See https://github.com/broadinstitute/dig-aggregator-intake
     varIdFormat = "defaults to {chrom}_{pos}_{ref}_{alt}",
-    ancestry = "some-ancestry",
+    ancestry = Ancestry.AA,
     author = Some("John Doe"),
-    tech = "some-tech",
+    tech = TechType.ExChip,
     quantitative = Some(AggregatorMetadata.Quantitative.Subjects(42))
     //or quantitative = Some(Metadata.Quantitative.CasesAndControls(cases = 42, controls = 99))
   )

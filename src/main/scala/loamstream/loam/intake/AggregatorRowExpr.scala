@@ -26,7 +26,6 @@ final case class AggregatorRowExpr(
     heterozygousControlsDef: Option[NamedColumnDef[Long]] = None, 
     homozygousCasesDef: Option[NamedColumnDef[Long]] = None, 
     homozygousControlsDef: Option[NamedColumnDef[Long]] = None, 
-    derivedFromRecordNumberDef: Option[NamedColumnDef[Long]] = None,
     failFast: Boolean = false) extends TaggedRowParser[VariantRow.Parsed] {
   
   private object metadataColumnDefs {

@@ -6,4 +6,4 @@ package loamstream.loam.intake
  */
 final case class Dataset(name: String) extends HasName
 
-final case class Phenotype(name: String) extends HasName
+final case class Phenotype(name: String, dichotomous: Boolean) extends HasName

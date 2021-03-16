@@ -3,6 +3,7 @@ package loamstream.loam.intake
 import scala.util.Try
 import scala.util.Failure
 import scala.util.Success
+import loamstream.loam.intake.metrics.BioIndexClient
 
 /**
  * @author clint
@@ -18,6 +19,9 @@ final case class AggregatorRowExpr(
     oddsRatioDef: Option[NamedColumnDef[Double]] = None,
     eafDef: Option[NamedColumnDef[Double]] = None,
     mafDef: Option[NamedColumnDef[Double]] = None,
+    casesDef: Option[NamedColumnDef[Double]] = None,
+    controlsDef: Option[NamedColumnDef[Double]] = None,
+    subjectsDef: Option[NamedColumnDef[Double]] = None,
     nDef: Option[NamedColumnDef[Double]] = None,
     alleleCountDef: Option[NamedColumnDef[Long]] = None,
     alleleCountCasesDef: Option[NamedColumnDef[Long]] = None,
@@ -26,12 +30,73 @@ final case class AggregatorRowExpr(
     heterozygousControlsDef: Option[NamedColumnDef[Long]] = None, 
     homozygousCasesDef: Option[NamedColumnDef[Long]] = None, 
     homozygousControlsDef: Option[NamedColumnDef[Long]] = None, 
-    failFast: Boolean = false) extends TaggedRowParser[VariantRow.Parsed] {
+    failFast: Boolean = false,
+    private val bioIndexClient: BioIndexClient = new BioIndexClient.Default()) extends 
+        TaggedRowParser[VariantRow.Parsed] {
   
   private object metadataColumnDefs {
     val dataset = LiteralColumnExpr(metadata.dataset)
     val phenotype = LiteralColumnExpr(metadata.phenotype)
     val ancestry = LiteralColumnExpr(metadata.ancestry)
+  }
+  
+  private object Inferred {
+    //NB: calculate missing values where possible
+    lazy val beta: Option[NamedColumnDef[Double]] = (betaDef, oddsRatioDef) match {
+      //TODO: logarithm base?
+      case (None, Some(orDef)) => Some(orDef.map(scala.math.log)) 
+      case _ => None
+    }
+
+    lazy val oddsRatio: Option[NamedColumnDef[Double]] = (oddsRatioDef, betaDef) match {
+      case (None, Some(bDef)) => Some(bDef.map(scala.math.exp))
+      case _ => None
+    }
+
+    private def qnorm(beta: NamedColumnDef[Double], pvalue: NamedColumnDef[Double]): NamedColumnDef[Double] = {
+      ???
+    }
+    
+    lazy val stderr: Option[NamedColumnDef[Double]] = (stderrDef, betaDef) match {
+      case (None, Some(bDef)) => Some(qnorm(bDef, pvalueDef))
+      case _ => None
+    }
+    
+    lazy val zscore: Option[NamedColumnDef[Double]] = (zscoreDef, betaDef, stderr) match {
+      case (None, Some(bDef), Some(seDef)) => Some(bDef / seDef)
+      case _ => None
+    }
+    
+    lazy val maf: Option[NamedColumnDef[Double]] = (mafDef, eafDef) match {
+      case (None, Some(eDef)) => Some(eDef.map(e => if(e < 0.5) e else 1.0 - e))
+      case _ => None
+    }
+    
+    private def effectiveN: NamedColumnDef[Double] = {
+      val canonicalPhenotypeOpt = bioIndexClient.findClosestMatch(Phenotype(metadata.phenotype, false))
+      
+      require(
+          canonicalPhenotypeOpt.isDefined, 
+          s"Could not find canonical name and dichotomous status for phenotype '${metadata.phenotype}'")
+          
+      val canonicalPhenotype = canonicalPhenotypeOpt.get
+      
+      //if the phenotype is dichotomous, use subjects, else cases+controls
+      (canonicalPhenotype.dichotomous, casesDef, controlsDef, subjectsDef) match {
+        case (true, Some(cases), Some(controls), _) => cases.combine(name = ???)(controls) { 
+          Stats.effectiveN(_, _)
+        }
+        case (true, None, _, _) => sys.error(s"Cases expression missing for dichotomous phenotype '${metadata.phenotype}'")
+        case (true, _, None, _) => sys.error(s"Controls expression missing for dichotomous phenotype '${metadata.phenotype}'")
+        case (_, _, _, Some(subjects)) => subjects
+        case _ => sys.error(s"Subjects expression missing for non-dichotomous phenotype '${metadata.phenotype}'")
+      }
+    }
+    
+    lazy val n: Option[NamedColumnDef[Double]] = nDef match {
+      case None => Option(effectiveN)
+      case actualN => actualN
+    }
   }
   
   def columnNames: Seq[ColumnName] = {

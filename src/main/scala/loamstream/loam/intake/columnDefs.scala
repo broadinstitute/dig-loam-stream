@@ -44,6 +44,31 @@ final case class NamedColumnDef[A](
   exprWhenFlipped: Option[ColumnExpr[A]]) extends ColumnDef[A] {
   
   override def toString: String = s"${getClass.getSimpleName}(${name}, ${expr}, ${exprWhenFlipped})"
+  
+  def map[B: TypeTag](f: A => B): NamedColumnDef[B] = {
+    copy(expr = expr.map(f), exprWhenFlipped = exprWhenFlipped.map(_.map(f)))
+  }
+  
+  def withName(newName: ColumnName): NamedColumnDef[A] = copy(name = newName)
+  
+  def /(rhsDef: NamedColumnDef[A])(implicit ev: Fractional[A]): NamedColumnDef[A] = {
+    implicit val tt: TypeTag[A] = expr.tpe
+
+    combine(name)(rhsDef)(ev.div)
+  }
+  
+  def combine[B: TypeTag, C: TypeTag](name: ColumnName)(rhsDef: NamedColumnDef[B])(op: (A, B) => C): NamedColumnDef[C] = {
+    implicit val tt: TypeTag[A] = expr.tpe
+    
+    val exprsWhenFlippedOpt = exprWhenFlipped.zip(rhsDef.exprWhenFlipped).headOption
+    
+    val f = ColumnExpr.lift2(op)
+    
+    NamedColumnDef(
+      name = name,
+      expr = f(expr, rhsDef.expr),
+      exprWhenFlipped = exprsWhenFlippedOpt.map { case (lhs, rhs) => f(lhs, rhs) })
+  }
 }
 
 object NamedColumnDef {

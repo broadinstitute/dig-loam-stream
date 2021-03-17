@@ -21,7 +21,7 @@ final class DataRowTest extends FunSuite {
   private val ancestry: Ancestry = Ancestry.AA
   
   test("values - all fields supplied") {
-    val row = BaseVariantRow(
+    val row = PValueVariantRow(
       marker = marker,
       pvalue = pvalue,
       dataset = dataset,
@@ -33,7 +33,7 @@ final class DataRowTest extends FunSuite {
       oddsRatio = Some(oddsRatio),
       eaf = Some(eaf),
       maf = Some(maf),
-      n = Some(n))
+      n = n)
       
     val expected = Seq(
       marker.underscoreDelimited,
@@ -50,7 +50,7 @@ final class DataRowTest extends FunSuite {
   }
   
   test("values - some fields supplied") {
-    val row = BaseVariantRow(
+    val row = PValueVariantRow(
       marker = marker,
       pvalue = pvalue,
       dataset = dataset,
@@ -62,7 +62,7 @@ final class DataRowTest extends FunSuite {
       oddsRatio = None,
       eaf = Some(eaf),
       maf = None,
-      n = Some(n))
+      n = n)
       
     val expected: Seq[Option[String]] = Seq(
       Some(marker.underscoreDelimited),

@@ -31,16 +31,17 @@ final class RowTransformsTest extends FunSuite {
       marker: Variant, 
       pvalue: Double, 
       eaf: Option[Double] = None, 
-      maf: Option[Double] = None): BaseVariantRow = {
+      maf: Option[Double] = None): PValueVariantRow = {
     
-    BaseVariantRow(
+    PValueVariantRow(
       marker = marker,
       pvalue = pvalue,
       dataset = metadata.dataset,
       phenotype = metadata.phenotype,
       ancestry = metadata.ancestry,
       eaf = eaf,
-      maf = maf)
+      maf = maf,
+      n = 42)
   }
   
   test("upperCaseAlleles") {

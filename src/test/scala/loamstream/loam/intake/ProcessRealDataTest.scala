@@ -47,7 +47,7 @@ final class ProcessRealDataTest extends FunSuite with Loggable {
         quantitative = None)
     
     val toAggregatorRows: AggregatorRowExpr = {
-      AggregatorRowExpr(
+      VariantRowExpr(
         metadata = metadata,
         markerDef = marker(
                       chromColumn = CHR, 
@@ -55,11 +55,11 @@ final class ProcessRealDataTest extends FunSuite with Loggable {
                       refColumn = ALLELE0, 
                       altColumn = ALLELE1, 
                       destColumn = VAR_ID),
-        pvalueDef = NamedColumnDef(P_VALUE, P_BOLT_LMM.asDouble, None),
-        stderrDef = Some(NamedColumnDef(SE, SE.asDouble)),
+        pvalueDef = AnonColumnDef(P_BOLT_LMM.asDouble),
+        stderrDef = Some(AnonColumnDef(SE.asDouble)),
         betaDef = Some(beta(BETA, destColumn = BETA)),
         eafDef = Some(eaf(A1FREQ, destColumn = EAF_PH)),
-        mafDef = Some(NamedColumnDef(MAF_PH, A1FREQ.asDouble.complementIf(_ > 0.5))),
+        mafDef = Some(AnonColumnDef(A1FREQ.asDouble.complementIf(_ > 0.5))),
         failFast = true)
     }
         

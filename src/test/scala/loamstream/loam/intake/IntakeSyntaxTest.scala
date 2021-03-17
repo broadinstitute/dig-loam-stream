@@ -145,7 +145,7 @@ final class IntakeSyntaxTest extends FunSuite {
     tech = TechType.ExChip,
     quantitative = None)
   
-  private val expr = AggregatorRowExpr(
+  private val expr = VariantRowExpr(
       metadata = metadata,
       markerDef = markerDef,
       pvalueDef = AggregatorColumnDefs.pvalue(PValue))
@@ -156,7 +156,7 @@ final class IntakeSyntaxTest extends FunSuite {
       
       val source = mapSource.tagFlips(markerDef, Helpers.FlipDetectors.NoFlipsEver).map(expr)
           
-      val target = new MapFilterAndWriteTarget[Unit](
+      val target = new MapFilterAndWriteTarget[PValueVariantRow, Unit](
           store("/dev/null"), 
           HeaderRow(MRKR.name, PValue.name),
           source, 
@@ -177,7 +177,7 @@ final class IntakeSyntaxTest extends FunSuite {
       
       val source = mapSource.tagFlips(markerDef, Helpers.FlipDetectors.NoFlipsEver).map(expr)
           
-      val target = new MapFilterAndWriteTarget[Unit](
+      val target = new MapFilterAndWriteTarget[PValueVariantRow, Unit](
           store("/dev/null"), 
           HeaderRow(MRKR.name, PValue.name),
           source, 
@@ -188,7 +188,7 @@ final class IntakeSyntaxTest extends FunSuite {
       
       val unfilteredRows = source.records.toList
       
-      val p = MockCloseablePredicate[BaseVariantRow](_.pvalue > 0.2)
+      val p = MockCloseablePredicate[PValueVariantRow](_.pvalue > 0.2)
       
       val filtered = target.filter(p)
       
@@ -213,7 +213,7 @@ final class IntakeSyntaxTest extends FunSuite {
         Source.fromIterable(unfilteredRows.take(2).map(_.skip) ++ unfilteredRows.drop(2))
       }
           
-      val target = new MapFilterAndWriteTarget[Unit](
+      val target = new MapFilterAndWriteTarget[PValueVariantRow, Unit](
           store("/dev/null"), 
           HeaderRow(MRKR.name, PValue.name),
           source, 
@@ -245,7 +245,7 @@ final class IntakeSyntaxTest extends FunSuite {
         Source.fromIterable(unfilteredRows.take(2).map(_.skip) ++ unfilteredRows.drop(2))
       }
           
-      val target = new MapFilterAndWriteTarget[Unit](
+      val target = new MapFilterAndWriteTarget[PValueVariantRow, Unit](
           store("/dev/null"), 
           HeaderRow(MRKR.name, PValue.name),
           source, 
@@ -256,7 +256,7 @@ final class IntakeSyntaxTest extends FunSuite {
       
       val unmappedRows = source.records.toList
       
-      val f: Transform[BaseVariantRow] = MockCloseableTransform { dr => 
+      val f: Transform[PValueVariantRow] = MockCloseableTransform { dr => 
         dr.copy(pvalue = dr.pvalue + 1.0)
       }
       
@@ -287,7 +287,7 @@ final class IntakeSyntaxTest extends FunSuite {
           Source.fromIterable(unfilteredRows.take(2).map(_.skip) ++ unfilteredRows.drop(2))
         }
             
-        val target = new MapFilterAndWriteTarget[Unit](
+        val target = new MapFilterAndWriteTarget[PValueVariantRow, Unit](
             store(outfile), 
             HeaderRow(MRKR.name, PValue.name),
             source, 
@@ -298,7 +298,7 @@ final class IntakeSyntaxTest extends FunSuite {
         
         val unmappedRows = source.records.toList
         
-        val f = MockCloseableTransform[BaseVariantRow] { dr => 
+        val f = MockCloseableTransform[PValueVariantRow] { dr => 
           dr.copy(pvalue = dr.pvalue + 1.0)
         }
         
@@ -341,7 +341,7 @@ ${v3.underscoreDelimited}${'\t'}1.4""".trim
         
         val source = mapSource.tagFlips(markerDef, Helpers.FlipDetectors.NoFlipsEver).map(expr)
             
-        val target = new MapFilterAndWriteTarget[Unit](
+        val target = new MapFilterAndWriteTarget[PValueVariantRow, Unit](
             store(outfile), 
             HeaderRow(MRKR.name, PValue.name),
             source, 
@@ -350,7 +350,7 @@ ${v3.underscoreDelimited}${'\t'}1.4""".trim
         
         assert(target.toBeClosed === Nil)
         
-        val f = MockCloseableTransform[BaseVariantRow] { dr => 
+        val f = MockCloseableTransform[PValueVariantRow] { dr => 
           dr.copy(pvalue = dr.pvalue + 1.0)
         }
         

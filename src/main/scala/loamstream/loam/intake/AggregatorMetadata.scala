@@ -25,49 +25,10 @@ final case class AggregatorMetadata(
   require(AggregatorVarIdFormat.isValid(varIdFormat))
   
   def subjects: Option[Int] = quantitative.map(_.subjects)
-  
-  def asConfigFileContents: String = {
-    import AggregatorMetadata.escape
-    
-    val authorPart = author.map(a => s"author ${escape(a)}").getOrElse("")
-    
-    import AggregatorMetadata.Quantitative.CasesAndControls
-    import AggregatorMetadata.Quantitative.Subjects
-    import java.lang.System.lineSeparator
-
-    val quantitativePart = quantitative match {
-      case Some(CasesAndControls(cases, controls)) => s"cases ${cases}${lineSeparator}controls ${controls}"
-      case Some(Subjects(s)) => s"subjects ${s}"
-      case _ => ""
-    }
-    
-    s"""|dataset ${dataset} ${phenotype}
-        |ancestry ${escape(ancestry.name)}
-        |tech ${escape(tech.name)}
-        |${quantitativePart}
-        |var_id ${varIdFormat}
-        |${authorPart}""".stripMargin.trim
-  }
 }
 
 object AggregatorMetadata extends ConfigParser[AggregatorMetadata] {
 
-  /**
-   * Wrap strings containing whitespace in double quotes, escaping any existing double-quote characters.
-   */
-  def escape(s: String): String = {
-    //flatMapping feels odd, but it works.  Figuring out the right combination of escapes in order to use 
-    //String.replaceAll (which takes a regex as a Java/Scala string as its first arg, requiring its own escaping)
-    //was obviously possible, but not worth the required frustration for such a small, 
-    //relatively-infrequently-called method.    
-    def withQuotesEscaped = s.flatMap {
-      case '\"' => "\\\""
-      case c => c.toString
-    }
-    
-    if(s.exists(_.isWhitespace)) s""""${withQuotesEscaped}"""" else s
-  }
-  
   sealed trait Quantitative {
     def subjects: Int
   }

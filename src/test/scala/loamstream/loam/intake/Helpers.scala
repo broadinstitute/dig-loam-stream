@@ -7,6 +7,7 @@ import loamstream.loam.LoamSyntax
 import loamstream.model.Store
 import loamstream.loam.intake.flip.FlipDetector
 import loamstream.loam.intake.flip.Disposition
+import loamstream.loam.intake.metrics.BioIndexClient
 
 /**
  * @author clint
@@ -84,6 +85,28 @@ object Helpers {
   object FlipDetectors {
     object NoFlipsEver extends FlipDetector {
       override def isFlipped(variantId: Variant): Disposition = Disposition.NotFlippedSameStrand
+    }
+  }
+  
+  object BioIndexClients {
+    final case class Mock(
+        knownVariants: Set[Variant] = Set.empty,
+        knownDatasets: Set[Dataset] = Set.empty,
+        knownPhenotypes: Set[Phenotype] = Set.empty) extends BioIndexClient {
+
+      override def isKnown(variant: Variant): Boolean = knownVariants.contains(variant) 
+      
+      override def isKnown(dataset: Dataset): Boolean = knownDatasets.contains(dataset)
+      
+      override def isKnown(phenotype: Phenotype): Boolean = knownPhenotypes.contains(phenotype)
+      
+      override def findClosestMatch(dataset: Dataset): Option[Dataset] = {
+        knownDatasets.find(_.name.toUpperCase == dataset.name.toUpperCase)
+      }
+      
+      override def findClosestMatch(phenotype: Phenotype): Option[Phenotype] = {
+        knownPhenotypes.find(_.name.toUpperCase == phenotype.name.toUpperCase)
+      }
     }
   }
 }

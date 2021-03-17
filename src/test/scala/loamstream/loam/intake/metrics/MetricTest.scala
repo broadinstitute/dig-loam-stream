@@ -21,6 +21,7 @@ import loamstream.loam.intake.TechType
 import loamstream.loam.intake.VariantRowExpr
 import loamstream.loam.intake.PValueVariantRow
 import loamstream.loam.intake.BaseVariantRow
+import loamstream.loam.intake.LiteralColumnExpr
 
 
 /**
@@ -65,7 +66,8 @@ final class MetricTest extends FunSuite {
   private val defaultRowExpr: AggregatorRowExpr = VariantRowExpr(
       metadata = metadata,
       markerDef = markerVariantDef,
-      pvalueDef = AggregatorColumnDefs.pvalue(Pvalue))
+      pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
+      nDef = Some(AnonColumnDef(LiteralColumnExpr(99))))
 
   private val rowsNoFlips = {
     source.tagFlips(markerVariantDef, new MetricTest.MockFlipDetector(Set.empty)).map(defaultRowExpr)
@@ -134,7 +136,8 @@ final class MetricTest extends FunSuite {
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
         zscoreDef = Some(AggregatorColumnDefs.zscore(zscore)),
         stderrDef = Some(AggregatorColumnDefs.stderr(stderr)),
-        betaDef = Some(AggregatorColumnDefs.beta(beta)))
+        betaDef = Some(AggregatorColumnDefs.beta(beta)),
+        nDef = Some(AnonColumnDef(LiteralColumnExpr(99))))
     
     val rows = source.tagFlips(toAggregatorFormat.markerDef, flipDetector).map(toAggregatorFormat)
         
@@ -164,7 +167,8 @@ final class MetricTest extends FunSuite {
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
         zscoreDef = Some(AggregatorColumnDefs.zscore(zscore)),
         stderrDef = Some(AggregatorColumnDefs.stderr(stderr)),
-        betaDef = Some(AggregatorColumnDefs.beta(beta)))
+        betaDef = Some(AggregatorColumnDefs.beta(beta)),
+        nDef = Some(AnonColumnDef(LiteralColumnExpr(99))))
                       
     val rows = source.tagFlips(markerVariantDef, flipDetector).map(toAggregatorFormat)
                       
@@ -197,7 +201,8 @@ final class MetricTest extends FunSuite {
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
         zscoreDef = Some(AggregatorColumnDefs.zscore(zscore)),
         stderrDef = Some(AggregatorColumnDefs.stderr(stderr)),
-        betaDef = Some(AggregatorColumnDefs.beta(beta)))
+        betaDef = Some(AggregatorColumnDefs.beta(beta)),
+        nDef = Some(AnonColumnDef(LiteralColumnExpr(99))))
                       
     val rows = source.tagFlips(toAggregatorFormat.markerDef, flipDetector).map(toAggregatorFormat)
                       
@@ -230,7 +235,8 @@ final class MetricTest extends FunSuite {
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
         zscoreDef = Some(AggregatorColumnDefs.zscore(zscore)),
         stderrDef = Some(AggregatorColumnDefs.stderr(stderr)),
-        betaDef = Some(AggregatorColumnDefs.beta(beta)))
+        betaDef = Some(AggregatorColumnDefs.beta(beta)),
+        nDef = Some(AnonColumnDef(LiteralColumnExpr(99))))
     
     val flipDetector = new MetricTest.MockFlipDetector(Set(Vars.y, Vars.a, Vars.b).map(Variant.from))
         
@@ -259,7 +265,8 @@ final class MetricTest extends FunSuite {
     val toAggregatorFormat: AggregatorRowExpr = VariantRowExpr(
         metadata = metadata,
         markerDef = markerDef,
-        pvalueDef = AggregatorColumnDefs.pvalue(Pvalue))
+        pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
+        nDef = Some(AnonColumnDef(LiteralColumnExpr(99))))
     
     val flipDetector = new MetricTest.MockFlipDetector(Set(Vars.y, Vars.a, Vars.b).map(Variant.from))
         
@@ -296,7 +303,8 @@ final class MetricTest extends FunSuite {
       val toAggregatorFormat: AggregatorRowExpr = VariantRowExpr(
           metadata = metadata,
           markerDef = markerDef,
-          pvalueDef = AggregatorColumnDefs.pvalue(Pvalue))
+          pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
+          nDef = Some(AnonColumnDef(LiteralColumnExpr(99))))
       
       val skipped: Set[Variant] = if(anySkips) Set(Variant("2_123_A_T"), Variant("1_124_A_T")) else Set.empty
           
@@ -346,7 +354,8 @@ final class MetricTest extends FunSuite {
     val toAggregatorFormat: AggregatorRowExpr = VariantRowExpr(
         metadata = metadata,
         markerDef = markerDef,
-        pvalueDef = AggregatorColumnDefs.pvalue(Pvalue))
+        pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
+        nDef = Some(AnonColumnDef(LiteralColumnExpr(99))))
     
     val flipDetector = MetricTest.MockFlipDetector(flippedVariants = flipped, complementedVariants = complemented)
         
@@ -389,7 +398,8 @@ final class MetricTest extends FunSuite {
     val toAggregatorFormat: AggregatorRowExpr = VariantRowExpr(
         metadata = metadata,
         markerDef = markerDef,
-        pvalueDef = AggregatorColumnDefs.pvalue(Pvalue))
+        pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
+        nDef = Some(AnonColumnDef(LiteralColumnExpr(99))))
     
     val flipDetector = Helpers.FlipDetectors.NoFlipsEver
     
@@ -435,7 +445,8 @@ final class MetricTest extends FunSuite {
     val toAggregatorFormat: AggregatorRowExpr = VariantRowExpr(
         metadata = metadata,
         markerDef = markerDef,
-        pvalueDef = AggregatorColumnDefs.pvalue(Pvalue))
+        pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
+        nDef = Some(AnonColumnDef(LiteralColumnExpr(99))))
     
     val flipDetector = MetricTest.MockFlipDetector(
         flippedVariants = Set(v0, v3), complementedVariants = Set(v1, v3))
@@ -483,7 +494,8 @@ final class MetricTest extends FunSuite {
     val toAggregatorFormat: AggregatorRowExpr = VariantRowExpr(
         metadata = metadata,
         markerDef = markerDef,
-        pvalueDef = AggregatorColumnDefs.pvalue(Pvalue))
+        pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
+        nDef = Some(AnonColumnDef(LiteralColumnExpr(99))))
     
     val flipDetector = MetricTest.MockFlipDetector(
         flippedVariants = Set(v0, v3), complementedVariants = Set(v1, v3))
@@ -529,7 +541,8 @@ final class MetricTest extends FunSuite {
     val toAggregatorFormat: AggregatorRowExpr = VariantRowExpr(
         metadata = metadata,
         markerDef = markerDef,
-        pvalueDef = AggregatorColumnDefs.pvalue(Pvalue))
+        pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
+        nDef = Some(AnonColumnDef(LiteralColumnExpr(42))))
     
     val flipDetector = Helpers.FlipDetectors.NoFlipsEver
       

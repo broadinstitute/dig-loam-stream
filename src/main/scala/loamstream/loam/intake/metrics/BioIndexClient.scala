@@ -115,10 +115,10 @@ object BioIndexClient {
     
     private def getNamesToDichotomousFlags(url: String): Iterator[(String, Boolean)] = {
       getDataElements(url).iterator.map { jv =>
-        (jv \ "name", jv \ "dichotomous")
+        (jv, jv \ "name", jv \ "dichotomous")
       }.zipWithIndex.map {
-        case ((JString(name), JBool(dichotomous)), _) => (name, dichotomous)
-        case (_, i) => sys.error(s"Couldn't parse 'data' array element at index ${i}")
+        case ((_, JString(name), JInt(dichotomous)), _) => (name, dichotomous != 0)
+        case ((jv, _, _), i) => sys.error(s"Couldn't parse 'data' array element at index ${i} in offending json '$jv'")
       }
     }
     

@@ -9,6 +9,9 @@ import loamstream.loam.intake.Ancestry
 import loamstream.loam.intake.TechType
 import loamstream.loam.intake.PValueVariantRow
 import loamstream.loam.intake.VariantRowExpr
+import loamstream.loam.intake.metrics.BioIndexClient
+import loamstream.loam.intake.Dataset
+import loamstream.loam.intake.Phenotype
 
 
 
@@ -39,10 +42,16 @@ final class VarIdTransformationTest extends FunSuite {
     tech = TechType.ExChip,
     quantitative = None)
     
+  val bioIndexClient: BioIndexClient = loamstream.loam.intake.Helpers.BioIndexClients.Mock(
+      knownDatasets = Set(Dataset(metadata.dataset)),
+      knownPhenotypes = Set(Phenotype(metadata.phenotype, false)))
+    
   private val toAggregatorRow: AggregatorRowExpr = VariantRowExpr(
     metadata = metadata,
     markerDef = varIdDef,
-    pvalueDef = AnonColumnDef(LiteralColumnExpr(42.0)))
+    pvalueDef = AnonColumnDef(LiteralColumnExpr(42.0)),
+    nDef = Some(AnonColumnDef(LiteralColumnExpr(99))),
+    bioIndexClient = bioIndexClient)
   
   
   test("problematic variant 1_713131_AT_A") {

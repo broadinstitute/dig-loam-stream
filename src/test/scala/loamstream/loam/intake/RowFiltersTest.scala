@@ -82,6 +82,9 @@ final class RowFiltersTest extends FunSuite {
       val logLines = linesFrom(logStore.path)
       
       assert(logLines.size === 3)
+      
+      //throw new Exception(logLines.toString)
+      
       assert(logLines.containsOnce(s"(${REF.name},D),(${ALT.name},T),(FOO,42)"))
       assert(logLines.containsOnce(s"(${REF.name},D),(${ALT.name},I),(FOO,42)"))
       assert(logLines.containsOnce(s"(${REF.name},A),(${ALT.name},I),(FOO,42)"))

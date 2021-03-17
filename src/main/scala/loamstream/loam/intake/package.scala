@@ -4,7 +4,7 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-import loamstream.loam.intake.AggregatorVariantRow
+import loamstream.loam.intake.BaseVariantRow
 import loamstream.loam.intake.DataRow
 import loamstream.loam.intake.VariantRow
 
@@ -45,15 +45,15 @@ package object intake {
   
   type CloseableTaggedRowTransform = CloseableTransform[VariantRow.Tagged] 
     
-  type AggregatorVariantRowParser[A] = AggregatorVariantRow => A
+  type AggregatorVariantRowParser[A] = PValueVariantRow => A
   
-  type AggregatorVariantRowPredicate = Predicate[AggregatorVariantRow]
+  type AggregatorVariantRowPredicate = Predicate[PValueVariantRow]
   
-  type CloseableAggregatorVariantRowPredicate = CloseablePredicate[AggregatorVariantRow]
+  type CloseableAggregatorVariantRowPredicate = CloseablePredicate[PValueVariantRow]
   
-  type AggregatorVariantRowTransform = Transform[AggregatorVariantRow]
+  type AggregatorVariantRowTransform = Transform[PValueVariantRow]
   
-  type CloseableAggregatorVariantRowTransform = CloseableTransform[AggregatorVariantRow]
+  type CloseableAggregatorVariantRowTransform = CloseableTransform[PValueVariantRow]
   
   implicit final class CloseablePredicateOps[A](val cp: CloseablePredicate[A]) extends AnyVal {
     def liftToTry: CloseablePredicate[Try[A]] = {

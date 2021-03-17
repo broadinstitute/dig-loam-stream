@@ -7,6 +7,8 @@ import loamstream.loam.intake.LiteralColumnExpr
 import loamstream.loam.intake.IntakeSyntax
 import loamstream.loam.intake.Ancestry
 import loamstream.loam.intake.TechType
+import loamstream.loam.intake.PValueVariantRow
+import loamstream.loam.intake.VariantRowExpr
 
 
 
@@ -37,10 +39,10 @@ final class VarIdTransformationTest extends FunSuite {
     tech = TechType.ExChip,
     quantitative = None)
     
-  private val toAggregatorRow: AggregatorRowExpr = AggregatorRowExpr(
+  private val toAggregatorRow: AggregatorRowExpr = VariantRowExpr(
     metadata = metadata,
     markerDef = varIdDef,
-    pvalueDef = NamedColumnDef(AggregatorColumnNames.pvalue, LiteralColumnExpr(42.0)))
+    pvalueDef = AnonColumnDef(LiteralColumnExpr(42.0)))
   
   
   test("problematic variant 1_713131_AT_A") {
@@ -53,7 +55,7 @@ final class VarIdTransformationTest extends FunSuite {
     val dataRows = rows.tagFlips(varIdDef, flipDetector).map(toAggregatorRow).records.toIndexedSeq
     
     assert(dataRows.size === 1)
-    assert(dataRows.head.aggRowOpt.get.marker === v)
+    assert(dataRows.head.aggRowOpt.get.asInstanceOf[PValueVariantRow].marker === v)
   }
   
   test("Var ids are transformed properly when flips are detected") {
@@ -69,7 +71,7 @@ final class VarIdTransformationTest extends FunSuite {
     
     val dataRows = source.tagFlips(varIdDef, flipDetector).map(toAggregatorRow)
     
-    val actualVarIds = dataRows.map(_.aggRowOpt.get.marker)
+    val actualVarIds = dataRows.map(_.aggRowOpt.get.asInstanceOf[PValueVariantRow].marker)
       
     actualVarIds.records.zip(inputsAndExpectedOutputs.iterator).foreach { case (actual, (input, expected)) =>
       def msg = {

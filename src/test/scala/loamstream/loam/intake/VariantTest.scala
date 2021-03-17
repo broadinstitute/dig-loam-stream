@@ -105,4 +105,10 @@ final class VariantTest extends FunSuite {
     assert(v0.underscoreDelimited === "x_123_z_y")
     assert(v0.delimitedBy('>') === "x>123>z>y")
   }
+  
+  test("isMultiAllelic") {
+    //def isMultiAllelic: Boolean = alt.split(',').size > 1
+    
+    fail("TODO")
+  }
 }

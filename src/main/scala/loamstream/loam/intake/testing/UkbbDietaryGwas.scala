@@ -7,15 +7,15 @@ import loamstream.conf.LoamConfig
 import loamstream.loam.LoamProjectContext
 import loamstream.loam.LoamScriptContext
 import loamstream.loam.intake.AggregatorIntakeConfig
-import loamstream.loam.intake.SourceColumns
 import loamstream.loam.intake.RowSink
-import loamstream.loam.intake.AggregatorCommands.upload
+import loamstream.loam.intake.VariantRowExpr
 
 /**
  * @author clint
  * Feb 28, 2020
  */
 object UkbbDietaryGwas extends loamstream.LoamFile {
+
   import loamstream.loam.intake.IntakeSyntax._
   
   object ColumnNames {
@@ -29,15 +29,16 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
     val SE = "SE".asColumnName
     val P_BOLT_LMM = "P_BOLT_LMM".asColumnName
     val Z_SCORE = "Z_SCORE".asColumnName
+    val N = "N".asColumnName
     
     val VARID = "VARID".asColumnName
   }
 
-  val toAggregatorRows: AggregatorRowExpr = {
+  val toAggregatorRows: VariantRowExpr.PValueVariantRowExpr = {
     import ColumnNames._
     import AggregatorColumnDefs._
     
-    AggregatorRowExpr(
+    VariantRowExpr.PValueVariantRowExpr(
       metadata = ???, //NB: Just compile
       markerDef = marker(
           chromColumn = CHR, 
@@ -50,7 +51,8 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
       zscoreDef = Some(PassThru.zscore(Z_SCORE)),
       stderrDef = Some(stderr(SE)),
       betaDef = Some(beta(BETA)),
-      eafDef = Some(eaf(A1FREQ)))
+      eafDef = Some(eaf(A1FREQ)),
+      nDef = PassThru.n(N))
   }
   
   object Paths {
@@ -158,18 +160,12 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
     if(intakeTypesafeConfig.getBoolean("AGGREGATOR_INTAKE_DO_UPLOAD")) {
       val metadata = toMetadata(phenotype -> phenotypeConfig)
       
-      val sourceColumnMapping = SourceColumns.defaultMarkerAndPvalueOnly
-        .withDefaultZscore
-        .withDefaultStderr
-        .withDefaultBeta
-        .withDefaultEaf
-      
-      upload(
+      //TODO
+      /*upload(
           aggregatorIntakePipelineConfig, 
           metadata, dataInAggregatorFormat, 
-          sourceColumnMapping, 
           workDir = Paths.workDir, 
-          yes = false).tag(s"upload-to-s3-${phenotype}")
+          yes = false).tag(s"upload-to-s3-${phenotype}")*/
     }
   }
 }

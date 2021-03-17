@@ -6,9 +6,7 @@ import loamstream.loam.LoamScriptContext
 import loamstream.loam.LoamProjectContext
 import loamstream.loam.LoamSyntax
 import loamstream.conf.LoamConfig
-import loamstream.loam.intake.AggregatorCommands
 import loamstream.loam.intake.AggregatorIntakeConfig
-import loamstream.loam.intake.SourceColumns
 import loamstream.conf.LsSettings
 import loamstream.loam.intake.Ancestry
 import loamstream.loam.intake.TechType
@@ -21,7 +19,7 @@ import loamstream.loam.intake.TechType
  * 
  * It encodes processing an input .tsv and uploading it to S3 via the aggregator-intake project.  
  */
-object ReadMe extends loamstream.LoamFile with AggregatorCommands {
+object ReadMe extends loamstream.LoamFile {
   import IntakeSyntax._
 
   /*
@@ -93,9 +91,9 @@ object ReadMe extends loamstream.LoamFile with AggregatorCommands {
    */
   val BIP = "BIP".asColumnName
   //Make a column named 'BIP' that has values that are the ones from column BAR plus one:
-  NamedColumnDef(BIP, BAR.asInt + 1)
+  AnonColumnDef(BAR.asInt + 1)
   //Make it BAR * 2 when it's detected that ref and alt alleles are flipped, otherwise BAR + 1:
-  NamedColumnDef(BIP, BAR.asInt + 1, BAR.asInt * 2)
+  AnonColumnDef(BAR.asInt + 1, BAR.asInt * 2)
 
   /*
    * Since ColumnDefs produce named columns, combining a bunch of them makes a row.  That's what a RowDef
@@ -183,18 +181,4 @@ object ReadMe extends loamstream.LoamFile with AggregatorCommands {
   //See aggregator.{AggregatorIntakeConfig,Metadata}.fromConfig(Config)
     
   val reallyProceed = false
-  
-  val sourceColumnMapping = {
-    SourceColumns.defaultMarkerAndPvalueOnly
-      .withDefaultEaf  
-      .withDefaultBeta
-      .withDefaultStderr
-  }
-  
-  upload(
-      aggregatorIntakeConfig = aggregatorConfig,// aggregator-intake install dir, conda env name, etc 
-      metadata = metadata, //Aggregator-specific metadata - dataset/phenotype name , num cases/controls, etc etc
-      csvFile = transformedCsv,
-      sourceColumnMapping = sourceColumnMapping,
-      yes = reallyProceed).tag("upload-to-S3")
 }

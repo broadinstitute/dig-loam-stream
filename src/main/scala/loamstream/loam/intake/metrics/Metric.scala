@@ -1,7 +1,7 @@
 package loamstream.loam.intake.metrics
 
 import loamstream.loam.intake.Variant
-import loamstream.loam.intake.AggregatorVariantRow
+import loamstream.loam.intake.BaseVariantRow
 import loamstream.loam.intake.flip.FlipDetector
 import loamstream.util.Fold
 import loamstream.loam.intake.DataRow
@@ -11,6 +11,7 @@ import java.nio.file.Path
 import loamstream.util.Files
 import loamstream.loam.intake.RowSink
 import loamstream.loam.intake.VariantRow
+import loamstream.loam.intake.PValueVariantRow
 
 
 /**
@@ -18,43 +19,49 @@ import loamstream.loam.intake.VariantRow
  * Mar 27, 2020
  */
 object Metric {
-  def countGreaterThan(column: VariantRow.Transformed => Double)(threshold: Double): Metric[Int] = {
-    Fold.countIf[VariantRow.Parsed] {
-      case _: VariantRow.Skipped => false
-      case row: VariantRow.Transformed => column(row) > threshold
+  def countGreaterThan[R <: BaseVariantRow](
+      column: VariantRow.Transformed[R] => Double)(threshold: Double): Metric[R, Int] = {
+    
+    Fold.countIf[VariantRow.Parsed[R]] {
+      case VariantRow.Skipped(_, _, _, _) => false
+      case row @ VariantRow.Transformed(_, _) => column(row) > threshold
     }
   }
   
-  def fractionGreaterThan(column: VariantRow.Transformed => Double)(threshold: Double): Metric[Double] = {
-    fractionOfTotal(countGreaterThan(column)(threshold))
+  def fractionGreaterThan[R <: BaseVariantRow](
+      column: VariantRow.Transformed[R] => Double)(threshold: Double): Metric[R, Double] = {
+    
+    fractionOfTotal(countGreaterThan[R](column)(threshold))
   }
   
-  def countKnown(client: BioIndexClient): Metric[Int] = {
+  def countKnown[R <: BaseVariantRow](client: BioIndexClient): Metric[R, Int] = {
     countKnownOrUnknown(client)(client.isKnown)
   }
   
-  def countUnknown(client: BioIndexClient): Metric[Int] = {
+  def countUnknown[R <: BaseVariantRow](client: BioIndexClient): Metric[R, Int] = {
     countKnownOrUnknown(client)(client.isUnknown)
   }
   
-  private def countKnownOrUnknown(client: BioIndexClient)(p: Variant => Boolean): Metric[Int] = {
+  private def countKnownOrUnknown[R <: BaseVariantRow](client: BioIndexClient)(p: Variant => Boolean): Metric[R, Int] = {
     Fold.countIf { 
       case VariantRow.Transformed(_, dataRow) => p(dataRow.marker) 
       case _ => false
     }
   }
   
-  def fractionUnknown(client: BioIndexClient): Metric[Double] = {
+  def fractionUnknown[R <: BaseVariantRow](client: BioIndexClient): Metric[R, Double] = {
     fractionOfTotal(countUnknown(client))
   }
   
-  private def fractionOfTotal[A](numeratorMetric: Metric[A])(implicit ev: Numeric[A]): Metric[Double] = {
+  private def fractionOfTotal[R <: BaseVariantRow, A](
+      numeratorMetric: Metric[R, A])(implicit ev: Numeric[A]): Metric[R, Double] = {
+    
     toFraction(numeratorMetric, Fold.count.map(ev.fromInt))
   }
   
-  private def toFraction[A](
-      numeratorMetric: Metric[A], 
-      denominatorMetric: Metric[A])(implicit ev: Numeric[A]): Metric[Double] = {
+  private def toFraction[R <: BaseVariantRow, A](
+      numeratorMetric: Metric[R, A], 
+      denominatorMetric: Metric[R, A])(implicit ev: Numeric[A]): Metric[R, Double] = {
     
     Fold.combine(numeratorMetric, denominatorMetric).map {
       case (numerator, denominator) => ev.toDouble(numerator) / ev.toDouble(denominator)
@@ -62,12 +69,15 @@ object Metric {
   }
   
   private object WithMarkerZSeBeta {
-    def unapply(avr: AggregatorVariantRow): Option[(Variant, Option[Double], Option[Double], Option[Double])] = {
-      Some((avr.marker, avr.zscore, avr.stderr, avr.beta))
+    def unapply[R <: BaseVariantRow](
+        avr: BaseVariantRow): Option[(Variant, Option[Double], Option[Double], Option[Double])] = avr match {
+      
+      case vr: PValueVariantRow => Some((vr.marker, vr.zscore, vr.stderr, vr.beta))
+      case _ => None
     }
   }
   
-  def countWithDisagreeingBetaStderrZscore(epsilon: Double = 1e-8d): Metric[Int] = {
+  def countWithDisagreeingBetaStderrZscore[R <: BaseVariantRow](epsilon: Double = 1e-8d): Metric[R, Int] = {
     //z = beta / se  or  -(beta / se) if flipped
     
     def agrees(expected: Double, actual: Double): Boolean = scala.math.abs(expected - actual) < epsilon
@@ -78,7 +88,7 @@ object Metric {
     
     def isFlipped(sourceRow: VariantRow.Tagged): Boolean = sourceRow.disposition.isFlipped
     
-    val agreesFn: VariantRow.Parsed => Boolean = { 
+    val agreesFn: VariantRow.Parsed[R] => Boolean = { 
       case VariantRow.Transformed(
           sourceRow, 
           WithMarkerZSeBeta(marker, Some(z), Some(se), Some(beta))) => {
@@ -92,31 +102,31 @@ object Metric {
       case _ => true
     }
     
-    def disagrees(row: VariantRow.Parsed): Boolean = !agreesFn(row)
+    def disagrees(row: VariantRow.Parsed[R]): Boolean = !agreesFn(row)
     
     Fold.countIf(disagrees)
   }
   
-  def fractionWithDisagreeingBetaStderrZscore(epsilon: Double = 1e-8d): Metric[Double] = {
+  def fractionWithDisagreeingBetaStderrZscore[R <: BaseVariantRow](epsilon: Double = 1e-8d): Metric[R, Double] = {
     fractionOfTotal(countWithDisagreeingBetaStderrZscore(epsilon))
   }
   
-  def mean[N](column: VariantRow.Transformed => N)(implicit ev: Numeric[N]): Metric[Double] = {
-    val sumFold: Fold[VariantRow.Parsed, N, N] = Fold.sum {
-      case _: VariantRow.Skipped => ev.zero
-      case t: VariantRow.Transformed => column(t)
+  def mean[R <: BaseVariantRow, N](column: VariantRow.Transformed[R] => N)(implicit ev: Numeric[N]): Metric[R, Double] = {
+    val sumFold: Fold[VariantRow.Parsed[R], N, N] = Fold.sum {
+      case VariantRow.Skipped(_, _, _, _) => ev.zero
+      case t @ VariantRow.Transformed(_, _) => column(t)
     }
-    val countFold: Fold[VariantRow.Parsed, Int, Int] = Fold.count
+    val countFold: Fold[VariantRow.Parsed[R], Int, Int] = Fold.count
     
     Fold.combine(sumFold, countFold).map {
       case (sum, count) => ev.toDouble(sum) / count.toDouble
     }
   }
   
-  def countByChromosome(countSkipped: Boolean = true): Metric[Map[String, Int]] = {
+  def countByChromosome[R <: BaseVariantRow](countSkipped: Boolean = true): Metric[R, Map[String, Int]] = {
     type Counts = Map[String, Int]
     
-    def doAdd(acc: Counts, elem: VariantRow.Parsed): Counts = {
+    def doAdd(acc: Counts, elem: VariantRow.Parsed[R]): Counts = {
       if(elem.notSkipped || countSkipped) {
         import elem.derivedFrom.marker.chrom
         
@@ -133,21 +143,21 @@ object Metric {
     
     def startingCounts: Counts = Map.empty ++ Chromosomes.names.iterator.map(_ -> 0) 
     
-    Fold.apply[VariantRow.Parsed, Counts, Counts](startingCounts, doAdd, identity)
+    Fold.apply[VariantRow.Parsed[R], Counts, Counts](startingCounts, doAdd, identity)
   }
   
-  def countFlipped: Metric[Int] = Fold.countIf(_.isFlipped)
+  def countFlipped[R <: BaseVariantRow]: Metric[R, Int] = Fold.countIf(_.isFlipped)
   
-  def countComplemented: Metric[Int] = Fold.countIf(_.isComplementStrand)
+  def countComplemented[R <: BaseVariantRow]: Metric[R, Int] = Fold.countIf(_.isComplementStrand)
   
-  def countSkipped: Metric[Int] = Fold.countIf(_.isSkipped)
+  def countSkipped[R <: BaseVariantRow]: Metric[R, Int] = Fold.countIf(_.isSkipped)
   
-  def countNOTSkipped: Metric[Int] = Fold.countIf(_.notSkipped)
+  def countNOTSkipped[R <: BaseVariantRow]: Metric[R, Int] = Fold.countIf(_.notSkipped)
   
-  def summaryStats: Metric[SummaryStats] = {
-    val fields: Metric[(Int, Int, Int, Int, Map[String, Int])] = {
-      (countNOTSkipped |+| countSkipped |+| countFlipped |+| 
-       countComplemented |+| countByChromosome(countSkipped = false)).map {
+  def summaryStats[R <: BaseVariantRow]: Metric[R, SummaryStats] = {
+    val fields: Metric[R, (Int, Int, Int, Int, Map[String, Int])] = {
+      (countNOTSkipped[R] |+| countSkipped[R] |+| countFlipped[R] |+| 
+       countComplemented[R] |+| countByChromosome[R](countSkipped = false)).map {
         
         case ((((a, b), c), d), e) => (a, b, c, d, e) 
       }
@@ -156,9 +166,11 @@ object Metric {
     fields.map(SummaryStats.tupled)
   }
   
-  def writeSummaryStatsTo(file: Path): Metric[Unit] = summaryStats.map(_.toFileContents).map(Files.writeTo(file))
+  def writeSummaryStatsTo[R <: BaseVariantRow](file: Path): Metric[R, Unit] = {
+    summaryStats.map(_.toFileContents).map(Files.writeTo(file))
+  }
   
-  def writeValidVariantsTo(sink: RowSink): Metric[Unit] = Fold.foreach { row =>
+  def writeValidVariantsTo[R <: BaseVariantRow](sink: RowSink): Metric[R, Unit] = Fold.foreach { row =>
     if(row.notSkipped) {
       row.aggRowOpt.foreach(sink.accept)
     }

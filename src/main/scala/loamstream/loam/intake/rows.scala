@@ -83,110 +83,40 @@ trait IndexedRow extends RowWithSize with RenderableRow {
   def values: Seq[Option[String]] = (0 until size).map(getFieldByIndex).map(Option(_))
 }
 
-/**
- * @author clint
- * Oct 14, 2020
- */
-final case class AggregatorVariantRow(
-  marker: Variant,
-  pvalue: Double,
-  dataset: String,
-  phenotype: String,
-  ancestry: Ancestry,
-  zscore: Option[Double] = None,
-  stderr: Option[Double] = None,
-  beta: Option[Double] = None,
-  oddsRatio: Option[Double] = None,
-  n: Option[Double] = None,
-  eaf: Option[Double] = None,  
-  maf: Option[Double] = None,
-  alleleCount: Option[Long] = None,
-  alleleCountCases: Option[Long] = None, 
-  alleleCountControls: Option[Long] = None,
-  heterozygousCases: Option[Long] = None, 
-  heterozygousControls: Option[Long] = None, 
-  homozygousCases: Option[Long] = None, 
-  homozygousControls: Option[Long] = None, 
-  derivedFromRecordNumber: Option[Long] = None) extends RenderableJsonRow {
+trait BaseVariantRow extends RenderableJsonRow {
+  def marker: Variant 
   
-  override def jsonValues: Seq[(String, JValue)] = {
-    def toJson(o: Option[_]): JValue = o match {
-      case Some(d: Double) => JDouble(d)
-      case Some(l: Long) => JLong(l)
-      case Some(s: String) => JString(s)
-      case _ => JNull
-    }
-
-    //TODO: Something faster?  Don't make an array of parts and throw it away?
-    def multiAllelic: Boolean = marker.alt.split(',').size > 1
-
+  def dataset: String
+  
+  def phenotype: String
+  
+  def ancestry: Ancestry
+  
+  def derivedFromRecordNumber: Option[Long]
+  
+  protected def commonJson: Seq[(String, JValue)] = {
     Seq(
-      AggregatorJsonKeys.varId -> JString(marker.underscoreDelimited),
+      AggregatorJsonKeys.varId -> JString(marker.colonDelimited),
       AggregatorJsonKeys.chromosome -> JString(marker.chrom), 
       AggregatorJsonKeys.position -> JLong(marker.pos),
       AggregatorJsonKeys.reference -> JString(marker.ref),
       AggregatorJsonKeys.alt -> JString(marker.alt),
-      AggregatorJsonKeys.multiAllelic -> JBool(multiAllelic),
+      AggregatorJsonKeys.multiAllelic -> JBool(marker.isMultiAllelic),
       AggregatorJsonKeys.dataset -> JString(dataset),
       AggregatorJsonKeys.phenotype -> JString(phenotype),
-      AggregatorJsonKeys.ancestry -> JString(ancestry.name),
-      AggregatorJsonKeys.pValue -> JString(pvalue.toString),
-      AggregatorJsonKeys.beta -> toJson(beta),
-      AggregatorJsonKeys.oddsRatio -> toJson(oddsRatio),
-      AggregatorJsonKeys.eaf -> toJson(eaf),
-      AggregatorJsonKeys.maf -> toJson(maf),
-      AggregatorJsonKeys.stdErr -> toJson(stderr),
-      AggregatorJsonKeys.zScore -> toJson(zscore),
-      AggregatorJsonKeys.n -> toJson(n),
-      AggregatorJsonKeys.alleleCount -> toJson(alleleCount),
-      AggregatorJsonKeys.alleleCountCases -> toJson(alleleCountCases), 
-      AggregatorJsonKeys.alleleCountControls -> toJson(alleleCountControls),
-      AggregatorJsonKeys.heterozygousCases -> toJson(heterozygousCases), 
-      AggregatorJsonKeys.heterozygousControls -> toJson(heterozygousControls), 
-      AggregatorJsonKeys.homozygousCases -> toJson(homozygousCases), 
-      AggregatorJsonKeys.homozygousControls -> toJson(homozygousControls), 
-    )
+      AggregatorJsonKeys.ancestry -> JString(ancestry.name))
   }
   
-  //TODO: This will be wrong if non-default column names were used :( :(
-  override def headers: Seq[String] = AggregatorVariantRow.defaultHeaders
-  
-  //NB: Profiler-informed optimization: adding to a Buffer is 2x faster than ++ or .flatten
-  //We expect this method to be called a lot - once per row being output.
-  override def values: Seq[Option[String]] = {
-    import AggregatorVariantRow.fieldCount
-    
-    val buffer = new ArrayBuffer[Option[String]](fieldCount) //scalastyle:ignore magic.number
-    
-    def add(o: Option[_]): Unit = buffer += (o.map(_.toString))
-    
-    //NB: ORDERING MATTERS :\
-    
-    buffer += Some(marker.underscoreDelimited)
-    buffer += Some(pvalue.toString)
-    
-    add(zscore)
-    add(stderr)
-    add(beta)
-    add(oddsRatio)
-    add(eaf)
-    add(maf)
-    add(n)
-   
-    add(alleleCount)
-    add(alleleCountCases) 
-    add(alleleCountControls)
-    add(heterozygousCases) 
-    add(heterozygousControls) 
-    add(homozygousCases) 
-    add(homozygousControls) 
-    
-    buffer 
+  protected def toJson(o: Option[_]): JValue = o match {
+    case Some(d: Double) => JDouble(d)
+    case Some(l: Long) => JLong(l)
+    case Some(s: String) => JString(s)
+    case _ => JNull
   }
 }
 
-object AggregatorVariantRow {
-  private val fieldCount: Int = 18 //scalastyle:ignore magic.number
+object BaseVariantRow {
+  val fieldCount: Int = 18 //scalastyle:ignore magic.number
   
   val defaultHeaders: Seq[String] = {
     Seq(
@@ -202,6 +132,110 @@ object AggregatorVariantRow {
       AggregatorColumnNames.n).map(_.name) 
   }
 }
+
+/**
+ * @author clint
+ * Oct 14, 2020
+ */
+final case class VariantCountRow(
+  marker: Variant,
+  pvalue: Double,
+  dataset: String,
+  phenotype: String,
+  ancestry: Ancestry,
+  alleleCount: Long,
+  alleleCountCases: Long, 
+  alleleCountControls: Long,
+  heterozygousCases: Long, 
+  heterozygousControls: Long, 
+  homozygousCases: Long, 
+  homozygousControls: Long, 
+  derivedFromRecordNumber: Option[Long] = None) extends BaseVariantRow {
+  
+  override def jsonValues: Seq[(String, JValue)] = {
+    commonJson ++
+    Seq(
+      AggregatorJsonKeys.alleleCount -> JLong(alleleCount),
+      AggregatorJsonKeys.alleleCountCases -> JLong(alleleCountCases), 
+      AggregatorJsonKeys.alleleCountControls -> JLong(alleleCountControls),
+      AggregatorJsonKeys.heterozygousCases -> JLong(heterozygousCases), 
+      AggregatorJsonKeys.heterozygousControls -> JLong(heterozygousControls), 
+      AggregatorJsonKeys.homozygousCases -> JLong(homozygousCases), 
+      AggregatorJsonKeys.homozygousControls -> JLong(homozygousControls) 
+    )
+  }
+  
+  //TODO FIXME
+  override def headers: Seq[String] = ???
+  
+  //TODO FIXME
+  override def values: Seq[Option[String]] = ???
+}
+
+/**
+ * @author clint
+ * Oct 14, 2020
+ */
+final case class PValueVariantRow(
+  marker: Variant,
+  pvalue: Double,
+  dataset: String,
+  phenotype: String,
+  ancestry: Ancestry,
+  zscore: Option[Double] = None,
+  stderr: Option[Double] = None,
+  beta: Option[Double] = None,
+  oddsRatio: Option[Double] = None,
+  eaf: Option[Double] = None,  
+  maf: Option[Double] = None,
+  n: Double,
+  derivedFromRecordNumber: Option[Long] = None) extends BaseVariantRow {
+  
+  override def jsonValues: Seq[(String, JValue)] = {
+    commonJson ++
+    Seq(
+      AggregatorJsonKeys.pValue -> JString(pvalue.toString),
+      AggregatorJsonKeys.beta -> toJson(beta),
+      AggregatorJsonKeys.oddsRatio -> toJson(oddsRatio),
+      AggregatorJsonKeys.eaf -> toJson(eaf),
+      AggregatorJsonKeys.maf -> toJson(maf),
+      AggregatorJsonKeys.stdErr -> toJson(stderr),
+      AggregatorJsonKeys.zScore -> toJson(zscore),
+      AggregatorJsonKeys.n -> JDouble(n) 
+    )
+  }
+  
+  //TODO: This will be wrong if non-default column names were used :( :(
+  override def headers: Seq[String] = BaseVariantRow.defaultHeaders
+  
+  //NB: Profiler-informed optimization: adding to a Buffer is 2x faster than ++ or .flatten
+  //We expect this method to be called a lot - once per row being output.
+  override def values: Seq[Option[String]] = {
+    
+    val buffer = new ArrayBuffer[Option[String]](BaseVariantRow.fieldCount) 
+    
+    def add(d: Double): Unit = buffer += Some(d.toString)
+    
+    def addOpt(o: Option[_]): Unit = buffer += (o.map(_.toString))
+    
+    //NB: ORDERING MATTERS :\
+    
+    buffer += Some(marker.underscoreDelimited)
+    buffer += Some(pvalue.toString)
+    
+    addOpt(zscore)
+    addOpt(stderr)
+    addOpt(beta)
+    addOpt(oddsRatio)
+    addOpt(eaf)
+    addOpt(maf)
+    add(n)
+
+    buffer 
+  }
+}
+
+
 
 /**
  * @author clint
@@ -236,14 +270,14 @@ object VariantRow {
     override def recordNumber: Long = delegate.recordNumber
   }
   
-  sealed trait Parsed extends DataRow {
+  sealed trait Parsed[R <: BaseVariantRow] extends DataRow {
     val derivedFrom: Tagged
     
-    def aggRowOpt: Option[AggregatorVariantRow]
+    def aggRowOpt: Option[RenderableJsonRow]
     
-    override def skip: Parsed
+    override def skip: Parsed[R]
     
-    def transform(f: AggregatorVariantRow => AggregatorVariantRow): Parsed
+    def transform(f: R => R): Parsed[R]
     
     final def isFlipped: Boolean = derivedFrom.isFlipped
     final def notFlipped: Boolean = derivedFrom.notFlipped
@@ -264,29 +298,29 @@ object VariantRow {
     override def recordNumber: Long = derivedFrom.recordNumber
   }
   
-  final case class Transformed(
+  final case class Transformed[R <: BaseVariantRow](
       derivedFrom: Tagged,
-      aggRow: AggregatorVariantRow) extends Parsed {
+      aggRow: R) extends Parsed[R] {
     
-    override def aggRowOpt: Option[AggregatorVariantRow] = Some(aggRow)
+    override def aggRowOpt: Option[R] = Some(aggRow)
     
     override def isSkipped: Boolean = false
     
-    override def skip: Skipped = Skipped(derivedFrom, aggRowOpt)
+    override def skip: Skipped[R] = Skipped(derivedFrom, aggRowOpt)
     
-    override def transform(f: AggregatorVariantRow => AggregatorVariantRow): Transformed = copy(aggRow = f(aggRow))
+    override def transform(f: R => R): Transformed[R] = copy(aggRow = f(aggRow))
   }
   
-  final case class Skipped(
+  final case class Skipped[R <: BaseVariantRow](
       derivedFrom: Tagged, 
-      aggRowOpt: Option[AggregatorVariantRow],
+      aggRowOpt: Option[R],
       message: Option[String] = None,
-      cause: Option[Failure[Parsed]] = None) extends Parsed {
+      cause: Option[Failure[Parsed[R]]] = None) extends Parsed[R] {
     
     override def isSkipped: Boolean = true
     
-    override def skip: Skipped = this
+    override def skip: Skipped[R] = this
     
-    override def transform(f: AggregatorVariantRow => AggregatorVariantRow): Skipped = this
+    override def transform(f: R => R): Skipped[R] = this
   }
 }

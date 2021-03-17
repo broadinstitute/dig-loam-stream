@@ -61,7 +61,7 @@ final class VariantRowTest extends FunSuite with CsvRowTest.RowHelpers {
     
     val tagged = VariantRow.Tagged(delegate, marker, marker, disp)
     
-    val dataRow = AggregatorVariantRow(marker, 42.0, dataset = "asd", phenotype = "fdg", ancestry = Ancestry.AA)
+    val dataRow = BaseVariantRow(marker, 42.0, dataset = "asd", phenotype = "fdg", ancestry = Ancestry.AA)
     
     val transformed = VariantRow.Transformed(tagged, dataRow)
     
@@ -69,14 +69,14 @@ final class VariantRowTest extends FunSuite with CsvRowTest.RowHelpers {
     
     assert(transformed.skip === VariantRow.Skipped(tagged, Some(dataRow)))
     
-    def incPvalue(dr: AggregatorVariantRow): AggregatorVariantRow = dr.copy(pvalue = dr.pvalue + 1.0) 
+    def incPvalue(dr: BaseVariantRow): BaseVariantRow = dr.copy(pvalue = dr.pvalue + 1.0) 
     
     val furtherTransformed = transformed.transform(incPvalue)
     
     {
       val expected = VariantRow.Transformed(
           tagged, 
-          AggregatorVariantRow(marker, 43.0, dataset = "asd", phenotype = "fdg", ancestry = Ancestry.AA))
+          BaseVariantRow(marker, 43.0, dataset = "asd", phenotype = "fdg", ancestry = Ancestry.AA))
 
       assert(furtherTransformed === expected)
     }
@@ -91,12 +91,12 @@ final class VariantRowTest extends FunSuite with CsvRowTest.RowHelpers {
     
     val tagged = VariantRow.Tagged(delegate, marker, marker, disp)
     
-    val dataRow = AggregatorVariantRow(marker, 42.0, dataset = "asd", phenotype = "fdg", ancestry = Ancestry.AA)
+    val dataRow = BaseVariantRow(marker, 42.0, dataset = "asd", phenotype = "fdg", ancestry = Ancestry.AA)
     
-    def doTest(dataRowOpt: Option[AggregatorVariantRow]): Unit = {
+    def doTest(dataRowOpt: Option[BaseVariantRow]): Unit = {
       val skipped = VariantRow.Skipped(tagged, dataRowOpt)
       
-      def incPvalue(dr: AggregatorVariantRow): AggregatorVariantRow = dr.copy(pvalue = dr.pvalue + 1.0)
+      def incPvalue(dr: BaseVariantRow): BaseVariantRow = dr.copy(pvalue = dr.pvalue + 1.0)
       
       assert(skipped.isSkipped === true)
       assert(skipped.skip eq skipped)

@@ -33,9 +33,9 @@ final class RowFiltersTest extends FunSuite {
       marker: Variant, 
       pvalue: Double, 
       eaf: Option[Double] = None, 
-      maf: Option[Double] = None): AggregatorVariantRow = {
+      maf: Option[Double] = None): BaseVariantRow = {
     
-    AggregatorVariantRow(
+    BaseVariantRow(
       marker = marker,
       pvalue = pvalue,
       dataset = metadata.dataset,

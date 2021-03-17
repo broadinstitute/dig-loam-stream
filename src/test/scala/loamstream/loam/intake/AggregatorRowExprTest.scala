@@ -19,7 +19,7 @@ final class AggregatorRowExprTest extends FunSuite {
         
     def literal[A : TypeTag](a: A) = LiteralColumnExpr(a)
         
-    def namedDef[A : TypeTag](name: String, a: A) = NamedColumnDef(ColumnName(name), literal(a))
+    def namedDef[A : TypeTag](name: String, a: A) = AnonColumnDef(literal(a))
     
     val v = Variant.from("12_345_A_T")
     
@@ -29,7 +29,7 @@ final class AggregatorRowExprTest extends FunSuite {
       MarkerColumnDef(MRKR, MRKR.flatMap(_ => literal(v)))
     }
     
-    val expr = AggregatorRowExpr(
+    val expr = VariantRowExpr(
         metadata = metadata,
         markerDef = markerDef,
         pvalueDef = namedDef("pvalue", 1.2D),
@@ -39,14 +39,7 @@ final class AggregatorRowExprTest extends FunSuite {
         oddsRatioDef = Some(namedDef("or", 9.10D)),
         eafDef = Some(namedDef("eaf", 11.12D)),
         mafDef = Some(namedDef("maf", 13.14D)),
-        nDef = Some(namedDef("n", 15.16D)),
-        alleleCountDef = Some(namedDef("ac", 17L)),
-        alleleCountCasesDef = Some(namedDef("accs", 18L)),
-        alleleCountControlsDef = Some(namedDef("acctrls", 19L)),
-        heterozygousCasesDef = Some(namedDef("htzcs", 20L)),
-        heterozygousControlsDef = Some(namedDef("htzctrls", 21L)),
-        homozygousCasesDef = Some(namedDef("hmzcs", 22L)),
-        homozygousControlsDef = Some(namedDef("hmzctrls", 23L)))
+        nDef = Some(namedDef("n", 15.16D)))
     
     val csvRow = Helpers.csvRow()
         
@@ -60,7 +53,7 @@ final class AggregatorRowExprTest extends FunSuite {
     
     val expected = VariantRow.Transformed(
         derivedFrom = row,
-        aggRow = AggregatorVariantRow(
+        aggRow = PValueVariantRow(
           marker = v,
           pvalue = 1.2D,
           dataset = metadata.dataset,
@@ -70,16 +63,9 @@ final class AggregatorRowExprTest extends FunSuite {
           stderr = Some(5.6D),
           beta = Some(7.8D),
           oddsRatio = Some(9.10D),
-          n = Some(15.16D),
+          n = 15.16D,
           eaf = Some(11.12D),  
           maf = Some(13.14D),
-          alleleCount = Some(17L),
-          alleleCountCases = Some(18L), 
-          alleleCountControls = Some(19L),
-          heterozygousCases = Some(20L), 
-          heterozygousControls = Some(21L), 
-          homozygousCases = Some(22L), 
-          homozygousControls = Some(23L),
           derivedFromRecordNumber = Some(csvRow.recordNumber)))
       
     assert(actual === expected)
@@ -100,7 +86,7 @@ final class AggregatorRowExprTest extends FunSuite {
         tech = TechType.ExChip,
         quantitative = None)
       
-      val expr = AggregatorRowExpr(
+      val expr = VariantRowExpr(
           metadata = metadata,
           failFast = failFast,
           markerDef = markerDef,
@@ -146,7 +132,7 @@ final class AggregatorRowExprTest extends FunSuite {
         tech = TechType.ExChip,
         quantitative = None)
     
-    val expr = AggregatorRowExpr(
+    val expr = VariantRowExpr(
       metadata = metadata,
       failFast = true,
       markerDef = markerDef,

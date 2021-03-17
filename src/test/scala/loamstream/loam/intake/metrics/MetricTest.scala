@@ -18,6 +18,9 @@ import loamstream.loam.intake.RowSink
 import loamstream.loam.intake.RenderableRow
 import loamstream.loam.intake.Ancestry
 import loamstream.loam.intake.TechType
+import loamstream.loam.intake.VariantRowExpr
+import loamstream.loam.intake.PValueVariantRow
+import loamstream.loam.intake.BaseVariantRow
 
 
 /**
@@ -56,10 +59,10 @@ final class MetricTest extends FunSuite {
   
   private val source = Source.fromString(csvData, Source.Formats.spaceDelimitedWithHeader)
 
-  private val markerDef = NamedColumnDef(AggregatorColumnNames.marker, Marker, Marker)
+  private val markerDef = AnonColumnDef(Marker, Marker)
   private val markerVariantDef = MarkerColumnDef(AggregatorColumnNames.marker, Marker.map(Variant.from))
   
-  private val defaultRowExpr: AggregatorRowExpr = AggregatorRowExpr(
+  private val defaultRowExpr: AggregatorRowExpr = VariantRowExpr(
       metadata = metadata,
       markerDef = markerVariantDef,
       pvalueDef = AggregatorColumnDefs.pvalue(Pvalue))
@@ -71,16 +74,16 @@ final class MetricTest extends FunSuite {
   private val zeroedChromosomeCounts: Map[String, Int] = Chromosomes.names.map(_ -> 0).toMap                            
                             
   test("countGreaterThan") {
-    val gt2 = Metric.countGreaterThan(_.aggRow.pvalue)(2)
-    val gt4 = Metric.countGreaterThan(_.aggRow.pvalue)(4)
+    val gt2 = Metric.countGreaterThan[PValueVariantRow](_.aggRow.pvalue)(2)
+    val gt4 = Metric.countGreaterThan[PValueVariantRow](_.aggRow.pvalue)(4)
     
     doMetricTest(gt4, expected = 2)(rowsNoFlips)
     doMetricTest(gt2, expected = 4)(rowsNoFlips)
   }
   
   test("fractionGreaterThan") {
-    val fracGt2 = Metric.fractionGreaterThan(_.aggRow.pvalue)(2)
-    val fracGt4 = Metric.fractionGreaterThan(_.aggRow.pvalue)(4)
+    val fracGt2 = Metric.fractionGreaterThan[PValueVariantRow](_.aggRow.pvalue)(2)
+    val fracGt4 = Metric.fractionGreaterThan[PValueVariantRow](_.aggRow.pvalue)(4)
     
     doMetricTest(fracGt4, expected = (2d / 6d))(rowsNoFlips)
     doMetricTest(fracGt2, expected = (4d / 6d))(rowsNoFlips)
@@ -89,7 +92,7 @@ final class MetricTest extends FunSuite {
   test("fractionUnknown") {
     val bioIndexClient: BioIndexClient = new MetricTest.MockBioIndexClient(knownVariants = Set(Vars.x, Vars.z, Vars.a))
                       
-    val fracUnknown = Metric.fractionUnknown(client = bioIndexClient)
+    val fracUnknown = Metric.fractionUnknown[PValueVariantRow](client = bioIndexClient)
    
     doMetricTest(fracUnknown, expected = (3.0 / 6.0))(rowsNoFlips)
   }
@@ -97,7 +100,7 @@ final class MetricTest extends FunSuite {
   test("countKnown") {
     val bioIndexClient: BioIndexClient = new MetricTest.MockBioIndexClient(knownVariants = Set(Vars.z, Vars.a))
                       
-    val countKnown = Metric.countKnown(client = bioIndexClient)
+    val countKnown = Metric.countKnown[PValueVariantRow](client = bioIndexClient)
    
     doMetricTest(countKnown, expected = 2)(rowsNoFlips)
   }
@@ -105,7 +108,7 @@ final class MetricTest extends FunSuite {
   test("countUnknown") {
     val bioIndexClient: BioIndexClient = new MetricTest.MockBioIndexClient(knownVariants = Set(Vars.z, Vars.a))
                       
-    val countUnknown = Metric.countUnknown(client = bioIndexClient)
+    val countUnknown = Metric.countUnknown[PValueVariantRow](client = bioIndexClient)
    
     doMetricTest(countUnknown, expected = 4)(rowsNoFlips)
   }
@@ -125,7 +128,7 @@ final class MetricTest extends FunSuite {
     
     val flipDetector = new MetricTest.MockFlipDetector(Set.empty)
                       
-    val toAggregatorFormat: AggregatorRowExpr = AggregatorRowExpr(
+    val toAggregatorFormat: AggregatorRowExpr = VariantRowExpr(
         metadata = metadata,
         markerDef = MarkerColumnDef(marker, marker.map(Variant.from)),
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
@@ -135,7 +138,7 @@ final class MetricTest extends FunSuite {
     
     val rows = source.tagFlips(toAggregatorFormat.markerDef, flipDetector).map(toAggregatorFormat)
         
-    val countDisagreements = Metric.countWithDisagreeingBetaStderrZscore()
+    val countDisagreements = Metric.countWithDisagreeingBetaStderrZscore[PValueVariantRow]()
                       
     doMetricTest(countDisagreements, expected = 2)(rows)
   }
@@ -155,7 +158,7 @@ final class MetricTest extends FunSuite {
     
     val flipDetector = new MetricTest.MockFlipDetector(Set(Vars.y, Vars.a, Vars.b).map(Variant.from))
     
-    val toAggregatorFormat: AggregatorRowExpr = AggregatorRowExpr(
+    val toAggregatorFormat: AggregatorRowExpr = VariantRowExpr(
         metadata = metadata,
         markerDef = markerVariantDef,
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
@@ -165,7 +168,7 @@ final class MetricTest extends FunSuite {
                       
     val rows = source.tagFlips(markerVariantDef, flipDetector).map(toAggregatorFormat)
                       
-    val countDisagreements = Metric.countWithDisagreeingBetaStderrZscore()
+    val countDisagreements = Metric.countWithDisagreeingBetaStderrZscore[PValueVariantRow]()
                       
     doMetricTest(countDisagreements, expected = 2)(rows)
   }
@@ -188,7 +191,7 @@ final class MetricTest extends FunSuite {
     
     val flipDetector = new MetricTest.MockFlipDetector(Set.empty)
     
-    val toAggregatorFormat: AggregatorRowExpr = AggregatorRowExpr(
+    val toAggregatorFormat: AggregatorRowExpr = VariantRowExpr(
         metadata = metadata,
         markerDef = MarkerColumnDef(Marker, marker.map(Variant.from)),
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
@@ -198,7 +201,7 @@ final class MetricTest extends FunSuite {
                       
     val rows = source.tagFlips(toAggregatorFormat.markerDef, flipDetector).map(toAggregatorFormat)
                       
-    val countDisagreements = Metric.countWithDisagreeingBetaStderrZscore()
+    val countDisagreements = Metric.countWithDisagreeingBetaStderrZscore[PValueVariantRow]()
                       
     doMetricTest(countDisagreements, expected = 2)(rows)
   }
@@ -221,7 +224,7 @@ final class MetricTest extends FunSuite {
     
     val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, marker.map(Variant.from))
     
-    val toAggregatorFormat: AggregatorRowExpr = AggregatorRowExpr(
+    val toAggregatorFormat: AggregatorRowExpr = VariantRowExpr(
         metadata = metadata,
         markerDef = markerDef,
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
@@ -233,7 +236,7 @@ final class MetricTest extends FunSuite {
         
     val rows = source.tagFlips(markerDef, flipDetector).map(toAggregatorFormat)
     
-    val countDisagreements = Metric.countWithDisagreeingBetaStderrZscore()
+    val countDisagreements = Metric.countWithDisagreeingBetaStderrZscore[PValueVariantRow]()
                       
     doMetricTest(countDisagreements, expected = 2)(rows)
   }
@@ -253,7 +256,7 @@ final class MetricTest extends FunSuite {
     
     val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, marker.map(Variant.from))
     
-    val toAggregatorFormat: AggregatorRowExpr = AggregatorRowExpr(
+    val toAggregatorFormat: AggregatorRowExpr = VariantRowExpr(
         metadata = metadata,
         markerDef = markerDef,
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue))
@@ -262,13 +265,13 @@ final class MetricTest extends FunSuite {
         
     val rows = source.tagFlips(markerDef, flipDetector).map(toAggregatorFormat)
     
-    val countDisagreements = Metric.countWithDisagreeingBetaStderrZscore()
+    val countDisagreements = Metric.countWithDisagreeingBetaStderrZscore[PValueVariantRow]()
                       
     doMetricTest(countDisagreements, expected = 0)(rows)
   }
   
   test("mean") {
-    val mean = Metric.mean(_.aggRow.pvalue)
+    val mean = Metric.mean[PValueVariantRow, Double](_.aggRow.pvalue)
     
     doMetricTest(mean, expected = (1 + 2 + 3 + 4 + 5 + 6) / 6.0)(rowsNoFlips)
   }
@@ -290,7 +293,7 @@ final class MetricTest extends FunSuite {
       
       val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, marker.map(Variant.from))
       
-      val toAggregatorFormat: AggregatorRowExpr = AggregatorRowExpr(
+      val toAggregatorFormat: AggregatorRowExpr = VariantRowExpr(
           metadata = metadata,
           markerDef = markerDef,
           pvalueDef = AggregatorColumnDefs.pvalue(Pvalue))
@@ -303,7 +306,7 @@ final class MetricTest extends FunSuite {
         if(skipped.contains(row.derivedFrom.marker)) row.skip else row
       }
       
-      val m = Metric.countByChromosome(countSkipped = countSkipped)
+      val m = Metric.countByChromosome[PValueVariantRow](countSkipped = countSkipped)
       
       val expected: Map[String, Int] = zeroedChromosomeCounts ++ {
         val countEverything = countSkipped || !anySkips
@@ -322,7 +325,7 @@ final class MetricTest extends FunSuite {
   }
   
   private def doFlippedComplementedTest(
-      metric: Metric[Int],
+      metric: Metric[PValueVariantRow, Int],
       expected: Int,
       flipped: Set[Variant], 
       complemented: Set[Variant]): Unit = {
@@ -340,7 +343,7 @@ final class MetricTest extends FunSuite {
     
     val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, marker.map(Variant.from))
     
-    val toAggregatorFormat: AggregatorRowExpr = AggregatorRowExpr(
+    val toAggregatorFormat: AggregatorRowExpr = VariantRowExpr(
         metadata = metadata,
         markerDef = markerDef,
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue))
@@ -366,7 +369,7 @@ final class MetricTest extends FunSuite {
   }
   
   private def doSkippedTest(
-      metric: Metric[Int],
+      metric: Metric[PValueVariantRow, Int],
       expected: Int,
       skipped: Set[Variant]): Unit = {
     val marker = ColumnName("lalala")
@@ -383,7 +386,7 @@ final class MetricTest extends FunSuite {
     
     val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, marker.map(Variant.from))
     
-    val toAggregatorFormat: AggregatorRowExpr = AggregatorRowExpr(
+    val toAggregatorFormat: AggregatorRowExpr = VariantRowExpr(
         metadata = metadata,
         markerDef = markerDef,
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue))
@@ -393,7 +396,7 @@ final class MetricTest extends FunSuite {
     val parsedRows = source.tagFlips(markerDef, flipDetector).map(toAggregatorFormat)
     
     val withSomeSkips = parsedRows.map { row =>
-      if(skipped.contains(row.aggRowOpt.get.marker)) row.skip else row
+      if(skipped.contains(row.aggRowOpt.get.asInstanceOf[PValueVariantRow].marker)) row.skip else row
     }
     
     doMetricTest(metric, expected = expected)(withSomeSkips)
@@ -429,7 +432,7 @@ final class MetricTest extends FunSuite {
     
     val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, marker.map(Variant.from))
     
-    val toAggregatorFormat: AggregatorRowExpr = AggregatorRowExpr(
+    val toAggregatorFormat: AggregatorRowExpr = VariantRowExpr(
         metadata = metadata,
         markerDef = markerDef,
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue))
@@ -450,7 +453,7 @@ final class MetricTest extends FunSuite {
       complementedVariants = 2,
       validVariantsByChromosome = zeroedChromosomeCounts ++ Seq("1" -> 1, "2" -> 2, "4" -> 1))
       
-    doMetricTest(Metric.summaryStats, expected)(rows)
+    doMetricTest(Metric.summaryStats[PValueVariantRow], expected)(rows)
   }
   
   test("writeSummaryStatsTo") {
@@ -477,7 +480,7 @@ final class MetricTest extends FunSuite {
     
     val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, marker.map(Variant.from))
     
-    val toAggregatorFormat: AggregatorRowExpr = AggregatorRowExpr(
+    val toAggregatorFormat: AggregatorRowExpr = VariantRowExpr(
         metadata = metadata,
         markerDef = markerDef,
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue))
@@ -502,7 +505,7 @@ final class MetricTest extends FunSuite {
       val file = workDir.resolve("stats.txt")
       
       //Read just-written data, trim to ignore off-by-last-line-ending errors we don't care about 
-      val m = Metric.writeSummaryStatsTo(file).map(_ => Files.readFrom(file).trim)
+      val m = Metric.writeSummaryStatsTo[PValueVariantRow](file).map(_ => Files.readFrom(file).trim)
       
       doMetricTest(m, expected)(rows)
     }
@@ -523,7 +526,7 @@ final class MetricTest extends FunSuite {
     
     val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, marker.map(Variant.from))
     
-    val toAggregatorFormat: AggregatorRowExpr = AggregatorRowExpr(
+    val toAggregatorFormat: AggregatorRowExpr = VariantRowExpr(
         metadata = metadata,
         markerDef = markerDef,
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue))
@@ -537,13 +540,14 @@ final class MetricTest extends FunSuite {
     }
                       
     def makeRow(variant: Variant, pvalue: Double, derivedFromRecordNumber: Option[Long]) = {
-      AggregatorVariantRow(
+      PValueVariantRow(
           marker = variant, 
           pvalue = 99, 
           dataset = metadata.dataset,
           phenotype = metadata.phenotype,
           ancestry = metadata.ancestry,
-          derivedFromRecordNumber = derivedFromRecordNumber)
+          derivedFromRecordNumber = derivedFromRecordNumber,
+          n = 42)
     }
                       
     val expected = Seq(
@@ -565,7 +569,10 @@ final class MetricTest extends FunSuite {
     assert(written === expected)
   }
   
-  private def doMetricTest[A](metric: Metric[A], expected: A)(rows: Source[VariantRow.Parsed]): Unit = {
+  private def doMetricTest[R <: BaseVariantRow, A](
+      metric: Metric[R, A], 
+      expected: A)(rows: Source[VariantRow.Parsed[R]]): Unit = {
+    
     assert(Fold.fold(rows.records)(metric) === expected)
     
     assert(Fold.fold(rows.records.toList)(metric) === expected)

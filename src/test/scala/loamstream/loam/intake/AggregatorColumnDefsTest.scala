@@ -28,7 +28,7 @@ final class AggregatorColumnDefsTest extends FunSuite {
   
   test("PassThru") {
     def doTest(
-        f: ColumnName => NamedColumnDef[_],
+        f: ColumnName => HandlesFlipsColumnDef[_],
         expectedDestColumn: ColumnName, 
         isDouble: Boolean = false): Unit = {
   
@@ -36,7 +36,6 @@ final class AggregatorColumnDefsTest extends FunSuite {
       
       val passThruColumnDef = f(sourceColumn)
       
-      assert(passThruColumnDef.name === expectedDestColumn)
       assert(passThruColumnDef.exprWhenFlipped.isEmpty)
       
       val row = Helpers.csvRow("foo" -> "42", "bar" -> "asdf", "blarg" -> "123", "bip" -> "456")
@@ -60,7 +59,7 @@ final class AggregatorColumnDefsTest extends FunSuite {
   }
   
   test("just") {
-    assert(AggregatorColumnDefs.just(blarg) === NamedColumnDef(blarg))
+    assert(AggregatorColumnDefs.just(blarg) === AnonColumnDef(blarg))
   }
   
   test("marker") {
@@ -137,8 +136,6 @@ final class AggregatorColumnDefsTest extends FunSuite {
     
     val pvalueDef = AggregatorColumnDefs.pvalue(baz)
     
-    assert(pvalueDef.name === AggregatorColumnNames.pvalue)
-    
     val row = Helpers.csvRow("foo" -> "42", "bar" -> "asdf", "baz" -> "1.23", "bip" -> "456")
     
     assert(pvalueDef.expr.apply(row) == 1.23)
@@ -149,8 +146,6 @@ final class AggregatorColumnDefsTest extends FunSuite {
     
     val stderrDef = AggregatorColumnDefs.stderr(baz)
     
-    assert(stderrDef.name === AggregatorColumnNames.stderr)
-    
     val row = Helpers.csvRow("foo" -> "42", "bar" -> "asdf", "baz" -> "1.23", "bip" -> "456")
     
     assert(stderrDef.expr.apply(row) == 1.23)
@@ -160,8 +155,6 @@ final class AggregatorColumnDefsTest extends FunSuite {
     val baz = ColumnName("baz").asDouble
     
     val zscoreDef = AggregatorColumnDefs.zscore(baz)
-    
-    assert(zscoreDef.name === AggregatorColumnNames.zscore)
     
     val row = Helpers.csvRow("foo" -> "42", "bar" -> "asdf", "baz" -> "1.23", "bip" -> "456")
     
@@ -174,8 +167,6 @@ final class AggregatorColumnDefsTest extends FunSuite {
     
     val zscoreDef = AggregatorColumnDefs.zscoreFrom(betaColumn = baz, stderrColumn = bip)
     
-    assert(zscoreDef.name === AggregatorColumnNames.zscore)
-    
     val row = Helpers.csvRow("foo" -> "42", "bar" -> "asdf", "baz" -> "1.2", "bip" -> "6")
     
     assertCloseEnough(zscoreDef.expr.apply(row).asInstanceOf[Double], 0.2)
@@ -186,8 +177,6 @@ final class AggregatorColumnDefsTest extends FunSuite {
     val baz = ColumnName("baz")
     
     val betaDef = AggregatorColumnDefs.beta(baz)
-    
-    assert(betaDef.name === AggregatorColumnNames.beta)
     
     val row = Helpers.csvRow("foo" -> "42", "bar" -> "asdf", "baz" -> "1.23", "bip" -> "456")
     
@@ -200,8 +189,6 @@ final class AggregatorColumnDefsTest extends FunSuite {
     
     val eafDef = AggregatorColumnDefs.eaf(baz)
     
-    assert(eafDef.name === AggregatorColumnNames.eaf)
-    
     val row = Helpers.csvRow("foo" -> "42", "bar" -> "asdf", "baz" -> "1.23", "bip" -> "456")
     
     assert(eafDef.expr.apply(row) == 1.23)
@@ -212,8 +199,6 @@ final class AggregatorColumnDefsTest extends FunSuite {
     val baz = ColumnName("baz")
     
     val oddsRatioDef = AggregatorColumnDefs.oddsRatio(baz)
-    
-    assert(oddsRatioDef.name === AggregatorColumnNames.odds_ratio)
     
     val row = Helpers.csvRow("foo" -> "42", "bar" -> "asdf", "baz" -> "1.23", "bip" -> "456")
     

@@ -8,6 +8,22 @@ import scala.reflect.runtime.universe.TypeTag
  * Oct 15, 2020
  */
 trait ColumnDef[A] extends (VariantRow.Tagged => A) {
+  def map[B: TypeTag](f: A => B): ColumnDef[B] = MappedColumnDef(this, f)
+}
+
+object ColumnDef {
+  def combine[A, B, C](
+      lhsDef: ColumnDef[A], 
+      rhsDef: ColumnDef[B])(op: (A, B) => C): ColumnDef[C] = {
+    
+    CombinedColumnDef(lhsDef, rhsDef, op)
+  }
+}
+
+trait HandlesFlipsColumnDef[A] extends ColumnDef[A] {
+  def expr: ColumnExpr[A]
+  
+  def exprWhenFlipped: Option[ColumnExpr[A]]
   
   override def apply(row: VariantRow.Tagged): A = {
     val exprToInvoke: ColumnExpr[A] = {
@@ -21,10 +37,6 @@ trait ColumnDef[A] extends (VariantRow.Tagged => A) {
     
     exprToInvoke(row)
   }
-  
-  def expr: ColumnExpr[A]
-  
-  def exprWhenFlipped: Option[ColumnExpr[A]]
 }
 
 final case class MarkerColumnDef(
@@ -34,65 +46,27 @@ final case class MarkerColumnDef(
   override def apply(row: DataRow): Variant = expr.apply(row)
 }
 
-/**
- * @author clint
- * Dec 17, 2019
- */
-final case class NamedColumnDef[A](
-  name: ColumnName,
+final case class AnonColumnDef[A](
   expr: ColumnExpr[A],
-  exprWhenFlipped: Option[ColumnExpr[A]]) extends ColumnDef[A] {
-  
-  override def toString: String = s"${getClass.getSimpleName}(${name}, ${expr}, ${exprWhenFlipped})"
-  
-  def map[B: TypeTag](f: A => B): NamedColumnDef[B] = {
-    copy(expr = expr.map(f), exprWhenFlipped = exprWhenFlipped.map(_.map(f)))
-  }
-  
-  def withName(newName: ColumnName): NamedColumnDef[A] = copy(name = newName)
-  
-  def /(rhsDef: NamedColumnDef[A])(implicit ev: Fractional[A]): NamedColumnDef[A] = {
-    implicit val tt: TypeTag[A] = expr.tpe
+  exprWhenFlipped: Option[ColumnExpr[A]] = None) extends HandlesFlipsColumnDef[A]
 
-    combine(name)(rhsDef)(ev.div)
-  }
-  
-  def combine[B: TypeTag, C: TypeTag](name: ColumnName)(rhsDef: NamedColumnDef[B])(op: (A, B) => C): NamedColumnDef[C] = {
-    implicit val tt: TypeTag[A] = expr.tpe
-    
-    val exprsWhenFlippedOpt = exprWhenFlipped.zip(rhsDef.exprWhenFlipped).headOption
-    
-    val f = ColumnExpr.lift2(op)
-    
-    NamedColumnDef(
-      name = name,
-      expr = f(expr, rhsDef.expr),
-      exprWhenFlipped = exprsWhenFlippedOpt.map { case (lhs, rhs) => f(lhs, rhs) })
+object AnonColumnDef {
+  def apply[A](expr: ColumnExpr[A], exprWhenFlipped: ColumnExpr[A]): AnonColumnDef[A] = {
+    new AnonColumnDef(expr, Option(exprWhenFlipped))
   }
 }
 
-object NamedColumnDef {
-  def apply[A](
-    name: ColumnName, 
-    getValueFromSource: ColumnExpr[A],
-    getValueFromSourceWhenFlipNeeded: ColumnExpr[A]): NamedColumnDef[A] = {
-    
-    new NamedColumnDef(name, getValueFromSource, Some(getValueFromSourceWhenFlipNeeded))
-  }
+final case class MappedColumnDef[A, B](
+    delegate: ColumnDef[A],
+    f: A => B) extends ColumnDef[B] {
   
-  def apply[A](
-    name: String, 
-    srcColumn: ColumnExpr[A],
-    srcColumnWhenFlipNeeded: ColumnExpr[A]): NamedColumnDef[A] = {
-    
-    apply(ColumnName(name), srcColumn, srcColumnWhenFlipNeeded)
-  }
+  override def apply(row: VariantRow.Tagged): B = f(delegate(row))
+}
+
+final case class CombinedColumnDef[A, B, C](
+    lhsDef: ColumnDef[A], 
+    rhsDef: ColumnDef[B],
+    op: (A, B) => C) extends ColumnDef[C] {
   
-  def apply[A](name: String, srcColumn: ColumnExpr[A]): NamedColumnDef[A] = apply(ColumnName(name), srcColumn)
-  
-  def apply[A](name: ColumnName, srcColumn: ColumnExpr[A]): NamedColumnDef[A] = {
-    new NamedColumnDef(name, srcColumn, None)
-  }
-  
-  def apply(name: ColumnName): NamedColumnDef[String] = apply(name, name, name)
+  override def apply(row: VariantRow.Tagged): C = op(lhsDef(row), rhsDef(row))
 }

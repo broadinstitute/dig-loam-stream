@@ -188,7 +188,7 @@ final class IntakeSyntaxTest extends FunSuite {
       
       val unfilteredRows = source.records.toList
       
-      val p = MockCloseablePredicate[AggregatorVariantRow](_.pvalue > 0.2)
+      val p = MockCloseablePredicate[BaseVariantRow](_.pvalue > 0.2)
       
       val filtered = target.filter(p)
       
@@ -256,7 +256,7 @@ final class IntakeSyntaxTest extends FunSuite {
       
       val unmappedRows = source.records.toList
       
-      val f: Transform[AggregatorVariantRow] = MockCloseableTransform { dr => 
+      val f: Transform[BaseVariantRow] = MockCloseableTransform { dr => 
         dr.copy(pvalue = dr.pvalue + 1.0)
       }
       
@@ -298,7 +298,7 @@ final class IntakeSyntaxTest extends FunSuite {
         
         val unmappedRows = source.records.toList
         
-        val f = MockCloseableTransform[AggregatorVariantRow] { dr => 
+        val f = MockCloseableTransform[BaseVariantRow] { dr => 
           dr.copy(pvalue = dr.pvalue + 1.0)
         }
         
@@ -350,7 +350,7 @@ ${v3.underscoreDelimited}${'\t'}1.4""".trim
         
         assert(target.toBeClosed === Nil)
         
-        val f = MockCloseableTransform[AggregatorVariantRow] { dr => 
+        val f = MockCloseableTransform[BaseVariantRow] { dr => 
           dr.copy(pvalue = dr.pvalue + 1.0)
         }
         

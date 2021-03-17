@@ -21,7 +21,7 @@ final class DataRowTest extends FunSuite {
   private val ancestry: Ancestry = Ancestry.AA
   
   test("values - all fields supplied") {
-    val row = AggregatorVariantRow(
+    val row = BaseVariantRow(
       marker = marker,
       pvalue = pvalue,
       dataset = dataset,
@@ -50,7 +50,7 @@ final class DataRowTest extends FunSuite {
   }
   
   test("values - some fields supplied") {
-    val row = AggregatorVariantRow(
+    val row = BaseVariantRow(
       marker = marker,
       pvalue = pvalue,
       dataset = dataset,

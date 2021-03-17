@@ -148,7 +148,8 @@ final class IntakeSyntaxTest extends FunSuite {
   private val expr = VariantRowExpr(
       metadata = metadata,
       markerDef = markerDef,
-      pvalueDef = AggregatorColumnDefs.pvalue(PValue))
+      pvalueDef = AggregatorColumnDefs.pvalue(PValue),
+      nDef = Some(AnonColumnDef(LiteralColumnExpr(42))))
     
   test("MapFilterAndWriteTarget - withMetric") {
     TestHelpers.withScriptContext { implicit context =>
@@ -322,8 +323,8 @@ final class IntakeSyntaxTest extends FunSuite {
         
         val expected = s"""
 ${AggregatorColumnNames.marker.name}${'\t'}${AggregatorColumnNames.pvalue.name}
-${v2.underscoreDelimited}${'\t'}1.3
-${v3.underscoreDelimited}${'\t'}1.4""".trim
+${v2.underscoreDelimited}${'\t'}1.3${'\t'}42.0
+${v3.underscoreDelimited}${'\t'}1.4${'\t'}42.0""".trim
 
         //NB: trim to avoid off-by-line-ending differences we don't care about
         assert(Files.readFrom(outfile).trim === expected)

@@ -109,6 +109,12 @@ final class VariantTest extends FunSuite {
   test("isMultiAllelic") {
     //def isMultiAllelic: Boolean = alt.split(',').size > 1
     
-    fail("TODO")
+    val notMultiAllelic = Variant(chrom = "x", pos = 123, alt = "z", ref = "y")
+    
+    assert(notMultiAllelic.isMultiAllelic === false)
+    
+    val multiAllelic = Variant(chrom = "x", pos = 123, alt = "z,u,v", ref = "y")
+    
+    assert(multiAllelic.isMultiAllelic === true)
   }
 }

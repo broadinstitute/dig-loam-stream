@@ -34,7 +34,7 @@ object AwsRowSink {
 
 final case class AwsRowSink(
     topic: String,
-    name: String,
+    dataset: String,
     techType: Option[TechType],
     phenotype: Option[String],
     awsClient: AwsClient,
@@ -90,7 +90,7 @@ final case class AwsRowSink(
       case None => ""
     }
     
-    s"${baseDirPart}${topic}/${techTypePart}${name}${phenotypePart}"
+    s"${baseDirPart}${topic}/${techTypePart}${dataset}${phenotypePart}"
   }
 
   /**

@@ -60,6 +60,7 @@ final class ProcessRealDataTest extends FunSuite with Loggable {
         betaDef = Some(beta(BETA, destColumn = BETA)),
         eafDef = Some(eaf(A1FREQ, destColumn = EAF_PH)),
         mafDef = Some(AnonColumnDef(A1FREQ.asDouble.complementIf(_ > 0.5))),
+        nDef = Some(AnonColumnDef(LiteralColumnExpr(42))),
         failFast = true)
     }
         

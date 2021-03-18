@@ -17,8 +17,6 @@ sealed trait VariantRowExpr[R <: BaseVariantRow] extends TaggedRowParser[Variant
   
   def failFast: Boolean
   
-  def columnNames: Seq[ColumnName] = ???//defaults
-  
   protected def makeRow(row: VariantRow.Tagged): R
   
   override def apply(row: VariantRow.Tagged): VariantRow.Parsed[R] = { 

@@ -12,6 +12,7 @@ import loamstream.util.Files
 import loamstream.loam.intake.RowSink
 import loamstream.loam.intake.VariantRow
 import loamstream.loam.intake.PValueVariantRow
+import loamstream.loam.intake.JsonRowSink
 
 
 /**
@@ -171,6 +172,12 @@ object Metric {
   }
   
   def writeValidVariantsTo[R <: BaseVariantRow](sink: RowSink): Metric[R, Unit] = Fold.foreach { row =>
+    if(row.notSkipped) {
+      row.aggRowOpt.foreach(sink.accept)
+    }
+  }
+  
+  def writeValidVariantsTo[R <: BaseVariantRow](sink: JsonRowSink): Metric[R, Unit] = Fold.foreach { row =>
     if(row.notSkipped) {
       row.aggRowOpt.foreach(sink.accept)
     }

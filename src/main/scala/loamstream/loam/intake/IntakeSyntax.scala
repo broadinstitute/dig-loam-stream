@@ -20,6 +20,12 @@ import loamstream.util.Throwables
 import loamstream.util.CompositeException
 import loamstream.loam.intake.metrics.BioIndexClient
 import loamstream.util.Terminable
+import org.broadinstitute.dig.aws.config.AWSConfig
+import org.broadinstitute.dig.aws.config.S3Config
+import org.broadinstitute.dig.aws.config.emr.EmrConfig
+import org.broadinstitute.dig.aws.config.emr.SubnetId
+import loamstream.util.AwsClient
+import org.broadinstitute.dig.aws.AWS
 
 
 /**
@@ -142,35 +148,31 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     }
   }
   
-  private[intake] def headerRowFrom(columnNames: Seq[ColumnName]): HeaderRow = {
-    HeaderRow(columnNames.map(_.name): _*)
-  }
-  
   implicit final class ColumnNameOps(val s: String) {
     def asColumnName: ColumnName = ColumnName(s)
   }
   
-  final class TransformationTarget(dest: Store) {
-    def from(source: Source[DataRow]): UsingTarget = new UsingTarget(dest, source)
+  final class TransformationTarget(rowSink: JsonRowSink) {
+    def from(source: Source[DataRow]): UsingTarget = new UsingTarget(rowSink, source)
   }
   
-  final class UsingTarget(dest: Store, rows: Source[DataRow]) extends Loggable {
-    def using(flipDetector: => FlipDetector): ViaTarget = new ViaTarget(dest, rows, flipDetector)
+  final class UsingTarget(rowSink: JsonRowSink, rows: Source[DataRow]) extends Loggable {
+    def using(flipDetector: => FlipDetector): ViaTarget = new ViaTarget(rowSink, rows, flipDetector)
   }
   
   private[intake] def asCloseable[A](a: AnyRef): Seq[Closeable] = Option(a).collect { case c: Closeable => c }.toSeq
   
   final class ViaTarget(
-      dest: Store, 
+      rowSink: JsonRowSink, 
       private[intake] val rows: Source[DataRow],
       flipDetector: => FlipDetector,
       private[intake] val toBeClosed: Seq[Closeable] = Nil) extends Loggable {
     
     def copy(
-      dest: Store = this.dest, 
+      dowSink: JsonRowSink = this.rowSink, 
       rows: Source[DataRow] = this.rows,
       flipDetector: => FlipDetector = this.flipDetector,
-      toBeClosed: Seq[Closeable] = this.toBeClosed): ViaTarget = new ViaTarget(dest, rows, flipDetector, toBeClosed) 
+      toBeClosed: Seq[Closeable] = this.toBeClosed): ViaTarget = new ViaTarget(rowSink, rows, flipDetector, toBeClosed) 
     
     private def toFilterTransform(p: DataRowPredicate): DataRow => DataRow = { row =>
       if(row.isSkipped || p(row)) { row } else { row.skip }
@@ -188,17 +190,14 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     def via[R <: BaseVariantRow](expr: VariantRowExpr[R]): MapFilterAndWriteTarget[R, Unit] = {
       val dataRows = rows.tagFlips(expr.markerDef, flipDetector).map(expr)
       
-      val headerRow = headerRowFrom(expr.columnNames)
-      
       val pseudoMetric: Metric[R, Unit] = Fold.foreach(_ => ()) // TODO :(
       
-      new MapFilterAndWriteTarget(dest, headerRow, dataRows, pseudoMetric, toBeClosed)
+      new MapFilterAndWriteTarget(rowSink, dataRows, pseudoMetric, toBeClosed)
     }
   }
   
   final class MapFilterAndWriteTarget[R <: BaseVariantRow, A](
-      dest: Store, 
-      headerRow: HeaderRow,
+      rowSink: JsonRowSink, 
       private[intake] val rows: Source[VariantRow.Parsed[R]],
       private[intake] val metric: Metric[R, A],
       private[intake] val toBeClosed: Seq[Closeable]) extends Loggable {
@@ -206,13 +205,12 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     import loamstream.loam.intake.metrics.MetricOps
     
     def copy(
-        dest: Store = this.dest, 
-        headerRow: HeaderRow = this.headerRow,
+        rowSink: JsonRowSink = this.rowSink, 
         rows: Source[VariantRow.Parsed[R]] = this.rows,
         metric: Metric[R, A] = this.metric,
         toBeClosed: Seq[Closeable] = this.toBeClosed): MapFilterAndWriteTarget[R, A] = {
       
-      new MapFilterAndWriteTarget(dest, headerRow, rows, metric, toBeClosed)
+      new MapFilterAndWriteTarget(rowSink, rows, metric, toBeClosed)
     }
     
     def writeSummaryStatsTo(store: Store): MapFilterAndWriteTarget[R, (A, Unit)] = {
@@ -224,7 +222,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     def withMetric[B](m: Metric[R, B]): MapFilterAndWriteTarget[R, (A, B)] = {
       val newMetric = metric combine m
       
-      new MapFilterAndWriteTarget[R, (A, B)](dest, headerRow, rows, newMetric, toBeClosed)
+      new MapFilterAndWriteTarget[R, (A, B)](rowSink, rows, newMetric, toBeClosed)
     }
     
     def filter(predicate: Predicate[R]): MapFilterAndWriteTarget[R, A] = {
@@ -245,18 +243,14 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     
     //TODO: better name
     def write(forceLocal: Boolean = false)(implicit scriptContext: LoamScriptContext): Tool = {
-      require(dest.isPathStore)
-      
-      val sink: RowSink = RowSink.ToFile(dest.path)
-      
-      val writeLines: Metric[R, Unit] = Metric.writeValidVariantsTo(sink)
+      val writeLines: Metric[R, Unit] = Metric.writeValidVariantsTo(rowSink)
       
       val m: Metric[R, (A, Unit)] = metric.combine(writeLines)
       
       def toolBody[A](f: => A): Tool = {
         nativeTool(forceLocal) {
-          TimeUtils.time(s"Producing ${dest.path}", info(_)) {
-            CanBeClosed.enclosed(sink) { _ =>
+          TimeUtils.time(s"Uploading", info(_)) {
+            CanBeClosed.enclosed(rowSink) { _ =>
               CanBeClosed.enclosed(everythingToClose) { _ =>
                 f
               }
@@ -267,8 +261,6 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       
       //TODO: How to wire up inputs (if any)?
       val tool: Tool = toolBody {
-        sink.accept(headerRow)
-        
         val (metricResults, _) = m.process(rows)
       
         //TODO: What to do with metricResults?
@@ -276,7 +268,10 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       
       addToGraph(tool)
       
-      tool.out(dest)
+      //TODO: Allow S3 Stores
+      //tool.out(dest) 
+      
+      tool
     }
     
     private def everythingToClose: Terminable = Terminable {
@@ -294,9 +289,33 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     require(s.isPathStore, s"Only writing to a destination on the FS is supported, but got ${s}")
   }
   
-  def produceCsv(dest: Store): TransformationTarget = {
-    requireFsPath(dest)
+  def uploadTo(rowSink: JsonRowSink): TransformationTarget = {
+    new TransformationTarget(rowSink)
+  }
+  
+  def uploadTo(
+      bucketName: String = "dig-integration-tests",
+      uploadType: UploadType,
+      dataset: String,
+      techType: TechType,
+      phenotype: String): TransformationTarget = {
     
-    new TransformationTarget(dest)
+    val awsConfig: AWSConfig = {
+      //dummy values, except fot the bucket name
+      AWSConfig(
+          S3Config(bucketName), 
+          EmrConfig("some-ssh-key-name", SubnetId("subnet-foo")))
+    }
+  
+    val awsClient: AwsClient = new AwsClient.Default(new AWS(awsConfig))
+    
+    val rowSink: JsonRowSink = new AwsRowSink(
+        topic = uploadType.s3Dir,
+        dataset = dataset,
+        techType = Option(techType),
+        phenotype = Option(phenotype),
+        awsClient = awsClient)
+    
+    uploadTo(rowSink)
   }
 }

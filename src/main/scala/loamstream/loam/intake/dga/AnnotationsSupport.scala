@@ -55,7 +55,7 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
       //create the new dataset
       val sink = new AwsRowSink(
           topic = topicName,
-          name = datasetName,
+          dataset = datasetName,
           techType = None,
           phenotype = None,
           awsClient = awsClient,

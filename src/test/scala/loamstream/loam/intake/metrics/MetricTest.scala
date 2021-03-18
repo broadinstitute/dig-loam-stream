@@ -571,8 +571,8 @@ final class MetricTest extends FunSuite {
     
     val written: Buffer[RenderableRow] = new ArrayBuffer                       
       
-    val sink: RowSink = new RowSink {
-      override def accept(row: RenderableRow): Unit = written += row
+    val sink: RowSink[PValueVariantRow] = new RowSink[PValueVariantRow] {
+      override def accept(row: PValueVariantRow): Unit = written += row
       
       override def close(): Unit = ()
     }

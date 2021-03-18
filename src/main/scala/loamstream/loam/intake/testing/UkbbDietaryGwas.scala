@@ -9,7 +9,6 @@ import loamstream.loam.LoamScriptContext
 import loamstream.loam.intake.AggregatorIntakeConfig
 import loamstream.loam.intake.RowSink
 import loamstream.loam.intake.VariantRowExpr
-import loamstream.loam.intake.JsonRowSink
 import loamstream.loam.intake.UploadType
 import loamstream.loam.intake.TechType
 

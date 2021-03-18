@@ -273,7 +273,7 @@ object VariantRow {
   sealed trait Parsed[R <: BaseVariantRow] extends DataRow {
     val derivedFrom: Tagged
     
-    def aggRowOpt: Option[RenderableJsonRow]
+    def aggRowOpt: Option[R]
     
     override def skip: Parsed[R]
     

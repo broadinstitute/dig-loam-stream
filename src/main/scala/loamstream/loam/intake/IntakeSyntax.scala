@@ -152,24 +152,24 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     def asColumnName: ColumnName = ColumnName(s)
   }
   
-  final class TransformationTarget(rowSink: JsonRowSink) {
+  final class TransformationTarget(rowSink: RowSink[RenderableJsonRow]) {
     def from(source: Source[DataRow]): UsingTarget = new UsingTarget(rowSink, source)
   }
   
-  final class UsingTarget(rowSink: JsonRowSink, rows: Source[DataRow]) extends Loggable {
+  final class UsingTarget(rowSink: RowSink[RenderableJsonRow], rows: Source[DataRow]) extends Loggable {
     def using(flipDetector: => FlipDetector): ViaTarget = new ViaTarget(rowSink, rows, flipDetector)
   }
   
   private[intake] def asCloseable[A](a: AnyRef): Seq[Closeable] = Option(a).collect { case c: Closeable => c }.toSeq
   
   final class ViaTarget(
-      rowSink: JsonRowSink, 
+      rowSink: RowSink[RenderableJsonRow], 
       private[intake] val rows: Source[DataRow],
       flipDetector: => FlipDetector,
       private[intake] val toBeClosed: Seq[Closeable] = Nil) extends Loggable {
     
     def copy(
-      dowSink: JsonRowSink = this.rowSink, 
+      dowSink: RowSink[RenderableJsonRow] = this.rowSink, 
       rows: Source[DataRow] = this.rows,
       flipDetector: => FlipDetector = this.flipDetector,
       toBeClosed: Seq[Closeable] = this.toBeClosed): ViaTarget = new ViaTarget(rowSink, rows, flipDetector, toBeClosed) 
@@ -197,7 +197,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
   }
   
   final class MapFilterAndWriteTarget[R <: BaseVariantRow, A](
-      rowSink: JsonRowSink, 
+      rowSink: RowSink[RenderableJsonRow], 
       private[intake] val rows: Source[VariantRow.Parsed[R]],
       private[intake] val metric: Metric[R, A],
       private[intake] val toBeClosed: Seq[Closeable]) extends Loggable {
@@ -205,7 +205,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     import loamstream.loam.intake.metrics.MetricOps
     
     def copy(
-        rowSink: JsonRowSink = this.rowSink, 
+        rowSink: RowSink[RenderableJsonRow] = this.rowSink, 
         rows: Source[VariantRow.Parsed[R]] = this.rows,
         metric: Metric[R, A] = this.metric,
         toBeClosed: Seq[Closeable] = this.toBeClosed): MapFilterAndWriteTarget[R, A] = {
@@ -289,7 +289,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     require(s.isPathStore, s"Only writing to a destination on the FS is supported, but got ${s}")
   }
   
-  def uploadTo(rowSink: JsonRowSink): TransformationTarget = {
+  def uploadTo(rowSink: RowSink[RenderableJsonRow]): TransformationTarget = {
     new TransformationTarget(rowSink)
   }
   
@@ -309,7 +309,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
   
     val awsClient: AwsClient = new AwsClient.Default(new AWS(awsConfig))
     
-    val rowSink: JsonRowSink = new AwsRowSink(
+    val rowSink: RowSink[RenderableJsonRow] = new AwsRowSink(
         topic = uploadType.s3Dir,
         dataset = dataset,
         techType = Option(techType),

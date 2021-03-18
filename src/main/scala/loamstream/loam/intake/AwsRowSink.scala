@@ -43,7 +43,7 @@ final case class AwsRowSink(
     // :(
     yes: Boolean = false,
     private val fileIds: Iterator[Long] = AwsRowSink.Defaults.fileIdSequence,
-    private val uuid: String = AwsRowSink.Defaults.randomUUID) extends JsonRowSink with Loggable {
+    private val uuid: String = AwsRowSink.Defaults.randomUUID) extends RowSink[RenderableJsonRow] with Loggable {
   
   private[this] val initializedBox: ValueBox[Boolean] = ValueBox(false)
   

@@ -17,7 +17,7 @@ final class AwsRowSinkTest extends FunSuite {
   test("toKey - no tech or phenotype") {
     val sink = AwsRowSink(
         topic = "some-topic", 
-        name = "some-name",
+        dataset = "some-name",
         techType = None,
         phenotype = None,
         batchSize = 42,
@@ -32,7 +32,7 @@ final class AwsRowSinkTest extends FunSuite {
     def doTest(techType: TechType, phenotype: String): Unit = {
       val sink = AwsRowSink(
           topic = "some-topic", 
-          name = "some-name",
+          dataset = "some-name",
           techType = Some(techType),
           phenotype = Some(phenotype),
           batchSize = 42,
@@ -60,7 +60,7 @@ final class AwsRowSinkTest extends FunSuite {
     
     val sink = AwsRowSink(
         topic = "some-topic", 
-        name = "some-name", 
+        dataset = "some-name", 
         batchSize = 42,
         techType = None,
         phenotype = None,
@@ -99,7 +99,7 @@ final class AwsRowSinkTest extends FunSuite {
     
     val sink = AwsRowSink(
         topic = "some-topic", 
-        name = "some-name", 
+        dataset = "some-name", 
         batchSize = 2,
         techType = None,
         phenotype = None,
@@ -162,7 +162,7 @@ final class AwsRowSinkTest extends FunSuite {
     
     val sink = AwsRowSink(
         topic = "some-topic", 
-        name = "some-name",
+        dataset = "some-name",
         techType = None,
         phenotype = None,
         batchSize = 2,

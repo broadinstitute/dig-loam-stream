@@ -9,6 +9,9 @@ import loamstream.loam.LoamScriptContext
 import loamstream.loam.intake.AggregatorIntakeConfig
 import loamstream.loam.intake.RowSink
 import loamstream.loam.intake.VariantRowExpr
+import loamstream.loam.intake.JsonRowSink
+import loamstream.loam.intake.UploadType
+import loamstream.loam.intake.TechType
 
 /**
  * @author clint
@@ -96,22 +99,27 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
     val unknownToBioIndexFile: Store = store(path(s"${dest.path.toString}.unknown-to-bio-index"))
     val disagreeingZBetaStdErrFile: Store = store(path(s"${dest.path.toString}.disagreeing-z-Beta-stderr"))
     
-    produceCsv(dest).
-        from(source).
-        using(flipDetector).
-        via(toAggregatorRows).
-        filter(AggregatorVariantRowFilters.validEaf(filterLog, append = true)).
-        filter(AggregatorVariantRowFilters.validMaf(filterLog, append = true)).
-        map(DataRowTransforms.clampPValues(filterLog, append = true)).
-        filter(AggregatorVariantRowFilters.validPValue(filterLog, append = true)).
-        withMetric(Metrics.fractionUnknownToBioIndex(unknownToBioIndexFile)).
-        withMetric(Metrics.fractionWithDisagreeingBetaStderrZscore(disagreeingZBetaStdErrFile, flipDetector)).
-        write().
-        tag(s"process-phenotype-$phenotype").
-        in(sourceStore).
-        out(dest).
-        out(unknownToBioIndexFile).
-        out(disagreeingZBetaStdErrFile)
+    uploadTo(
+        bucketName = "dig-integration-tests",
+        uploadType = UploadType.Variants,
+        dataset = "some-data-set",
+        techType = TechType.ExSeq, //whatever
+        phenotype = "some-pheno").
+      from(source).
+      using(flipDetector).
+      via(toAggregatorRows).
+      filter(AggregatorVariantRowFilters.validEaf(filterLog, append = true)).
+      filter(AggregatorVariantRowFilters.validMaf(filterLog, append = true)).
+      map(DataRowTransforms.clampPValues(filterLog, append = true)).
+      filter(AggregatorVariantRowFilters.validPValue(filterLog, append = true)).
+      withMetric(Metrics.fractionUnknownToBioIndex(unknownToBioIndexFile)).
+      withMetric(Metrics.fractionWithDisagreeingBetaStderrZscore(disagreeingZBetaStdErrFile, flipDetector)).
+      write().
+      tag(s"process-phenotype-$phenotype").
+      in(sourceStore).
+      out(dest).
+      out(unknownToBioIndexFile).
+      out(disagreeingZBetaStdErrFile)
        
     dest
   }

@@ -54,7 +54,7 @@ final class IntakeSyntaxTest extends FunSuite {
       
       val source = filterSource 
           
-      val viaTarget = new ViaTarget(store("/dev/null"), source, ???)
+      val viaTarget = new ViaTarget(Helpers.JsonRowSinks.Noop, source, ???)
       
       assert(viaTarget.toBeClosed === Nil)
       
@@ -80,7 +80,7 @@ final class IntakeSyntaxTest extends FunSuite {
       
       val source = filterSource 
           
-      val viaTarget = new ViaTarget(store("/dev/null"), source, ???)
+      val viaTarget = new ViaTarget(Helpers.JsonRowSinks.Noop, source, ???)
       
       assert(viaTarget.toBeClosed === Nil)
       
@@ -104,7 +104,7 @@ final class IntakeSyntaxTest extends FunSuite {
       
       val source = filterSource 
           
-      val viaTarget = new ViaTarget(store("/dev/null"), source, ???)
+      val viaTarget = new ViaTarget(Helpers.JsonRowSinks.Noop, source, ???)
       
       assert(viaTarget.toBeClosed === Nil)
    
@@ -158,8 +158,7 @@ final class IntakeSyntaxTest extends FunSuite {
       val source = mapSource.tagFlips(markerDef, Helpers.FlipDetectors.NoFlipsEver).map(expr)
           
       val target = new MapFilterAndWriteTarget[PValueVariantRow, Unit](
-          store("/dev/null"), 
-          HeaderRow(MRKR.name, PValue.name),
+          Helpers.JsonRowSinks.Noop, 
           source, 
           Fold.foreach(_ => ()),
           Nil)
@@ -179,8 +178,7 @@ final class IntakeSyntaxTest extends FunSuite {
       val source = mapSource.tagFlips(markerDef, Helpers.FlipDetectors.NoFlipsEver).map(expr)
           
       val target = new MapFilterAndWriteTarget[PValueVariantRow, Unit](
-          store("/dev/null"), 
-          HeaderRow(MRKR.name, PValue.name),
+          Helpers.JsonRowSinks.Noop, 
           source, 
           Fold.foreach(_ => ()),
           Nil)
@@ -215,8 +213,7 @@ final class IntakeSyntaxTest extends FunSuite {
       }
           
       val target = new MapFilterAndWriteTarget[PValueVariantRow, Unit](
-          store("/dev/null"), 
-          HeaderRow(MRKR.name, PValue.name),
+          Helpers.JsonRowSinks.Noop, 
           source, 
           Fold.foreach(_ => ()),
           Nil)
@@ -247,8 +244,7 @@ final class IntakeSyntaxTest extends FunSuite {
       }
           
       val target = new MapFilterAndWriteTarget[PValueVariantRow, Unit](
-          store("/dev/null"), 
-          HeaderRow(MRKR.name, PValue.name),
+          Helpers.JsonRowSinks.Noop,
           source, 
           Fold.foreach(_ => ()),
           Nil)
@@ -289,8 +285,7 @@ final class IntakeSyntaxTest extends FunSuite {
         }
             
         val target = new MapFilterAndWriteTarget[PValueVariantRow, Unit](
-            store(outfile), 
-            HeaderRow(MRKR.name, PValue.name),
+            Helpers.JsonRowSinks.Noop,
             source, 
             Fold.foreach(_ => ()),
             Nil)
@@ -343,8 +338,7 @@ ${v3.underscoreDelimited}${'\t'}1.4${'\t'}42.0""".trim
         val source = mapSource.tagFlips(markerDef, Helpers.FlipDetectors.NoFlipsEver).map(expr)
             
         val target = new MapFilterAndWriteTarget[PValueVariantRow, Unit](
-            store(outfile), 
-            HeaderRow(MRKR.name, PValue.name),
+            Helpers.JsonRowSinks.Noop, 
             source, 
             Fold.foreach(_ => ()),
             Nil)
@@ -360,7 +354,6 @@ ${v3.underscoreDelimited}${'\t'}1.4${'\t'}42.0""".trim
         }
         
         assert(tool.isInstanceOf[InvokesLsTool])
-        assert(tool.graph.toolOutputs(tool).head.path === outfile)
       }      
     }
   }

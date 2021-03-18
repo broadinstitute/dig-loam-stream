@@ -109,4 +109,20 @@ object Helpers {
       }
     }
   }
+  
+  object RowSinks {
+    object Noop extends RowSink {
+      override def accept(row: RenderableRow): Unit = ()
+      
+      override def close(): Unit = ()
+    }
+  }
+  
+  object JsonRowSinks {
+    object Noop extends JsonRowSink {
+      override def accept(row: RenderableJsonRow): Unit = ()
+      
+      override def close(): Unit = ()
+    }
+  }
 }

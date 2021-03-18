@@ -87,7 +87,7 @@ final class ProcessRealDataTest extends FunSuite with Loggable {
         
         val summaryStatsFile: Store = store(path(s"${dest.path.toString}.summary"))
         
-        produceCsv(dest).
+        uploadTo(???).
           from(source).
           using(flipDetector).
           via(toAggregatorRows).

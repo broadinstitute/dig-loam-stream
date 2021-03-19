@@ -65,6 +65,9 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
   type HeaderRow = loamstream.loam.intake.LiteralRow
   val HeaderRow = loamstream.loam.intake.LiteralRow
   
+  type VariantRowExpr[R <: BaseVariantRow] = loamstream.loam.intake.VariantRowExpr[R]
+  val VariantRowExpr = loamstream.loam.intake.VariantRowExpr
+  
   type AggregatorVariantRow = loamstream.loam.intake.PValueVariantRow //TODO
   val AggregatorVariantRow = loamstream.loam.intake.PValueVariantRow //TODO
   
@@ -269,6 +272,12 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       addToGraph(tool)
       
       //TODO: Allow S3 Stores
+      //TODO: HACK
+      rowSink match {
+        case RowSink.ToFile(dest, _) => tool.out(LoamPredef.store(dest))
+        case _ => ()
+      }
+      
       //tool.out(dest) 
       
       tool
@@ -289,16 +298,36 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     require(s.isPathStore, s"Only writing to a destination on the FS is supported, but got ${s}")
   }
   
+  final class AggregatorIntakeConfigFileTarget(dest: Store) {
+    def from(
+        configData: AggregatorMetadata, 
+        forceLocal: Boolean = false)(implicit scriptContext: LoamScriptContext): Tool = {
+      
+      //TODO: How to wire up inputs (if any)?
+      val tool: Tool = nativeTool(forceLocal) {
+        Files.writeTo(dest.path)(configData.asConfigFileContents)
+      }
+      
+      addToGraph(tool)
+      
+      tool.out(dest)
+    }
+  }
+  
+  def produceAggregatorIntakeConfigFile(dest: Store) = {
+    requireFsPath(dest)
+    
+    new AggregatorIntakeConfigFileTarget(dest)
+  }
+  
   def uploadTo(rowSink: RowSink[RenderableJsonRow]): TransformationTarget = {
     new TransformationTarget(rowSink)
   }
   
   def uploadTo(
-      bucketName: String = "dig-integration-tests",
+      bucketName: String, //TODO: default to real location
       uploadType: UploadType,
-      dataset: String,
-      techType: TechType,
-      phenotype: String): TransformationTarget = {
+      metadata: AggregatorMetadata): TransformationTarget = {
     
     val awsConfig: AWSConfig = {
       //dummy values, except fot the bucket name
@@ -311,9 +340,9 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     
     val rowSink: RowSink[RenderableJsonRow] = new AwsRowSink(
         topic = uploadType.s3Dir,
-        dataset = dataset,
-        techType = Option(techType),
-        phenotype = Option(phenotype),
+        dataset = metadata.dataset,
+        techType = Option(metadata.tech),
+        phenotype = Option(metadata.phenotype),
         awsClient = awsClient)
     
     uploadTo(rowSink)

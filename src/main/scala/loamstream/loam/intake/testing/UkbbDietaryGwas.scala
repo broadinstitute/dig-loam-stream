@@ -8,7 +8,6 @@ import loamstream.loam.LoamProjectContext
 import loamstream.loam.LoamScriptContext
 import loamstream.loam.intake.AggregatorIntakeConfig
 import loamstream.loam.intake.RowSink
-import loamstream.loam.intake.VariantRowExpr
 import loamstream.loam.intake.UploadType
 import loamstream.loam.intake.TechType
 
@@ -54,7 +53,7 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
       stderrDef = Some(stderr(SE)),
       betaDef = Some(beta(BETA)),
       eafDef = Some(eaf(A1FREQ)),
-      nDef = PassThru.n(N))
+      nDef = Some(PassThru.n(N)))
   }
   
   object Paths {
@@ -100,10 +99,9 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
     
     uploadTo(
         bucketName = "dig-integration-tests",
-        uploadType = UploadType.Variants,
-        dataset = "some-data-set",
-        techType = TechType.ExSeq, //whatever
-        phenotype = "some-pheno").
+        uploadType = toAggregatorRows.uploadType,
+        //whatever, just compile
+        metadata = ???).
       from(source).
       using(flipDetector).
       via(toAggregatorRows).

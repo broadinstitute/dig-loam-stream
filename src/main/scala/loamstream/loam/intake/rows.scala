@@ -139,7 +139,6 @@ object BaseVariantRow {
  */
 final case class VariantCountRow(
   marker: Variant,
-  pvalue: Double,
   dataset: String,
   phenotype: String,
   ancestry: Ancestry,

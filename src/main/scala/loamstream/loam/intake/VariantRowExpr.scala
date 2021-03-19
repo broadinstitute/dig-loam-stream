@@ -13,6 +13,8 @@ import loamstream.util.Loggable
 sealed trait VariantRowExpr[R <: BaseVariantRow] extends TaggedRowParser[VariantRow.Parsed[R]] {
   def metadata: AggregatorMetadata
   
+  def uploadType: UploadType
+  
   def markerDef: MarkerColumnDef
   
   def failFast: Boolean
@@ -48,13 +50,9 @@ sealed trait VariantRowExpr[R <: BaseVariantRow] extends TaggedRowParser[Variant
 }
 
 object VariantRowExpr extends Loggable {
-  final case class VariantCountRowExpr(
+  final case class VariantCountRowExpr private (
     metadata: AggregatorMetadata,
     markerDef: MarkerColumnDef,
-    pvalueDef: AnonColumnDef[Double],
-    datasetDef: AnonColumnDef[String],
-    phenotypeDef: AnonColumnDef[String],
-    ancestryDef: AnonColumnDef[Ancestry],
     alleleCountDef: AnonColumnDef[Long],
     alleleCountCasesDef: AnonColumnDef[Long], 
     alleleCountControlsDef: AnonColumnDef[Long],
@@ -63,11 +61,12 @@ object VariantRowExpr extends Loggable {
     homozygousCasesDef: AnonColumnDef[Long], 
     homozygousControlsDef: AnonColumnDef[Long],
     failFast: Boolean = false) extends VariantRowExpr[VariantCountRow] {
+    
+    override def uploadType: UploadType = UploadType.VariantCounts
 
     override protected def makeRow(row: VariantRow.Tagged): VariantCountRow = {
       VariantCountRow(
         marker = row.marker,
-        pvalue = pvalueDef.apply(row),
         dataset = metadataColumnDefs.dataset(row),
         phenotype = metadataColumnDefs.phenotype(row),
         ancestry = metadataColumnDefs.ancestry(row),
@@ -82,19 +81,21 @@ object VariantRowExpr extends Loggable {
     }
   }
   
-  final case class PValueVariantRowExpr private (
-    metadata: AggregatorMetadata,
-    markerDef: MarkerColumnDef,
+  final class PValueVariantRowExpr private (
+    override val metadata: AggregatorMetadata,
+    override val markerDef: MarkerColumnDef,
     pvalueDef: ColumnDef[Double],
-    zscoreDef: Option[ColumnDef[Double]] = None,
-    stderrDef: Option[ColumnDef[Double]] = None,
-    betaDef: Option[ColumnDef[Double]] = None,
-    oddsRatioDef: Option[ColumnDef[Double]] = None,
-    eafDef: Option[ColumnDef[Double]] = None,
-    mafDef: Option[ColumnDef[Double]] = None,
+    zscoreDef: Option[ColumnDef[Double]],
+    stderrDef: Option[ColumnDef[Double]],
+    betaDef: Option[ColumnDef[Double]],
+    oddsRatioDef: Option[ColumnDef[Double]],
+    eafDef: Option[ColumnDef[Double]],
+    mafDef: Option[ColumnDef[Double]],
     nDef: ColumnDef[Double],
-    failFast: Boolean = false) extends VariantRowExpr[PValueVariantRow] {
+    override val failFast: Boolean) extends VariantRowExpr[PValueVariantRow] {
 
+    override def uploadType: UploadType = UploadType.Variants
+    
     override protected def makeRow(row: VariantRow.Tagged):  PValueVariantRow = {
       PValueVariantRow(
         marker = row.marker,
@@ -113,50 +114,52 @@ object VariantRowExpr extends Loggable {
     }
   }
   
-  def apply(
-    metadata: AggregatorMetadata,
-    markerDef: MarkerColumnDef,
-    pvalueDef: ColumnDef[Double],
-    zscoreDef: Option[ColumnDef[Double]] = None,
-    stderrDef: Option[ColumnDef[Double]] = None,
-    betaDef: Option[ColumnDef[Double]] = None,
-    oddsRatioDef: Option[ColumnDef[Double]] = None,
-    eafDef: Option[ColumnDef[Double]] = None,
-    mafDef: Option[ColumnDef[Double]] = None,
-    casesDef: Option[ColumnDef[Double]] = None,
-    controlsDef: Option[ColumnDef[Double]] = None,
-    subjectsDef: Option[ColumnDef[Double]] = None,
-    nDef: Option[ColumnDef[Double]] = None,
-    failFast: Boolean = false,
-    bioIndexClient: BioIndexClient = new BioIndexClient.Default()): PValueVariantRowExpr = {
-    
-    val inferred = OptionalPValueRowColumnDefs(
-      metadata = metadata,
-      pvalueDef = pvalueDef,
-      zscoreDef = zscoreDef,
-      stderrDef = stderrDef,
-      betaDef = betaDef,
-      oddsRatioDef = oddsRatioDef,
-      eafDef = eafDef,
-      mafDef = mafDef,
-      nDef = nDef,
-      casesDef = casesDef,
-      controlsDef = controlsDef,
-      subjectsDef = subjectsDef,
-      bioIndexClient = bioIndexClient).inferAll()
-
-    PValueVariantRowExpr(
+  object PValueVariantRowExpr {
+    def apply(
+      metadata: AggregatorMetadata,
+      markerDef: MarkerColumnDef,
+      pvalueDef: ColumnDef[Double],
+      zscoreDef: Option[ColumnDef[Double]] = None,
+      stderrDef: Option[ColumnDef[Double]] = None,
+      betaDef: Option[ColumnDef[Double]] = None,
+      oddsRatioDef: Option[ColumnDef[Double]] = None,
+      eafDef: Option[ColumnDef[Double]] = None,
+      mafDef: Option[ColumnDef[Double]] = None,
+      casesDef: Option[ColumnDef[Double]] = None,
+      controlsDef: Option[ColumnDef[Double]] = None,
+      subjectsDef: Option[ColumnDef[Double]] = None,
+      nDef: Option[ColumnDef[Double]] = None,
+      failFast: Boolean = false,
+      bioIndexClient: BioIndexClient = new BioIndexClient.Default()): PValueVariantRowExpr = {
+      
+      val inferred = OptionalPValueRowColumnDefs(
         metadata = metadata,
-        markerDef = markerDef,
         pvalueDef = pvalueDef,
-        zscoreDef = inferred.zscoreDef,
-        stderrDef = inferred.stderrDef,
-        betaDef = inferred.betaDef,
-        oddsRatioDef = inferred.oddsRatioDef,
-        eafDef = inferred.eafDef,
-        mafDef = inferred.mafDef,
-        nDef = inferred.nDef,
-        failFast = failFast)
+        zscoreDef = zscoreDef,
+        stderrDef = stderrDef,
+        betaDef = betaDef,
+        oddsRatioDef = oddsRatioDef,
+        eafDef = eafDef,
+        mafDef = mafDef,
+        nDef = nDef,
+        casesDef = casesDef,
+        controlsDef = controlsDef,
+        subjectsDef = subjectsDef,
+        bioIndexClient = bioIndexClient).inferAll()
+  
+      new PValueVariantRowExpr(
+          metadata = metadata,
+          markerDef = markerDef,
+          pvalueDef = pvalueDef,
+          zscoreDef = inferred.zscoreDef,
+          stderrDef = inferred.stderrDef,
+          betaDef = inferred.betaDef,
+          oddsRatioDef = inferred.oddsRatioDef,
+          eafDef = inferred.eafDef,
+          mafDef = inferred.mafDef,
+          nDef = inferred.nDef,
+          failFast = failFast)
+    }
   }
   
   private case class PValueRowColumnDefs(

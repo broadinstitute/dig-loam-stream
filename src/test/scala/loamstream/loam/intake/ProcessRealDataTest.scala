@@ -46,8 +46,8 @@ final class ProcessRealDataTest extends FunSuite with Loggable {
         tech = TechType.ExChip,
         quantitative = None)
     
-    val toAggregatorRows: AggregatorRowExpr = {
-      VariantRowExpr(
+    val toAggregatorRows: PValueVariantRowExpr = {
+      VariantRowExpr.PValueVariantRowExpr(
         metadata = metadata,
         markerDef = marker(
                       chromColumn = CHR, 

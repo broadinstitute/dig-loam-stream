@@ -8,8 +8,6 @@ import loamstream.loam.LoamSyntax
 import loamstream.conf.LoamConfig
 import loamstream.loam.intake.AggregatorIntakeConfig
 import loamstream.conf.LsSettings
-import loamstream.loam.intake.Ancestry
-import loamstream.loam.intake.TechType
 
 /**
  * @author clint

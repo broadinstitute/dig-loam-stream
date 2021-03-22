@@ -16,10 +16,6 @@ import scala.collection.mutable.Buffer
 import scala.collection.mutable.ArrayBuffer
 import loamstream.loam.intake.RowSink
 import loamstream.loam.intake.RenderableRow
-import loamstream.loam.intake.Ancestry
-import loamstream.loam.intake.TechType
-import loamstream.loam.intake.VariantRowExpr
-import loamstream.loam.intake.PValueVariantRow
 import loamstream.loam.intake.BaseVariantRow
 import loamstream.loam.intake.LiteralColumnExpr
 
@@ -63,7 +59,7 @@ final class MetricTest extends FunSuite {
   private val markerDef = AnonColumnDef(Marker, Marker)
   private val markerVariantDef = MarkerColumnDef(AggregatorColumnNames.marker, Marker.map(Variant.from))
   
-  private val defaultRowExpr: AggregatorRowExpr = VariantRowExpr(
+  private val defaultRowExpr: PValueVariantRowExpr = PValueVariantRowExpr(
       metadata = metadata,
       markerDef = markerVariantDef,
       pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
@@ -130,7 +126,7 @@ final class MetricTest extends FunSuite {
     
     val flipDetector = new MetricTest.MockFlipDetector(Set.empty)
                       
-    val toAggregatorFormat: AggregatorRowExpr = VariantRowExpr(
+    val toAggregatorFormat: PValueVariantRowExpr = VariantRowExpr.PValueVariantRowExpr(
         metadata = metadata,
         markerDef = MarkerColumnDef(marker, marker.map(Variant.from)),
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
@@ -161,7 +157,7 @@ final class MetricTest extends FunSuite {
     
     val flipDetector = new MetricTest.MockFlipDetector(Set(Vars.y, Vars.a, Vars.b).map(Variant.from))
     
-    val toAggregatorFormat: AggregatorRowExpr = VariantRowExpr(
+    val toAggregatorFormat: PValueVariantRowExpr = VariantRowExpr.PValueVariantRowExpr(
         metadata = metadata,
         markerDef = markerVariantDef,
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
@@ -195,7 +191,7 @@ final class MetricTest extends FunSuite {
     
     val flipDetector = new MetricTest.MockFlipDetector(Set.empty)
     
-    val toAggregatorFormat: AggregatorRowExpr = VariantRowExpr(
+    val toAggregatorFormat: PValueVariantRowExpr = VariantRowExpr.PValueVariantRowExpr(
         metadata = metadata,
         markerDef = MarkerColumnDef(Marker, marker.map(Variant.from)),
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
@@ -229,7 +225,7 @@ final class MetricTest extends FunSuite {
     
     val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, marker.map(Variant.from))
     
-    val toAggregatorFormat: AggregatorRowExpr = VariantRowExpr(
+    val toAggregatorFormat: PValueVariantRowExpr = VariantRowExpr.PValueVariantRowExpr(
         metadata = metadata,
         markerDef = markerDef,
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
@@ -262,7 +258,7 @@ final class MetricTest extends FunSuite {
     
     val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, marker.map(Variant.from))
     
-    val toAggregatorFormat: AggregatorRowExpr = VariantRowExpr(
+    val toAggregatorFormat: PValueVariantRowExpr = VariantRowExpr.PValueVariantRowExpr(
         metadata = metadata,
         markerDef = markerDef,
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
@@ -300,7 +296,7 @@ final class MetricTest extends FunSuite {
       
       val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, marker.map(Variant.from))
       
-      val toAggregatorFormat: AggregatorRowExpr = VariantRowExpr(
+      val toAggregatorFormat: PValueVariantRowExpr = VariantRowExpr.PValueVariantRowExpr(
           metadata = metadata,
           markerDef = markerDef,
           pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
@@ -351,7 +347,7 @@ final class MetricTest extends FunSuite {
     
     val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, marker.map(Variant.from))
     
-    val toAggregatorFormat: AggregatorRowExpr = VariantRowExpr(
+    val toAggregatorFormat: PValueVariantRowExpr = VariantRowExpr.PValueVariantRowExpr(
         metadata = metadata,
         markerDef = markerDef,
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
@@ -395,7 +391,7 @@ final class MetricTest extends FunSuite {
     
     val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, marker.map(Variant.from))
     
-    val toAggregatorFormat: AggregatorRowExpr = VariantRowExpr(
+    val toAggregatorFormat: PValueVariantRowExpr = VariantRowExpr.PValueVariantRowExpr(
         metadata = metadata,
         markerDef = markerDef,
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
@@ -442,7 +438,7 @@ final class MetricTest extends FunSuite {
     
     val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, marker.map(Variant.from))
     
-    val toAggregatorFormat: AggregatorRowExpr = VariantRowExpr(
+    val toAggregatorFormat: PValueVariantRowExpr = VariantRowExpr.PValueVariantRowExpr(
         metadata = metadata,
         markerDef = markerDef,
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
@@ -491,7 +487,7 @@ final class MetricTest extends FunSuite {
     
     val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, marker.map(Variant.from))
     
-    val toAggregatorFormat: AggregatorRowExpr = VariantRowExpr(
+    val toAggregatorFormat: PValueVariantRowExpr = VariantRowExpr.PValueVariantRowExpr(
         metadata = metadata,
         markerDef = markerDef,
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
@@ -538,7 +534,7 @@ final class MetricTest extends FunSuite {
     
     val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, marker.map(Variant.from))
     
-    val toAggregatorFormat: AggregatorRowExpr = VariantRowExpr(
+    val toAggregatorFormat: PValueVariantRowExpr = VariantRowExpr.PValueVariantRowExpr(
         metadata = metadata,
         markerDef = markerDef,
         pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),

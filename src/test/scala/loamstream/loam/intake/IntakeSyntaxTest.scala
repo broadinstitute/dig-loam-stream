@@ -145,7 +145,7 @@ final class IntakeSyntaxTest extends FunSuite {
     tech = TechType.ExChip,
     quantitative = None)
   
-  private val expr = VariantRowExpr(
+  private val expr = VariantRowExpr.PValueVariantRowExpr(
       metadata = metadata,
       markerDef = markerDef,
       pvalueDef = AggregatorColumnDefs.pvalue(PValue),
@@ -159,6 +159,7 @@ final class IntakeSyntaxTest extends FunSuite {
           
       val target = new MapFilterAndWriteTarget[PValueVariantRow, Unit](
           Helpers.RowSinks.noop, 
+          metadata,
           source, 
           Fold.foreach(_ => ()),
           Nil)
@@ -178,7 +179,8 @@ final class IntakeSyntaxTest extends FunSuite {
       val source = mapSource.tagFlips(markerDef, Helpers.FlipDetectors.NoFlipsEver).map(expr)
           
       val target = new MapFilterAndWriteTarget[PValueVariantRow, Unit](
-          Helpers.RowSinks.noop, 
+          Helpers.RowSinks.noop,
+          metadata,
           source, 
           Fold.foreach(_ => ()),
           Nil)
@@ -214,6 +216,7 @@ final class IntakeSyntaxTest extends FunSuite {
           
       val target = new MapFilterAndWriteTarget[PValueVariantRow, Unit](
           Helpers.RowSinks.noop, 
+          metadata,
           source, 
           Fold.foreach(_ => ()),
           Nil)
@@ -245,6 +248,7 @@ final class IntakeSyntaxTest extends FunSuite {
           
       val target = new MapFilterAndWriteTarget[PValueVariantRow, Unit](
           Helpers.RowSinks.noop,
+          metadata,
           source, 
           Fold.foreach(_ => ()),
           Nil)
@@ -286,6 +290,7 @@ final class IntakeSyntaxTest extends FunSuite {
             
         val target = new MapFilterAndWriteTarget[PValueVariantRow, Unit](
             RowSink.ToFile(outfile, RowSink.Renderers.csv(Source.Formats.tabDelimited)),
+            metadata,
             source, 
             Fold.foreach(_ => ()),
             Nil)
@@ -335,7 +340,8 @@ ${v3.underscoreDelimited}${'\t'}1.4${'\t'}42.0""".trim
         val source = mapSource.tagFlips(markerDef, Helpers.FlipDetectors.NoFlipsEver).map(expr)
             
         val target = new MapFilterAndWriteTarget[PValueVariantRow, Unit](
-            Helpers.RowSinks.noop, 
+            Helpers.RowSinks.noop,
+            metadata,
             source, 
             Fold.foreach(_ => ()),
             Nil)

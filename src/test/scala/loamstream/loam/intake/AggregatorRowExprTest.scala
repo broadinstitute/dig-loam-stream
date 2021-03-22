@@ -29,7 +29,7 @@ final class AggregatorRowExprTest extends FunSuite {
       MarkerColumnDef(MRKR, MRKR.flatMap(_ => literal(v)))
     }
     
-    val expr = VariantRowExpr(
+    val expr = VariantRowExpr.PValueVariantRowExpr(
         metadata = metadata,
         markerDef = markerDef,
         pvalueDef = namedDef("pvalue", 1.2D),
@@ -86,7 +86,7 @@ final class AggregatorRowExprTest extends FunSuite {
         tech = TechType.ExChip,
         quantitative = None)
       
-      val expr = VariantRowExpr(
+      val expr = VariantRowExpr.PValueVariantRowExpr(
           metadata = metadata,
           failFast = failFast,
           markerDef = markerDef,
@@ -133,7 +133,7 @@ final class AggregatorRowExprTest extends FunSuite {
         tech = TechType.ExChip,
         quantitative = None)
     
-    val expr = VariantRowExpr(
+    val expr = VariantRowExpr.PValueVariantRowExpr(
       metadata = metadata,
       failFast = true,
       markerDef = markerDef,

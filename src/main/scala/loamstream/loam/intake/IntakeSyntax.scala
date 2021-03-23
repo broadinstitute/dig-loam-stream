@@ -392,7 +392,8 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
         dataset = metadata.dataset,
         techType = Option(metadata.tech),
         phenotype = Option(metadata.phenotype),
-        awsClient = awsClient)
+        awsClient = awsClient,
+        yes = true)
     
     uploadTo(rowSink)
   }

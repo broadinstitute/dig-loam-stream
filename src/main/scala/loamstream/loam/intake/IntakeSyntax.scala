@@ -279,6 +279,8 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     }
     
     private def doDryRun(outputDir: Path): Metric[R, Unit] = {
+      outputDir.toFile.mkdirs()
+      
       val metadataFile = outputDir.resolve("metadata.txt")
       val first10Rows = outputDir.resolve("first10Rows.tsv")
       

@@ -50,16 +50,16 @@ sealed trait VariantRowExpr[R <: BaseVariantRow] extends TaggedRowParser[Variant
 }
 
 object VariantRowExpr extends Loggable {
-  final case class VariantCountRowExpr private (
+  final case class VariantCountRowExpr(
     metadata: AggregatorMetadata,
     markerDef: MarkerColumnDef,
-    alleleCountDef: AnonColumnDef[Long],
-    alleleCountCasesDef: AnonColumnDef[Long], 
-    alleleCountControlsDef: AnonColumnDef[Long],
-    heterozygousCasesDef: AnonColumnDef[Long],
-    heterozygousControlsDef: AnonColumnDef[Long], 
-    homozygousCasesDef: AnonColumnDef[Long], 
-    homozygousControlsDef: AnonColumnDef[Long],
+    alleleCountDef: Option[AnonColumnDef[Long]],
+    alleleCountCasesDef: Option[AnonColumnDef[Long]], 
+    alleleCountControlsDef: Option[AnonColumnDef[Long]],
+    heterozygousCasesDef: Option[AnonColumnDef[Long]],
+    heterozygousControlsDef: Option[AnonColumnDef[Long]], 
+    homozygousCasesDef: Option[AnonColumnDef[Long]], 
+    homozygousControlsDef: Option[AnonColumnDef[Long]],
     failFast: Boolean = false) extends VariantRowExpr[VariantCountRow] {
     
     override def uploadType: UploadType = UploadType.VariantCounts
@@ -70,13 +70,13 @@ object VariantRowExpr extends Loggable {
         dataset = metadataColumnDefs.dataset(row),
         phenotype = metadataColumnDefs.phenotype(row),
         ancestry = metadataColumnDefs.ancestry(row),
-        alleleCount = alleleCountDef.apply(row),
-        alleleCountCases = alleleCountCasesDef.apply(row), 
-        alleleCountControls = alleleCountControlsDef.apply(row),
-        heterozygousCases = heterozygousCasesDef.apply(row), 
-        heterozygousControls = heterozygousControlsDef.apply(row), 
-        homozygousCases = homozygousCasesDef.apply(row), 
-        homozygousControls = homozygousControlsDef.apply(row),
+        alleleCount = alleleCountDef.map(_.apply(row)),
+        alleleCountCases = alleleCountCasesDef.map(_.apply(row)), 
+        alleleCountControls = alleleCountControlsDef.map(_.apply(row)),
+        heterozygousCases = heterozygousCasesDef.map(_.apply(row)), 
+        heterozygousControls = heterozygousControlsDef.map(_.apply(row)), 
+        homozygousCases = homozygousCasesDef.map(_.apply(row)), 
+        homozygousControls = homozygousControlsDef.map(_.apply(row)),
         derivedFromRecordNumber = Some(row.recordNumber))
     }
   }

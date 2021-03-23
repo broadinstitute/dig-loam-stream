@@ -29,8 +29,6 @@ trait RenderableJsonRow extends RenderableRow {
   override def headers: Seq[String] = jsonValues.collect { case (k, _) => k }
 }
 
-
-
 final case class LiteralRow(values: Seq[Option[String]], headers: Seq[String] = Nil) extends RenderableRow
 
 object LiteralRow {
@@ -142,25 +140,25 @@ final case class VariantCountRow(
   dataset: String,
   phenotype: String,
   ancestry: Ancestry,
-  alleleCount: Long,
-  alleleCountCases: Long, 
-  alleleCountControls: Long,
-  heterozygousCases: Long, 
-  heterozygousControls: Long, 
-  homozygousCases: Long, 
-  homozygousControls: Long, 
+  alleleCount: Option[Long],
+  alleleCountCases: Option[Long], 
+  alleleCountControls: Option[Long],
+  heterozygousCases: Option[Long], 
+  heterozygousControls: Option[Long], 
+  homozygousCases: Option[Long], 
+  homozygousControls: Option[Long], 
   derivedFromRecordNumber: Option[Long] = None) extends BaseVariantRow {
   
   override def jsonValues: Seq[(String, JValue)] = {
     commonJson ++
     Seq(
-      AggregatorJsonKeys.alleleCount -> JLong(alleleCount),
-      AggregatorJsonKeys.alleleCountCases -> JLong(alleleCountCases), 
-      AggregatorJsonKeys.alleleCountControls -> JLong(alleleCountControls),
-      AggregatorJsonKeys.heterozygousCases -> JLong(heterozygousCases), 
-      AggregatorJsonKeys.heterozygousControls -> JLong(heterozygousControls), 
-      AggregatorJsonKeys.homozygousCases -> JLong(homozygousCases), 
-      AggregatorJsonKeys.homozygousControls -> JLong(homozygousControls) 
+      AggregatorJsonKeys.alleleCount -> toJson(alleleCount),
+      AggregatorJsonKeys.alleleCountCases -> toJson(alleleCountCases), 
+      AggregatorJsonKeys.alleleCountControls -> toJson(alleleCountControls),
+      AggregatorJsonKeys.heterozygousCases -> toJson(heterozygousCases), 
+      AggregatorJsonKeys.heterozygousControls -> toJson(heterozygousControls), 
+      AggregatorJsonKeys.homozygousCases -> toJson(homozygousCases), 
+      AggregatorJsonKeys.homozygousControls -> toJson(homozygousControls) 
     )
   }
   

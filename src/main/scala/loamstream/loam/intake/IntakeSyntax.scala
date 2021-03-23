@@ -85,11 +85,11 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
   type VariantRowExpr[R <: BaseVariantRow] = loamstream.loam.intake.VariantRowExpr[R]
   val VariantRowExpr = loamstream.loam.intake.VariantRowExpr
   
-  type PValueVariantRowExpr = loamstream.loam.intake.VariantRowExpr.PValueVariantRowExpr //TODO
-  val PValueVariantRowExpr = loamstream.loam.intake.VariantRowExpr.PValueVariantRowExpr //TODO
+  type PValueVariantRowExpr = loamstream.loam.intake.VariantRowExpr.PValueVariantRowExpr
+  val PValueVariantRowExpr = loamstream.loam.intake.VariantRowExpr.PValueVariantRowExpr
   
-  type VariantCountRowExpr = loamstream.loam.intake.VariantRowExpr.VariantCountRowExpr //TODO
-  val VariantCountRowExpr = loamstream.loam.intake.VariantRowExpr.VariantCountRowExpr //TODO
+  type VariantCountRowExpr = loamstream.loam.intake.VariantRowExpr.VariantCountRowExpr
+  val VariantCountRowExpr = loamstream.loam.intake.VariantRowExpr.VariantCountRowExpr
   
   val AggregatorColumnDefs = loamstream.loam.intake.AggregatorColumnDefs
   
@@ -100,6 +100,9 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
   
   type TechType = loamstream.loam.intake.TechType
   val TechType = loamstream.loam.intake.TechType
+  
+  type UploadType = loamstream.loam.intake.UploadType
+  val UploadType = loamstream.loam.intake.UploadType
   
   object Log {
     def toFile(store: Store, append: Boolean = false): ToFileLogContext = {

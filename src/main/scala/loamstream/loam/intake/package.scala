@@ -45,15 +45,25 @@ package object intake {
   
   type CloseableTaggedRowTransform = CloseableTransform[VariantRow.Tagged] 
     
-  type AggregatorVariantRowParser[A] = PValueVariantRow => A
+  type PValueVariantRowParser[A] = PValueVariantRow => A
   
-  type AggregatorVariantRowPredicate = Predicate[PValueVariantRow]
+  type PValueVariantRowPredicate = Predicate[PValueVariantRow]
   
-  type CloseableAggregatorVariantRowPredicate = CloseablePredicate[PValueVariantRow]
+  type CloseablePValueVariantRowPredicate = CloseablePredicate[PValueVariantRow]
   
-  type AggregatorVariantRowTransform = Transform[PValueVariantRow]
+  type PValueVariantRowTransform = Transform[PValueVariantRow]
   
-  type CloseableAggregatorVariantRowTransform = CloseableTransform[PValueVariantRow]
+  type CloseablePValueVariantRowTransform = CloseableTransform[PValueVariantRow]
+  
+  type VariantCountRowParser[A] = VariantCountRow => A
+  
+  type VariantCountRowPredicate = Predicate[VariantCountRow]
+  
+  type CloseableVariantCountRowPredicate = CloseablePredicate[VariantCountRow]
+  
+  type VariantCountRowTransform = Transform[VariantCountRow]
+  
+  type CloseableVariantCountRowTransform = CloseableTransform[VariantCountRow]
   
   implicit final class CloseablePredicateOps[A](val cp: CloseablePredicate[A]) extends AnyVal {
     def liftToTry: CloseablePredicate[Try[A]] = {

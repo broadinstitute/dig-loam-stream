@@ -97,7 +97,7 @@ trait RowFilters { self: IntakeSyntax =>
         store: Store, 
         append: Boolean = false, 
         makeMessage: BaseVariantRow => String = defaultMessage(_))
-       (p: AggregatorVariantRowPredicate): CloseableAggregatorVariantRowPredicate = {
+       (p: PValueVariantRowPredicate): CloseablePValueVariantRowPredicate = {
       
       doLogToFile[PValueVariantRow](store, append, makeMessage)(p)
     }
@@ -114,14 +114,14 @@ trait RowFilters { self: IntakeSyntax =>
     /**
      * Pass rows where 0 < eaf < 1
      */
-    def validEaf(logTo: Store, append: Boolean = false): CloseableAggregatorVariantRowPredicate = {
+    def validEaf(logTo: Store, append: Boolean = false): CloseablePValueVariantRowPredicate = {
       validEaf(Log.toFile(logTo, append))
     }
     
     /**
      * Pass rows where 0 < eaf < 1
      */
-    def validEaf(implicit logCtx: ToFileLogContext): CloseableAggregatorVariantRowPredicate = { 
+    def validEaf(implicit logCtx: ToFileLogContext): CloseablePValueVariantRowPredicate = { 
       ConcreteCloseablePredicate[PValueVariantRow](logCtx) { row =>
         row.eaf match {
           case Some(eaf) => {
@@ -142,14 +142,14 @@ trait RowFilters { self: IntakeSyntax =>
     /**
      * Pass rows where 0 < maf <= 0.5
      */
-    def validMaf(logTo: Store, append: Boolean = false): CloseableAggregatorVariantRowPredicate = {
+    def validMaf(logTo: Store, append: Boolean = false): CloseablePValueVariantRowPredicate = {
       validMaf(Log.toFile(logTo, append))
     }
     
     /**
      * Pass rows where 0 < maf <= 0.5
      */
-    def validMaf(implicit logCtx: ToFileLogContext): CloseableAggregatorVariantRowPredicate = {
+    def validMaf(implicit logCtx: ToFileLogContext): CloseablePValueVariantRowPredicate = {
       ConcreteCloseablePredicate[PValueVariantRow](logCtx) { row =>
         row.maf match {
           case Some(maf) => {
@@ -170,14 +170,14 @@ trait RowFilters { self: IntakeSyntax =>
     /**
      * Pass rows where 0 < p <= 1
      */
-    def validPValue(logTo: Store, append: Boolean = false): CloseableAggregatorVariantRowPredicate = {
+    def validPValue(logTo: Store, append: Boolean = false): CloseablePValueVariantRowPredicate = {
       validPValue(Log.toFile(logTo, append))
     }
     
     /**
      * Pass rows where 0 < p <= 1
      */
-    def validPValue(implicit logCtx: ToFileLogContext): CloseableAggregatorVariantRowPredicate = {
+    def validPValue(implicit logCtx: ToFileLogContext): CloseablePValueVariantRowPredicate = {
       ConcreteCloseablePredicate[PValueVariantRow](logCtx) { row =>
         import row.pvalue
       

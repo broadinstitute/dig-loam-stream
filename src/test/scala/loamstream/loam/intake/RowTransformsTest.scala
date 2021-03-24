@@ -44,7 +44,7 @@ final class RowTransformsTest extends FunSuite {
       n = 42)
   }
   
-  test("upperCaseAlleles") {
+  test("upperCaseAlleles - variant data") {
     val rows = Seq(
         makeRow(marker = v0, pvalue = 42.0),
         makeRow(marker = v1, pvalue = 42.0),
@@ -56,6 +56,41 @@ final class RowTransformsTest extends FunSuite {
         makeRow(marker = v0.toUpperCase, pvalue = 42.0),
         makeRow(marker = v1.toUpperCase, pvalue = 42.0),
         makeRow(marker = v2.toUpperCase, pvalue = 42.0))
+        
+    assert(actual === expected)
+  }
+  
+  test("upperCaseAlleles - variant count data") {
+    val rand = new scala.util.Random
+    
+    def randomString: String = java.util.UUID.randomUUID.toString
+    def randomLong: Option[Long] = Option(rand.nextLong)
+    
+    def makeCountRow(marker: Variant): VariantCountRow = VariantCountRow(
+        marker: Variant,
+        dataset = randomString,
+        phenotype = randomString,
+        ancestry = Ancestry.HS,
+        alleleCount = randomLong,
+        alleleCountCases = randomLong, 
+        alleleCountControls = randomLong,
+        heterozygousCases = randomLong, 
+        heterozygousControls = randomLong, 
+        homozygousCases = randomLong,   
+        homozygousControls = randomLong)
+    
+    val r0 = makeCountRow(marker = v0)
+    val r1 = makeCountRow(marker = v1)
+    val r2 = makeCountRow(marker = v2)
+        
+    val rows = Seq(r0, r1, r2)
+        
+    val actual = rows.map(Transforms.DataRowTransforms.upperCaseAlleles)
+    
+    val expected = Seq(
+        r0.copy(marker = v0.toUpperCase),
+        r1.copy(marker = v1.toUpperCase),
+        r2.copy(marker = v2.toUpperCase))
         
     assert(actual === expected)
   }

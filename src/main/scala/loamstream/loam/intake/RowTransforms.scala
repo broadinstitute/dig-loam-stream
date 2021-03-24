@@ -46,8 +46,8 @@ trait RowTransforms { self: IntakeSyntax =>
       }
     }
     
-    def upperCaseAlleles: PValueVariantRowTransform = { row =>
-      row.copy(marker = row.marker.toUpperCase)
+    def upperCaseAlleles[R <: BaseVariantRow](implicit ops: MarkerOps[R]): PolyVariantRowTransform[R] = { row =>
+      ops.transformMarker(row, _.toUpperCase)
     }
   }
 }

@@ -81,7 +81,7 @@ trait IndexedRow extends RowWithSize with RenderableRow {
   def values: Seq[Option[String]] = (0 until size).map(getFieldByIndex).map(Option(_))
 }
 
-trait BaseVariantRow extends RenderableJsonRow {
+sealed trait BaseVariantRow extends RenderableJsonRow { 
   def marker: Variant 
   
   def dataset: String

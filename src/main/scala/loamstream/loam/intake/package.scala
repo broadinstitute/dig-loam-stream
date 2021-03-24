@@ -45,6 +45,10 @@ package object intake {
   
   type CloseableTaggedRowTransform = CloseableTransform[VariantRow.Tagged] 
     
+  type VariantRowTransform = Transform[BaseVariantRow]
+  
+  type PolyVariantRowTransform[R <: BaseVariantRow] = Transform[R]
+  
   type PValueVariantRowParser[A] = PValueVariantRow => A
   
   type PValueVariantRowPredicate = Predicate[PValueVariantRow]

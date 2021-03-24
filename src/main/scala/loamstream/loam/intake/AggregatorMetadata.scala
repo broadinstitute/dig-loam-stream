@@ -26,7 +26,7 @@ final case class AggregatorMetadata(
   
   def subjects: Option[Int] = quantitative.map(_.subjects)
   
-  def asConfigFileContents: String = {
+  def asMetadataFileContents: String = {
     import AggregatorMetadata.escape
     
     val authorPart = author.map(a => s"author ${escape(a)}").getOrElse("")
@@ -41,7 +41,19 @@ final case class AggregatorMetadata(
       case _ => ""
     }
     
-    s"""|dataset ${dataset} ${phenotype}
+    val s3Uri: String = {
+      val path = AwsRowSink.makePath(
+          topic = "PLACEHOLDER-TOPIC", 
+          dataset = dataset, 
+          techType = Option(tech), 
+          phenotype = Option(phenotype), 
+          baseDir = None)
+      
+      s"s3://PLACEHOLDER-BUCKET-NAME/${path}"
+    }
+    
+    s"""|uri ${s3Uri}
+        |dataset ${dataset} ${phenotype}
         |ancestry ${escape(ancestry.name)}
         |tech ${escape(tech.name)}
         |${quantitativePart}

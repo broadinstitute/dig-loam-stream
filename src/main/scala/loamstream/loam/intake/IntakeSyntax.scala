@@ -287,9 +287,9 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       val first10RowsSink = RowSink.ToFile(first10Rows, RowSink.Renderers.csv(Source.Formats.tabDelimited))
       
       Metric.writeValidVariantsTo[R](first10RowsSink).map { _ =>
-        loamstream.util.Files.writeTo(metadataFile)(metadata.asConfigFileContents)
-        
-        ()
+        loamstream.util.Files.writeTo(metadataFile)(metadata.asMetadataFileContents)
+      }.map { _ =>
+        first10RowsSink.close()
       }
     }
     
@@ -354,7 +354,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       
       //TODO: How to wire up inputs (if any)?
       val tool: Tool = nativeTool(forceLocal) {
-        Files.writeTo(dest.path)(configData.asConfigFileContents)
+        Files.writeTo(dest.path)(configData.asMetadataFileContents)
       }
       
       addToGraph(tool)

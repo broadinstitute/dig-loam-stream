@@ -56,7 +56,7 @@ final class AggregatorMetadataTest extends FunSuite {
       }
         
       //NB: Ignore empty lines when considering differences
-      assert(removeEmptyLines(m.asConfigFileContents) === removeEmptyLines(expected))
+      assert(removeEmptyLines(m.asMetadataFileContents) === removeEmptyLines(expected))
     }
     
     doTest(None, "", None, "")

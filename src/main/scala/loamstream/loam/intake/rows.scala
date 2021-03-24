@@ -116,8 +116,8 @@ sealed trait BaseVariantRow extends RenderableJsonRow {
 object BaseVariantRow {
   val fieldCount: Int = 18 //scalastyle:ignore magic.number
   
-  val defaultHeaders: Seq[String] = {
-    Seq(
+  object Headers {
+    val forVariantData: Seq[String] = Seq(
       AggregatorColumnNames.marker,
       AggregatorColumnNames.pvalue,
       
@@ -127,7 +127,18 @@ object BaseVariantRow {
       AggregatorColumnNames.odds_ratio,
       AggregatorColumnNames.eaf,
       AggregatorColumnNames.maf,
-      AggregatorColumnNames.n).map(_.name) 
+      AggregatorColumnNames.n).map(_.name)
+      
+    //TODO: FIXME
+    val forVariantCountData: Seq[String] = Seq(
+      AggregatorColumnNames.marker.name,
+      AggregatorJsonKeys.alleleCount,
+      AggregatorJsonKeys.alleleCountCases, 
+      AggregatorJsonKeys.alleleCountControls,
+      AggregatorJsonKeys.heterozygousCases, 
+      AggregatorJsonKeys.heterozygousControls, 
+      AggregatorJsonKeys.homozygousCases, 
+      AggregatorJsonKeys.homozygousControls)
   }
 }
 
@@ -162,11 +173,32 @@ final case class VariantCountRow(
     )
   }
   
-  //TODO FIXME
-  override def headers: Seq[String] = ???
+  override def headers: Seq[String] = BaseVariantRow.Headers.forVariantCountData
   
-  //TODO FIXME
-  override def values: Seq[Option[String]] = ???
+  //NB: Profiler-informed optimization: adding to a Buffer is 2x faster than ++ or .flatten
+  //We expect this method to be called a lot - once per row being output.
+  override def values: Seq[Option[String]] = {
+    
+    val buffer = new ArrayBuffer[Option[String]](BaseVariantRow.fieldCount) 
+    
+    def add(d: Double): Unit = buffer += Some(d.toString)
+    
+    def addOpt(o: Option[_]): Unit = buffer += (o.map(_.toString))
+    
+    //NB: ORDERING MATTERS :\
+    
+    buffer += Some(marker.underscoreDelimited)
+    
+    addOpt(alleleCount)
+    addOpt(alleleCountCases) 
+    addOpt(alleleCountControls)
+    addOpt(heterozygousCases) 
+    addOpt(heterozygousControls) 
+    addOpt(homozygousCases) 
+    addOpt(homozygousControls) 
+
+    buffer 
+  }
 }
 
 /**
@@ -203,7 +235,7 @@ final case class PValueVariantRow(
   }
   
   //TODO: This will be wrong if non-default column names were used :( :(
-  override def headers: Seq[String] = BaseVariantRow.defaultHeaders
+  override def headers: Seq[String] = BaseVariantRow.Headers.forVariantData
   
   //NB: Profiler-informed optimization: adding to a Buffer is 2x faster than ++ or .flatten
   //We expect this method to be called a lot - once per row being output.

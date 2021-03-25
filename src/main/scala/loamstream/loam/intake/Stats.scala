@@ -23,7 +23,7 @@ object Stats {
    * 
    * Ported from dig-aggregator-intake/processors/variants.py
    */
-  def qnorm(beta: Double, p: Double): Double = {
+  def qnorm(beta: Double, pvalue: Double): Double = {
     //TODO: Is it safe to cache this?
     val gaussian = threadLocalGaussian.get()
     
@@ -31,6 +31,6 @@ object Stats {
     import scala.math.abs
     
     if(beta == 0.0) { 1.0 }
-    else { -(abs(beta) / inverseCdf(p / 2)) }
+    else { -(abs(beta) / inverseCdf(pvalue / 2)) }
   }
 }

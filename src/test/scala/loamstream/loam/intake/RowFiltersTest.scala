@@ -23,6 +23,8 @@ final class RowFiltersTest extends FunSuite {
   private val v2 = Variant("3_45678_g_T")
   
   private val metadata = AggregatorMetadata(
+    bucketName = "some-bucket",
+    topic = Option(UploadType.Variants),
     dataset = "asdasdasd",
     phenotype = "akjdslfhsdf",
     ancestry = Ancestry.AA,

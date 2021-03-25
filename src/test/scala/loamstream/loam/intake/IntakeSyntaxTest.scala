@@ -139,6 +139,8 @@ final class IntakeSyntaxTest extends FunSuite {
   private val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, MRKR.map(Variant.from))
     
   private val metadata = AggregatorMetadata(
+    bucketName = "some-bucket",
+    topic = Option(UploadType.Variants),
     dataset = "asdasdasd",
     phenotype = "akjdslfhsdf",
     ancestry = Ancestry.AA,

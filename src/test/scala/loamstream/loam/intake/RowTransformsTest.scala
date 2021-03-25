@@ -21,6 +21,8 @@ final class RowTransformsTest extends FunSuite {
   import Helpers.Implicits.LogFileOps
   
   private val metadata = AggregatorMetadata(
+    bucketName = "some-bucket",
+    topic = Option(UploadType.Variants),
     dataset = "asdasdasd",
     phenotype = "akjdslfhsdf",
     ancestry = Ancestry.AA,

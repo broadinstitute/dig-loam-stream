@@ -36,6 +36,8 @@ final class AggregatorMetadataTest extends FunSuite {
       val properties = Seq("x" -> "123", "a" -> "456")
     
       val m = AggregatorMetadata(
+        bucketName = "some-bucket",
+        topic = Option(UploadType.Variants),
         dataset = dataset,
         phenotype = phenotype,
         ancestry = ancestry,
@@ -45,6 +47,7 @@ final class AggregatorMetadataTest extends FunSuite {
         properties = properties)
 
       val expected = s"""
+        |uri s3://some-bucket/variants/ExChip/some-dataset/some-phenotype
         |dataset ${dataset} ${phenotype}
         |ancestry ${ancestry}
         |tech ${tech}

@@ -40,6 +40,8 @@ final class MetricTest extends FunSuite {
   }
   
   private val metadata = AggregatorMetadata(
+    bucketName = "some-bucket",
+    topic = Option(UploadType.Variants),
     dataset = "asdasdasd",
     phenotype = "akjdslfhsdf",
     ancestry = Ancestry.AA,

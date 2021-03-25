@@ -13,6 +13,8 @@ import loamstream.util.Options
  * Feb 11, 2020
  */
 final case class AggregatorMetadata(
+    bucketName: String,
+    topic: Option[UploadType],
     dataset: String,
     phenotype: String,
     varIdFormat: String = Defaults.varIdFormat,
@@ -42,14 +44,17 @@ final case class AggregatorMetadata(
     }
     
     val s3Uri: String = {
-      val path = AwsRowSink.makePath(
-          topic = "PLACEHOLDER-TOPIC", 
-          dataset = dataset, 
-          techType = Option(tech), 
-          phenotype = Option(phenotype), 
-          baseDir = None)
+      //TODO: 
+      require(topic.isDefined, "Couldn't determine S3 path due to missing topic")
       
-      s"s3://PLACEHOLDER-BUCKET-NAME/${path}"
+      val path = AwsRowSink.makePath(
+        topic = topic.get.name, 
+        dataset = dataset, 
+        techType = Option(tech), 
+        phenotype = Option(phenotype), 
+        baseDir = None)
+      
+      s"s3://${bucketName}/${path}"
     }
     
     s"""|uri ${s3Uri}
@@ -94,6 +99,8 @@ object AggregatorMetadata extends ConfigParser[AggregatorMetadata] {
   }
   
   private final case class Parsed(
+    bucketName: String = Defaults.bucketName,
+    topic: Option[String] = None,
     dataset: String,
     phenotype: Option[String] = None,
     varIdFormat: String = Defaults.varIdFormat,
@@ -114,9 +121,12 @@ object AggregatorMetadata extends ConfigParser[AggregatorMetadata] {
       for {
         ph <- Options.toTry(phenotype)("Expected phenotype to be present")
         tt <- TechType.tryFromString(tech)
-        an <- Ancestry.tryFromString(ancestry) 
+        an <- Ancestry.tryFromString(ancestry)
+        ut = topic.flatMap(UploadType.fromString)
       } yield {
         AggregatorMetadata(
+          bucketName = bucketName,
+          topic = ut,
           dataset = dataset,
           phenotype = ph,
           varIdFormat = varIdFormat,
@@ -131,8 +141,11 @@ object AggregatorMetadata extends ConfigParser[AggregatorMetadata] {
       for {
         tt <- TechType.tryFromString(tech)
         an <- Ancestry.tryFromString(ancestry)
+        ut = topic.flatMap(UploadType.fromString)
       } yield {
         NoPhenotype(
+          bucketName = bucketName,
+          topic = ut, 
           dataset = dataset,
           varIdFormat = varIdFormat,
           ancestry = an,
@@ -146,8 +159,11 @@ object AggregatorMetadata extends ConfigParser[AggregatorMetadata] {
       for {
         tt <- TechType.tryFromString(tech)
         an <- Ancestry.tryFromString(ancestry)
+        ut = topic.flatMap(UploadType.fromString)
       } yield {
         NoPhenotypeOrQuantitative(
+          bucketName = bucketName,
+          topic = ut,
           dataset = dataset,
           varIdFormat = varIdFormat,
           ancestry = an,
@@ -169,9 +185,12 @@ object AggregatorMetadata extends ConfigParser[AggregatorMetadata] {
   object Defaults {
     val configKey: String = "loamstream.aggregator.intake.metadata"
     val varIdFormat: String = "{chrom}_{pos}_{ref}_{alt}"
+    val bucketName: String = "dig-analysis-data"
   }
   
   final case class NoPhenotype(
+      bucketName: String,
+      topic: Option[UploadType],
       dataset: String,
       varIdFormat: String = Defaults.varIdFormat,
       ancestry: Ancestry,
@@ -181,12 +200,14 @@ object AggregatorMetadata extends ConfigParser[AggregatorMetadata] {
     
     def toMetadata(phenotype: String): AggregatorMetadata = {
       AggregatorMetadata(
-          dataset, 
-          phenotype, 
-          varIdFormat, 
-          ancestry, 
-          author, 
-          tech, 
+          bucketName = bucketName,
+          topic = topic,
+          dataset = dataset, 
+          phenotype = phenotype , 
+          varIdFormat = varIdFormat, 
+          ancestry = ancestry, 
+          author = author, 
+          tech = tech, 
           quantitative = quantitative)
     }
   }
@@ -203,6 +224,8 @@ object AggregatorMetadata extends ConfigParser[AggregatorMetadata] {
   }
   
   final case class NoPhenotypeOrQuantitative(
+      bucketName: String,
+      topic: Option[UploadType],
       dataset: String,
       varIdFormat: String = Defaults.varIdFormat,
       ancestry: Ancestry,
@@ -211,12 +234,14 @@ object AggregatorMetadata extends ConfigParser[AggregatorMetadata] {
     
     def toMetadata(phenotype: String, quantitative: Option[Quantitative]): AggregatorMetadata = {
       AggregatorMetadata(
-          dataset, 
-          phenotype, 
-          varIdFormat, 
-          ancestry, 
-          author, 
-          tech, 
+          bucketName = bucketName,
+          topic = topic,
+          dataset = dataset, 
+          phenotype = phenotype, 
+          varIdFormat = varIdFormat, 
+          ancestry = ancestry, 
+          author = author, 
+          tech = tech, 
           quantitative = quantitative)
     }
   }

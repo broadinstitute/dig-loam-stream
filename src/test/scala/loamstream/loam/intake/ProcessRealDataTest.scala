@@ -40,6 +40,8 @@ final class ProcessRealDataTest extends FunSuite with Loggable {
     import AggregatorColumnDefs._
   
     val metadata = AggregatorMetadata(
+        bucketName = "some-bucket",
+        topic = Option(UploadType.Variants),
         dataset = "asdasdasd",
         phenotype = "akjdslfhsdf",
         ancestry = Ancestry.AA,

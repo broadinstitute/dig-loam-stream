@@ -164,10 +164,10 @@ object ReadMe extends loamstream.LoamFile {
     twentySixKIdMap = path("/paht/to/26k_id.map"))
 
   val metadata: AggregatorMetadata = AggregatorMetadata(
+    bucketName = "some-bucket",
+    topic = Option(UploadType.Variants),
     dataset = "dataset-name",
     phenotype = "some-phenotype",
-    //See https://github.com/broadinstitute/dig-aggregator-intake
-    varIdFormat = "defaults to {chrom}_{pos}_{ref}_{alt}",
     ancestry = Ancestry.AA,
     author = Some("John Doe"),
     tech = TechType.ExChip,

@@ -11,6 +11,8 @@ import loamstream.loam.intake.flip.Disposition
 final class AggregatorRowExprTest extends FunSuite {
   test("apply - happy path") {
     val metadata = AggregatorMetadata(
+        bucketName = "some-bucket",
+        topic = Option(UploadType.Variants),
         dataset = "asdasdasd",
         phenotype = "akjdslfhsdf",
         ancestry = Ancestry.AA,
@@ -80,6 +82,8 @@ final class AggregatorRowExprTest extends FunSuite {
       val markerDef = MarkerColumnDef(MRKR, MRKR.map(Variant.from))
       
       val metadata = AggregatorMetadata(
+        bucketName = "some-bucket",
+        topic = Option(UploadType.Variants),
         dataset = "asdasdasd",
         phenotype = "akjdslfhsdf",
         ancestry = Ancestry.AA,
@@ -127,6 +131,8 @@ final class AggregatorRowExprTest extends FunSuite {
     val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, LiteralColumnExpr("1_123_A_T").map(Variant.from))
     
     val metadata = AggregatorMetadata(
+        bucketName = "some-bucket",
+        topic = Option(UploadType.Variants),
         dataset = "asdasdasd",
         phenotype = "akjdslfhsdf",
         ancestry = Ancestry.AA,

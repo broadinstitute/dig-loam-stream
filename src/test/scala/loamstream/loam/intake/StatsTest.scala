@@ -7,8 +7,32 @@ import org.scalatest.FunSuite
  * 16 Mar, 2021
  */
 final class StatsTest extends FunSuite {
-  ignore("effectiveN") {
-    fail("TODO")
+  private val epsilon = 1e-8
+    
+  private def assertWithinEpsilon(a: Double, b: Double): Unit = assert(scala.math.abs(a - b) < epsilon)
+  
+  test("effectiveN") {
+    val inputs: Seq[(Double, Double)] = Seq(
+      (65,27),
+      (93,47),
+      (14,2),
+      (86,57),
+      (93,98))
+      
+    val pythonResults = Seq(
+      76.30434782608695,
+      124.88571428571429,
+      7.0,
+      137.11888111888112,
+      190.86910994764395)
+      
+    val expectations: Seq[((Double, Double), Double)] = inputs.zip(pythonResults)
+    
+    for {
+      ((cases, controls), expected) <- expectations 
+    } {
+      assertWithinEpsilon(Stats.effectiveN(cases, controls), expected)
+    }
   }
   
   test("qnorm") {
@@ -41,14 +65,10 @@ final class StatsTest extends FunSuite {
       
     val expectations: Seq[((Double, Double), Double)] = betas.zip(pvalues).zip(pythonResults)
         
-    val epsilon = 1e-8
-    
-    def withinEpsilon(a: Double, b: Double): Boolean = scala.math.abs(a - b) < epsilon
-    
     for {
       ((beta, pvalue), expected) <- expectations
     } {
-      assert(withinEpsilon(Stats.qnorm(beta, pvalue), expected))
+      assertWithinEpsilon(Stats.qnorm(beta, pvalue), expected)
     }
     
     for {

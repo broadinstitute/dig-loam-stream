@@ -207,13 +207,26 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       case Some(p) => filter(p)  
       case None => this
     }
+   
+    private def commitAndClose(metadata: AggregatorMetadata): Unit = {
+      import org.json4s._
+      
+      rowSink match {
+        case aws: AwsRowSink => aws.commit(JObject(metadata.asJson.toList))
+        case _ => ()
+      }
+    }
     
     def via[R <: BaseVariantRow](expr: VariantRowExpr[R]): MapFilterAndWriteTarget[R, Unit] = {
       val dataRows = rows.tagFlips(expr.markerDef, flipDetector).map(expr)
       
       val pseudoMetric: Metric[R, Unit] = Fold.foreach(_ => ()) // TODO :(
       
-      new MapFilterAndWriteTarget(rowSink, expr.metadataWithUploadType, dataRows, pseudoMetric, toBeClosed)
+      val metadata = expr.metadataWithUploadType
+      
+      val closeRowSink: Closeable = () => commitAndClose(metadata)
+      
+      new MapFilterAndWriteTarget(rowSink, metadata, dataRows, pseudoMetric, toBeClosed)
     }
   }
   

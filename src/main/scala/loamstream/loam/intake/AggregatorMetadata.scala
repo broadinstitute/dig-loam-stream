@@ -7,6 +7,8 @@ import com.typesafe.config.Config
 import AggregatorMetadata.Defaults
 import loamstream.conf.ConfigParser
 import loamstream.util.Options
+import org.json4s.JsonAST.JValue
+import org.json4s.JsonAST.JString
 
 /**
  * @author clint
@@ -29,18 +31,30 @@ final case class AggregatorMetadata(
   def subjects: Option[Int] = quantitative.map(_.subjects)
   
   def asMetadataFileContents: String = {
+    import java.lang.System.lineSeparator
+    
+    toTuples.map { case (name, value) => s"${name} ${value}" }.mkString(lineSeparator)
+  }
+  
+  def asJson: Seq[(String, JValue)] = {
+    import java.lang.System.lineSeparator
+    
+    toTuples.map { case (name, value) => (name, JString(value)) }
+  }
+  
+  private def toTuples: Seq[(String, String)] = {
     import AggregatorMetadata.escape
     
-    val authorPart = author.map(a => s"author ${escape(a)}").getOrElse("")
+    val authorPart: Seq[(String, String)] = author.map(a => Seq("author" -> escape(a))).getOrElse(Nil)
     
     import AggregatorMetadata.Quantitative.CasesAndControls
     import AggregatorMetadata.Quantitative.Subjects
     import java.lang.System.lineSeparator
 
-    val quantitativePart = quantitative match {
-      case Some(CasesAndControls(cases, controls)) => s"cases ${cases}${lineSeparator}controls ${controls}"
-      case Some(Subjects(s)) => s"subjects ${s}"
-      case _ => ""
+    val quantitativePart: Seq[(String, String)] = quantitative match {
+      case Some(CasesAndControls(cases, controls)) => Seq("cases" -> cases.toString, "controls" -> controls.toString)
+      case Some(Subjects(s)) => Seq("subjects" -> s.toString)
+      case _ => Nil
     }
     
     val s3Uri: String = {
@@ -57,12 +71,13 @@ final case class AggregatorMetadata(
       s"s3://${bucketName}/${path}"
     }
     
-    s"""|uri ${s3Uri}
-        |dataset ${dataset} ${phenotype}
-        |ancestry ${escape(ancestry.name)}
-        |tech ${escape(tech.name)}
-        |${quantitativePart}
-        |${authorPart}""".stripMargin.trim
+    Seq(
+      "uri" -> s3Uri,
+      "dataset" -> s"${dataset} ${phenotype}",
+      "ancestry" -> escape(ancestry.name),
+      "tech" -> escape(tech.name)) ++
+      quantitativePart ++
+      authorPart
   }
 }
 

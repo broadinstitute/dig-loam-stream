@@ -92,7 +92,22 @@ sealed trait BaseVariantRow extends RenderableJsonRow {
   
   def derivedFromRecordNumber: Option[Long]
   
-  protected def commonJson: Seq[(String, JValue)] = {
+  protected def commonJson: Seq[(String, JValue)] = BaseVariantRow.commonJson(this)
+}
+
+object BaseVariantRow {
+  val fieldCount: Int = 18 //scalastyle:ignore magic.number
+
+  def toJson(o: Option[_]): JValue = o match {
+    case Some(d: Double) => JDouble(d)
+    case Some(l: Long) => JLong(l)
+    case Some(s: String) => JString(s)
+    case _ => JNull
+  }
+  
+  def commonJson(row: BaseVariantRow): Seq[(String, JValue)] = {
+    import row._
+    
     Seq(
       AggregatorJsonKeys.varId -> JString(marker.colonDelimited),
       AggregatorJsonKeys.chromosome -> JString(marker.chrom), 
@@ -104,17 +119,6 @@ sealed trait BaseVariantRow extends RenderableJsonRow {
       AggregatorJsonKeys.phenotype -> JString(phenotype),
       AggregatorJsonKeys.ancestry -> JString(ancestry.name))
   }
-  
-  protected def toJson(o: Option[_]): JValue = o match {
-    case Some(d: Double) => JDouble(d)
-    case Some(l: Long) => JLong(l)
-    case Some(s: String) => JString(s)
-    case _ => JNull
-  }
-}
-
-object BaseVariantRow {
-  val fieldCount: Int = 18 //scalastyle:ignore magic.number
   
   object Headers {
     val forVariantData: Seq[String] = Seq(
@@ -160,18 +164,7 @@ final case class VariantCountRow(
   homozygousControls: Option[Long], 
   derivedFromRecordNumber: Option[Long] = None) extends BaseVariantRow {
   
-  override def jsonValues: Seq[(String, JValue)] = {
-    commonJson ++
-    Seq(
-      AggregatorJsonKeys.alleleCount -> toJson(alleleCount),
-      AggregatorJsonKeys.alleleCountCases -> toJson(alleleCountCases), 
-      AggregatorJsonKeys.alleleCountControls -> toJson(alleleCountControls),
-      AggregatorJsonKeys.heterozygousCases -> toJson(heterozygousCases), 
-      AggregatorJsonKeys.heterozygousControls -> toJson(heterozygousControls), 
-      AggregatorJsonKeys.homozygousCases -> toJson(homozygousCases), 
-      AggregatorJsonKeys.homozygousControls -> toJson(homozygousControls) 
-    )
-  }
+  override def jsonValues: Seq[(String, JValue)] = VariantCountRow.JsonSerializer(this)
   
   override def headers: Seq[String] = BaseVariantRow.Headers.forVariantCountData
   
@@ -201,6 +194,26 @@ final case class VariantCountRow(
   }
 }
 
+object VariantCountRow {
+  implicit object JsonSerializer extends Serializer[VariantCountRow, Seq[(String, JValue)]] {
+    override def apply(row: VariantCountRow): Seq[(String, JValue)] = {
+      import row._
+      import BaseVariantRow.toJson
+      
+      BaseVariantRow.commonJson(row) ++
+      Seq(
+        AggregatorJsonKeys.alleleCount -> toJson(alleleCount),
+        AggregatorJsonKeys.alleleCountCases -> toJson(alleleCountCases), 
+        AggregatorJsonKeys.alleleCountControls -> toJson(alleleCountControls),
+        AggregatorJsonKeys.heterozygousCases -> toJson(heterozygousCases), 
+        AggregatorJsonKeys.heterozygousControls -> toJson(heterozygousControls), 
+        AggregatorJsonKeys.homozygousCases -> toJson(homozygousCases), 
+        AggregatorJsonKeys.homozygousControls -> toJson(homozygousControls) 
+      )
+    }
+  }
+}
+
 /**
  * @author clint
  * Oct 14, 2020
@@ -220,19 +233,7 @@ final case class PValueVariantRow(
   n: Double,
   derivedFromRecordNumber: Option[Long] = None) extends BaseVariantRow {
   
-  override def jsonValues: Seq[(String, JValue)] = {
-    commonJson ++
-    Seq(
-      AggregatorJsonKeys.pValue -> JString(pvalue.toString),
-      AggregatorJsonKeys.beta -> toJson(beta),
-      AggregatorJsonKeys.oddsRatio -> toJson(oddsRatio),
-      AggregatorJsonKeys.eaf -> toJson(eaf),
-      AggregatorJsonKeys.maf -> toJson(maf),
-      AggregatorJsonKeys.stdErr -> toJson(stderr),
-      AggregatorJsonKeys.zScore -> toJson(zscore),
-      AggregatorJsonKeys.n -> JDouble(n) 
-    )
-  }
+  override def jsonValues: Seq[(String, JValue)] = PValueVariantRow.JsonSerializer(this)
   
   //TODO: This will be wrong if non-default column names were used :( :(
   override def headers: Seq[String] = BaseVariantRow.Headers.forVariantData
@@ -261,6 +262,27 @@ final case class PValueVariantRow(
     add(n)
 
     buffer 
+  }
+}
+
+object PValueVariantRow {
+  implicit object JsonSerializer extends Serializer[PValueVariantRow, Seq[(String, JValue)]] {
+    override def apply(row: PValueVariantRow): Seq[(String, JValue)] = {
+      import row._
+      import BaseVariantRow.toJson
+      
+      BaseVariantRow.commonJson(row) ++
+      Seq(
+        AggregatorJsonKeys.pValue -> JString(pvalue.toString),
+        AggregatorJsonKeys.beta -> toJson(beta),
+        AggregatorJsonKeys.oddsRatio -> toJson(oddsRatio),
+        AggregatorJsonKeys.eaf -> toJson(eaf),
+        AggregatorJsonKeys.maf -> toJson(maf),
+        AggregatorJsonKeys.stdErr -> toJson(stderr),
+        AggregatorJsonKeys.zScore -> toJson(zscore),
+        AggregatorJsonKeys.n -> JDouble(n) 
+      )
+    }
   }
 }
 

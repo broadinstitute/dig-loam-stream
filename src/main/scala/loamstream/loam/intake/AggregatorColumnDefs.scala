@@ -85,7 +85,9 @@ object AggregatorColumnDefs {
   }
   
   def eaf(
-      sourceColumn: ColumnExpr[_], destColumn: ColumnName = AggregatorColumnNames.eaf): HandlesFlipsColumnDef[Double] = {
+      sourceColumn: ColumnExpr[_], 
+      destColumn: ColumnName = AggregatorColumnNames.eaf): HandlesFlipsColumnDef[Double] = {
+    
     val expr = asDouble(sourceColumn)
     
     AnonColumnDef(expr, 1.0 - expr)
@@ -144,17 +146,22 @@ object AggregatorColumnDefs {
     }
     
     def eaf(
-        sourceColumn: ColumnExpr[_], destColumn: ColumnName = AggregatorColumnNames.eaf): HandlesFlipsColumnDef[Double] = {
+        sourceColumn: ColumnExpr[_], 
+        destColumn: ColumnName = AggregatorColumnNames.eaf): HandlesFlipsColumnDef[Double] = {
+      
       AnonColumnDef(asDouble(sourceColumn))
     }
     
     def maf(
-        sourceColumn: ColumnExpr[_], destColumn: ColumnName = AggregatorColumnNames.maf): HandlesFlipsColumnDef[Double] = {
+        sourceColumn: ColumnExpr[_], 
+        destColumn: ColumnName = AggregatorColumnNames.maf): HandlesFlipsColumnDef[Double] = {
+      
       AnonColumnDef(asDouble(sourceColumn))
     }
     
     def n(
-        sourceColumn: ColumnExpr[_], destColumn: ColumnName = AggregatorColumnNames.n): HandlesFlipsColumnDef[Double] = {
+        sourceColumn: ColumnExpr[_], 
+        destColumn: ColumnName = AggregatorColumnNames.n): HandlesFlipsColumnDef[Double] = {
       AnonColumnDef(asDouble(sourceColumn))
     }
   }

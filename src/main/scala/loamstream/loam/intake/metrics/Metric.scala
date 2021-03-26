@@ -43,7 +43,9 @@ object Metric {
     countKnownOrUnknown(client)(client.isUnknown)
   }
   
-  private def countKnownOrUnknown[R <: BaseVariantRow](client: BioIndexClient)(p: Variant => Boolean): Metric[R, Int] = {
+  private def countKnownOrUnknown[R <: BaseVariantRow](
+      client: BioIndexClient)(p: Variant => Boolean): Metric[R, Int] = {
+    
     Fold.countIf { 
       case VariantRow.Transformed(_, dataRow) => p(dataRow.marker) 
       case _ => false
@@ -112,7 +114,9 @@ object Metric {
     fractionOfTotal(countWithDisagreeingBetaStderrZscore(epsilon))
   }
   
-  def mean[R <: BaseVariantRow, N](column: VariantRow.Transformed[R] => N)(implicit ev: Numeric[N]): Metric[R, Double] = {
+  def mean[R <: BaseVariantRow, N](
+      column: VariantRow.Transformed[R] => N)(implicit ev: Numeric[N]): Metric[R, Double] = {
+    
     val sumFold: Fold[VariantRow.Parsed[R], N, N] = Fold.sum {
       case VariantRow.Skipped(_, _, _, _) => ev.zero
       case t @ VariantRow.Transformed(_, _) => column(t)

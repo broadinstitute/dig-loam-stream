@@ -213,7 +213,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       
       val pseudoMetric: Metric[R, Unit] = Fold.foreach(_ => ()) // TODO :(
       
-      new MapFilterAndWriteTarget(rowSink, expr.metadata, dataRows, pseudoMetric, toBeClosed)
+      new MapFilterAndWriteTarget(rowSink, expr.metadataWithUploadType, dataRows, pseudoMetric, toBeClosed)
     }
   }
   

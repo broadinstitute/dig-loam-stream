@@ -13,6 +13,9 @@ import loamstream.util.Loggable
 sealed trait VariantRowExpr[R <: BaseVariantRow] extends TaggedRowParser[VariantRow.Parsed[R]] {
   def metadata: AggregatorMetadata
   
+  //TODO: Revisit this
+  def metadataWithUploadType: AggregatorMetadata = metadata.copy(topic = Option(uploadType))
+  
   def uploadType: UploadType
   
   def markerDef: MarkerColumnDef

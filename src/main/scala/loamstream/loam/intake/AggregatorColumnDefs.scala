@@ -30,13 +30,15 @@ object AggregatorColumnDefs {
       }
     }
     
-    //"{chrom}_{pos}_{ref}_{alt}"
-    val asString = strexpr"${chromExpr}_${posColumn}_${refColumn}_${altColumn}"
-      
     val variantExpr: ColumnExpr[Variant] = {
-      val variantExpr = asString.map(Variant.from)
+      val asVariant = for {
+        chrom <- chromExpr
+        pos <- posColumn.asString.asInt
+        ref <- refColumn.asString.trim
+        alt <- altColumn.asString.trim
+      } yield Variant(chrom, pos, ref, alt)
       
-      if(uppercaseAlleles) variantExpr.map(_.toUpperCase) else variantExpr
+      if(uppercaseAlleles) asVariant.map(_.toUpperCase) else asVariant
     }
     
     MarkerColumnDef(destColumn, variantExpr)

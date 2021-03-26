@@ -226,7 +226,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       
       val closeRowSink: Closeable = () => commitAndClose(metadata)
       
-      new MapFilterAndWriteTarget(rowSink, metadata, dataRows, pseudoMetric, toBeClosed)
+      new MapFilterAndWriteTarget(rowSink, metadata, dataRows, pseudoMetric, closeRowSink +: toBeClosed)
     }
   }
   

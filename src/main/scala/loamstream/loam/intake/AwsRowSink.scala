@@ -218,11 +218,11 @@ final case class AwsRowSink(
    * Write the last batch and then write the dataset to the database.
    */
   def commit(metadata: JObject): Unit = uploadedSoFarBox.foreach { _ =>
-      flush()
-    
-      for {
-        uploadedSoFar <- uploadedSoFarBox
-      } {
+    flush()
+  
+    for {
+      uploadedSoFar <- uploadedSoFarBox
+    } {
       //don't write metadata if there are no records
       if(uploadedSoFar > 0) {
         writeMetadata(metadata)

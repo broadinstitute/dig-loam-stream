@@ -10,6 +10,8 @@ import loamstream.util.Iterators
 import loamstream.loam.intake.HasName
 import loamstream.util.HttpClient
 import loamstream.util.SttpHttpClient
+import loamstream.util.Traversables
+import loamstream.util.Maps
 
 /**
  * @author clint
@@ -63,52 +65,71 @@ object BioIndexClient {
       }
     }
     
+    /**
+     * Case-sensitive lookup of dataset by name
+     */
     override def isKnown(dataset: Dataset): Boolean = {
       info(s"Looking up dataset ${dataset}...")
       
-      datasetNames.contains(dataset.name)
+      datasetsByName.contains(dataset.name)
     }
     
+    /**
+     * Case-sensitive lookup of phenotype by name
+     */
     override def isKnown(phenotype: Phenotype): Boolean = {
       info(s"Looking up phenotype ${phenotype}...")
       
-      phenotypeNames.contains(phenotype.name)
+      phenotypesByName.contains(phenotype.name)
     }
     
     override def findClosestMatch(dataset: Dataset): Option[Dataset] = {
-      doFindClosestMatch(datasetNames, Dataset(_))(dataset)
+      doFindClosestMatch(datasetsByNormalizedName)(dataset)
     }
   
     override def findClosestMatch(phenotype: Phenotype): Option[Phenotype] = {
-      doFindClosestMatch(phenotypeNames, Phenotype(_))(phenotype)
+      doFindClosestMatch(phenotypesByNormalizedName)(phenotype)
     }
   
-    private def datasetNames: Iterator[String] = getNames(datasetsBaseUrl)
+    import Traversables.Implicits.TraversableOps
+    import Maps.Implicits.MapOps
     
-    private def phenotypeNames: Iterator[String] = getNames(phenotypesBaseUrl)
+    private lazy val datasetsByName: Map[String, Dataset] = getNames(datasetsBaseUrl).map(Dataset(_)).mapBy(_.name)
     
-    private def doFindClosestMatch[A <: HasName](
-        knownNames: Iterator[String], 
-        constructor: String => A)(lookingFor: A): Option[A] = {
-      
-      val matches = knownNames.filter(_.toUpperCase == lookingFor.name.toUpperCase)
-      
-      import Iterators.Implicits._
-      
-      val firstMatchOpt = matches.nextOption()
-      
-      val noRemainingMatches = matches.isEmpty
-      
-      if(noRemainingMatches) { firstMatchOpt.map(constructor) }
-      else {
-        val remainingMatches = matches
-        
-        sys.error(s"Found ${remainingMatches.size + 1} case-insensitive matches for '${lookingFor.name}'." +  
-                   "Please choose one and try again")
+    //Normalized (upper cased) dataset names mapped to real dataset names, to allow case-insensitive mapping
+    //of mis-capitalized names to canonical ones.
+    private lazy val datasetsByNormalizedName: Map[String, Dataset] = datasetsByName.mapKeys(_.toUpperCase)
+    
+    private lazy val phenotypesByName: Map[String, Phenotype] = {
+      getNamesToDichotomousFlags(phenotypesBaseUrl).map(Phenotype.tupled).mapBy(_.name)
+    }
+    
+    private lazy val phenotypesByNormalizedName: Map[String, Phenotype] = phenotypesByName.mapKeys(_.toUpperCase)
+    
+    private def doFindClosestMatch[A <: HasName](knownNames: Map[String, A])(lookingFor: A): Option[A] = {
+      knownNames.get(lookingFor.name.toUpperCase) match {
+        case matchOpt @ Some(_) => matchOpt
+        case None => sys.error(s"Found no case-insensitive matches for '${lookingFor.name}'.")
+      }
+    }
+    
+    private def getNamesToDichotomousFlags(url: String): Iterator[(String, Boolean)] = {
+      getDataElements(url).iterator.map { jv =>
+        (jv, jv \ "name", jv \ "dichotomous")
+      }.zipWithIndex.map {
+        case ((_, JString(name), JInt(dichotomous)), _) => (name, dichotomous != 0)
+        case ((jv, _, _), i) => sys.error(s"Couldn't parse 'data' array element at index ${i} in offending json '$jv'")
       }
     }
     
     private def getNames(url: String): Iterator[String] = {
+      getDataElements(url).iterator.map(_ \ "name").zipWithIndex.map {
+        case (JString(name), _) => name
+        case (_, i) => sys.error(s"Couldn't parse 'data' array element at index ${i}")
+      }
+    }
+    
+    private def getDataElements(url: String): Iterable[JValue] = {
       val contentsE = httpClient.get(url)
       
       contentsE match {
@@ -117,12 +138,7 @@ object BioIndexClient {
           val json = parse(body)
           
           (json \ "data") match {
-            case JArray(elems) => {
-              elems.iterator.map(_ \ "name").zipWithIndex.map {
-                case (JString(name), _) => name
-                case (_, i) => sys.error(s"Couldn't parse 'data' array element at index ${i}")
-              }
-            }
+            case JArray(elems) => elems
             case _ => sys.error("Couldn't parse 'data' element as a JSON array")
           }
         }

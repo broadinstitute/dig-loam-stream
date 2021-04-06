@@ -54,7 +54,7 @@ final class IntakeSyntaxTest extends FunSuite {
       
       val source = filterSource 
           
-      val viaTarget = new ViaTarget(store("/dev/null"), source, ???)
+      val viaTarget = new ViaTarget(Helpers.RowSinks.noop, source, ???)
       
       assert(viaTarget.toBeClosed === Nil)
       
@@ -80,7 +80,7 @@ final class IntakeSyntaxTest extends FunSuite {
       
       val source = filterSource 
           
-      val viaTarget = new ViaTarget(store("/dev/null"), source, ???)
+      val viaTarget = new ViaTarget(Helpers.RowSinks.noop, source, ???)
       
       assert(viaTarget.toBeClosed === Nil)
       
@@ -104,7 +104,7 @@ final class IntakeSyntaxTest extends FunSuite {
       
       val source = filterSource 
           
-      val viaTarget = new ViaTarget(store("/dev/null"), source, ???)
+      val viaTarget = new ViaTarget(Helpers.RowSinks.noop, source, ???)
       
       assert(viaTarget.toBeClosed === Nil)
    
@@ -138,9 +138,20 @@ final class IntakeSyntaxTest extends FunSuite {
   
   private val markerDef = MarkerColumnDef(AggregatorColumnNames.marker, MRKR.map(Variant.from))
     
-  private val expr = AggregatorRowExpr(
+  private val metadata = AggregatorMetadata(
+    bucketName = "some-bucket",
+    topic = Option(UploadType.Variants),
+    dataset = "asdasdasd",
+    phenotype = "akjdslfhsdf",
+    ancestry = Ancestry.AA,
+    tech = TechType.ExChip,
+    quantitative = None)
+  
+  private val expr = VariantRowExpr.PValueVariantRowExpr(
+      metadata = metadata,
       markerDef = markerDef,
-      pvalueDef = AggregatorColumnDefs.pvalue(PValue))
+      pvalueDef = AggregatorColumnDefs.pvalue(PValue),
+      nDef = Some(AnonColumnDef(LiteralColumnExpr(42))))
     
   test("MapFilterAndWriteTarget - withMetric") {
     TestHelpers.withScriptContext { implicit context =>
@@ -148,9 +159,9 @@ final class IntakeSyntaxTest extends FunSuite {
       
       val source = mapSource.tagFlips(markerDef, Helpers.FlipDetectors.NoFlipsEver).map(expr)
           
-      val target = new MapFilterAndWriteTarget[Unit](
-          store("/dev/null"), 
-          HeaderRow(MRKR.name, PValue.name),
+      val target = new MapFilterAndWriteTarget[PValueVariantRow, Unit](
+          Helpers.RowSinks.noop, 
+          metadata,
           source, 
           Fold.foreach(_ => ()),
           Nil)
@@ -169,9 +180,9 @@ final class IntakeSyntaxTest extends FunSuite {
       
       val source = mapSource.tagFlips(markerDef, Helpers.FlipDetectors.NoFlipsEver).map(expr)
           
-      val target = new MapFilterAndWriteTarget[Unit](
-          store("/dev/null"), 
-          HeaderRow(MRKR.name, PValue.name),
+      val target = new MapFilterAndWriteTarget[PValueVariantRow, Unit](
+          Helpers.RowSinks.noop,
+          metadata,
           source, 
           Fold.foreach(_ => ()),
           Nil)
@@ -180,7 +191,7 @@ final class IntakeSyntaxTest extends FunSuite {
       
       val unfilteredRows = source.records.toList
       
-      val p = MockCloseablePredicate[AggregatorVariantRow](_.pvalue > 0.2)
+      val p = MockCloseablePredicate[PValueVariantRow](_.pvalue > 0.2)
       
       val filtered = target.filter(p)
       
@@ -205,9 +216,9 @@ final class IntakeSyntaxTest extends FunSuite {
         Source.fromIterable(unfilteredRows.take(2).map(_.skip) ++ unfilteredRows.drop(2))
       }
           
-      val target = new MapFilterAndWriteTarget[Unit](
-          store("/dev/null"), 
-          HeaderRow(MRKR.name, PValue.name),
+      val target = new MapFilterAndWriteTarget[PValueVariantRow, Unit](
+          Helpers.RowSinks.noop, 
+          metadata,
           source, 
           Fold.foreach(_ => ()),
           Nil)
@@ -237,9 +248,9 @@ final class IntakeSyntaxTest extends FunSuite {
         Source.fromIterable(unfilteredRows.take(2).map(_.skip) ++ unfilteredRows.drop(2))
       }
           
-      val target = new MapFilterAndWriteTarget[Unit](
-          store("/dev/null"), 
-          HeaderRow(MRKR.name, PValue.name),
+      val target = new MapFilterAndWriteTarget[PValueVariantRow, Unit](
+          Helpers.RowSinks.noop,
+          metadata,
           source, 
           Fold.foreach(_ => ()),
           Nil)
@@ -248,7 +259,7 @@ final class IntakeSyntaxTest extends FunSuite {
       
       val unmappedRows = source.records.toList
       
-      val f: Transform[AggregatorVariantRow] = MockCloseableTransform { dr => 
+      val f: Transform[PValueVariantRow] = MockCloseableTransform { dr => 
         dr.copy(pvalue = dr.pvalue + 1.0)
       }
       
@@ -279,9 +290,9 @@ final class IntakeSyntaxTest extends FunSuite {
           Source.fromIterable(unfilteredRows.take(2).map(_.skip) ++ unfilteredRows.drop(2))
         }
             
-        val target = new MapFilterAndWriteTarget[Unit](
-            store(outfile), 
-            HeaderRow(MRKR.name, PValue.name),
+        val target = new MapFilterAndWriteTarget[PValueVariantRow, Unit](
+            RowSink.ToFile(outfile, RowSink.Renderers.csv(Source.Formats.tabDelimited)),
+            metadata,
             source, 
             Fold.foreach(_ => ()),
             Nil)
@@ -290,7 +301,7 @@ final class IntakeSyntaxTest extends FunSuite {
         
         val unmappedRows = source.records.toList
         
-        val f = MockCloseableTransform[AggregatorVariantRow] { dr => 
+        val f = MockCloseableTransform[PValueVariantRow] { dr => 
           dr.copy(pvalue = dr.pvalue + 1.0)
         }
         
@@ -299,8 +310,6 @@ final class IntakeSyntaxTest extends FunSuite {
         assert(mapped.toBeClosed === Seq(f))
         
         val tool = mapped.write(forceLocal = true).asInstanceOf[NativeTool]
-        
-        assert(tool.graph.toolOutputs(tool).head.path === outfile)
         
         assert(f.isClosed === false)
         
@@ -313,9 +322,8 @@ final class IntakeSyntaxTest extends FunSuite {
         assert(java.nio.file.Files.exists(outfile) === true)
         
         val expected = s"""
-${AggregatorColumnNames.marker.name}${'\t'}${AggregatorColumnNames.pvalue.name}
-${v2.underscoreDelimited}${'\t'}1.3
-${v3.underscoreDelimited}${'\t'}1.4""".trim
+${v2.underscoreDelimited}${'\t'}1.3${'\t'}42.0
+${v3.underscoreDelimited}${'\t'}1.4${'\t'}42.0""".trim
 
         //NB: trim to avoid off-by-line-ending differences we don't care about
         assert(Files.readFrom(outfile).trim === expected)
@@ -333,16 +341,16 @@ ${v3.underscoreDelimited}${'\t'}1.4""".trim
         
         val source = mapSource.tagFlips(markerDef, Helpers.FlipDetectors.NoFlipsEver).map(expr)
             
-        val target = new MapFilterAndWriteTarget[Unit](
-            store(outfile), 
-            HeaderRow(MRKR.name, PValue.name),
+        val target = new MapFilterAndWriteTarget[PValueVariantRow, Unit](
+            Helpers.RowSinks.noop,
+            metadata,
             source, 
             Fold.foreach(_ => ()),
             Nil)
         
         assert(target.toBeClosed === Nil)
         
-        val f = MockCloseableTransform[AggregatorVariantRow] { dr => 
+        val f = MockCloseableTransform[PValueVariantRow] { dr => 
           dr.copy(pvalue = dr.pvalue + 1.0)
         }
         
@@ -351,7 +359,6 @@ ${v3.underscoreDelimited}${'\t'}1.4""".trim
         }
         
         assert(tool.isInstanceOf[InvokesLsTool])
-        assert(tool.graph.toolOutputs(tool).head.path === outfile)
       }      
     }
   }

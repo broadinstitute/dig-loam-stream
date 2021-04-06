@@ -13,7 +13,7 @@ final class RowSinkTest extends FunSuite {
     TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
       val file = workDir.resolve("foo")
       
-      val sink = RowSink.ToFile(file)
+      val sink = RowSink.ToFile(file, RowSink.Renderers.json)
       
       assert(Files.exists(file) === false)
       
@@ -28,7 +28,7 @@ final class RowSinkTest extends FunSuite {
       val file = workDir.resolve("bar")
       
       //NB: Use a non-default CsvFormat
-      val sink = RowSink.ToFile(file, Source.Formats.spaceDelimited)
+      val sink = RowSink.ToFile(file, RowSink.Renderers.csv(Source.Formats.spaceDelimited))
       
       val rows = Seq(
           LiteralRow("a", "b", "c"),

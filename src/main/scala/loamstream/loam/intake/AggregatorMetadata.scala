@@ -7,18 +7,22 @@ import com.typesafe.config.Config
 import AggregatorMetadata.Defaults
 import loamstream.conf.ConfigParser
 import loamstream.util.Options
+import org.json4s.JsonAST.JValue
+import org.json4s.JsonAST.JString
 
 /**
  * @author clint
  * Feb 11, 2020
  */
 final case class AggregatorMetadata(
+    bucketName: String,
+    topic: Option[UploadType],
     dataset: String,
     phenotype: String,
     varIdFormat: String = Defaults.varIdFormat,
-    ancestry: String,
+    ancestry: Ancestry,
     author: Option[String] = None,
-    tech: String,
+    tech: TechType,
     quantitative: Option[AggregatorMetadata.Quantitative],
     properties: Seq[(String, String)] = Nil) {
     
@@ -26,27 +30,54 @@ final case class AggregatorMetadata(
   
   def subjects: Option[Int] = quantitative.map(_.subjects)
   
-  def asConfigFileContents: String = {
+  def asMetadataFileContents: String = {
+    import java.lang.System.lineSeparator
+    
+    toTuples.map { case (name, value) => s"${name} ${value}" }.mkString(lineSeparator)
+  }
+  
+  def asJson: Seq[(String, JValue)] = {
+    import java.lang.System.lineSeparator
+    
+    toTuples.map { case (name, value) => (name, JString(value)) }
+  }
+  
+  private def toTuples: Seq[(String, String)] = {
     import AggregatorMetadata.escape
     
-    val authorPart = author.map(a => s"author ${escape(a)}").getOrElse("")
+    val authorPart: Seq[(String, String)] = author.map(a => Seq("author" -> escape(a))).getOrElse(Nil)
     
     import AggregatorMetadata.Quantitative.CasesAndControls
     import AggregatorMetadata.Quantitative.Subjects
     import java.lang.System.lineSeparator
 
-    val quantitativePart = quantitative match {
-      case Some(CasesAndControls(cases, controls)) => s"cases ${cases}${lineSeparator}controls ${controls}"
-      case Some(Subjects(s)) => s"subjects ${s}"
-      case _ => ""
+    val quantitativePart: Seq[(String, String)] = quantitative match {
+      case Some(CasesAndControls(cases, controls)) => Seq("cases" -> cases.toString, "controls" -> controls.toString)
+      case Some(Subjects(s)) => Seq("subjects" -> s.toString)
+      case _ => Nil
     }
     
-    s"""|dataset ${dataset} ${phenotype}
-        |ancestry ${escape(ancestry)}
-        |tech ${escape(tech)}
-        |${quantitativePart}
-        |var_id ${varIdFormat}
-        |${authorPart}""".stripMargin.trim
+    val s3Uri: String = {
+      //TODO: 
+      require(topic.isDefined, "Couldn't determine S3 path due to missing topic")
+      
+      val path = AwsRowSink.makePath(
+        topic = topic.get.name, 
+        dataset = dataset, 
+        techType = Option(tech), 
+        phenotype = Option(phenotype), 
+        baseDir = None)
+      
+      s"s3://${bucketName}/${path}"
+    }
+    
+    Seq(
+      "uri" -> s3Uri,
+      "dataset" -> s"${dataset} ${phenotype}",
+      "ancestry" -> escape(ancestry.name),
+      "tech" -> escape(tech.name)) ++
+      quantitativePart ++
+      authorPart
   }
 }
 
@@ -83,6 +114,8 @@ object AggregatorMetadata extends ConfigParser[AggregatorMetadata] {
   }
   
   private final case class Parsed(
+    bucketName: String = Defaults.bucketName,
+    topic: Option[String] = None,
     dataset: String,
     phenotype: Option[String] = None,
     varIdFormat: String = Defaults.varIdFormat,
@@ -102,35 +135,56 @@ object AggregatorMetadata extends ConfigParser[AggregatorMetadata] {
     def toMetadata: Try[AggregatorMetadata] = {
       for {
         ph <- Options.toTry(phenotype)("Expected phenotype to be present")
+        tt <- TechType.tryFromString(tech)
+        an <- Ancestry.tryFromString(ancestry)
+        ut = topic.flatMap(UploadType.fromString)
       } yield {
         AggregatorMetadata(
+          bucketName = bucketName,
+          topic = ut,
           dataset = dataset,
           phenotype = ph,
           varIdFormat = varIdFormat,
-          ancestry = ancestry,
+          ancestry = an,
           author = author,
-          tech = tech,
+          tech = tt,
           quantitative = quantitative)
       }
     }
     
-    def toNoPhenotype: NoPhenotype = {
-      NoPhenotype(
-        dataset = dataset,
-        varIdFormat = varIdFormat,
-        ancestry = ancestry,
-        author = author,
-        tech = tech,
-        quantitative = quantitative)
+    def toNoPhenotype: Try[NoPhenotype] = {
+      for {
+        tt <- TechType.tryFromString(tech)
+        an <- Ancestry.tryFromString(ancestry)
+        ut = topic.flatMap(UploadType.fromString)
+      } yield {
+        NoPhenotype(
+          bucketName = bucketName,
+          topic = ut, 
+          dataset = dataset,
+          varIdFormat = varIdFormat,
+          ancestry = an,
+          author = author,
+          tech = tt,
+          quantitative = quantitative)
+      }
     }
     
-    def toNoPhenotypeOrQuantitative: NoPhenotypeOrQuantitative = {
-      NoPhenotypeOrQuantitative(
-        dataset = dataset,
-        varIdFormat = varIdFormat,
-        ancestry = ancestry,
-        author = author,
-        tech = tech)
+    def toNoPhenotypeOrQuantitative: Try[NoPhenotypeOrQuantitative] = {
+      for {
+        tt <- TechType.tryFromString(tech)
+        an <- Ancestry.tryFromString(ancestry)
+        ut = topic.flatMap(UploadType.fromString)
+      } yield {
+        NoPhenotypeOrQuantitative(
+          bucketName = bucketName,
+          topic = ut,
+          dataset = dataset,
+          varIdFormat = varIdFormat,
+          ancestry = an,
+          author = author,
+          tech = tt)
+      }
     }
   }
   
@@ -146,24 +200,29 @@ object AggregatorMetadata extends ConfigParser[AggregatorMetadata] {
   object Defaults {
     val configKey: String = "loamstream.aggregator.intake.metadata"
     val varIdFormat: String = "{chrom}_{pos}_{ref}_{alt}"
+    val bucketName: String = "dig-analysis-data"
   }
   
   final case class NoPhenotype(
+      bucketName: String,
+      topic: Option[UploadType],
       dataset: String,
       varIdFormat: String = Defaults.varIdFormat,
-      ancestry: String,
+      ancestry: Ancestry,
       author: Option[String],
-      tech: String,
+      tech: TechType,
       quantitative: Option[Quantitative]) {
     
     def toMetadata(phenotype: String): AggregatorMetadata = {
       AggregatorMetadata(
-          dataset, 
-          phenotype, 
-          varIdFormat, 
-          ancestry, 
-          author, 
-          tech, 
+          bucketName = bucketName,
+          topic = topic,
+          dataset = dataset, 
+          phenotype = phenotype , 
+          varIdFormat = varIdFormat, 
+          ancestry = ancestry, 
+          author = author, 
+          tech = tech, 
           quantitative = quantitative)
     }
   }
@@ -175,25 +234,29 @@ object AggregatorMetadata extends ConfigParser[AggregatorMetadata] {
       
       //NB: Marshal the contents of loamstream.intake.metadata into a Metadata instance.
       //Names of fields in Metadata and keys under loamstream.intake.metadata must match.
-      Try(config.as[Parsed](Defaults.configKey)).map(_.toNoPhenotype)
+      Try(config.as[Parsed](Defaults.configKey)).flatMap(_.toNoPhenotype)
     }
   }
   
   final case class NoPhenotypeOrQuantitative(
+      bucketName: String,
+      topic: Option[UploadType],
       dataset: String,
       varIdFormat: String = Defaults.varIdFormat,
-      ancestry: String,
+      ancestry: Ancestry,
       author: Option[String],
-      tech: String) {
+      tech: TechType) {
     
     def toMetadata(phenotype: String, quantitative: Option[Quantitative]): AggregatorMetadata = {
       AggregatorMetadata(
-          dataset, 
-          phenotype, 
-          varIdFormat, 
-          ancestry, 
-          author, 
-          tech, 
+          bucketName = bucketName,
+          topic = topic,
+          dataset = dataset, 
+          phenotype = phenotype, 
+          varIdFormat = varIdFormat, 
+          ancestry = ancestry, 
+          author = author, 
+          tech = tech, 
           quantitative = quantitative)
     }
   }
@@ -205,7 +268,7 @@ object AggregatorMetadata extends ConfigParser[AggregatorMetadata] {
       
       //NB: Marshal the contents of loamstream.intake.metadata into a Metadata instance.
       //Names of fields in Metadata and keys under loamstream.intake.metadata must match.
-      Try(config.as[Parsed](Defaults.configKey)).map(_.toNoPhenotypeOrQuantitative)
+      Try(config.as[Parsed](Defaults.configKey)).flatMap(_.toNoPhenotypeOrQuantitative)
     }
   }
 }

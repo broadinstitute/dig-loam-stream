@@ -24,6 +24,7 @@ lazy val Versions = new {
   val MysqlConnector = "8.0.19"
   val Sttp = "2.0.6"
   val CommonsCompress = "1.20"
+  val Breeze = "1.1"
 }
 
 lazy val Orgs = new {
@@ -62,7 +63,8 @@ lazy val mainDeps = Seq(
   Orgs.DIG %% "dig-aws" % Versions.DigAws,
   "org.hsqldb" % "hsqldb" % Versions.HsqlDb,
   "com.softwaremill.sttp.client" %% "core" % Versions.Sttp,
-  "org.apache.commons" % "commons-compress" % Versions.CommonsCompress
+  "org.apache.commons" % "commons-compress" % Versions.CommonsCompress,
+  "org.scalanlp" %% "breeze" % Versions.Breeze
 )
 
 lazy val testDeps = Seq(

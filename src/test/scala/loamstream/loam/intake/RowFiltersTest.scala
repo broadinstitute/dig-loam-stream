@@ -22,6 +22,32 @@ final class RowFiltersTest extends FunSuite {
   private val v1 = Variant("2_34567_T_c")
   private val v2 = Variant("3_45678_g_T")
   
+  private val metadata = AggregatorMetadata(
+    bucketName = "some-bucket",
+    topic = Option(UploadType.Variants),
+    dataset = "asdasdasd",
+    phenotype = "akjdslfhsdf",
+    ancestry = Ancestry.AA,
+    tech = TechType.ExChip,
+    quantitative = None)
+    
+  private def makeRow(
+      marker: Variant, 
+      pvalue: Double, 
+      eaf: Option[Double] = None, 
+      maf: Option[Double] = None): PValueVariantRow = {
+    
+    PValueVariantRow(
+      marker = marker,
+      pvalue = pvalue,
+      dataset = metadata.dataset,
+      phenotype = metadata.phenotype,
+      ancestry = metadata.ancestry,
+      eaf = eaf,
+      maf = maf,
+      n = 42)
+  }
+  
   import Helpers.Implicits.LogFileOps
   import Helpers.withLogStore
   import Helpers.linesFrom
@@ -58,6 +84,9 @@ final class RowFiltersTest extends FunSuite {
       val logLines = linesFrom(logStore.path)
       
       assert(logLines.size === 3)
+      
+      //throw new Exception(logLines.toString)
+      
       assert(logLines.containsOnce(s"(${REF.name},D),(${ALT.name},T),(FOO,42)"))
       assert(logLines.containsOnce(s"(${REF.name},D),(${ALT.name},I),(FOO,42)"))
       assert(logLines.containsOnce(s"(${REF.name},A),(${ALT.name},I),(FOO,42)"))
@@ -211,13 +240,13 @@ final class RowFiltersTest extends FunSuite {
       val predicate = AggregatorVariantRowFilters.validEaf(logStore, append = true)
       
       val rows = Seq(
-          AggregatorVariantRow(marker = Variant("1_12345_T_C"), pvalue = 0.5, eaf = Some(1.0)),
-          AggregatorVariantRow(marker = Variant("2_12345_T_C"), pvalue = 0.5, eaf = Some(0.99)),
-          AggregatorVariantRow(marker = Variant("3_12345_T_C"), pvalue = 0.5, eaf = Some(0.0)),
-          AggregatorVariantRow(marker = Variant("4_12345_T_C"), pvalue = 0.5, eaf = Some(-1.0)),
-          AggregatorVariantRow(marker = Variant("2_12345_T_C"), pvalue = 0.5, eaf = Some(0.25)),
-          AggregatorVariantRow(marker = Variant("5_12345_T_C"), pvalue = 0.5, eaf = Some(100.0)),
-          AggregatorVariantRow(marker = Variant("6_12345_T_C"), pvalue = 0.5, eaf = Some(-10.0)))
+          makeRow(marker = Variant("1_12345_T_C"), pvalue = 0.5, eaf = Some(1.0)),
+          makeRow(marker = Variant("2_12345_T_C"), pvalue = 0.5, eaf = Some(0.99)),
+          makeRow(marker = Variant("3_12345_T_C"), pvalue = 0.5, eaf = Some(0.0)),
+          makeRow(marker = Variant("4_12345_T_C"), pvalue = 0.5, eaf = Some(-1.0)),
+          makeRow(marker = Variant("2_12345_T_C"), pvalue = 0.5, eaf = Some(0.25)),
+          makeRow(marker = Variant("5_12345_T_C"), pvalue = 0.5, eaf = Some(100.0)),
+          makeRow(marker = Variant("6_12345_T_C"), pvalue = 0.5, eaf = Some(-10.0)))
           
       val filtered = rows.filter(predicate)
       
@@ -245,13 +274,13 @@ final class RowFiltersTest extends FunSuite {
       val predicate = AggregatorVariantRowFilters.validMaf(logStore, append = true)
       
       val rows = Seq(
-          AggregatorVariantRow(marker = Variant("1_12345_T_C"), pvalue = 0.5, maf = Some(0.51)),
-          AggregatorVariantRow(marker = Variant("2_12345_T_C"), pvalue = 0.5, maf = Some(0.5)),
-          AggregatorVariantRow(marker = Variant("3_12345_T_C"), pvalue = 0.5, maf = Some(0.0)),
-          AggregatorVariantRow(marker = Variant("4_12345_T_C"), pvalue = 0.5, maf = Some(-1.0)),
-          AggregatorVariantRow(marker = Variant("2_12345_T_C"), pvalue = 0.5, maf = Some(0.25)),
-          AggregatorVariantRow(marker = Variant("5_12345_T_C"), pvalue = 0.5, maf = Some(100.0)),
-          AggregatorVariantRow(marker = Variant("6_12345_T_C"), pvalue = 0.5, maf = Some(-10.0)))
+          makeRow(marker = Variant("1_12345_T_C"), pvalue = 0.5, maf = Some(0.51)),
+          makeRow(marker = Variant("2_12345_T_C"), pvalue = 0.5, maf = Some(0.5)),
+          makeRow(marker = Variant("3_12345_T_C"), pvalue = 0.5, maf = Some(0.0)),
+          makeRow(marker = Variant("4_12345_T_C"), pvalue = 0.5, maf = Some(-1.0)),
+          makeRow(marker = Variant("2_12345_T_C"), pvalue = 0.5, maf = Some(0.25)),
+          makeRow(marker = Variant("5_12345_T_C"), pvalue = 0.5, maf = Some(100.0)),
+          makeRow(marker = Variant("6_12345_T_C"), pvalue = 0.5, maf = Some(-10.0)))
           
       val filtered = rows.filter(predicate)
       
@@ -279,13 +308,13 @@ final class RowFiltersTest extends FunSuite {
       val predicate = AggregatorVariantRowFilters.validPValue(logStore, append = true)
       
       val rows = Seq(
-          AggregatorVariantRow(marker = Variant("1_12345_T_C"), pvalue = 1.0),
-          AggregatorVariantRow(marker = Variant("2_12345_T_C"), pvalue = 0.99),
-          AggregatorVariantRow(marker = Variant("3_12345_T_C"), pvalue = 0.0),
-          AggregatorVariantRow(marker = Variant("4_12345_T_C"), pvalue = -1.0),
-          AggregatorVariantRow(marker = Variant("2_12345_T_C"), pvalue = 0.25),
-          AggregatorVariantRow(marker = Variant("5_12345_T_C"), pvalue = 100.0),
-          AggregatorVariantRow(marker = Variant("6_12345_T_C"), pvalue = -10.0))
+          makeRow(marker = Variant("1_12345_T_C"), pvalue = 1.0),
+          makeRow(marker = Variant("2_12345_T_C"), pvalue = 0.99),
+          makeRow(marker = Variant("3_12345_T_C"), pvalue = 0.0),
+          makeRow(marker = Variant("4_12345_T_C"), pvalue = -1.0),
+          makeRow(marker = Variant("2_12345_T_C"), pvalue = 0.25),
+          makeRow(marker = Variant("5_12345_T_C"), pvalue = 100.0),
+          makeRow(marker = Variant("6_12345_T_C"), pvalue = -10.0))
           
       val filtered = rows.filter(predicate)
       

@@ -35,9 +35,6 @@ sealed abstract class ColumnExpr[A : TypeTag] extends
         cause)
   }
   
-  final def ~>(name: String): NamedColumnDef[A] = NamedColumnDef(name, this)
-  final def ~>(name: ColumnName): NamedColumnDef[A] = NamedColumnDef(name, this)
-  
   def applyOpt(row: DataRow): Option[A] = Try(apply(row)).toOption 
   
   def isDefinedAt(row: DataRow): Boolean = true

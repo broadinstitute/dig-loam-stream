@@ -7,15 +7,16 @@ import loamstream.conf.LoamConfig
 import loamstream.loam.LoamProjectContext
 import loamstream.loam.LoamScriptContext
 import loamstream.loam.intake.AggregatorIntakeConfig
-import loamstream.loam.intake.SourceColumns
 import loamstream.loam.intake.RowSink
-import loamstream.loam.intake.AggregatorCommands.upload
+import loamstream.loam.intake.UploadType
+import loamstream.loam.intake.TechType
 
 /**
  * @author clint
  * Feb 28, 2020
  */
 object UkbbDietaryGwas extends loamstream.LoamFile {
+
   import loamstream.loam.intake.IntakeSyntax._
   
   object ColumnNames {
@@ -29,15 +30,17 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
     val SE = "SE".asColumnName
     val P_BOLT_LMM = "P_BOLT_LMM".asColumnName
     val Z_SCORE = "Z_SCORE".asColumnName
+    val N = "N".asColumnName
     
     val VARID = "VARID".asColumnName
   }
 
-  val toAggregatorRows: AggregatorRowExpr = {
+  val toAggregatorRows: VariantRowExpr.PValueVariantRowExpr = {
     import ColumnNames._
     import AggregatorColumnDefs._
     
-    AggregatorRowExpr(
+    VariantRowExpr.PValueVariantRowExpr(
+      metadata = ???, //NB: Just compile
       markerDef = marker(
           chromColumn = CHR, 
           posColumn = BP, 
@@ -49,7 +52,8 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
       zscoreDef = Some(PassThru.zscore(Z_SCORE)),
       stderrDef = Some(stderr(SE)),
       betaDef = Some(beta(BETA)),
-      eafDef = Some(eaf(A1FREQ)))
+      eafDef = Some(eaf(A1FREQ)),
+      nDef = Some(PassThru.n(N)))
   }
   
   object Paths {
@@ -93,22 +97,26 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
     val unknownToBioIndexFile: Store = store(path(s"${dest.path.toString}.unknown-to-bio-index"))
     val disagreeingZBetaStdErrFile: Store = store(path(s"${dest.path.toString}.disagreeing-z-Beta-stderr"))
     
-    produceCsv(dest).
-        from(source).
-        using(flipDetector).
-        via(toAggregatorRows).
-        filter(AggregatorVariantRowFilters.validEaf(filterLog, append = true)).
-        filter(AggregatorVariantRowFilters.validMaf(filterLog, append = true)).
-        map(DataRowTransforms.clampPValues(filterLog, append = true)).
-        filter(AggregatorVariantRowFilters.validPValue(filterLog, append = true)).
-        withMetric(Metrics.fractionUnknownToBioIndex(unknownToBioIndexFile)).
-        withMetric(Metrics.fractionWithDisagreeingBetaStderrZscore(disagreeingZBetaStdErrFile, flipDetector)).
-        write().
-        tag(s"process-phenotype-$phenotype").
-        in(sourceStore).
-        out(dest).
-        out(unknownToBioIndexFile).
-        out(disagreeingZBetaStdErrFile)
+    uploadTo(
+        bucketName = "dig-integration-tests",
+        uploadType = toAggregatorRows.uploadType,
+        //whatever, just compile
+        metadata = ???).
+      from(source).
+      using(flipDetector).
+      via(toAggregatorRows).
+      filter(AggregatorVariantRowFilters.validEaf(filterLog, append = true)).
+      filter(AggregatorVariantRowFilters.validMaf(filterLog, append = true)).
+      map(DataRowTransforms.clampPValues(filterLog, append = true)).
+      filter(AggregatorVariantRowFilters.validPValue(filterLog, append = true)).
+      withMetric(Metrics.fractionUnknownToBioIndex(unknownToBioIndexFile)).
+      withMetric(Metrics.fractionWithDisagreeingBetaStderrZscore(disagreeingZBetaStdErrFile, flipDetector)).
+      write().
+      tag(s"process-phenotype-$phenotype").
+      in(sourceStore).
+      out(dest).
+      out(unknownToBioIndexFile).
+      out(disagreeingZBetaStdErrFile)
        
     dest
   }
@@ -157,18 +165,12 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
     if(intakeTypesafeConfig.getBoolean("AGGREGATOR_INTAKE_DO_UPLOAD")) {
       val metadata = toMetadata(phenotype -> phenotypeConfig)
       
-      val sourceColumnMapping = SourceColumns.defaultMarkerAndPvalueOnly
-        .withDefaultZscore
-        .withDefaultStderr
-        .withDefaultBeta
-        .withDefaultEaf
-      
-      upload(
+      //TODO
+      /*upload(
           aggregatorIntakePipelineConfig, 
           metadata, dataInAggregatorFormat, 
-          sourceColumnMapping, 
           workDir = Paths.workDir, 
-          yes = false).tag(s"upload-to-s3-${phenotype}")
+          yes = false).tag(s"upload-to-s3-${phenotype}")*/
     }
   }
 }

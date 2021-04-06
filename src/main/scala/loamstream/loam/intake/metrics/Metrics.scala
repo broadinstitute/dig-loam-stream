@@ -4,6 +4,7 @@ import loamstream.model.Store
 import loamstream.util.Files
 import loamstream.util.Fold
 import loamstream.loam.intake.flip.FlipDetector
+import loamstream.loam.intake.BaseVariantRow
 
 /**
  * @author clint
@@ -11,30 +12,36 @@ import loamstream.loam.intake.flip.FlipDetector
  */
 trait Metrics {
   object Metrics {
-    def count(dest: Store): Metric[Unit] = {
+    def count[R <: BaseVariantRow](dest: Store): Metric[R, Unit] = {
       require(dest.isPathStore)
       
       Fold.count.map(c => Files.writeTo(dest.path)(s"Produced ${c} variants"))
     }
     
-    def fractionUnknownToBioIndex(dest: Store, client: BioIndexClient = new BioIndexClient.Default()): Metric[Unit] = {
+    def fractionUnknownToBioIndex[R <: BaseVariantRow](
+        dest: Store, 
+        client: BioIndexClient = new BioIndexClient.Default()): Metric[R, Unit] = {
+      
       require(dest.isPathStore)
       
-      val count: Metric[Int] = Fold.count
+      val count: Metric[R, Int] = Fold.count
       
-      val percentUnknown: Metric[Double] = Metric.fractionUnknown(client).map(_ * 100.0)
+      val percentUnknown: Metric[R, Double] = Metric.fractionUnknown(client).map(_ * 100.0)
       
       (count.combine(percentUnknown)).map {
         case (c, p) => Files.writeTo(dest.path)(s"Out of ${c} variants, ${p}% were unknown to the BioIndex")
       }
     }
     
-    def fractionWithDisagreeingBetaStderrZscore(dest: Store, flipDetector: FlipDetector): Metric[Unit] = {
+    def fractionWithDisagreeingBetaStderrZscore[R <: BaseVariantRow](
+        dest: Store, 
+        flipDetector: FlipDetector): Metric[R, Unit] = {
+      
       require(dest.isPathStore)
       
-      val count: Metric[Int] = Fold.count
+      val count: Metric[R, Int] = Fold.count
       
-      val percentDisagreeing: Metric[Double] = {
+      val percentDisagreeing: Metric[R, Double] = {
         Metric.fractionWithDisagreeingBetaStderrZscore().map(_ * 100.0)
       }
       
@@ -44,7 +51,7 @@ trait Metrics {
       }
     }
     
-    def writeSummaryStatsTo(dest: Store): Metric[Unit] = {
+    def writeSummaryStatsTo[R <: BaseVariantRow](dest: Store): Metric[R, Unit] = {
       require(dest.isPathStore)
       
       Metric.writeSummaryStatsTo(dest.path)

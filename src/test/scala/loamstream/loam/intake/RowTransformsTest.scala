@@ -20,32 +20,93 @@ final class RowTransformsTest extends FunSuite {
   import Helpers.linesFrom
   import Helpers.Implicits.LogFileOps
   
-  test("upperCaseAlleles") {
+  private val metadata = AggregatorMetadata(
+    bucketName = "some-bucket",
+    topic = Option(UploadType.Variants),
+    dataset = "asdasdasd",
+    phenotype = "akjdslfhsdf",
+    ancestry = Ancestry.AA,
+    tech = TechType.ExChip,
+    quantitative = None)
+    
+  private def makeRow(
+      marker: Variant, 
+      pvalue: Double, 
+      eaf: Option[Double] = None, 
+      maf: Option[Double] = None): PValueVariantRow = {
+    
+    PValueVariantRow(
+      marker = marker,
+      pvalue = pvalue,
+      dataset = metadata.dataset,
+      phenotype = metadata.phenotype,
+      ancestry = metadata.ancestry,
+      eaf = eaf,
+      maf = maf,
+      n = 42)
+  }
+  
+  test("upperCaseAlleles - variant data") {
     val rows = Seq(
-        AggregatorVariantRow(marker = v0, pvalue = 42.0),
-        AggregatorVariantRow(marker = v1, pvalue = 42.0),
-        AggregatorVariantRow(marker = v2, pvalue = 42.0))
+        makeRow(marker = v0, pvalue = 42.0),
+        makeRow(marker = v1, pvalue = 42.0),
+        makeRow(marker = v2, pvalue = 42.0))
         
     val actual = rows.map(Transforms.DataRowTransforms.upperCaseAlleles)
     
     val expected = Seq(
-        AggregatorVariantRow(marker = v0.toUpperCase, pvalue = 42.0),
-        AggregatorVariantRow(marker = v1.toUpperCase, pvalue = 42.0),
-        AggregatorVariantRow(marker = v2.toUpperCase, pvalue = 42.0))
+        makeRow(marker = v0.toUpperCase, pvalue = 42.0),
+        makeRow(marker = v1.toUpperCase, pvalue = 42.0),
+        makeRow(marker = v2.toUpperCase, pvalue = 42.0))
+        
+    assert(actual === expected)
+  }
+  
+  test("upperCaseAlleles - variant count data") {
+    val rand = new scala.util.Random
+    
+    def randomString: String = java.util.UUID.randomUUID.toString
+    def randomLong: Option[Long] = Option(rand.nextLong)
+    
+    def makeCountRow(marker: Variant): VariantCountRow = VariantCountRow(
+        marker: Variant,
+        dataset = randomString,
+        phenotype = randomString,
+        ancestry = Ancestry.HS,
+        alleleCount = randomLong,
+        alleleCountCases = randomLong, 
+        alleleCountControls = randomLong,
+        heterozygousCases = randomLong, 
+        heterozygousControls = randomLong, 
+        homozygousCases = randomLong,   
+        homozygousControls = randomLong)
+    
+    val r0 = makeCountRow(marker = v0)
+    val r1 = makeCountRow(marker = v1)
+    val r2 = makeCountRow(marker = v2)
+        
+    val rows = Seq(r0, r1, r2)
+        
+    val actual = rows.map(Transforms.DataRowTransforms.upperCaseAlleles)
+    
+    val expected = Seq(
+        r0.copy(marker = v0.toUpperCase),
+        r1.copy(marker = v1.toUpperCase),
+        r2.copy(marker = v2.toUpperCase))
         
     assert(actual === expected)
   }
   
   test("clampPvalues") {
     val rows = Seq(
-        AggregatorVariantRow(marker = v0, pvalue = 0.0),
-        AggregatorVariantRow(marker = v1, pvalue = 42.0),
-        AggregatorVariantRow(marker = v2, pvalue = 0.0))
+        makeRow(marker = v0, pvalue = 0.0),
+        makeRow(marker = v1, pvalue = 42.0),
+        makeRow(marker = v2, pvalue = 0.0))
         
     val expected = Seq(
-        AggregatorVariantRow(marker = v0, pvalue = Double.MinPositiveValue),
-        AggregatorVariantRow(marker = v1, pvalue = 42.0),
-        AggregatorVariantRow(marker = v2, pvalue = Double.MinPositiveValue))
+        makeRow(marker = v0, pvalue = Double.MinPositiveValue),
+        makeRow(marker = v1, pvalue = 42.0),
+        makeRow(marker = v2, pvalue = Double.MinPositiveValue))
         
     withLogStore { logStore =>
       val transform = Transforms.DataRowTransforms.clampPValues(logStore, append = true)

@@ -7,9 +7,9 @@ import scala.reflect.runtime.universe.TypeTag
  * @author clint
  * Oct 15, 2020
  */
-trait ColumnDef[A] extends (CsvRow.Tagged => A) {
+trait ColumnDef[A] extends (VariantRow.Tagged => A) {
   
-  override def apply(row: CsvRow.Tagged): A = {
+  override def apply(row: VariantRow.Tagged): A = {
     val exprToInvoke: ColumnExpr[A] = {
       def whenFlipped: ColumnExpr[A] = exprWhenFlipped match {
         case Some(e) => e
@@ -29,9 +29,9 @@ trait ColumnDef[A] extends (CsvRow.Tagged => A) {
 
 final case class MarkerColumnDef(
     name: ColumnName,
-    expr: ColumnExpr[Variant]) extends (CsvRow => Variant) { self =>
+    expr: ColumnExpr[Variant]) extends (DataRow => Variant) { self =>
   
-  override def apply(row: CsvRow): Variant = expr.apply(row)
+  override def apply(row: DataRow): Variant = expr.apply(row)
 }
 
 /**

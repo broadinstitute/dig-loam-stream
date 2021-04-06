@@ -18,7 +18,7 @@ final class DataRowTest extends FunSuite {
   private val n: Double = 16.17
   
   test("values - all fields supplied") {
-    val row = DataRow(
+    val row = AggregatorVariantRow(
       marker = marker,
       pvalue = pvalue,
       zscore = Some(zscore),
@@ -38,13 +38,13 @@ final class DataRowTest extends FunSuite {
       oddsRatio,
       eaf,
       maf,
-      n).map(_.toString)
+      n).map(_.toString).map(Option(_))
       
     assert(row.values === expected)
   }
   
   test("values - some fields supplied") {
-    val row = DataRow(
+    val row = AggregatorVariantRow(
       marker = marker,
       pvalue = pvalue,
       zscore = Some(zscore),
@@ -55,13 +55,16 @@ final class DataRowTest extends FunSuite {
       maf = None,
       n = Some(n))
       
-    val expected = Seq(
-      marker.underscoreDelimited,
-      pvalue,
-      zscore,
-      beta,
-      eaf,
-      n).map(_.toString)
+    val expected: Seq[Option[String]] = Seq(
+      Some(marker.underscoreDelimited),
+      Some(pvalue.toString),
+      Some(zscore.toString),
+      None,
+      Some(beta.toString),
+      None,
+      Some(eaf.toString),
+      None,
+      Some(n.toString))
       
     assert(row.values === expected)
   }

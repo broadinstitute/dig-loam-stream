@@ -28,19 +28,19 @@ object ReadMe extends loamstream.LoamFile with AggregatorCommands {
    * CsvSources are handles to CSV data that may be iterated over:   
    */
   {
-    val someSource: Source[CsvRow] = Source.fromFile(path("some-file.tsv"))
+    val someSource: Source[DataRow] = Source.fromFile(path("some-file.tsv"))
     
-    val rows: Iterator[CsvRow] = someSource.records
+    val rows: Iterator[DataRow] = someSource.records
     
     /*
      * You can filter over the Iterators you get from CsvSources, or you can also get a filtered
      * CsvSource that will always give you filtered Iterators:  
      */
-    val filteredSource: Source[CsvRow] = someSource.filter(ColumnNames.BETA.asDouble > 42.0)
+    val filteredSource: Source[DataRow] = someSource.filter(ColumnNames.BETA.asDouble > 42.0)
     
     //Similarly, you can limit the size of CsvSources or skip leading rows:
-    val first10Source: Source[CsvRow] = someSource.take(10)
-    val skipsFirstRowSource: Source[CsvRow] = someSource.drop(1)
+    val first10Source: Source[DataRow] = someSource.take(10)
+    val skipsFirstRowSource: Source[DataRow] = someSource.drop(1)
   }
   
   /*
@@ -55,8 +55,8 @@ object ReadMe extends loamstream.LoamFile with AggregatorCommands {
    * y   123 world
    * z   13  asdf
    */
-  val firstRow: CsvRow = Source.fromFile(path("some-file.tsv")).records.next()
-  val secondRow: CsvRow = Source.fromFile(path("some-file.tsv")).drop(1).records.next()
+  val firstRow: DataRow = Source.fromFile(path("some-file.tsv")).records.next()
+  val secondRow: DataRow = Source.fromFile(path("some-file.tsv")).drop(1).records.next()
   
   secondRow.getFieldByIndex(0) // => "y"
   secondRow.getFieldByName("BAR") // => "123"
@@ -71,7 +71,7 @@ object ReadMe extends loamstream.LoamFile with AggregatorCommands {
    */
   val BAR = ColumnName("BAR") //or "BAR".asColumnName
     
-  val itReallyIsAFunction: CsvRow => String = BAR
+  val itReallyIsAFunction: DataRow => String = BAR
   
   val barValue = BAR.apply(secondRow) //"123"
   

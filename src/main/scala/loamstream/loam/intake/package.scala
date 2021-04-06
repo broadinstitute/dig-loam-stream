@@ -1,5 +1,15 @@
 package loamstream.loam
 
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
+
+import loamstream.loam.intake.AggregatorVariantRow
+import loamstream.loam.intake.DataRow
+import loamstream.loam.intake.VariantRow
+
+
+
 /**
  * @author clint
  * Dec 17, 2019
@@ -13,28 +23,8 @@ package object intake {
   
   type CloseableTransform[A] = Transform[A] with java.io.Closeable
   
-  type PartialRowParser[A] = PartialFunction[CsvRow, A]
+  type PartialDataRowParser[A] = PartialFunction[DataRow, A]
   
-  type RowParser[A] = CsvRow => A
-  
-  type RowPredicate = Predicate[CsvRow]
-  
-  type CloseableRowPredicate = CloseablePredicate[CsvRow]
-  
-  type RowTransform = Transform[CsvRow]
-  
-  type CloseableRowTransform = CloseableTransform[CsvRow]
-  
-  type TaggedRowParser[A] = CsvRow.Tagged => A
-  
-  type TaggedRowPredicate = Predicate[CsvRow.Tagged]
-  
-  type CloseableTaggedRowPredicate = CloseablePredicate[CsvRow.Tagged]
-  
-  type TaggedRowTransform = Transform[CsvRow.Tagged]
-  
-  type CloseableTaggedRowTransform = CloseableTransform[CsvRow.Tagged] 
-    
   type DataRowParser[A] = DataRow => A
   
   type DataRowPredicate = Predicate[DataRow]
@@ -44,4 +34,33 @@ package object intake {
   type DataRowTransform = Transform[DataRow]
   
   type CloseableDataRowTransform = CloseableTransform[DataRow]
+  
+  type TaggedRowParser[A] = VariantRow.Tagged => A
+  
+  type TaggedRowPredicate = Predicate[VariantRow.Tagged]
+  
+  type CloseableTaggedRowPredicate = CloseablePredicate[VariantRow.Tagged]
+  
+  type TaggedRowTransform = Transform[VariantRow.Tagged]
+  
+  type CloseableTaggedRowTransform = CloseableTransform[VariantRow.Tagged] 
+    
+  type AggregatorVariantRowParser[A] = AggregatorVariantRow => A
+  
+  type AggregatorVariantRowPredicate = Predicate[AggregatorVariantRow]
+  
+  type CloseableAggregatorVariantRowPredicate = CloseablePredicate[AggregatorVariantRow]
+  
+  type AggregatorVariantRowTransform = Transform[AggregatorVariantRow]
+  
+  type CloseableAggregatorVariantRowTransform = CloseableTransform[AggregatorVariantRow]
+  
+  implicit final class CloseablePredicateOps[A](val cp: CloseablePredicate[A]) extends AnyVal {
+    def liftToTry: CloseablePredicate[Try[A]] = {
+      ConcreteCloseablePredicate[Try[A]](cp) { 
+        case Success(a) => cp(a)
+        case Failure(_) => false
+      }
+    }
+  }
 }

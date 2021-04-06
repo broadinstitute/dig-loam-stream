@@ -8,12 +8,16 @@ import org.apache.commons.csv.CSVFormat
  * Dec 17, 2019
  */
 trait Renderer {
-  def render(row: Row): String
+  def render(row: RenderableRow): String
 }
 
 object Renderer {
   final case class CommonsCsv(csvFormat: CSVFormat) extends Renderer {
-    override def render(row: Row): String = csvFormat.format(row.values: _*)
+    override def render(row: RenderableRow): String = {
+      val unpacked = row.values.flatten//map(_.getOrElse(null)) //TODO: null ok?
+      
+      csvFormat.format(unpacked: _*)
+    }
   }  
 }
 

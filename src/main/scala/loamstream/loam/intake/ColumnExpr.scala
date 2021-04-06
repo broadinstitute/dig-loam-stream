@@ -5,37 +5,54 @@ import scala.reflect.runtime.universe.typeTag
 import scala.util.matching.Regex
 import scala.util.control.NonFatal
 import loamstream.util.Sequence
+import scala.util.Try
+import scala.util.Success
+import loamstream.util.Iterators
 
 /**
  * @author clint
  * Dec 17, 2019
  */
 sealed abstract class ColumnExpr[A : TypeTag] extends 
-    ColumnExpr.ArithmeticOps[A] with ColumnExpr.TypeOps[A] with ColumnExpr.BooleanOps[A] with RowParser[A] {
+    ColumnExpr.ArithmeticOps[A] with ColumnExpr.TypeOps[A] with ColumnExpr.BooleanOps[A] with DataRowParser[A] {
+
+  protected def eval(row: DataRow): A
   
   protected[intake] def tpe: TypeTag[A] = implicitly[TypeTag[A]]
   
-  final override def apply(row: CsvRow): A = {
+  final override def apply(row: DataRow): A = {
     try { eval(row) }
     catch {
       case e: CsvProcessingException => throw e
-      case NonFatal(e) => {
-        throw new CsvProcessingException(s"Error processing record number ${row.recordNumber}; row is '$row':", row, e)
-      }
+      case NonFatal(e) => throw newCsvProcessingException(row, e)
     }
   }
   
-  protected def eval(row: CsvRow): A
+  protected def newCsvProcessingException(row: DataRow, cause: Throwable) = {
+    new CsvProcessingException(
+        s"Error processing record number ${row.recordNumber} with expr ${this} (${getClass.getName}); row is '$row':", 
+        row, 
+        cause)
+  }
   
-  def isDefinedAt(row: CsvRow): Boolean = true
+  final def ~>(name: String): NamedColumnDef[A] = NamedColumnDef(name, this)
+  final def ~>(name: ColumnName): NamedColumnDef[A] = NamedColumnDef(name, this)
   
-  final def render(row: CsvRow): String = eval(row).toString
+  def applyOpt(row: DataRow): Option[A] = Try(apply(row)).toOption 
+  
+  def isDefinedAt(row: DataRow): Boolean = true
+  
+  final def render(row: DataRow): String = eval(row).toString
   
   final def map[B: TypeTag](f: A => B): ColumnExpr[B] = MappedColumnExpr(f, this)
   
   final def flatMap[B: TypeTag](f: A => ColumnExpr[B]): ColumnExpr[B] = FlatMappedColumnExpr(f, this)
   
   import ColumnExpr._
+  
+  def or(rhs: ColumnExpr[A]): OrColumnExpr[A] = OrColumnExpr(this, rhs)
+  
+  def asOption: ColumnExpr[Option[A]] = OptionalExpr(this)
   
   def asString: ColumnExpr[String] = {
     if(isStringExpr) { this.asInstanceOf[ColumnExpr[String]] }
@@ -74,15 +91,15 @@ sealed abstract class ColumnExpr[A : TypeTag] extends
     this.map(a => ev(a).getOrElse(default))
   }
   
-  final def matches(regex: String): RowPredicate = matches(regex.r)
+  final def matches(regex: String): DataRowPredicate = matches(regex.r)
   
-  final def matches(regex: Regex): RowPredicate = this.asString.map(regex.pattern.matcher(_).matches)
+  final def matches(regex: Regex): DataRowPredicate = this.asString.map(regex.pattern.matcher(_).matches)
   
   final def trim(implicit ev: A =:= String): ColumnExpr[String] = this.map(_.trim)
   
-  final def isEmpty(implicit ev: A =:= String): RowPredicate = this.map(_.isEmpty)
+  final def isEmpty(implicit ev: A =:= String): DataRowPredicate = this.map(_.isEmpty)
   
-  final def isEmptyIgnoreWhitespace(implicit ev: A =:= String): RowPredicate = this.map(_.trim.isEmpty)
+  final def isEmptyIgnoreWhitespace(implicit ev: A =:= String): DataRowPredicate = this.map(_.trim.isEmpty)
 }
 
 object ColumnExpr {
@@ -99,13 +116,13 @@ object ColumnExpr {
   }
   
   trait BooleanOps[A] { self: ColumnExpr[A] =>
-    final def ===(rhs: A): RowPredicate = this.map(_ == rhs)
-    final def !==(rhs: A): RowPredicate = this.map(_ != rhs) //scalastyle:ignore method.name
+    final def ===(rhs: A): DataRowPredicate = this.map(_ == rhs)
+    final def !==(rhs: A): DataRowPredicate = this.map(_ != rhs) //scalastyle:ignore method.name
     
-    final def <(rhs: A)(implicit ev: Ordering[A]): RowPredicate = this.map(lhs => ev.lt(lhs, rhs))
-    final def <=(rhs: A)(implicit ev: Ordering[A]): RowPredicate = this.map(lhs => ev.lteq(lhs, rhs))
-    final def >(rhs: A)(implicit ev: Ordering[A]): RowPredicate = this.map(lhs => ev.gt(lhs, rhs))
-    final def >=(rhs: A)(implicit ev: Ordering[A]): RowPredicate = this.map(lhs => ev.gteq(lhs, rhs))
+    final def <(rhs: A)(implicit ev: Ordering[A]): DataRowPredicate = this.map(lhs => ev.lt(lhs, rhs))
+    final def <=(rhs: A)(implicit ev: Ordering[A]): DataRowPredicate = this.map(lhs => ev.lteq(lhs, rhs))
+    final def >(rhs: A)(implicit ev: Ordering[A]): DataRowPredicate = this.map(lhs => ev.gt(lhs, rhs))
+    final def >=(rhs: A)(implicit ev: Ordering[A]): DataRowPredicate = this.map(lhs => ev.gteq(lhs, rhs))
   }
   
   trait TypeOps[A] { self: ColumnExpr[A] =>
@@ -140,11 +157,13 @@ object ColumnExpr {
     final def negate(implicit ev: Numeric[A]): ColumnExpr[A] = this.unary_-
   }
   
-  def fromRowParser[A: TypeTag](rowParser: RowParser[A]): ColumnExpr[A] = new ColumnExpr[A] {
-    override def eval(row: CsvRow): A = rowParser(row)
+  def fromRowParser[A: TypeTag](rowParser: DataRowParser[A]): ColumnExpr[A] = new ColumnExpr[A] {
+    override def eval(row: DataRow): A = rowParser(row)
   }
   
-  def fromPartialRowParser[A: TypeTag](rowParser: PartialRowParser[A]): ColumnExpr[A] = new PartialColumnExpr(rowParser)
+  def fromPartialRowParser[A: TypeTag](rowParser: PartialDataRowParser[A]): ColumnExpr[A] = {
+    new PartialColumnExpr(rowParser)
+  }
   
   implicit final class ExprOps[A](val a: A) extends AnyVal {
     def +(rhs: ColumnExpr[A])(implicit ev: Numeric[A], tt: TypeTag[A]): ColumnExpr[A] = LiteralColumnExpr(a) + rhs
@@ -204,16 +223,16 @@ object ColumnExpr {
   }
 }
 
-final class PartialColumnExpr[A: TypeTag](pf: PartialRowParser[A]) extends ColumnExpr[A] {
-  override def eval(row: CsvRow): A = pf(row)
+final class PartialColumnExpr[A: TypeTag](pf: PartialDataRowParser[A]) extends ColumnExpr[A] {
+  override def eval(row: DataRow): A = pf(row)
   
-  override def isDefinedAt(row: CsvRow): Boolean = pf.isDefinedAt(row)
+  override def isDefinedAt(row: DataRow): Boolean = pf.isDefinedAt(row)
 }
 
 final case class LiteralColumnExpr[A: TypeTag](value: A) extends ColumnExpr[A] {
   override def toString: String = value.toString 
   
-  override def eval(ignored: CsvRow): A = value
+  override def eval(ignored: DataRow): A = value
   
   override def asString: ColumnExpr[String] = value match {
     case s: String => this.asInstanceOf[LiteralColumnExpr[String]]
@@ -224,7 +243,7 @@ final case class LiteralColumnExpr[A: TypeTag](value: A) extends ColumnExpr[A] {
 final case class ColumnName(name: String) extends ColumnExpr[String] {
   override def toString: String = s"${getClass.getSimpleName}(${name})"
   
-  override def eval(row: CsvRow): String = {
+  override def eval(row: DataRow): String = {
     val value = row.getFieldByName(name)
     
     require(value != null, s"Field named '$name' not found in record number ${row.recordNumber} (row $row)") 
@@ -246,12 +265,28 @@ object ColumnName {
 }
 
 final case class MappedColumnExpr[A: TypeTag, B: TypeTag](f: A => B, dependsOn: ColumnExpr[A]) extends ColumnExpr[B] {
-  override protected def eval(row: CsvRow): B = f(dependsOn(row))
+  override def toString: String = s"${getClass.getSimpleName}(${f}, ${dependsOn})"
+  
+  override protected def eval(row: DataRow): B = f(dependsOn(row))
 }
 
 final case class FlatMappedColumnExpr[A: TypeTag, B: TypeTag](
     f: A => ColumnExpr[B], 
     dependsOn: ColumnExpr[A]) extends ColumnExpr[B] {
   
-  override protected def eval(row: CsvRow): B = f(dependsOn(row)).apply(row)
+  override def toString: String = s"${getClass.getSimpleName}(${f}, ${dependsOn})"
+  
+  override protected def eval(row: DataRow): B = f(dependsOn(row)).apply(row)
+}
+
+final case class OrColumnExpr[A : TypeTag](lhs: ColumnExpr[A], rhs: ColumnExpr[A]) extends ColumnExpr[A] {
+  override def toString: String = s"${getClass.getSimpleName}(${lhs}, ${rhs})"
+  
+  override protected def eval(row: DataRow): A = Try(lhs(row)).getOrElse(rhs(row))
+}
+
+final case class OptionalExpr[A : TypeTag](dependsOn: ColumnExpr[A]) extends ColumnExpr[Option[A]] {
+  override def toString: String = s"${getClass.getSimpleName}(${dependsOn})"
+  
+  override protected def eval(row: DataRow): Option[A] = dependsOn.applyOpt(row)
 }

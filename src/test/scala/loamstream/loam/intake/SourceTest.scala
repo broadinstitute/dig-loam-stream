@@ -23,7 +23,7 @@ final class SourceTest extends FunSuite {
       Seq("42",  "99",  "123"))
   }
   
-  private val csvRows: Seq[CsvRow] = Helpers.csvRows(rowData.head, rowData.tail: _*)
+  private val csvRows: Seq[DataRow] = Helpers.csvRows(rowData.head, rowData.tail: _*)
   
   private def rowDataToString(data: Seq[Seq[String]]): String = {
     data.map(_.mkString("\t")).mkString(System.lineSeparator)
@@ -31,12 +31,11 @@ final class SourceTest extends FunSuite {
   
   private val rowDataAsString = rowDataToString(rowData)
     
-  private def doCsvSourceRecordsTest(source: Source[CsvRow], expectedRows: Seq[CsvRow] = csvRows): Unit = {
+  private def doCsvSourceRecordsTest(source: Source[DataRow], expectedRows: Seq[DataRow] = csvRows): Unit = {
     doCsvSourceRecordsTest(source.records.toIndexedSeq, expectedRows)
   }
   
-  private def doCsvSourceRecordsTest(actualRows: Seq[CsvRow], expectedRows: Seq[CsvRow]): Unit = {
-    
+  private def doCsvSourceRecordsTest(actualRows: Seq[DataRow], expectedRows: Seq[DataRow]): Unit = {
     actualRows.zip(expectedRows).foreach { case (actualRow, expectedRow) =>
       assert(actualRow.getFieldByName("FOO") === expectedRow.getFieldByName("FOO"))
       assert(actualRow.getFieldByName("BAR") === expectedRow.getFieldByName("BAR"))
@@ -44,6 +43,14 @@ final class SourceTest extends FunSuite {
     }
     
     assert(actualRows.size === expectedRows.size)
+  }
+  
+  test("flatMap") {
+    val is = Source.fromIterable(Seq(1,2,3)).flatMap { i => Source.fromIterable(Seq.fill(i)(i * 2)) }
+    
+    val expected = Seq(2, 4, 4, 6, 6, 6)
+    
+    assert(is.records.toList === expected)
   }
   
   test("Reading zipped input as unzipped should fail") {
@@ -158,7 +165,7 @@ final class SourceTest extends FunSuite {
     val expectedRows = untaggedExpectedRows.map { r =>
       val marker = Variant.from(r.getFieldByName("FOO"))
       
-      CsvRow.Tagged(r, marker, marker, Disposition.NotFlippedSameStrand)
+      VariantRow.Tagged(r, marker, marker, Disposition.NotFlippedSameStrand)
     }
         
     val actualRows = source.records.toIndexedSeq
@@ -166,7 +173,7 @@ final class SourceTest extends FunSuite {
     expectedRows.forall(r => r.marker === r.originalMarker)
     expectedRows.forall(_.disposition === Disposition.NotFlippedSameStrand)
     
-    val rawActualRows = actualRows.map(_.asInstanceOf[CsvRow.Tagged].delegate)
+    val rawActualRows = actualRows.map(_.asInstanceOf[VariantRow.Tagged].delegate)
     
     doCsvSourceRecordsTest(rawActualRows, expectedRows)
   }
@@ -194,12 +201,12 @@ final class SourceTest extends FunSuite {
     
     val untaggedExpectedRows = Helpers.csvRows(rowData.head, rowData.tail: _*)
       
-    def marker(r: CsvRow) = Variant.from(r.getFieldByName("FOO"))
+    def marker(r: DataRow) = Variant.from(r.getFieldByName("FOO"))
     
     def makeTaggedRow(i: Int, disp: Disposition) = {
       val mrkr = marker(untaggedExpectedRows(1))
       
-      CsvRow.Tagged(untaggedExpectedRows(i), mrkr, mrkr, disp)
+      VariantRow.Tagged(untaggedExpectedRows(i), mrkr, mrkr, disp)
     }
     
     val expectedRows = Seq(
@@ -210,7 +217,7 @@ final class SourceTest extends FunSuite {
         
     val actualRows = source.records.toIndexedSeq
     
-    def shouldBeFlipped(r: CsvRow.Tagged): Boolean = flippedVariants.contains(r.originalMarker)
+    def shouldBeFlipped(r: VariantRow.Tagged): Boolean = flippedVariants.contains(r.originalMarker)
     
     val shouldBeFlippedRows = expectedRows.filter(shouldBeFlipped)
     val shouldNOTBeFlippedRows = expectedRows.filterNot(shouldBeFlipped)
@@ -221,7 +228,7 @@ final class SourceTest extends FunSuite {
     shouldBeFlippedRows.forall(_.disposition === Disposition.FlippedSameStrand)
     shouldNOTBeFlippedRows.forall(_.disposition === Disposition.NotFlippedSameStrand)
     
-    val rawActualRows = actualRows.map(_.asInstanceOf[CsvRow.Tagged].delegate)
+    val rawActualRows = actualRows.map(_.asInstanceOf[VariantRow.Tagged].delegate)
     
     doCsvSourceRecordsTest(rawActualRows, expectedRows)
   }
@@ -252,12 +259,12 @@ final class SourceTest extends FunSuite {
     
     val untaggedExpectedRows = Helpers.csvRows(rowData.head, rowData.tail: _*)
       
-    def marker(r: CsvRow) = Variant.from(r.getFieldByName("FOO"))
+    def marker(r: DataRow) = Variant.from(r.getFieldByName("FOO"))
     
     def makeTaggedRow(i: Int, disp: Disposition) = {
       val mrkr = marker(untaggedExpectedRows(1))
       
-      CsvRow.Tagged(untaggedExpectedRows(i), mrkr, mrkr, disp)
+      VariantRow.Tagged(untaggedExpectedRows(i), mrkr, mrkr, disp)
     }
     
     val expectedRows = Seq(
@@ -268,9 +275,9 @@ final class SourceTest extends FunSuite {
         
     val actualRows = source.records.toIndexedSeq
     
-    def shouldBeComplemented(r: CsvRow.Tagged): Boolean = complementedVariants.contains(r.originalMarker) 
-    def shouldBeFlipped(r: CsvRow.Tagged): Boolean = flippedVariants.contains(r.originalMarker)
-    def shouldBeUntouched(r: CsvRow.Tagged): Boolean = !shouldBeComplemented(r) && !shouldBeFlipped(r)
+    def shouldBeComplemented(r: VariantRow.Tagged): Boolean = complementedVariants.contains(r.originalMarker) 
+    def shouldBeFlipped(r: VariantRow.Tagged): Boolean = flippedVariants.contains(r.originalMarker)
+    def shouldBeUntouched(r: VariantRow.Tagged): Boolean = !shouldBeComplemented(r) && !shouldBeFlipped(r)
     
     val shouldBeComplementedRows = expectedRows.filter(shouldBeComplemented)
     val shouldBeFlippedRows = expectedRows.filter(shouldBeFlipped)
@@ -284,7 +291,7 @@ final class SourceTest extends FunSuite {
     shouldBeFlippedRows.forall(_.disposition === Disposition.FlippedSameStrand)
     shouldBeUntouchedRows.forall(_.disposition === Disposition.NotFlippedSameStrand)
     
-    val rawActualRows = actualRows.map(_.asInstanceOf[CsvRow.Tagged].delegate)
+    val rawActualRows = actualRows.map(_.asInstanceOf[VariantRow.Tagged].delegate)
     
     doCsvSourceRecordsTest(rawActualRows, expectedRows)
   }
@@ -312,12 +319,12 @@ final class SourceTest extends FunSuite {
     
     val untaggedExpectedRows = Helpers.csvRows(rowData.head, rowData.tail: _*)
       
-    def marker(r: CsvRow) = Variant.from(r.getFieldByName("FOO"))
+    def marker(r: DataRow) = Variant.from(r.getFieldByName("FOO"))
     
     def makeTaggedRow(i: Int, disp: Disposition) = {
       val mrkr = marker(untaggedExpectedRows(1))
       
-      CsvRow.Tagged(untaggedExpectedRows(i), mrkr, mrkr, disp)
+      VariantRow.Tagged(untaggedExpectedRows(i), mrkr, mrkr, disp)
     }
     
     val expectedRows = Seq(
@@ -328,7 +335,7 @@ final class SourceTest extends FunSuite {
         
     val actualRows = source.records.toIndexedSeq
     
-    def shouldBeComplemented(r: CsvRow.Tagged): Boolean = complementedVariants.contains(r.originalMarker)
+    def shouldBeComplemented(r: VariantRow.Tagged): Boolean = complementedVariants.contains(r.originalMarker)
     
     val shouldBeComplementedRows = expectedRows.filter(shouldBeComplemented)
     val shouldNOTBeComplementedRows = expectedRows.filterNot(shouldBeComplemented)
@@ -339,7 +346,7 @@ final class SourceTest extends FunSuite {
     shouldBeComplementedRows.forall(_.disposition === Disposition.NotFlippedComplementStrand)
     shouldNOTBeComplementedRows.forall(_.disposition === Disposition.NotFlippedSameStrand)
     
-    val rawActualRows = actualRows.map(_.asInstanceOf[CsvRow.Tagged].delegate)
+    val rawActualRows = actualRows.map(_.asInstanceOf[VariantRow.Tagged].delegate)
     
     doCsvSourceRecordsTest(rawActualRows, expectedRows)
   }

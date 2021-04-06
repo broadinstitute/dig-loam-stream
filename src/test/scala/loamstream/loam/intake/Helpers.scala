@@ -15,12 +15,21 @@ import loamstream.loam.intake.flip.Disposition
 object Helpers {
   private final case class SkippableMockCsvRow(
       isSkipped: Boolean, 
-      columnNamesToValues: (String, String)*) extends CsvRow {
+      columnNamesToValues: (String, String)*) extends DataRow {
+    
+    override def headers: Seq[String] = columnNamesToValues.unzip._1
     
     override def toString: String = columnNamesToValues.toString
     
+    override def hasField(name: String): Boolean = columnNamesToValues.exists { case (k, _) => k == name }
+    
     override def getFieldByName(name: String): String = {
-      columnNamesToValues.collectFirst { case (n, v) if name == n => v }.get
+      val opt = columnNamesToValues.collectFirst { case (n, v) if name == n => v }
+      
+      opt match {
+        case Some(result) => result
+        case None => throw CsvProcessingException(s"Couldn't find column '${name}' in ${this}", this, null)
+      }
     }
   
     override def getFieldByIndex(i: Int): String = columnNamesToValues.unzip._2.apply(i)
@@ -29,18 +38,18 @@ object Helpers {
     
     override def recordNumber: Long = 1337
     
-    override def skip: CsvRow = SkippableMockCsvRow(isSkipped = true, columnNamesToValues: _*)
+    override def skip: DataRow = SkippableMockCsvRow(isSkipped = true, columnNamesToValues: _*)
   }
   
-  def csvRow(columnNamesToValues: (String, String)*): CsvRow = SkippableMockCsvRow(false, columnNamesToValues: _*)
+  def csvRow(columnNamesToValues: (String, String)*): DataRow = SkippableMockCsvRow(false, columnNamesToValues: _*)
   
-  def csvRows(columnNames: Seq[String], values: Seq[String]*): Seq[CsvRow] = {
+  def csvRows(columnNames: Seq[String], values: Seq[String]*): Seq[DataRow] = {
     val rows = values.map(rowValues => columnNames.zip(rowValues))
     
     rows.map(row => csvRow(row: _*))
   }
   
-  def sourceProducing(columnNames: Seq[String], values: Seq[String]*): Source[CsvRow] = {
+  def sourceProducing(columnNames: Seq[String], values: Seq[String]*): Source[DataRow] = {
     Source.fromIterable(csvRows(columnNames, values: _*))
   }
   

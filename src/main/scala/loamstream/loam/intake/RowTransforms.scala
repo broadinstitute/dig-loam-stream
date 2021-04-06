@@ -20,12 +20,12 @@ trait RowTransforms { self: IntakeSyntax =>
    *
    */
   object DataRowTransforms {
-    def clampPValues(logStore: Store, append: Boolean = false): CloseableDataRowTransform = {
+    def clampPValues(logStore: Store, append: Boolean = false): CloseableAggregatorVariantRowTransform = {
       clampPValues(Log.toFile(logStore, append))
     }
     
-    def clampPValues(implicit logCtx: ToFileLogContext): CloseableDataRowTransform = {
-      RowTransforms.ConcreteCloseableTransform[DataRow](logCtx) { row =>
+    def clampPValues(implicit logCtx: ToFileLogContext): CloseableAggregatorVariantRowTransform = {
+      ConcreteCloseableTransform[AggregatorVariantRow](logCtx) { row =>
         import row.pvalue
         
         val mungedPValue = if(pvalue == 0.0) {
@@ -46,22 +46,8 @@ trait RowTransforms { self: IntakeSyntax =>
       }
     }
     
-    def upperCaseAlleles: DataRowTransform = { row =>
+    def upperCaseAlleles: AggregatorVariantRowTransform = { row =>
       row.copy(marker = row.marker.toUpperCase)
-    }
-  }
-}
-
-object RowTransforms {
-  final class ConcreteCloseableTransform[A](toClose: Closeable)(t: Transform[A]) extends Transform[A] with Closeable {
-    override def apply(a: A): A = t(a)
-    
-    override def close(): Unit = toClose.close()
-  }
-  
-  object ConcreteCloseableTransform {
-    def apply[A](toClose: Closeable)(p: Transform[A]): ConcreteCloseableTransform[A] = {
-      new ConcreteCloseableTransform(toClose)(p)
     }
   }
 }

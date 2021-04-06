@@ -44,7 +44,7 @@ final class IntakeSyntaxTest extends FunSuite {
     Seq("c", "3"),
     Seq("d", "4"))
   
-  private def toTuple(row: CsvRow): (String, Boolean) = {
+  private def toTuple(row: DataRow): (String, Boolean) = {
     s"${row.getFieldByName("X")}${row.getFieldByName("Y")}" -> row.isSkipped
   }
     
@@ -150,7 +150,7 @@ final class IntakeSyntaxTest extends FunSuite {
           
       val target = new MapFilterAndWriteTarget[Unit](
           store("/dev/null"), 
-          HeaderRow(Seq(MRKR.name, PValue.name)),
+          HeaderRow(MRKR.name, PValue.name),
           source, 
           Fold.foreach(_ => ()),
           Nil)
@@ -171,7 +171,7 @@ final class IntakeSyntaxTest extends FunSuite {
           
       val target = new MapFilterAndWriteTarget[Unit](
           store("/dev/null"), 
-          HeaderRow(Seq(MRKR.name, PValue.name)),
+          HeaderRow(MRKR.name, PValue.name),
           source, 
           Fold.foreach(_ => ()),
           Nil)
@@ -180,7 +180,7 @@ final class IntakeSyntaxTest extends FunSuite {
       
       val unfilteredRows = source.records.toList
       
-      val p = MockCloseablePredicate[DataRow](_.pvalue > 0.2)
+      val p = MockCloseablePredicate[AggregatorVariantRow](_.pvalue > 0.2)
       
       val filtered = target.filter(p)
       
@@ -207,7 +207,7 @@ final class IntakeSyntaxTest extends FunSuite {
           
       val target = new MapFilterAndWriteTarget[Unit](
           store("/dev/null"), 
-          HeaderRow(Seq(MRKR.name, PValue.name)),
+          HeaderRow(MRKR.name, PValue.name),
           source, 
           Fold.foreach(_ => ()),
           Nil)
@@ -239,7 +239,7 @@ final class IntakeSyntaxTest extends FunSuite {
           
       val target = new MapFilterAndWriteTarget[Unit](
           store("/dev/null"), 
-          HeaderRow(Seq(MRKR.name, PValue.name)),
+          HeaderRow(MRKR.name, PValue.name),
           source, 
           Fold.foreach(_ => ()),
           Nil)
@@ -248,7 +248,7 @@ final class IntakeSyntaxTest extends FunSuite {
       
       val unmappedRows = source.records.toList
       
-      val f: Transform[DataRow] = MockCloseableTransform { dr => 
+      val f: Transform[AggregatorVariantRow] = MockCloseableTransform { dr => 
         dr.copy(pvalue = dr.pvalue + 1.0)
       }
       
@@ -281,7 +281,7 @@ final class IntakeSyntaxTest extends FunSuite {
             
         val target = new MapFilterAndWriteTarget[Unit](
             store(outfile), 
-            HeaderRow(Seq(MRKR.name, PValue.name)),
+            HeaderRow(MRKR.name, PValue.name),
             source, 
             Fold.foreach(_ => ()),
             Nil)
@@ -290,7 +290,7 @@ final class IntakeSyntaxTest extends FunSuite {
         
         val unmappedRows = source.records.toList
         
-        val f = MockCloseableTransform[DataRow] { dr => 
+        val f = MockCloseableTransform[AggregatorVariantRow] { dr => 
           dr.copy(pvalue = dr.pvalue + 1.0)
         }
         
@@ -335,14 +335,14 @@ ${v3.underscoreDelimited}${'\t'}1.4""".trim
             
         val target = new MapFilterAndWriteTarget[Unit](
             store(outfile), 
-            HeaderRow(Seq(MRKR.name, PValue.name)),
+            HeaderRow(MRKR.name, PValue.name),
             source, 
             Fold.foreach(_ => ()),
             Nil)
         
         assert(target.toBeClosed === Nil)
         
-        val f = MockCloseableTransform[DataRow] { dr => 
+        val f = MockCloseableTransform[AggregatorVariantRow] { dr => 
           dr.copy(pvalue = dr.pvalue + 1.0)
         }
         
@@ -358,10 +358,10 @@ ${v3.underscoreDelimited}${'\t'}1.4""".trim
 }
 
 object IntakeSyntaxTest {
-  final case class MockCloseableRowPredicate(p: RowPredicate) extends RowPredicate with Closeable {
+  final case class MockCloseableRowPredicate(p: DataRowPredicate) extends DataRowPredicate with Closeable {
     var isClosed = false
     
-    override def apply(row: CsvRow): Boolean = p(row)
+    override def apply(row: DataRow): Boolean = p(row)
     
     override def close(): Unit = isClosed = true
   }

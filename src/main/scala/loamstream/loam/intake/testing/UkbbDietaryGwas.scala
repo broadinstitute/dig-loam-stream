@@ -97,10 +97,10 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
         from(source).
         using(flipDetector).
         via(toAggregatorRows).
-        filter(DataRowFilters.validEaf(filterLog, append = true)).
-        filter(DataRowFilters.validMaf(filterLog, append = true)).
+        filter(AggregatorVariantRowFilters.validEaf(filterLog, append = true)).
+        filter(AggregatorVariantRowFilters.validMaf(filterLog, append = true)).
         map(DataRowTransforms.clampPValues(filterLog, append = true)).
-        filter(DataRowFilters.validPValue(filterLog, append = true)).
+        filter(AggregatorVariantRowFilters.validPValue(filterLog, append = true)).
         withMetric(Metrics.fractionUnknownToBioIndex(unknownToBioIndexFile)).
         withMetric(Metrics.fractionWithDisagreeingBetaStderrZscore(disagreeingZBetaStdErrFile, flipDetector)).
         write().

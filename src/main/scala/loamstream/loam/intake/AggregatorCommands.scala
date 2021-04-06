@@ -72,6 +72,10 @@ trait AggregatorCommands {
         in(aggregatorConfigFile, csvFile)
         
     //TODO: HACK
-    if(forceLocal) { local { command } } else { command }
+    if(forceLocal) {
+      local { command }
+    } else {
+      command
+    }
   }
 }

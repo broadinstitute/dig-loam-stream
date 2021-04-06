@@ -15,8 +15,8 @@ import loamstream.loam.LoamScriptContext
 final class RowFiltersTest extends FunSuite {
   private object Filters extends IntakeSyntax with RowFilters
   
-  import Filters.CsvRowFilters
   import Filters.DataRowFilters
+  import Filters.AggregatorVariantRowFilters
   
   private val v0 = Variant("1_12345_a_t")
   private val v1 = Variant("2_34567_T_c")
@@ -28,7 +28,7 @@ final class RowFiltersTest extends FunSuite {
   
   test("noDsNorIs") {
     withLogStore { logStore =>
-      import Filters.CsvRowFilters
+      import Filters.DataRowFilters
       
       val REF = ColumnName("REF")
       val ALT = ColumnName("ALT")
@@ -41,15 +41,15 @@ final class RowFiltersTest extends FunSuite {
           Seq("A", "I", "42"),
           Seq("A", "T", "42"))
           
-      val predicate = CsvRowFilters.noDsNorIs(refColumn = REF, altColumn = ALT, logStore = logStore, append = true)
+      val predicate = DataRowFilters.noDsNorIs(refColumn = REF, altColumn = ALT, logStore = logStore, append = true)
       
       val filtered = rows.filter(predicate)
       
       val actual = filtered.map(_.values.toIndexedSeq)
       
       val expected = Seq(
-          Seq("G", "C", "42"),
-          Seq("A", "T", "42"))
+          Seq("G", "C", "42").map(Option(_)),
+          Seq("A", "T", "42").map(Option(_)))
      
       assert(actual === expected)
       
@@ -58,9 +58,9 @@ final class RowFiltersTest extends FunSuite {
       val logLines = linesFrom(logStore.path)
       
       assert(logLines.size === 3)
-      assert(logLines.containsOnce("D,T,42"))
-      assert(logLines.containsOnce("D,I,42"))
-      assert(logLines.containsOnce("A,I,42"))
+      assert(logLines.containsOnce(s"(${REF.name},D),(${ALT.name},T),(FOO,42)"))
+      assert(logLines.containsOnce(s"(${REF.name},D),(${ALT.name},I),(FOO,42)"))
+      assert(logLines.containsOnce(s"(${REF.name},A),(${ALT.name},I),(FOO,42)"))
     }
   }
   
@@ -77,7 +77,7 @@ final class RowFiltersTest extends FunSuite {
           Seq("A", "V", "42"),
           Seq("A", "T", "42"))
           
-      val predicate = CsvRowFilters.filterRefAndAlt(
+      val predicate = DataRowFilters.filterRefAndAlt(
                                   refColumn = REF, 
                                   altColumn = ALT,
                                   disallowed = Set("U", "V"),
@@ -89,8 +89,8 @@ final class RowFiltersTest extends FunSuite {
       val actual = filtered.map(_.values.toIndexedSeq)
       
       val expected = Seq(
-          Seq("G", "C", "42"),
-          Seq("A", "T", "42"))
+          Seq("G", "C", "42").map(Option(_)),
+          Seq("A", "T", "42").map(Option(_)))
      
       assert(actual === expected)
       
@@ -99,9 +99,9 @@ final class RowFiltersTest extends FunSuite {
       val logLines = linesFrom(logStore.path)
       
       assert(logLines.size === 3)
-      assert(logLines.containsOnce("U,T,42"))
-      assert(logLines.containsOnce("U,V,42"))
-      assert(logLines.containsOnce("A,V,42"))
+      assert(logLines.containsOnce(s"(${REF.name},U),(${ALT.name},T),(FOO,42)"))
+      assert(logLines.containsOnce(s"(${REF.name},U),(${ALT.name},V),(FOO,42)"))
+      assert(logLines.containsOnce(s"(${REF.name},A),(${ALT.name},V),(FOO,42)"))
     }
   }
   
@@ -111,7 +111,7 @@ final class RowFiltersTest extends FunSuite {
       
       val fooIsEven = FOO.asInt.map(_ % 2 == 0)
       
-      val predicate = CsvRowFilters.logToFile(logStore, append = true)(fooIsEven)
+      val predicate = DataRowFilters.logToFile(logStore, append = true)(fooIsEven)
       
       val rows = Helpers.csvRows(
           Seq(FOO.name, "BAR"),
@@ -123,7 +123,7 @@ final class RowFiltersTest extends FunSuite {
           
       val filtered = rows.filter(predicate)
       
-      val actual = filtered.map(_.values.mkString(" ")).toIndexedSeq
+      val actual = filtered.map(_.values.map(_.get).mkString(" ")).toIndexedSeq
       
       val expected = Seq(
           "2 42",
@@ -136,24 +136,88 @@ final class RowFiltersTest extends FunSuite {
       val logLines = linesFrom(logStore.path)
       
       assert(logLines.size === 3)
-      assert(logLines.containsOnce("1,42"))
-      assert(logLines.containsOnce("3,42"))
-      assert(logLines.containsOnce("7,42"))
+      assert(logLines.containsOnce("(FOO,1),(BAR,42)"))
+      assert(logLines.containsOnce("(FOO,3),(BAR,42)"))
+      assert(logLines.containsOnce("(FOO,7),(BAR,42)"))
+    }
+  }
+  
+  test("logToFile - problematic beta column") {
+    withLogStore { logStore =>
+      val BETA = ColumnName("ALT_EFFSIZE")
+      
+      val data = """|CHR POS REF ALT EAF ALT_EFFSIZE PVALUE bedId chr_hg19 pos_hg19
+                    |15 90225157 G A 0.00157008 1308.44 1 15:90225157:G:A 15 90768389
+                    |15 90225158 C T 0.00157008 8.44 1 15:90225158:C:T 15 90768390""".stripMargin
+      
+      def isValid(b: Double): Boolean = b < 10.0 && b > -10.0
+                    
+      val betaIsValid = BETA.asDouble.map(isValid)
+      
+      val predicate = DataRowFilters.logToFile(logStore, append = true)(betaIsValid)
+      
+      val rows = Source.fromString(data, Source.Formats.spaceDelimitedWithHeader)
+          
+      val filtered = rows.filter(predicate)
+      
+      val actual = filtered.map(_.values.map(_.get).mkString(" ")).records.toIndexedSeq
+      
+      val expected = Seq("15 90225158 C T 0.00157008 8.44 1 15:90225158:C:T 15 90768390")
+          
+      assert(actual === expected)
+      
+      predicate.close()
+      
+      val logLines = linesFrom(logStore.path)
+      
+      assert(logLines.size === 1)
+      assert(logLines.containsOnce("15:90225157:G:A"))
+    }
+  }
+  
+  test("logToFile - problematic beta column - actual data file subset") {
+    withLogStore { logStore =>
+      val BETA = ColumnName("ALT_EFFSIZE")
+      
+      def isValid(b: Double): Boolean = b < 10.0 && b > -10.0
+                    
+      val betaIsValid = BETA.asDouble.map(isValid)
+      
+      val predicate = DataRowFilters.logToFile(logStore, append = true)(betaIsValid)
+      
+      import TestHelpers.path
+      
+      val rows = Source.fromFile(path("src/test/resources/intake/bad-line.tsv"))
+          
+      val filtered = rows.filter(predicate)
+      
+      val actual = filtered.map(_.values.mkString(" ")).records.toIndexedSeq
+      
+      val expected = Nil
+          
+      assert(actual === expected)
+      
+      predicate.close()
+      
+      val logLines = linesFrom(logStore.path)
+      
+      assert(logLines.size === 1)
+      assert(logLines.containsOnce("(bedId,15:90225157:G:A)"))
     }
   }
   
   test("validEaf") {
     withLogStore { logStore => 
-      val predicate = DataRowFilters.validEaf(logStore, append = true)
+      val predicate = AggregatorVariantRowFilters.validEaf(logStore, append = true)
       
       val rows = Seq(
-          DataRow(marker = Variant("1_12345_T_C"), pvalue = 0.5, eaf = Some(1.0)),
-          DataRow(marker = Variant("2_12345_T_C"), pvalue = 0.5, eaf = Some(0.99)),
-          DataRow(marker = Variant("3_12345_T_C"), pvalue = 0.5, eaf = Some(0.0)),
-          DataRow(marker = Variant("4_12345_T_C"), pvalue = 0.5, eaf = Some(-1.0)),
-          DataRow(marker = Variant("2_12345_T_C"), pvalue = 0.5, eaf = Some(0.25)),
-          DataRow(marker = Variant("5_12345_T_C"), pvalue = 0.5, eaf = Some(100.0)),
-          DataRow(marker = Variant("6_12345_T_C"), pvalue = 0.5, eaf = Some(-10.0)))
+          AggregatorVariantRow(marker = Variant("1_12345_T_C"), pvalue = 0.5, eaf = Some(1.0)),
+          AggregatorVariantRow(marker = Variant("2_12345_T_C"), pvalue = 0.5, eaf = Some(0.99)),
+          AggregatorVariantRow(marker = Variant("3_12345_T_C"), pvalue = 0.5, eaf = Some(0.0)),
+          AggregatorVariantRow(marker = Variant("4_12345_T_C"), pvalue = 0.5, eaf = Some(-1.0)),
+          AggregatorVariantRow(marker = Variant("2_12345_T_C"), pvalue = 0.5, eaf = Some(0.25)),
+          AggregatorVariantRow(marker = Variant("5_12345_T_C"), pvalue = 0.5, eaf = Some(100.0)),
+          AggregatorVariantRow(marker = Variant("6_12345_T_C"), pvalue = 0.5, eaf = Some(-10.0)))
           
       val filtered = rows.filter(predicate)
       
@@ -178,16 +242,16 @@ final class RowFiltersTest extends FunSuite {
   
   test("validMaf") {
     withLogStore { logStore => 
-      val predicate = DataRowFilters.validMaf(logStore, append = true)
+      val predicate = AggregatorVariantRowFilters.validMaf(logStore, append = true)
       
       val rows = Seq(
-          DataRow(marker = Variant("1_12345_T_C"), pvalue = 0.5, maf = Some(0.51)),
-          DataRow(marker = Variant("2_12345_T_C"), pvalue = 0.5, maf = Some(0.5)),
-          DataRow(marker = Variant("3_12345_T_C"), pvalue = 0.5, maf = Some(0.0)),
-          DataRow(marker = Variant("4_12345_T_C"), pvalue = 0.5, maf = Some(-1.0)),
-          DataRow(marker = Variant("2_12345_T_C"), pvalue = 0.5, maf = Some(0.25)),
-          DataRow(marker = Variant("5_12345_T_C"), pvalue = 0.5, maf = Some(100.0)),
-          DataRow(marker = Variant("6_12345_T_C"), pvalue = 0.5, maf = Some(-10.0)))
+          AggregatorVariantRow(marker = Variant("1_12345_T_C"), pvalue = 0.5, maf = Some(0.51)),
+          AggregatorVariantRow(marker = Variant("2_12345_T_C"), pvalue = 0.5, maf = Some(0.5)),
+          AggregatorVariantRow(marker = Variant("3_12345_T_C"), pvalue = 0.5, maf = Some(0.0)),
+          AggregatorVariantRow(marker = Variant("4_12345_T_C"), pvalue = 0.5, maf = Some(-1.0)),
+          AggregatorVariantRow(marker = Variant("2_12345_T_C"), pvalue = 0.5, maf = Some(0.25)),
+          AggregatorVariantRow(marker = Variant("5_12345_T_C"), pvalue = 0.5, maf = Some(100.0)),
+          AggregatorVariantRow(marker = Variant("6_12345_T_C"), pvalue = 0.5, maf = Some(-10.0)))
           
       val filtered = rows.filter(predicate)
       
@@ -212,16 +276,16 @@ final class RowFiltersTest extends FunSuite {
   
   test("validPvalue") {
     withLogStore { logStore => 
-      val predicate = DataRowFilters.validPValue(logStore, append = true)
+      val predicate = AggregatorVariantRowFilters.validPValue(logStore, append = true)
       
       val rows = Seq(
-          DataRow(marker = Variant("1_12345_T_C"), pvalue = 1.0),
-          DataRow(marker = Variant("2_12345_T_C"), pvalue = 0.99),
-          DataRow(marker = Variant("3_12345_T_C"), pvalue = 0.0),
-          DataRow(marker = Variant("4_12345_T_C"), pvalue = -1.0),
-          DataRow(marker = Variant("2_12345_T_C"), pvalue = 0.25),
-          DataRow(marker = Variant("5_12345_T_C"), pvalue = 100.0),
-          DataRow(marker = Variant("6_12345_T_C"), pvalue = -10.0))
+          AggregatorVariantRow(marker = Variant("1_12345_T_C"), pvalue = 1.0),
+          AggregatorVariantRow(marker = Variant("2_12345_T_C"), pvalue = 0.99),
+          AggregatorVariantRow(marker = Variant("3_12345_T_C"), pvalue = 0.0),
+          AggregatorVariantRow(marker = Variant("4_12345_T_C"), pvalue = -1.0),
+          AggregatorVariantRow(marker = Variant("2_12345_T_C"), pvalue = 0.25),
+          AggregatorVariantRow(marker = Variant("5_12345_T_C"), pvalue = 100.0),
+          AggregatorVariantRow(marker = Variant("6_12345_T_C"), pvalue = -10.0))
           
       val filtered = rows.filter(predicate)
       

@@ -15,6 +15,7 @@ import loamstream.util.Files
 import scala.collection.mutable.Buffer
 import scala.collection.mutable.ArrayBuffer
 import loamstream.loam.intake.RowSink
+import loamstream.loam.intake.RenderableRow
 
 
 /**
@@ -60,16 +61,16 @@ final class MetricTest extends FunSuite {
   private val zeroedChromosomeCounts: Map[String, Int] = Chromosomes.names.map(_ -> 0).toMap                            
                             
   test("countGreaterThan") {
-    val gt2 = Metric.countGreaterThan(_.dataRow.pvalue)(2)
-    val gt4 = Metric.countGreaterThan(_.dataRow.pvalue)(4)
+    val gt2 = Metric.countGreaterThan(_.aggRow.pvalue)(2)
+    val gt4 = Metric.countGreaterThan(_.aggRow.pvalue)(4)
     
     doMetricTest(gt4, expected = 2)(rowsNoFlips)
     doMetricTest(gt2, expected = 4)(rowsNoFlips)
   }
   
   test("fractionGreaterThan") {
-    val fracGt2 = Metric.fractionGreaterThan(_.dataRow.pvalue)(2)
-    val fracGt4 = Metric.fractionGreaterThan(_.dataRow.pvalue)(4)
+    val fracGt2 = Metric.fractionGreaterThan(_.aggRow.pvalue)(2)
+    val fracGt4 = Metric.fractionGreaterThan(_.aggRow.pvalue)(4)
     
     doMetricTest(fracGt4, expected = (2d / 6d))(rowsNoFlips)
     doMetricTest(fracGt2, expected = (4d / 6d))(rowsNoFlips)
@@ -252,7 +253,7 @@ final class MetricTest extends FunSuite {
   }
   
   test("mean") {
-    val mean = Metric.mean(_.dataRow.pvalue)
+    val mean = Metric.mean(_.aggRow.pvalue)
     
     doMetricTest(mean, expected = (1 + 2 + 3 + 4 + 5 + 6) / 6.0)(rowsNoFlips)
   }
@@ -374,7 +375,7 @@ final class MetricTest extends FunSuite {
     val parsedRows = source.tagFlips(markerDef, flipDetector).map(toAggregatorFormat)
     
     val withSomeSkips = parsedRows.map { row =>
-      if(skipped.contains(row.dataRowOpt.get.marker)) row.skip else row
+      if(skipped.contains(row.aggRowOpt.get.marker)) row.skip else row
     }
     
     doMetricTest(metric, expected = expected)(withSomeSkips)
@@ -515,15 +516,15 @@ final class MetricTest extends FunSuite {
     }
                       
     val expected = Seq(
-                    DataRow(Variant(Vars.x), 99),
-                    DataRow(Variant(Vars.z), 99),
-                    DataRow(Variant(Vars.b), 99),
-                    DataRow(Variant(Vars.c), 99))
+        AggregatorVariantRow(Variant(Vars.x), 99, derivedFromRecordNumber = Some(1)),
+        AggregatorVariantRow(Variant(Vars.z), 99, derivedFromRecordNumber = Some(3)),
+        AggregatorVariantRow(Variant(Vars.b), 99, derivedFromRecordNumber = Some(5)),
+        AggregatorVariantRow(Variant(Vars.c), 99, derivedFromRecordNumber = Some(6)))
     
-    val written: Buffer[Row] = new ArrayBuffer                       
+    val written: Buffer[RenderableRow] = new ArrayBuffer                       
       
     val sink: RowSink = new RowSink {
-      override def accept(row: Row): Unit = written += row
+      override def accept(row: RenderableRow): Unit = written += row
       
       override def close(): Unit = ()
     }
@@ -533,7 +534,7 @@ final class MetricTest extends FunSuite {
     assert(written === expected)
   }
   
-  private def doMetricTest[A](metric: Metric[A], expected: A)(rows: Source[CsvRow.Parsed]): Unit = {
+  private def doMetricTest[A](metric: Metric[A], expected: A)(rows: Source[VariantRow.Parsed]): Unit = {
     assert(Fold.fold(rows.records)(metric) === expected)
     
     assert(Fold.fold(rows.records.toList)(metric) === expected)

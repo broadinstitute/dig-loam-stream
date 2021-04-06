@@ -1,29 +1,33 @@
 package loamstream.loam.intake
 
 import java.io.Closeable
-import java.nio.file.Path
-import org.apache.commons.csv.CSVFormat
 import java.io.Writer
-import java.nio.file.Files
 import java.nio.charset.StandardCharsets
-import loamstream.util.ValueBox
+import java.nio.file.Files
+import java.nio.file.Path
+
+import org.apache.commons.csv.CSVFormat
 
 /**
  * @author clint
  * Oct 13, 2020
  */
 trait RowSink extends Closeable {
-  def accept(row: Row): Unit
+  def accept(row: RenderableRow): Unit
+}
+
+trait JsonRowSink extends Closeable {
+  def accept(row: RenderableJsonRow): Unit
 }
 
 object RowSink {
   final case class ToFile(path: Path, csvFormat: CSVFormat = Source.Defaults.csvFormat) extends RowSink {
     private lazy val writer: Writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8)
     
-    private[this] val anythingWritten: ValueBox[Boolean] = ValueBox(false)
+    @volatile private[this] var anythingWritten: Boolean = false
     
     override def close(): Unit = {
-      if(anythingWritten()) {
+      if(anythingWritten) {
         writer.close()
       }
     }
@@ -32,8 +36,8 @@ object RowSink {
     
     private val renderer: Renderer = Renderer.CommonsCsv(csvFormat)
     
-    override def accept(row: Row): Unit = {
-      anythingWritten := true
+    override def accept(row: RenderableRow): Unit = {
+      anythingWritten = true
       
       def addLineEndingIfNeeded(line: String) = if(line.endsWith(lineSeparator)) line else s"${line}${lineSeparator}"
       

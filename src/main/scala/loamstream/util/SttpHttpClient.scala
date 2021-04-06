@@ -1,8 +1,6 @@
 package loamstream.util
 
-import sttp.client.HttpURLConnectionBackend
-import sttp.client.basicRequest
-import sttp.client.UriContext
+import sttp.client._
 
 /**
  * @author clint
@@ -11,19 +9,57 @@ import sttp.client.UriContext
 final class SttpHttpClient extends HttpClient with Loggable {
   private val backend = HttpURLConnectionBackend()
   
-  override def get(url: String): Either[String, String] = {
+  import SttpHttpClient.RequestOps
+  
+  private def doGetRequest[A](
+      url: String, 
+      auth: Option[HttpClient.Auth], 
+      asType: ResponseAs[Either[String, A], Nothing]): Either[String, A] = {
+    
     trace(s"Invoking GET $url")
     
-    val request = basicRequest.get(uri"${url}")
+    val request = basicRequest.get(uri"${url}").withAuth(auth).response(asType)
     
-    backend.send(request).body 
+    backend.send(request).body
   }
   
-  override def contentLength(url: String): Either[String, Long] = {
+  override def get(url: String, auth: Option[HttpClient.Auth] = None): Either[String, String] = {
+    doGetRequest(url, auth, asString)
+  }
+  
+  override def getAsBytes(url: String, auth: Option[HttpClient.Auth] = None): Either[String, Array[Byte]] = {
+    doGetRequest(url, auth, asByteArray)
+  }
+  
+  override def contentLength(url: String, auth: Option[HttpClient.Auth] = None): Either[String, Long] = {
     trace(s"Invoking HEAD $url")
     
-    val request = basicRequest.head(uri"${url}")
+    val request = basicRequest.head(uri"${url}").withAuth(auth)
     
     backend.send(request).contentLength.toRight(s"No content-length returned when invoking HEAD ${url}")
+  }
+  
+  override def post(
+      url: String, 
+      body: Option[String] = None, 
+      headers: Map[String, String] = Map.empty,
+      auth: Option[HttpClient.Auth] = None): Either[String, String] = {
+    
+    trace(s"Invoking POST ${url} ; headers = ${headers} ; body size: ${body.map(_.size)}")
+    
+    val request = basicRequest.post(uri"${url}").body(body.getOrElse("")).headers(headers).withAuth(auth)
+    
+    val response = backend.send(request)
+    
+    response.body
+  }
+}
+
+object SttpHttpClient {
+  private final implicit class RequestOps[A, B](val req: Request[A, B]) extends AnyVal {
+    def withAuth(authOpt: Option[HttpClient.Auth]): Request[A, B] = authOpt match {
+      case Some(HttpClient.Auth(username, password)) => req.auth.basic(username, password)
+      case _ => req
+    }
   }
 }

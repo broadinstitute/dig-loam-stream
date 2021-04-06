@@ -18,7 +18,7 @@ final case class AggregatorRowExpr(
     eafDef: Option[NamedColumnDef[Double]] = None,
     mafDef: Option[NamedColumnDef[Double]] = None,
     nDef: Option[NamedColumnDef[Double]] = None,
-    failFast: Boolean = false) extends TaggedRowParser[CsvRow.Parsed] {
+    failFast: Boolean = false) extends TaggedRowParser[VariantRow.Parsed] {
   
   def columnNames: Seq[ColumnName] = {
     //NB: Note that this order matters. :\ 
@@ -50,10 +50,10 @@ final case class AggregatorRowExpr(
       n = nDef.map(nameOf))
   }
   
-  override def apply(row: CsvRow.Tagged): CsvRow.Parsed = { 
-    def transformed = CsvRow.Transformed(
+  override def apply(row: VariantRow.Tagged): VariantRow.Parsed = { 
+    def transformed = VariantRow.Transformed(
       derivedFrom = row, 
-      dataRow = DataRow(
+      aggRow = AggregatorVariantRow(
         marker = row.marker,
         pvalue = pvalueDef.apply(row),
         zscore = zscoreDef.map(_.apply(row)),
@@ -62,18 +62,19 @@ final case class AggregatorRowExpr(
         oddsRatio = oddsRatioDef.map(_.apply(row)),
         eaf = eafDef.map(_.apply(row)),
         maf = mafDef.map(_.apply(row)),
-        n = nDef.map(_.apply(row))))
+        n = nDef.map(_.apply(row)),
+        derivedFromRecordNumber = Some(row.recordNumber)))
         
-    def skipped(cause: Option[Failure[CsvRow.Parsed]]) = CsvRow.Skipped(row, dataRowOpt = None, cause = cause)
+    def skipped(cause: Option[Failure[VariantRow.Parsed]]) = VariantRow.Skipped(row, aggRowOpt = None, cause = cause)
         
     if(row.isSkipped) {
       skipped(cause = None)
     } else {
-      val attempt: Try[CsvRow.Parsed] = Try(transformed)
+      val attempt: Try[VariantRow.Parsed] = Try(transformed)
       
       attempt match {
         case Success(r) => r
-        case f @ Failure(_) => if(failFast) attempt.get else attempt.getOrElse(skipped(Some(f)))
+        case f @ Failure(e) => if(failFast) attempt.get else attempt.getOrElse(skipped(Some(f)))
       }
     }
   }

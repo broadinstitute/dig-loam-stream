@@ -2,7 +2,7 @@ package loamstream.loam.intake.flip
 
 import org.scalatest.FunSuite
 
-import loamstream.loam.intake.CsvRow
+import loamstream.loam.intake.DataRow
 import loamstream.loam.intake.LiteralColumnExpr
 import loamstream.loam.intake.IntakeSyntax
 
@@ -43,7 +43,7 @@ final class VarIdTransformationTest extends FunSuite {
     val dataRows = rows.tagFlips(varIdDef, flipDetector).map(toAggregatorRow).records.toIndexedSeq
     
     assert(dataRows.size === 1)
-    assert(dataRows.head.dataRowOpt.get.marker === v)
+    assert(dataRows.head.aggRowOpt.get.marker === v)
   }
   
   test("Var ids are transformed properly when flips are detected") {
@@ -51,13 +51,15 @@ final class VarIdTransformationTest extends FunSuite {
     
     def inputVarIds = inputsAndExpectedOutputs.iterator.collect { case (i, _) => i }
     
-    val source: Source[CsvRow] = Source.FromIterator {
-      inputVarIds.map(i => LiteralCsvRow(varIdColumnName.name, i.underscoreDelimited)) 
+    val source: Source[DataRow] = Source.FromIterator {
+      inputVarIds.zipWithIndex.map { case (variant, i) => 
+        LiteralCsvRow(varIdColumnName.name, variant.underscoreDelimited, i.toLong) 
+      }
     }
     
     val dataRows = source.tagFlips(varIdDef, flipDetector).map(toAggregatorRow)
-      
-    val actualVarIds = dataRows.map(_.dataRowOpt.get.marker)
+    
+    val actualVarIds = dataRows.map(_.aggRowOpt.get.marker)
       
     actualVarIds.records.zip(inputsAndExpectedOutputs.iterator).foreach { case (actual, (input, expected)) =>
       def msg = {
@@ -174,9 +176,17 @@ final class VarIdTransformationTest extends FunSuite {
 }
 
 object VarIdTransformationTest {
-  final case class LiteralCsvRow(private val fieldName: String, private val fieldValue: String) extends CsvRow {
+  final case class LiteralCsvRow(
+      private val fieldName: String, 
+      private val fieldValue: String,
+      recordNumber: Long = 42) extends DataRow {
+    
+    override def headers: Seq[String] = Seq(fieldName)
+    
+    override def hasField(name: String): Boolean = name == fieldName
+    
     override def getFieldByName(name: String): String = {
-      require(name == fieldName)
+      require(hasField(name))
       
       fieldValue
     }
@@ -189,10 +199,8 @@ object VarIdTransformationTest {
     
     override def size: Int = 1
     
-    override def recordNumber: Long = ???
-    
     override def isSkipped: Boolean = false
     
-    override def skip: CsvRow = ???
+    override def skip: DataRow = ???
   }
 }

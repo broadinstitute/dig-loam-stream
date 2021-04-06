@@ -25,4 +25,50 @@ final class ColumnTransformsTest extends FunSuite {
     
     assert(actual === expected)
   }
+  
+  test("normalizeChromNames") {
+    val a = "A"
+    val b = "B"
+    
+    val inputChromNames = (1 to 22).map(_.toString) ++ Seq("X", "y", "xY", "M", "m")
+    
+    val rows = {
+      //Add leading 'chr'
+      val values = {
+        inputChromNames.zipWithIndex.map { case (c, i) =>
+          val aPart = {
+            if(i % 2 == 0) { s"chr${c}" }
+            else if(i % 3 == 0) { s"ChR${c}" }
+            else { c.toString }
+          }
+          
+          Seq(aPart, "foo")
+        }
+      }
+      
+      Helpers.csvRows(
+        Seq("A", "B"),
+        values: _*)
+    }
+        
+    val expr = ColumnTransforms.normalizeChromNames(ColumnName("A"))
+    
+    val actual = rows.map(expr)
+    
+    val expected = (1 to 22).map(_.toString) ++ Seq("X", "Y", "XY", "M", "M")
+    
+    assert(actual === expected)
+  }
+  
+  test("Problematic chromosome") {
+    val row = Helpers.csvRows(
+        Seq("A", "B"),
+        Seq("chr11_KI270721v1_random", "foo")).head
+    
+    val expr = ColumnTransforms.normalizeChromNames(ColumnName("A"))
+    
+    intercept[Exception] {
+      expr(row)
+    }
+  }
 }

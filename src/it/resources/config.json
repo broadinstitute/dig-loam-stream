@@ -1,0 +1,8 @@
+{
+  "emr": {
+    "subnetId": "subnet-ab89bbf3",
+    "sshKeyName": "GenomeStore REST",
+    "securityGroupIds": [ "sg-2b58c961" ]
+  },
+  "s3": { "bucket": "dig-integration-tests" }
+}

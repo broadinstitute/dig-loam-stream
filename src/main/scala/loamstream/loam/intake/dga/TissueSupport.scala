@@ -40,9 +40,13 @@ trait TissueSupport { self: Loggable =>
         (json \ "tissues") match {
           case JArray(os) => os.collect { case o: JObject => o }
           case _ => {
-            val first1000 = compact(render(json)).take(1000)
+            import Defaults.numTissuesToPrintWhenLogging
             
-            sys.error(s"Couldn't parse 'tissues' array; first 1k characters follows: '${first1000}'")
+            val firstN = compact(render(json)).take(numTissuesToPrintWhenLogging)
+            
+            sys.error { 
+              s"Couldn't parse 'tissues' array; first ${numTissuesToPrintWhenLogging} characters follows: '${firstN}'"
+            }
           }
         }
       }
@@ -74,6 +78,8 @@ trait TissueSupport { self: Loggable =>
     
     object Defaults {
       val tissueUrl: String = "http://www.diabetesepigenome.org:8080/tissueOntology"
+      
+      val numTissuesToPrintWhenLogging: Int = 1000
     }
   }
 }

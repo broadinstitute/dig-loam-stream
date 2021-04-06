@@ -26,7 +26,7 @@ object AwsRowSink {
   
     def randomUUID: String = UUID.randomUUID.toString
   
-    def batchSize: Int = 300000
+    val batchSize: Int = 300000
     
     def baseDir: Option[String] = None
   }

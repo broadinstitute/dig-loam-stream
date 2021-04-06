@@ -38,6 +38,8 @@ import loamstream.util.TimeUtils
 object IntakeSyntax extends IntakeSyntax {
   object Defaults {
     val bioIndexClient: BioIndexClient = new BioIndexClient.Default()
+    
+    val numDryRunRows: Int = 10
   }
 }
 
@@ -312,7 +314,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
         dryRun: Boolean = false,
         dryRunOutputDir: Option[Path] = None)(implicit scriptContext: LoamScriptContext): Tool = {
       
-      val rowsToProcess = if(dryRun) rows.take(10) else rows
+      val rowsToProcess = if(dryRun) rows.take(IntakeSyntax.Defaults.numDryRunRows) else rows
       
       def writeLines: Metric[R, Unit] = Metric.writeValidVariantsTo(rowSink)
       

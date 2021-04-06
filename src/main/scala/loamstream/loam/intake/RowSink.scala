@@ -12,16 +12,31 @@ import org.apache.commons.csv.CSVFormat
  * @author clint
  * Oct 13, 2020
  */
-trait RowSink extends Closeable {
-  def accept(row: RenderableRow): Unit
-}
-
-trait JsonRowSink extends Closeable {
-  def accept(row: RenderableJsonRow): Unit
+trait RowSink[-R] extends Closeable {
+  def accept(row: R): Unit
 }
 
 object RowSink {
-  final case class ToFile(path: Path, csvFormat: CSVFormat = Source.Defaults.csvFormat) extends RowSink {
+  object Renderers {
+    def csv(csvFormat: CSVFormat): RenderableRow => String = {
+      val renderer = Renderer.CommonsCsv(csvFormat)
+      
+      row => renderer.render(row)
+    }
+    
+    def json: RenderableJsonRow => String = { row =>
+      import org.json4s._
+      import org.json4s.jackson.JsonMethods._
+      
+      val obj = JObject(row.jsonValues.toList)
+      
+      compact(render(obj))
+    }
+  }
+  
+  final case class ToFile[R <: RenderableRow](
+      path: Path,
+      renderRow: R => String) extends RowSink[R] {
     private lazy val writer: Writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8)
     
     @volatile private[this] var anythingWritten: Boolean = false
@@ -34,14 +49,12 @@ object RowSink {
     
     private val lineSeparator: String = System.lineSeparator
     
-    private val renderer: Renderer = Renderer.CommonsCsv(csvFormat)
-    
-    override def accept(row: RenderableRow): Unit = {
+    override def accept(row: R): Unit = {
       anythingWritten = true
       
       def addLineEndingIfNeeded(line: String) = if(line.endsWith(lineSeparator)) line else s"${line}${lineSeparator}"
       
-      writer.write(addLineEndingIfNeeded(renderer.render(row)))
+      writer.write(addLineEndingIfNeeded(renderRow(row)))
     }
   }
 }

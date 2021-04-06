@@ -36,6 +36,9 @@ final case class Variant(chrom: String, pos: Int, ref: String, alt: String) {
   def isSingleNucleotide: Boolean = ref.size == 1 && alt.size == 1
   
   def isMultiNucleotide: Boolean = ref.size > 1 || alt.size > 1
+  
+  //TODO: Something faster?  Don't make an array of parts and throw it away?
+  def isMultiAllelic: Boolean = alt.split(',').size > 1
 }
   
 object Variant {

@@ -5,6 +5,10 @@ import org.scalatest.FunSuite
 import loamstream.loam.intake.DataRow
 import loamstream.loam.intake.LiteralColumnExpr
 import loamstream.loam.intake.IntakeSyntax
+import loamstream.loam.intake.PValueVariantRow
+import loamstream.loam.intake.metrics.BioIndexClient
+import loamstream.loam.intake.Dataset
+import loamstream.loam.intake.Phenotype
 
 
 
@@ -28,9 +32,25 @@ final class VarIdTransformationTest extends FunSuite {
     varIdColumnName,
     variantExpr)
     
-  private val toAggregatorRow: AggregatorRowExpr = AggregatorRowExpr(
+  private val metadata = AggregatorMetadata(
+    bucketName = "some-bucket",
+    topic = Option(UploadType.Variants),
+    dataset = "asdasdasd",
+    phenotype = "akjdslfhsdf",
+    ancestry = Ancestry.AA,
+    tech = TechType.ExChip,
+    quantitative = None)
+    
+  val bioIndexClient: BioIndexClient = loamstream.loam.intake.Helpers.BioIndexClients.Mock(
+      knownDatasets = Set(Dataset(metadata.dataset)),
+      knownPhenotypes = Set(Phenotype(metadata.phenotype, false)))
+    
+  private val toAggregatorRow: PValueVariantRowExpr = VariantRowExpr.PValueVariantRowExpr(
+    metadata = metadata,
     markerDef = varIdDef,
-    pvalueDef = NamedColumnDef(AggregatorColumnNames.pvalue, LiteralColumnExpr(42.0)))
+    pvalueDef = AnonColumnDef(LiteralColumnExpr(42.0)),
+    nDef = Some(AnonColumnDef(LiteralColumnExpr(99))),
+    bioIndexClient = bioIndexClient)
   
   
   test("problematic variant 1_713131_AT_A") {
@@ -43,7 +63,7 @@ final class VarIdTransformationTest extends FunSuite {
     val dataRows = rows.tagFlips(varIdDef, flipDetector).map(toAggregatorRow).records.toIndexedSeq
     
     assert(dataRows.size === 1)
-    assert(dataRows.head.aggRowOpt.get.marker === v)
+    assert(dataRows.head.aggRowOpt.get.asInstanceOf[PValueVariantRow].marker === v)
   }
   
   test("Var ids are transformed properly when flips are detected") {
@@ -59,7 +79,7 @@ final class VarIdTransformationTest extends FunSuite {
     
     val dataRows = source.tagFlips(varIdDef, flipDetector).map(toAggregatorRow)
     
-    val actualVarIds = dataRows.map(_.aggRowOpt.get.marker)
+    val actualVarIds = dataRows.map(_.aggRowOpt.get.asInstanceOf[PValueVariantRow].marker)
       
     actualVarIds.records.zip(inputsAndExpectedOutputs.iterator).foreach { case (actual, (input, expected)) =>
       def msg = {

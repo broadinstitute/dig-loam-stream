@@ -156,10 +156,12 @@ object Source extends Loggable {
       val processBuilder = new java.lang.ProcessBuilder(bashScriptForCommand.commandTokens: _*)
       
       val process = processBuilder.start()
-            
-      toCsvRowIterator(
+         
+      val delegate = toCsvRowIterator(
           new InputStreamReader(process.getInputStream), 
           csvFormat)
+          
+      TakesEndingActionIterator(delegate)(process.destroy())
     }
   }
   

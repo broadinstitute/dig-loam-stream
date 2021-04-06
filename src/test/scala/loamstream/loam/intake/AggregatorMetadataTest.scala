@@ -1,7 +1,6 @@
 package loamstream.loam.intake
 
 import org.scalatest.FunSuite
-import org.scalactic.source.Position.apply
 import scala.collection.Seq
 
 /**
@@ -32,15 +31,15 @@ final class AggregatorMetadataTest extends FunSuite {
 
       val dataset = "some-dataset"
       val phenotype = "some-phenotype"
-      val varIdFormat = "{alt}_{ref}_{pos}_{chrom}"
-      val ancestry = "some ancestry"
-      val tech = "some tech"
+      val ancestry = Ancestry.AA
+      val tech = TechType.ExChip
       val properties = Seq("x" -> "123", "a" -> "456")
     
       val m = AggregatorMetadata(
+        bucketName = "some-bucket",
+        topic = Option(UploadType.Variants),
         dataset = dataset,
         phenotype = phenotype,
-        varIdFormat = varIdFormat,
         ancestry = ancestry,
         author = author,
         tech = tech,
@@ -48,11 +47,11 @@ final class AggregatorMetadataTest extends FunSuite {
         properties = properties)
 
       val expected = s"""
+        |uri s3://some-bucket/variants/ExChip/some-dataset/some-phenotype
         |dataset ${dataset} ${phenotype}
-        |ancestry "${ancestry}"
-        |tech "${tech}"
+        |ancestry ${ancestry}
+        |tech ${tech}
         |${expectedQuantString}
-        |var_id ${varIdFormat}
         |${expectedAuthorString}""".stripMargin.trim
     
       def removeEmptyLines(s: String): String = {
@@ -60,7 +59,7 @@ final class AggregatorMetadataTest extends FunSuite {
       }
         
       //NB: Ignore empty lines when considering differences
-      assert(removeEmptyLines(m.asConfigFileContents) === removeEmptyLines(expected))
+      assert(removeEmptyLines(m.asMetadataFileContents) === removeEmptyLines(expected))
     }
     
     doTest(None, "", None, "")

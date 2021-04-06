@@ -66,7 +66,7 @@ trait RowFilters { self: IntakeSyntax =>
         if(!valid) {
           logCtx.warn {
             s"Row #${row.recordNumber} ${asString(row)} contains a disallowed value from ${disallowed} " +
-            s"in ${refColumn(row)} or ${altColumn(row)}"
+            s"in ${refColumn} or ${altColumn}"
           }
         }
         
@@ -96,13 +96,13 @@ trait RowFilters { self: IntakeSyntax =>
     def logToFile(
         store: Store, 
         append: Boolean = false, 
-        makeMessage: AggregatorVariantRow => String = defaultMessage(_))
-       (p: AggregatorVariantRowPredicate): CloseableAggregatorVariantRowPredicate = {
+        makeMessage: BaseVariantRow => String = defaultMessage(_))
+       (p: PValueVariantRowPredicate): CloseablePValueVariantRowPredicate = {
       
-      doLogToFile[AggregatorVariantRow](store, append, makeMessage)(p)
+      doLogToFile[PValueVariantRow](store, append, makeMessage)(p)
     }
     
-    private def rowNumberPart(row: AggregatorVariantRow): String = {
+    private def rowNumberPart(row: BaseVariantRow): String = {
       val numberPart = row.derivedFromRecordNumber match {
         case Some(n) => n.toString
         case _ => "<unknown>"
@@ -114,15 +114,15 @@ trait RowFilters { self: IntakeSyntax =>
     /**
      * Pass rows where 0 < eaf < 1
      */
-    def validEaf(logTo: Store, append: Boolean = false): CloseableAggregatorVariantRowPredicate = {
+    def validEaf(logTo: Store, append: Boolean = false): CloseablePValueVariantRowPredicate = {
       validEaf(Log.toFile(logTo, append))
     }
     
     /**
      * Pass rows where 0 < eaf < 1
      */
-    def validEaf(implicit logCtx: ToFileLogContext): CloseableAggregatorVariantRowPredicate = { 
-      ConcreteCloseablePredicate[AggregatorVariantRow](logCtx) { row =>
+    def validEaf(implicit logCtx: ToFileLogContext): CloseablePValueVariantRowPredicate = { 
+      ConcreteCloseablePredicate[PValueVariantRow](logCtx) { row =>
         row.eaf match {
           case Some(eaf) => {
             val valid = (eaf > 0.0) && (eaf < 1.0)
@@ -142,15 +142,15 @@ trait RowFilters { self: IntakeSyntax =>
     /**
      * Pass rows where 0 < maf <= 0.5
      */
-    def validMaf(logTo: Store, append: Boolean = false): CloseableAggregatorVariantRowPredicate = {
+    def validMaf(logTo: Store, append: Boolean = false): CloseablePValueVariantRowPredicate = {
       validMaf(Log.toFile(logTo, append))
     }
     
     /**
      * Pass rows where 0 < maf <= 0.5
      */
-    def validMaf(implicit logCtx: ToFileLogContext): CloseableAggregatorVariantRowPredicate = {
-      ConcreteCloseablePredicate[AggregatorVariantRow](logCtx) { row =>
+    def validMaf(implicit logCtx: ToFileLogContext): CloseablePValueVariantRowPredicate = {
+      ConcreteCloseablePredicate[PValueVariantRow](logCtx) { row =>
         row.maf match {
           case Some(maf) => {
             val valid = (maf > 0.0) && (maf <= 0.5)
@@ -170,15 +170,15 @@ trait RowFilters { self: IntakeSyntax =>
     /**
      * Pass rows where 0 < p <= 1
      */
-    def validPValue(logTo: Store, append: Boolean = false): CloseableAggregatorVariantRowPredicate = {
+    def validPValue(logTo: Store, append: Boolean = false): CloseablePValueVariantRowPredicate = {
       validPValue(Log.toFile(logTo, append))
     }
     
     /**
      * Pass rows where 0 < p <= 1
      */
-    def validPValue(implicit logCtx: ToFileLogContext): CloseableAggregatorVariantRowPredicate = {
-      ConcreteCloseablePredicate[AggregatorVariantRow](logCtx) { row =>
+    def validPValue(implicit logCtx: ToFileLogContext): CloseablePValueVariantRowPredicate = {
+      ConcreteCloseablePredicate[PValueVariantRow](logCtx) { row =>
         import row.pvalue
       
         val valid = (pvalue > 0.0) && (pvalue <= 1.0)

@@ -166,6 +166,9 @@ object QstatQacctPoller extends Loggable {
     new QstatQacctPoller(qstat, qacct)
   }
 
+  type PollResult = (DrmTaskId, DrmStatus)
+  type PollResultsAttempt = Try[Iterator[PollResult]]
+  
   private[uger] object QstatSupport {
     object QstatRegexes {
       val jobIdStatusAndTaskIndex = """^(\w+)\s+\S+\s+\S+\s+\S+\s+(\w+)\s+.+\d+\s+(\d+)$""".r
@@ -180,9 +183,6 @@ object QstatQacctPoller extends Loggable {
         case Success((drmTaskId, drmStatus)) if !drmStatus.isUndetermined => drmTaskId -> Success(drmStatus)
       }.toMap
     }
-
-    type PollResult = (DrmTaskId, DrmStatus)
-    type PollResultsAttempt = Try[Iterator[PollResult]]
     
     // scalastyle:off line.size.limit
     /**
@@ -201,7 +201,7 @@ object QstatQacctPoller extends Loggable {
 
       val idsWereLookingForSet = idsWereLookingFor.toSet
 
-      val isIdWeCareAbout: ((DrmTaskId, DrmStatus)) => Boolean = {
+      val isIdWeCareAbout: PollResult => Boolean = {
         case (taskId, _) => idsWereLookingForSet.contains(taskId)
       }
 
@@ -339,7 +339,7 @@ object QstatQacctPoller extends Loggable {
 
     //
     def parseMultiTaskQacctResults(
-      idsToLookFor: Set[DrmTaskId])(jobNumberAndQacctLines: (String, Seq[String])): Iterable[(DrmTaskId, DrmStatus)] = {
+      idsToLookFor: Set[DrmTaskId])(jobNumberAndQacctLines: (String, Seq[String])): Iterable[PollResult] = {
 
       import loamstream.util.Traversables.Implicits._
 

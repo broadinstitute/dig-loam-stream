@@ -16,18 +16,24 @@ final class DataRowTest extends FunSuite {
   private val eaf: Double = 13.14
   private val maf: Double = 14.15
   private val n: Double = 16.17
+  private val dataset: String = "asjhkasdfjksdhf"
+  private val phenotype: String = "jiguhsfkjghksfgh"
+  private val ancestry: Ancestry = Ancestry.AA
   
   test("values - all fields supplied") {
-    val row = AggregatorVariantRow(
+    val row = PValueVariantRow(
       marker = marker,
       pvalue = pvalue,
+      dataset = dataset,
+      phenotype = phenotype,
+      ancestry = ancestry,
       zscore = Some(zscore),
       stderr = Some(stderr),
       beta = Some(beta),
       oddsRatio = Some(oddsRatio),
       eaf = Some(eaf),
       maf = Some(maf),
-      n = Some(n))
+      n = n)
       
     val expected = Seq(
       marker.underscoreDelimited,
@@ -44,16 +50,19 @@ final class DataRowTest extends FunSuite {
   }
   
   test("values - some fields supplied") {
-    val row = AggregatorVariantRow(
+    val row = PValueVariantRow(
       marker = marker,
       pvalue = pvalue,
+      dataset = dataset,
+      phenotype = phenotype,
+      ancestry = ancestry,
       zscore = Some(zscore),
       stderr = None,
       beta = Some(beta),
       oddsRatio = None,
       eaf = Some(eaf),
       maf = None,
-      n = Some(n))
+      n = n)
       
     val expected: Seq[Option[String]] = Seq(
       Some(marker.underscoreDelimited),

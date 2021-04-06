@@ -14,16 +14,43 @@ import loamstream.loam.intake.dga.Json
  * Dec 7, 2020
  */
 final class AwsRowSinkTest extends FunSuite {
-  test("toKey") {
+  test("toKey - no tech or phenotype") {
     val sink = AwsRowSink(
         topic = "some-topic", 
-        name = "some-name", 
+        dataset = "some-name",
+        techType = None,
+        phenotype = None,
         batchSize = 42,
         awsClient = MockAwsClient.apply("some-bucket"))
         
     assert(sink.toKey("lalala.json") === "some-topic/some-name/lalala.json")
     assert(sink.toKey("") === "some-topic/some-name/")
     assert(sink.toKey("foo/bar/baz") === "some-topic/some-name/foo/bar/baz")
+  }
+  
+  test("toKey - with tech and phenotype") {
+    def doTest(techType: TechType, phenotype: String): Unit = {
+      val sink = AwsRowSink(
+          topic = "some-topic", 
+          dataset = "some-name",
+          techType = Some(techType),
+          phenotype = Some(phenotype),
+          batchSize = 42,
+          awsClient = MockAwsClient.apply("some-bucket"))
+          
+      assert(sink.toKey("lalala.json") === s"some-topic/${techType.name}/some-name/${phenotype}/lalala.json")
+      assert(sink.toKey("") === s"some-topic/${techType.name}/some-name/${phenotype}/")
+      assert(sink.toKey("foo/bar/baz") === s"some-topic/${techType.name}/some-name/${phenotype}/foo/bar/baz")
+    }
+    
+    import TechType._
+    
+    doTest(Gwas, "foo")
+    doTest(ExChip, "bar")
+    doTest(ExSeq, "baz")
+    doTest(Fm, "blerg")
+    doTest(IChip, "zerg")
+    doTest(Wgs, "nerg")
   }
   
   private def randomUUID: String = UUID.randomUUID.toString
@@ -33,8 +60,10 @@ final class AwsRowSinkTest extends FunSuite {
     
     val sink = AwsRowSink(
         topic = "some-topic", 
-        name = "some-name", 
+        dataset = "some-name", 
         batchSize = 42,
+        techType = None,
+        phenotype = None,
         awsClient = MockAwsClient.apply("some-bucket"),
         fileIds = Iterator(1,2,3,4,5),
         uuid = uuid)
@@ -70,8 +99,10 @@ final class AwsRowSinkTest extends FunSuite {
     
     val sink = AwsRowSink(
         topic = "some-topic", 
-        name = "some-name", 
+        dataset = "some-name", 
         batchSize = 2,
+        techType = None,
+        phenotype = None,
         awsClient = client,
         yes = true,
         fileIds = Iterator(2, 4, 6, 8),
@@ -131,7 +162,9 @@ final class AwsRowSinkTest extends FunSuite {
     
     val sink = AwsRowSink(
         topic = "some-topic", 
-        name = "some-name", 
+        dataset = "some-name",
+        techType = None,
+        phenotype = None,
         batchSize = 2,
         awsClient = client,
         yes = true,

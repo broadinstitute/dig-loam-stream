@@ -24,34 +24,38 @@ object AggregatorColumnDefs {
     val chromExpr = {
       val chromStringColumn = chromColumn.asString
       
-      if(forceAlphabeticChromNames) { ColumnTransforms.ensureAlphabeticChromNames(chromStringColumn) }
-      else { chromStringColumn }
+      ColumnTransforms.normalizeChromNames {
+        if(forceAlphabeticChromNames) { ColumnTransforms.ensureAlphabeticChromNames(chromStringColumn) }
+        else { chromStringColumn }
+      }
     }
     
-    //"{chrom}_{pos}_{ref}_{alt}"
-    val asString = strexpr"${chromExpr}_${posColumn}_${refColumn}_${altColumn}"
-      
     val variantExpr: ColumnExpr[Variant] = {
-      val variantExpr = asString.map(Variant.from)
+      val asVariant = for {
+        chrom <- chromExpr
+        pos <- posColumn.asString.asInt
+        ref <- refColumn.asString.trim
+        alt <- altColumn.asString.trim
+      } yield Variant(chrom, pos, ref, alt)
       
-      if(uppercaseAlleles) variantExpr.map(_.toUpperCase) else variantExpr
+      if(uppercaseAlleles) asVariant.map(_.toUpperCase) else asVariant
     }
     
     MarkerColumnDef(destColumn, variantExpr)
   }
   
-  def just(columnName: ColumnName): NamedColumnDef[String] = NamedColumnDef(columnName)
+  def just(columnName: ColumnName): HandlesFlipsColumnDef[String] = AnonColumnDef(columnName)
   
   def pvalue(
       sourceColumn: ColumnExpr[_], 
-      destColumn: ColumnName = AggregatorColumnNames.pvalue): NamedColumnDef[Double] = {
+      destColumn: ColumnName = AggregatorColumnNames.pvalue): HandlesFlipsColumnDef[Double] = {
     
     simpleDoubleColumn(sourceColumn, destColumn) 
   }
   
   def stderr(
       sourceColumn: ColumnExpr[_], 
-      destColumn: ColumnName = AggregatorColumnNames.stderr): NamedColumnDef[Double] = {
+      destColumn: ColumnName = AggregatorColumnNames.stderr): HandlesFlipsColumnDef[Double] = {
     
     simpleDoubleColumn(sourceColumn, destColumn)
   }
@@ -59,7 +63,7 @@ object AggregatorColumnDefs {
   def zscoreFrom(
       betaColumn: ColumnExpr[_], 
       stderrColumn: ColumnExpr[_], 
-      destColumn: ColumnName = AggregatorColumnNames.zscore): NamedColumnDef[Double] = {
+      destColumn: ColumnName = AggregatorColumnNames.zscore): HandlesFlipsColumnDef[Double] = {
     
     val expr = asDouble(betaColumn) / asDouble(stderrColumn)
     
@@ -68,99 +72,110 @@ object AggregatorColumnDefs {
   
   def zscore(
       sourceColumn: ColumnExpr[_], 
-      destColumn: ColumnName = AggregatorColumnNames.zscore): NamedColumnDef[Double] = {
+      destColumn: ColumnName = AggregatorColumnNames.zscore): HandlesFlipsColumnDef[Double] = {
     
     negateIfFlipped(sourceColumn, destColumn)
   }
   
   def beta(
       sourceColumn: ColumnExpr[_], 
-      destColumn: ColumnName = AggregatorColumnNames.beta): NamedColumnDef[Double] = {
+      destColumn: ColumnName = AggregatorColumnNames.beta): HandlesFlipsColumnDef[Double] = {
     
     negateIfFlipped(sourceColumn, destColumn)
   }
   
-  def eaf(sourceColumn: ColumnExpr[_], destColumn: ColumnName = AggregatorColumnNames.eaf): NamedColumnDef[Double] = {
+  def eaf(
+      sourceColumn: ColumnExpr[_], 
+      destColumn: ColumnName = AggregatorColumnNames.eaf): HandlesFlipsColumnDef[Double] = {
+    
     val expr = asDouble(sourceColumn)
     
-    NamedColumnDef(destColumn, expr, 1.0 - expr)
+    AnonColumnDef(expr, 1.0 - expr)
   }
   
   def oddsRatio(
       sourceColumn: ColumnExpr[_], 
-      destColumn: ColumnName = AggregatorColumnNames.odds_ratio): NamedColumnDef[Double] = {
+      destColumn: ColumnName = AggregatorColumnNames.odds_ratio): HandlesFlipsColumnDef[Double] = {
     
     val expr = asDouble(sourceColumn)
 
-    NamedColumnDef(destColumn, expr, 1.0 / expr)
+    AnonColumnDef(expr, 1.0 / expr)
   }
   
   object PassThru {
     def marker(
         sourceColumn: ColumnExpr[String], 
-        destColumn: ColumnName = AggregatorColumnNames.marker): NamedColumnDef[String] = {
+        destColumn: ColumnName = AggregatorColumnNames.marker): HandlesFlipsColumnDef[String] = {
       
-      NamedColumnDef(destColumn, sourceColumn)
+      AnonColumnDef(sourceColumn)
     }
     
     def pvalue(
         sourceColumn: ColumnExpr[_], 
-        destColumn: ColumnName = AggregatorColumnNames.pvalue): NamedColumnDef[Double] = {
+        destColumn: ColumnName = AggregatorColumnNames.pvalue): HandlesFlipsColumnDef[Double] = {
       
-      NamedColumnDef(destColumn, asDouble(sourceColumn))
+      AnonColumnDef(asDouble(sourceColumn))
     }
     
     def zscore(
         sourceColumn: ColumnExpr[_], 
-        destColumn: ColumnName = AggregatorColumnNames.zscore): NamedColumnDef[Double] = {
+        destColumn: ColumnName = AggregatorColumnNames.zscore): HandlesFlipsColumnDef[Double] = {
       
-      NamedColumnDef(destColumn, asDouble(sourceColumn))
+      AnonColumnDef(asDouble(sourceColumn))
     }
     
     def stderr(
         sourceColumn: ColumnExpr[_], 
-        destColumn: ColumnName = AggregatorColumnNames.stderr): NamedColumnDef[Double] = {
+        destColumn: ColumnName = AggregatorColumnNames.stderr): HandlesFlipsColumnDef[Double] = {
       
-      NamedColumnDef(destColumn, asDouble(sourceColumn))
+      AnonColumnDef(asDouble(sourceColumn))
     }
     
     def beta(
         sourceColumn: ColumnExpr[_], 
-        destColumn: ColumnName = AggregatorColumnNames.beta): NamedColumnDef[Double] = {
+        destColumn: ColumnName = AggregatorColumnNames.beta): HandlesFlipsColumnDef[Double] = {
       
-      NamedColumnDef(destColumn, asDouble(sourceColumn))
+      AnonColumnDef(asDouble(sourceColumn))
     }
     
     def oddsRatio(
         sourceColumn: ColumnExpr[_], 
-        destColumn: ColumnName = AggregatorColumnNames.odds_ratio): NamedColumnDef[Double] = {
+        destColumn: ColumnName = AggregatorColumnNames.odds_ratio): HandlesFlipsColumnDef[Double] = {
       
-      NamedColumnDef(destColumn, asDouble(sourceColumn))
+      AnonColumnDef(asDouble(sourceColumn))
     }
     
-    def eaf(sourceColumn: ColumnExpr[_], destColumn: ColumnName = AggregatorColumnNames.eaf): NamedColumnDef[Double] = {
-      NamedColumnDef(destColumn, asDouble(sourceColumn))
+    def eaf(
+        sourceColumn: ColumnExpr[_], 
+        destColumn: ColumnName = AggregatorColumnNames.eaf): HandlesFlipsColumnDef[Double] = {
+      
+      AnonColumnDef(asDouble(sourceColumn))
     }
     
-    def maf(sourceColumn: ColumnExpr[_], destColumn: ColumnName = AggregatorColumnNames.maf): NamedColumnDef[Double] = {
-      NamedColumnDef(destColumn, asDouble(sourceColumn))
+    def maf(
+        sourceColumn: ColumnExpr[_], 
+        destColumn: ColumnName = AggregatorColumnNames.maf): HandlesFlipsColumnDef[Double] = {
+      
+      AnonColumnDef(asDouble(sourceColumn))
     }
     
-    def n(sourceColumn: ColumnExpr[_], destColumn: ColumnName = AggregatorColumnNames.n): NamedColumnDef[Double] = {
-      NamedColumnDef(destColumn, asDouble(sourceColumn))
+    def n(
+        sourceColumn: ColumnExpr[_], 
+        destColumn: ColumnName = AggregatorColumnNames.n): HandlesFlipsColumnDef[Double] = {
+      AnonColumnDef(asDouble(sourceColumn))
     }
   }
 
   private def simpleDoubleColumn(
       sourceColumn: ColumnExpr[_],
-      aggregatorName: ColumnName): NamedColumnDef[Double] = {
+      aggregatorName: ColumnName): HandlesFlipsColumnDef[Double] = {
     
-    NamedColumnDef(aggregatorName, asDouble(sourceColumn))
+    AnonColumnDef(asDouble(sourceColumn))
   }
       
-  def negateIfFlipped(sourceColumn: ColumnExpr[_], aggregatorName: ColumnName): NamedColumnDef[Double] = {
+  def negateIfFlipped(sourceColumn: ColumnExpr[_], aggregatorName: ColumnName): HandlesFlipsColumnDef[Double] = {
     val expr = asDouble(sourceColumn)
     
-    NamedColumnDef(aggregatorName, expr, expr.negate)
+    AnonColumnDef(expr, expr.negate)
   }
 }

@@ -33,7 +33,8 @@ final case class Annotation private[dga] (
     method: Option[String], 
     portalUsage: String,
     harmonizedStates: Option[Map[String, String]],
-    downloads: Seq[Annotation.Download]) extends Loggable {
+    downloads: Seq[Annotation.Download],
+    private val derivedFrom: Option[JValue] = None) extends Loggable {
   
   /**
    * Returns True if the annotation meets all criteria for ingesting.
@@ -68,15 +69,17 @@ final case class Annotation private[dga] (
   
   private[dga] def portalUsageIsNone: Boolean = portalUsage == "None"
   
-  def toMetadata: Annotation.Metadata = Annotation.Metadata(
-      sources = this.downloads,
-      annotationMethod = this.method) 
+  def toMetadata: Annotation.Metadata = {
+    require(derivedFrom.isDefined, s"Couldn't make metadata for annotation ${annotationId}: missing source JSON")
+    
+    Annotation.Metadata(
+      annotationMethod = this.method,
+      derivedFrom = derivedFrom.get) 
+  }
 }
 
 object Annotation {
   import Json.JsonOps
-  
-  private[dga] def spacesToUnderscores(s: String): String = s.replaceAll("\\s+", "_")
   
   private def allFileDownloads(json: JValue): Try[Iterable[Download]] = {
     json.tryAsObject("file_download").flatMap { downloadsById =>
@@ -128,7 +131,8 @@ object Annotation {
         method = method,
         portalUsage = portalUsage,
         harmonizedStates = harmonizedStates,
-        downloads = fileDownloads)
+        downloads = fileDownloads,
+        derivedFrom = Option(json))
     }
   }
   
@@ -241,8 +245,8 @@ object Annotation {
   }
   
   final case class Metadata(
-    sources: Seq[Annotation.Download],
-    annotationMethod: Option[String]) {
+    annotationMethod: Option[String],
+    derivedFrom: JValue) {
         
     def vendor: String = "DGA"
     
@@ -253,8 +257,10 @@ object Annotation {
       val annotationMethodPart: Option[JField] = annotationMethod.map("method" -> JString(_))
       
       val fields: Seq[JField] = Seq(
-        "sources" -> JArray(this.sources.toList.map(_.toJson))
-      ) ++ annotationMethodPart
+          "vendor" -> JString(vendor),
+          "version" -> JString(version)) ++
+          annotationMethodPart ++
+          Seq("derivedFrom" -> derivedFrom)
       
       JObject(fields: _*)
     }

@@ -97,9 +97,10 @@ final class AnnotationTest extends FunSuite with Loggable {
       method = Some("ENCODE-cCREs"), 
       portalUsage = "facet",
       harmonizedStates = Some(Map("x" -> "y")),
-      downloads = downloads)
+      downloads = downloads,
+      derivedFrom = Some(JInt(42)))
       
-    val expected = Annotation.Metadata(downloads, Some("ENCODE-cCREs"))
+    val expected = Annotation.Metadata(annotationMethod = Some("ENCODE-cCREs"), derivedFrom = JInt(42))
     
     assert(annotation.toMetadata === expected)
   }
@@ -107,7 +108,9 @@ final class AnnotationTest extends FunSuite with Loggable {
   test("fromJson - good input") {
     val idsToNames = Map("UBERON:0002048" -> "some-tissue", "EFO:0001196" -> "some-biosample")
     
-    val annotation = Annotation.fromJson(idsToNames)(parse(AnnotationTest.goodJson)).get
+    val goodJson = parse(AnnotationTest.goodJson)
+    
+    val annotation = Annotation.fromJson(idsToNames)(goodJson).get
     
     val expectedDownloads = Seq(
       Annotation.Download(
@@ -131,7 +134,8 @@ final class AnnotationTest extends FunSuite with Loggable {
       method = Some("ENCODE-cCREs"), 
       portalUsage = "facet",
       harmonizedStates = Some(Map("x" -> "y", "abc" -> "xyz")),
-      downloads = expectedDownloads)
+      downloads = expectedDownloads,
+      derivedFrom = Some(goodJson))
     
     assert(annotation === expected)
   }
@@ -197,7 +201,7 @@ final class AnnotationTest extends FunSuite with Loggable {
   }
   
   test("Metadata - static fields") {
-    val m = Annotation.Metadata(Nil, None)
+    val m = Annotation.Metadata(None, JInt(42))
     
     assert(m.vendor === "DGA")
     assert(m.version === "1.0")
@@ -212,26 +216,13 @@ final class AnnotationTest extends FunSuite with Loggable {
         Download("a0", URI.create("http://example.com/0.bed"), Status.Released, "m0"),
         Download("a1", URI.create("http://example.com/1.bed.gz"), Status.Uploading, "m1"))
 
-    val m = Metadata(downloads, Some("foo-method"))
+    val m = Metadata(Some("foo-method"), derivedFrom = JInt(42))
     
     val expected = compact(render(parse("""{
-        "sources": [
-          {
-            "assemblyId": "a0",
-            "url": "http://example.com/0.bed",
-            "file": "/0.bed",
-            "status": "released",
-            "md5Sum": "m0"
-          },
-          {
-            "assemblyId": "a1",
-            "url": "http://example.com/1.bed.gz",
-            "file": "/1.bed.gz",
-            "status": "uploading",
-            "md5Sum": "m1"
-          }
-        ],
-        "method": "foo-method"
+        "vendor": "DGA",
+        "version": "1.0",
+        "method": "foo-method",
+        "derivedFrom": 42
       }""")))
         
     assert(compact(render(m.toJson)) === expected)

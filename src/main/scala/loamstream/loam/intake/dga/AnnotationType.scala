@@ -1,7 +1,8 @@
 package loamstream.loam.intake.dga
 
-import scala.util.Try
 import scala.util.Success
+import scala.util.Try
+
 import loamstream.util.Tries
 
 /**
@@ -9,6 +10,8 @@ import loamstream.util.Tries
  * Feb 23, 2021
  */
 sealed abstract class AnnotationType(val name: String) {
+  require(AnnotationType.noWhitespaceIn(name), s"Annotation name '$name' not allowed: can't contain whitespace")
+  
   def unapply(s: String): Boolean = s == name
 }
 
@@ -25,7 +28,7 @@ object AnnotationType {
   case object CaQTL extends AnnotationType("caqtl")
   case object BindingFootprint extends AnnotationType("binding_footprint")
   
-  val values: Set[AnnotationType] = Set(
+  lazy val values: Set[AnnotationType] = Set(
       AccessibleChromatin, 
       ChromatinState, 
       BindingSites, 
@@ -49,4 +52,6 @@ object AnnotationType {
     case Some(at) => Success(at)
     case _ => Tries.failure(s"Unknown annotation type string: '${s}'")
   }
+  
+  private def noWhitespaceIn(s: String): Boolean = s.forall(!_.isWhitespace)
 }

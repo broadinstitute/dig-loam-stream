@@ -35,7 +35,7 @@ object ColumnTransforms {
     baseChromExpr.map(_.map(doNormalizeChromNames))
   }
   
-  private def doNormalizeSpaces(requireNonEmpty: Boolean)(s: String): String = {
+  private[intake] def doNormalizeSpaces(requireNonEmpty: Boolean)(s: String): String = {
     val trimmed = s.trim
     
     if(requireNonEmpty) { 

@@ -4,12 +4,15 @@ import org.scalatest.FunSuite
 import loamstream.loam.intake.ColumnExpr
 import loamstream.loam.intake.DataRow
 import loamstream.loam.intake.Helpers
+import loamstream.loam.intake.ColumnTransforms
 
 /**
  * @author clint
  * Feb 11, 2021
  */
 final class BedRowExprTest extends FunSuite {
+  private def normalized(s: String) = ColumnTransforms.doNormalizeSpaces(false)(s)
+  
   test("Apply - good input") {
     val chromColumnNames = Seq("chromosome", "chr", "chrom")
     val startColumnNames = Seq("start", "chromStart")
@@ -21,6 +24,9 @@ final class BedRowExprTest extends FunSuite {
         annotation.copy(annotationType = AnnotationType.TargetGenePrediction),
         annotation)
     
+    //NB: Use something with whitespace that needs to be normalized
+    val stateValue = "asd f g hjkl"
+        
     for {
       chromColumn <- chromColumnNames
       startColumn <- startColumnNames
@@ -34,7 +40,7 @@ final class BedRowExprTest extends FunSuite {
           startColumn -> "5432",
           "baz" -> "blerg",
           endColumn -> "123456",
-          stateColumn -> "asdfghjkl",
+          stateColumn -> stateValue,
           "zuh" -> "bip",
           "target_gene" -> "qwerty",
           "target_gene_start" -> "456",
@@ -49,9 +55,9 @@ final class BedRowExprTest extends FunSuite {
       assert(bedRow.biosampleType === ann.biosampleType)
       assert(bedRow.biosample === ann.biosample)
       assert(bedRow.tissueId === ann.tissueId)
-      assert(bedRow.tissue === ann.tissue)
+      assert(bedRow.tissue === ann.tissue.map(normalized))
       assert(bedRow.annotation === ann.annotationType.name)
-      assert(bedRow.category === ann.category)
+      assert(bedRow.category === ann.category.map(normalized))
       assert(bedRow.method === ann.method)
       assert(bedRow.source === ann.source)
       assert(bedRow.assay === ann.assay)
@@ -61,7 +67,7 @@ final class BedRowExprTest extends FunSuite {
       assert(bedRow.end === 123456L)
       
       val expectedState = {
-        if(ann.annotationType == AnnotationType.AccessibleChromatin) "accessible_chromatin" else "asdfghjkl"
+        if(ann.annotationType == AnnotationType.AccessibleChromatin) "accessible_chromatin" else normalized(stateValue)
       }
       
       assert(bedRow.state === expectedState)
@@ -127,15 +133,15 @@ final class BedRowExprTest extends FunSuite {
 
       assert(column(columns)(row) === expected(annotation))
     }
-
+    
     doTest(_.dataset, _.annotationId)
     doTest(_.biosampleId, _.biosampleId)
     doTest(_.biosampleType, _.biosampleType)
     doTest(_.biosample, _.biosample)
     doTest(_.tissueId, _.tissueId)
-    doTest(_.tissue, _.tissue)
+    doTest(_.tissue, _.tissue.map(normalized))
     doTest(_.annotation, _.annotationType)
-    doTest(_.category, _.category)
+    doTest(_.category, _.category.map(normalized))
     doTest(_.method, _.method)
     doTest(_.source, _.source)
     doTest(_.assay, _.assay)
@@ -334,7 +340,7 @@ final class BedRowExprTest extends FunSuite {
   private val assembly: String = "asdasdasfa"
   private val annotationType: AnnotationType = AnnotationType.CaQTL
   private val annotationId: String = "ASKJhkjasf"
-  private val category: Option[String] = Some("fhdolhujd")
+  private val category: Option[String] = Some("fhd o l h ujd")
   private val tissueId: Option[String] = Some("sdgpl89dg")
   private val tissue: Option[String] = Some("v9j0 8sdf")
   private val source: Option[String] = Some("c8bvfxf")

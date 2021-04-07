@@ -50,6 +50,7 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
       
       val datasetName: String = toDatasetName(annotation)
       
+      //TODO: Should this be added to UploadType?
       val topicName: String = whitespaceToUnderscores(s"annotated_regions")
       
       //create the new dataset

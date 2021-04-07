@@ -58,6 +58,10 @@ object BedRowExpr {
         if(pandasDefaultNaValues.contains(s)) { None }
         else { Some(s) }
       }
+      
+      def spacesToUnderscores(implicit ev: A =:= String): ColumnExpr[String] = {
+        ColumnTransforms.normalizeSpaces(expr.asString)
+      }
     }
     
     implicit final class ColumnExprOptionOps[A](val expr: ColumnExpr[Option[A]]) {
@@ -69,6 +73,10 @@ object BedRowExpr {
       
       def remove(regex: String)(implicit ev: A =:= String): ColumnExpr[Option[String]] = {
         expr.map(_.map(_.replaceAll(regex, "")))
+      }
+      
+      def spacesToUnderscores(implicit ev: A =:= String): ColumnExpr[Option[String]] = {
+        ColumnTransforms.normalizeSpacesOpt(expr.map(_.map(ev)))
       }
     }
   }
@@ -82,9 +90,9 @@ object BedRowExpr {
     val biosampleType = LiteralColumnExpr(ann.biosampleType)
     val biosample = LiteralColumnExpr(ann.biosample)
     val tissueId = LiteralColumnExpr(ann.tissueId)
-    val tissue = LiteralColumnExpr(ann.tissue)
+    val tissue = LiteralColumnExpr(ann.tissue).spacesToUnderscores
     val annotation = LiteralColumnExpr(ann.annotationType)
-    val category = LiteralColumnExpr(ann.category)
+    val category = LiteralColumnExpr(ann.category).spacesToUnderscores
     val method = LiteralColumnExpr(ann.method)
     val source = LiteralColumnExpr(ann.source)
     val assay = LiteralColumnExpr(ann.assay)
@@ -102,7 +110,7 @@ object BedRowExpr {
     val end = ColumnName("end").or(ColumnName("chromEnd")).asOptionWithNaValues.asLongOption
     
     // the annotation name needs to be harmonized (accessible chromatin is special!)
-    val state = {
+    val state: ColumnExpr[Option[String]] = {
       val baseExpr = (ann.annotationType match {
         case ac @ AnnotationType.AccessibleChromatin => LiteralColumnExpr(Option(ac.name)) 
         case _ => ColumnName("state").or(ColumnName("name")).asOptionWithNaValues 
@@ -116,7 +124,7 @@ object BedRowExpr {
         case Some(hs) => baseExpr.map(_.flatMap(hs.get))
         case None => baseExpr
       }
-    }
+    }.spacesToUnderscores
 
     private def ifTargetGenePrediction(column: String): ColumnExpr[Option[String]] = {
       ann.annotationType match {

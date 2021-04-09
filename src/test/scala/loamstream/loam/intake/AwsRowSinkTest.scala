@@ -1,13 +1,18 @@
 package loamstream.loam.intake
 
+import java.util.UUID
+
+import org.json4s.JInt
+import org.json4s.JObject
+import org.json4s.JValue
 import org.scalatest.FunSuite
+
+import AwsRowSinkTest.MockAwsClient
+import loamstream.loam.intake.dga.Json
 import loamstream.util.AwsClient
 import loamstream.util.AwsClient.ContentType
 import loamstream.util.Maps
-import AwsRowSinkTest.MockAwsClient
-import java.util.UUID
-import org.json4s.JsonAST.JValue
-import loamstream.loam.intake.dga.Json
+
 
 /**
  * @author clint
@@ -20,6 +25,7 @@ final class AwsRowSinkTest extends FunSuite {
         dataset = "some-name",
         techType = None,
         phenotype = None,
+        metadata = JObject(),
         batchSize = 42,
         awsClient = MockAwsClient.apply("some-bucket"))
         
@@ -35,6 +41,7 @@ final class AwsRowSinkTest extends FunSuite {
           dataset = "some-name",
           techType = Some(techType),
           phenotype = Some(phenotype),
+          metadata = JObject(),
           batchSize = 42,
           awsClient = MockAwsClient.apply("some-bucket"))
           
@@ -64,6 +71,7 @@ final class AwsRowSinkTest extends FunSuite {
         batchSize = 42,
         techType = None,
         phenotype = None,
+        metadata = JObject(),
         awsClient = MockAwsClient.apply("some-bucket"),
         fileIds = Iterator(1,2,3,4,5),
         uuid = uuid)
@@ -104,7 +112,7 @@ final class AwsRowSinkTest extends FunSuite {
         techType = None,
         phenotype = None,
         awsClient = client,
-        yes = true,
+        metadata = JObject(),
         fileIds = Iterator(2, 4, 6, 8),
         uuid = uuid)
         
@@ -165,9 +173,9 @@ final class AwsRowSinkTest extends FunSuite {
         dataset = "some-name",
         techType = None,
         phenotype = None,
+        metadata = JObject(),
         batchSize = 2,
         awsClient = client,
-        yes = true,
         fileIds = Iterator(2, 4, 6, 8),
         uuid = uuid)
         
@@ -187,6 +195,49 @@ final class AwsRowSinkTest extends FunSuite {
     
     assert(client.data === expected0)
   }
+  
+  test("commit/close") {
+    val headers = Seq("X", "Y", "Z")
+    
+    val rows = Seq(
+        LiteralRow(headers = headers, values = Seq("4", "3", "2")),
+        LiteralRow(headers = headers, values = Seq("z", "x", "c")),
+        LiteralRow(headers = headers, values = Seq("q", "w", "e")),
+        LiteralRow(headers = headers, values = Seq("f", "o", "o"))).map(toJsonRow)
+        
+    val client = MockAwsClient.apply("some-bucket")
+        
+    val uuid = randomUUID 
+    
+    val metadata = JObject("xyz" -> JInt(42))
+    
+    val sink = AwsRowSink(
+        topic = "some-topic", 
+        dataset = "some-name",
+        techType = None,
+        phenotype = None,
+        metadata = metadata,
+        batchSize = 2,
+        awsClient = client,
+        fileIds = Iterator(2, 4, 6, 8),
+        uuid = uuid)
+        
+    assert(client.isEmpty)
+        
+    sink.accept(rows(0))
+    
+    assert(client.isEmpty)
+    
+    sink.close()
+    
+    def value(s: String) = AwsRowSinkTest.MockValue(s, Some(AwsClient.ContentType.ApplicationJson))
+    
+    val expected0 = Map(
+      s"some-bucket/some-topic/some-name/part-00002-${uuid}.json" -> value(s"""{"X":"4","Y":"3","Z":"2"}"""),
+      s"some-bucket/some-topic/some-name/metadata" -> value(s"""{"xyz":42}"""))
+    
+    assert(client.data === expected0)
+  }
 }
 
 object AwsRowSinkTest {
@@ -197,7 +248,7 @@ object AwsRowSinkTest {
   }
   
   final case class MockAwsClient(bucket: String, initialData: Map[String, String] = Map.empty) extends AwsClient {
-    import Maps.Implicits._
+    import loamstream.util.Maps.Implicits._
     
     var data: Map[String, MockValue] = initialData.strictMapValues(MockValue(_, None))
     

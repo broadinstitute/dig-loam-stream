@@ -59,8 +59,8 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
           dataset = datasetName,
           techType = None,
           phenotype = None,
-          awsClient = awsClient,
-          yes = yes)
+          metadata = annotation.toMetadata.toJson,
+          awsClient = awsClient)
       
       val countAndUpload: Fold[BedRow, _, (Int, Unit)] = {
         val doCount: Fold[BedRow, Int, Int] = Fold.count
@@ -97,13 +97,7 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
         }
       }
       
-      def commitAndCloseSinkAfter(f: AwsRowSink => Any): Unit = {
-        CanBeClosed.using(sink) { sink =>
-          f(sink) 
-          
-          sink.commit(metadata.toJson)
-        }
-      }
+      def commitAndCloseSinkAfter(f: AwsRowSink => Any): Unit = CanBeClosed.using(sink)(f)
     }
       
     /**

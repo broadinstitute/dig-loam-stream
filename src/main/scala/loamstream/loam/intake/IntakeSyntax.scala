@@ -175,79 +175,75 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     def asColumnName: ColumnName = ColumnName(s)
   }
   
-  final class TransformationTarget(rowSink: RowSink[RenderableJsonRow]) {
-    def from(source: Source[DataRow]): UsingTarget = new UsingTarget(rowSink, source)
+  final class TransformationTarget[R <: RenderableJsonRow](destParams: DestinationParams[R]) {
+    def from(source: Source[DataRow]): UsingTarget[R] = new UsingTarget(destParams, source)
   }
   
-  final class UsingTarget(rowSink: RowSink[RenderableJsonRow], rows: Source[DataRow]) extends Loggable {
-    def using(flipDetector: => FlipDetector): ViaTarget = new ViaTarget(rowSink, rows, flipDetector)
+  final class UsingTarget[R <: RenderableJsonRow](
+      destParams: DestinationParams[R], 
+      rows: Source[DataRow]) extends Loggable {
+    
+    def using(flipDetector: => FlipDetector): ViaTarget[R] = new ViaTarget(destParams, rows, flipDetector)
   }
   
-  private[intake] def asCloseable[A](a: AnyRef): Seq[Closeable] = Option(a).collect { case c: Closeable => c }.toSeq
+  private[intake] def asCloseable[A](a: AnyRef): Set[Closeable] = Option(a).collect { case c: Closeable => c }.toSet
   
-  final class ViaTarget(
-      rowSink: RowSink[RenderableJsonRow], 
+  final class ViaTarget[R <: RenderableJsonRow](
+      destParams: DestinationParams[R], 
       private[intake] val rows: Source[DataRow],
       flipDetector: => FlipDetector,
-      private[intake] val toBeClosed: Seq[Closeable] = Nil) extends Loggable {
+      private[intake] val toBeClosed: Set[Closeable] = Set.empty) extends Loggable {
     
     def copy(
-      dowSink: RowSink[RenderableJsonRow] = this.rowSink, 
+      destParams: DestinationParams[R] = this.destParams, 
       rows: Source[DataRow] = this.rows,
       flipDetector: => FlipDetector = this.flipDetector,
-      toBeClosed: Seq[Closeable] = this.toBeClosed): ViaTarget = new ViaTarget(rowSink, rows, flipDetector, toBeClosed) 
+      toBeClosed: Set[Closeable] = this.toBeClosed): ViaTarget[R] = new ViaTarget(destParams, rows, flipDetector, toBeClosed) 
     
     private def toFilterTransform(p: DataRowPredicate): DataRow => DataRow = { row =>
       if(row.isSkipped || p(row)) { row } else { row.skip }
     }
     
-    def filter(p: DataRowPredicate): ViaTarget = {
+    def filter(p: DataRowPredicate): ViaTarget[R] = {
       copy(rows = rows.map(toFilterTransform(p)), toBeClosed = asCloseable(p) ++ toBeClosed)
     }
     
-    def filter(pOpt: Option[DataRowPredicate]): ViaTarget = pOpt match {
+    def filter(pOpt: Option[DataRowPredicate]): ViaTarget[R] = pOpt match {
       case Some(p) => filter(p)  
       case None => this
     }
    
-    private def commitAndClose(metadata: AggregatorMetadata): Unit = {
-      import org.json4s._
-      
-      rowSink match {
-        case aws: AwsRowSink => aws.commit(JObject(metadata.asJson.toList))
-        case _ => ()
-      }
-    }
-    
-    def via[R <: BaseVariantRow](expr: VariantRowExpr[R]): MapFilterAndWriteTarget[R, Unit] = {
+    def via[VR <: R with BaseVariantRow](expr: VariantRowExpr[VR]): MapFilterAndWriteTarget[VR, Unit] = {
       val dataRows = rows.tagFlips(expr.markerDef, flipDetector).map(expr)
       
-      val pseudoMetric: Metric[R, Unit] = Fold.foreach(_ => ()) // TODO :(
+      val pseudoMetric: Metric[VR, Unit] = Fold.foreach(_ => ()) // TODO :(
       
       val metadata = expr.metadataWithUploadType
       
-      val closeRowSink: Closeable = () => commitAndClose(metadata)
+      val newDestParams = destParams.withMetadata(metadata)
       
-      new MapFilterAndWriteTarget(rowSink, metadata, dataRows, pseudoMetric, closeRowSink +: toBeClosed)
+      val newToBeClosed = toBeClosed - destParams + newDestParams
+      
+      new MapFilterAndWriteTarget(newDestParams, metadata, dataRows, pseudoMetric, newToBeClosed)
     }
   }
   
   final class MapFilterAndWriteTarget[R <: BaseVariantRow, A](
-      rowSink: RowSink[RenderableJsonRow], 
+      destParams: DestinationParams[RenderableJsonRow], 
       metadata: AggregatorMetadata,
       private[intake] val rows: Source[VariantRow.Parsed[R]],
       private[intake] val metric: Metric[R, A],
-      private[intake] val toBeClosed: Seq[Closeable]) extends Loggable {
+      private[intake] val toBeClosed: Set[Closeable]) extends Loggable {
     
     import loamstream.loam.intake.metrics.MetricOps
     
     def copy(
-        rowSink: RowSink[RenderableJsonRow] = this.rowSink, 
+        destParams: DestinationParams[RenderableJsonRow] = this.destParams, 
         rows: Source[VariantRow.Parsed[R]] = this.rows,
         metric: Metric[R, A] = this.metric,
-        toBeClosed: Seq[Closeable] = this.toBeClosed): MapFilterAndWriteTarget[R, A] = {
+        toBeClosed: Set[Closeable] = this.toBeClosed): MapFilterAndWriteTarget[R, A] = {
       
-      new MapFilterAndWriteTarget(rowSink, metadata, rows, metric, toBeClosed)
+      new MapFilterAndWriteTarget(destParams, metadata, rows, metric, toBeClosed)
     }
     
     def writeSummaryStatsTo(store: Store): MapFilterAndWriteTarget[R, (A, Unit)] = {
@@ -259,7 +255,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     def withMetric[B](m: Metric[R, B]): MapFilterAndWriteTarget[R, (A, B)] = {
       val newMetric = metric combine m
       
-      new MapFilterAndWriteTarget[R, (A, B)](rowSink, metadata, rows, newMetric, toBeClosed)
+      new MapFilterAndWriteTarget[R, (A, B)](destParams, metadata, rows, newMetric, toBeClosed)
     }
     
     def filter(predicate: Predicate[R]): MapFilterAndWriteTarget[R, A] = {
@@ -280,11 +276,12 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     
     private def toolBody[A](
         message: String = "Uploading", 
-        forceLocal: Boolean )(f: => A)(implicit scriptContext: LoamScriptContext): Tool = {
+        forceLocal: Boolean,
+        rowSinkOpt: Option[RowSink[_]])(f: => A)(implicit scriptContext: LoamScriptContext): Tool = {
       
       nativeTool(forceLocal) {
         TimeUtils.time(message, info(_)) {
-          CanBeClosed.enclosed(rowSink) { _ =>
+          CanBeClosed.enclosed(destParams) { _ =>
             CanBeClosed.enclosed(everythingToClose) { _ =>
               f
             }
@@ -293,7 +290,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       }
     }
     
-    private def doDryRun(outputDir: Path): Metric[R, Unit] = {
+    private def doDryRun(outputDir: Path): (Metric[R, Unit], RowSink[R]) = {
       outputDir.toFile.mkdirs()
       
       val metadataFile = outputDir.resolve("metadata.txt")
@@ -301,11 +298,11 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       
       val first10RowsSink = RowSink.ToFile(first10Rows, RowSink.Renderers.csv(Source.Formats.tabDelimited))
       
-      Metric.writeValidVariantsTo[R](first10RowsSink).map { _ =>
+      val m: Metric[R, Unit] = Metric.writeValidVariantsTo[R](first10RowsSink).map { _ =>
         loamstream.util.Files.writeTo(metadataFile)(metadata.asMetadataFileContents)
-      }.map { _ =>
-        first10RowsSink.close()
       }
+      
+      (m, first10RowsSink)
     }
     
     //TODO: better name
@@ -316,18 +313,24 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       
       val rowsToProcess = if(dryRun) rows.take(IntakeSyntax.Defaults.numDryRunRows) else rows
       
-      def writeLines: Metric[R, Unit] = Metric.writeValidVariantsTo(rowSink)
-      
-      def doWrite: Metric[R, Unit] = (dryRun, dryRunOutputDir) match {
+      def doWrite: (Metric[R, Unit], RowSink[R]) = (dryRun, dryRunOutputDir) match {
         case (true, Some(outputDir)) => doDryRun(outputDir)
-        case _ => writeLines
+        case _ =>  {
+          val rowSink = destParams.rowSink
+          
+          (Metric.writeValidVariantsTo(rowSink), rowSink)
+        }
       }
       
-      val m: Metric[R, (A, Unit)] = metric.combine(doWrite)
+      val (m: Metric[R, (A, Unit)], rowSink: RowSink[R]) = {
+        val (writeMetric, rowSink) = doWrite
+        
+        (metric.combine(writeMetric), rowSink)
+      }
       
       //TODO: How to wire up inputs (if any)?
       //TODO: Better message
-      val tool: Tool = toolBody("Uploading", forceLocal) {
+      val tool: Tool = toolBody("Uploading", forceLocal, Option(rowSink)) {
         val (metricResults, _) = m.process(rowsToProcess)
       
         //TODO: What to do with metricResults?
@@ -342,13 +345,11 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
         case _ => ()
       }
       
-      //tool.out(dest) 
-      
       tool
     }
     
     private def everythingToClose: Terminable = Terminable {
-      val doCloseBlocks: Seq[() => Unit] = toBeClosed.map(closeable => () => closeable.close())
+      val doCloseBlocks: Seq[() => Unit] = toBeClosed.toList.map(closeable => () => closeable.close())
       
       val exceptions = Throwables.collectFailures(doCloseBlocks: _*)
       
@@ -384,34 +385,61 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     new AggregatorIntakeConfigFileTarget(dest)
   }
   
-  def uploadTo(rowSink: RowSink[RenderableJsonRow]): TransformationTarget = {
-    new TransformationTarget(rowSink)
+  def uploadTo[R <: RenderableJsonRow](uploadParams: DestinationParams[R]): TransformationTarget[R] = {
+    new TransformationTarget(uploadParams)
   }
   
   def uploadTo(
       bucketName: String, //TODO: default to real location
       uploadType: UploadType,
-      metadata: AggregatorMetadata): TransformationTarget = {
+      metadata: AggregatorMetadata): TransformationTarget[RenderableJsonRow] = {
     
-    val awsConfig: AWSConfig = {
-      //dummy values, except fot the bucket name
-      AWSConfig(
-          S3Config(bucketName), 
-          EmrConfig("some-ssh-key-name", SubnetId("subnet-foo")))
-    }
-  
-    val awsClient: AwsClient = new AwsClient.Default(new AWS(awsConfig))
-    
-    val rowSink: RowSink[RenderableJsonRow] = new AwsRowSink(
-        topic = uploadType.s3Dir,
-        dataset = metadata.dataset,
-        techType = Option(metadata.tech),
-        phenotype = Option(metadata.phenotype),
-        awsClient = awsClient,
-        yes = true)
-    
-    uploadTo(rowSink)
+    uploadTo(DestinationParams.AwsUploadParams(bucketName, uploadType, metadata))
   }
   
+  def uploadTo(rowSink: RowSink[RenderableJsonRow]): TransformationTarget[RenderableJsonRow] = {
+    uploadTo(DestinationParams.To(rowSink))
+  }
   
+  sealed trait DestinationParams[+R] extends Closeable {
+    def rowSink: RowSink[RenderableJsonRow]
+    
+    def withMetadata(newMetadata: AggregatorMetadata): DestinationParams[R]
+    
+    override def close(): Unit = rowSink.close()
+  }
+  
+  object DestinationParams {
+    final case class AwsUploadParams[R <: RenderableJsonRow](
+      bucketName: String, 
+      uploadType: UploadType,
+      metadata: AggregatorMetadata) extends DestinationParams[R] {
+    
+      override def withMetadata(newMetadata: AggregatorMetadata): AwsUploadParams[R] = copy(metadata = newMetadata)
+      
+      override lazy val rowSink: RowSink[RenderableJsonRow] = {
+        val awsConfig: AWSConfig = {
+          //dummy values, except for the bucket name
+          AWSConfig(
+              S3Config(bucketName), 
+              EmrConfig("some-ssh-key-name", SubnetId("subnet-foo")))
+        }
+      
+        val awsClient: AwsClient = new AwsClient.Default(new AWS(awsConfig))
+        
+        new AwsRowSink(
+            topic = uploadType.s3Dir,
+            dataset = metadata.dataset,
+            techType = Option(metadata.tech),
+            phenotype = Option(metadata.phenotype),
+            metadata = metadata.asJObject,
+            awsClient = awsClient)
+      }
+    }
+    
+    final case class To(val rowSink: RowSink[RenderableJsonRow]) extends DestinationParams[RenderableJsonRow] {
+      //TODO: Disallow this
+      override def withMetadata(newMetadata: AggregatorMetadata): To = this
+    }
+  }
 }

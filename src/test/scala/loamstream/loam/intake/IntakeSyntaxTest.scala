@@ -30,11 +30,11 @@ final class IntakeSyntaxTest extends FunSuite {
   test("asCloseable") {
     val yIsEven = Y.asInt.map(_ % 2 == 0)
     
-    assert(asCloseable(yIsEven) === Nil)
+    assert(asCloseable(yIsEven) === Set.empty)
     
     val closeable = MockCloseableRowPredicate(yIsEven)
     
-    assert(asCloseable(closeable) === Seq(closeable))
+    assert(asCloseable(closeable) === Set(closeable))
   }
   
   private def filterSource = Helpers.sourceProducing(
@@ -54,15 +54,15 @@ final class IntakeSyntaxTest extends FunSuite {
       
       val source = filterSource 
           
-      val viaTarget = new ViaTarget(Helpers.RowSinks.noop, source, ???)
+      val viaTarget = new ViaTarget(DestinationParams.To(Helpers.RowSinks.noop), source, ???)
       
-      assert(viaTarget.toBeClosed === Nil)
+      assert(viaTarget.toBeClosed === Set.empty)
       
       val yIsEven = MockCloseableRowPredicate(Y.asInt.map(_ % 2 == 0))
       
       val filtered = viaTarget.filter(yIsEven)
       
-      assert(filtered.toBeClosed === Seq(yIsEven))
+      assert(filtered.toBeClosed === Set(yIsEven))
       
       val expected = Seq(
           ("a1", true),
@@ -80,13 +80,13 @@ final class IntakeSyntaxTest extends FunSuite {
       
       val source = filterSource 
           
-      val viaTarget = new ViaTarget(Helpers.RowSinks.noop, source, ???)
+      val viaTarget = new ViaTarget(DestinationParams.To(Helpers.RowSinks.noop), source, ???)
       
-      assert(viaTarget.toBeClosed === Nil)
+      assert(viaTarget.toBeClosed === Set.empty)
       
       val filtered = viaTarget.filter(None)
       
-      assert(filtered.toBeClosed === Nil)
+      assert(filtered.toBeClosed === Set.empty)
       
       val expected = Seq(
           ("a1", false),
@@ -104,15 +104,15 @@ final class IntakeSyntaxTest extends FunSuite {
       
       val source = filterSource 
           
-      val viaTarget = new ViaTarget(Helpers.RowSinks.noop, source, ???)
+      val viaTarget = new ViaTarget(DestinationParams.To(Helpers.RowSinks.noop), source, ???)
       
-      assert(viaTarget.toBeClosed === Nil)
+      assert(viaTarget.toBeClosed === Set.empty)
    
       val yIs3 = MockCloseableRowPredicate(Y.asInt.map(_ == 3))
       
       val filtered = viaTarget.filter(Option(yIs3))
       
-      assert(filtered.toBeClosed === Seq(yIs3))
+      assert(filtered.toBeClosed === Set(yIs3))
       
       val expected = Seq(
           ("a1", true),
@@ -160,13 +160,13 @@ final class IntakeSyntaxTest extends FunSuite {
       val source = mapSource.tagFlips(markerDef, Helpers.FlipDetectors.NoFlipsEver).map(expr)
           
       val target = new MapFilterAndWriteTarget[PValueVariantRow, Unit](
-          Helpers.RowSinks.noop, 
+          DestinationParams.To(Helpers.RowSinks.noop), 
           metadata,
           source, 
           Fold.foreach(_ => ()),
-          Nil)
+          Set.empty)
       
-      assert(target.toBeClosed === Nil)
+      assert(target.toBeClosed === Set.empty)
       
       val withMetric = target.withMetric(Fold.count)
       
@@ -181,13 +181,13 @@ final class IntakeSyntaxTest extends FunSuite {
       val source = mapSource.tagFlips(markerDef, Helpers.FlipDetectors.NoFlipsEver).map(expr)
           
       val target = new MapFilterAndWriteTarget[PValueVariantRow, Unit](
-          Helpers.RowSinks.noop,
+          DestinationParams.To(Helpers.RowSinks.noop),
           metadata,
           source, 
           Fold.foreach(_ => ()),
-          Nil)
+          Set.empty)
       
-      assert(target.toBeClosed === Nil)
+      assert(target.toBeClosed === Set.empty)
       
       val unfilteredRows = source.records.toList
       
@@ -195,7 +195,7 @@ final class IntakeSyntaxTest extends FunSuite {
       
       val filtered = target.filter(p)
       
-      assert(filtered.toBeClosed === Seq(p))
+      assert(filtered.toBeClosed === Set(p))
       
       val expected = unfilteredRows.take(2).map(_.skip) ++ unfilteredRows.drop(2)
       
@@ -217,13 +217,13 @@ final class IntakeSyntaxTest extends FunSuite {
       }
           
       val target = new MapFilterAndWriteTarget[PValueVariantRow, Unit](
-          Helpers.RowSinks.noop, 
+          DestinationParams.To(Helpers.RowSinks.noop), 
           metadata,
           source, 
           Fold.foreach(_ => ()),
-          Nil)
+          Set.empty)
       
-      assert(target.toBeClosed === Nil)
+      assert(target.toBeClosed === Set.empty)
       
       val unfilteredRows = source.records.toList
       
@@ -249,13 +249,13 @@ final class IntakeSyntaxTest extends FunSuite {
       }
           
       val target = new MapFilterAndWriteTarget[PValueVariantRow, Unit](
-          Helpers.RowSinks.noop,
+          DestinationParams.To(Helpers.RowSinks.noop),
           metadata,
           source, 
           Fold.foreach(_ => ()),
-          Nil)
+          Set.empty)
       
-      assert(target.toBeClosed === Nil)
+      assert(target.toBeClosed === Set.empty)
       
       val unmappedRows = source.records.toList
       
@@ -265,7 +265,7 @@ final class IntakeSyntaxTest extends FunSuite {
       
       val mapped = target.map(f)
       
-      assert(mapped.toBeClosed === Seq(f))
+      assert(mapped.toBeClosed === Set(f))
       
       val expected = unmappedRows.take(2) ++ unmappedRows.drop(2).map(_.transform(f))
       
@@ -291,13 +291,13 @@ final class IntakeSyntaxTest extends FunSuite {
         }
             
         val target = new MapFilterAndWriteTarget[PValueVariantRow, Unit](
-            RowSink.ToFile(outfile, RowSink.Renderers.csv(Source.Formats.tabDelimited)),
+            DestinationParams.To(RowSink.ToFile(outfile, RowSink.Renderers.csv(Source.Formats.tabDelimited))),
             metadata,
             source, 
             Fold.foreach(_ => ()),
-            Nil)
+            Set.empty)
         
-        assert(target.toBeClosed === Nil)
+        assert(target.toBeClosed === Set.empty)
         
         val unmappedRows = source.records.toList
         
@@ -307,7 +307,7 @@ final class IntakeSyntaxTest extends FunSuite {
         
         val mapped = target.map(f)
         
-        assert(mapped.toBeClosed === Seq(f))
+        assert(mapped.toBeClosed === Set(f))
         
         val tool = mapped.write(forceLocal = true).asInstanceOf[NativeTool]
         
@@ -342,13 +342,13 @@ ${v3.underscoreDelimited}${'\t'}1.4${'\t'}42.0""".trim
         val source = mapSource.tagFlips(markerDef, Helpers.FlipDetectors.NoFlipsEver).map(expr)
             
         val target = new MapFilterAndWriteTarget[PValueVariantRow, Unit](
-            Helpers.RowSinks.noop,
+            DestinationParams.To(Helpers.RowSinks.noop),
             metadata,
             source, 
             Fold.foreach(_ => ()),
-            Nil)
+            Set.empty)
         
-        assert(target.toBeClosed === Nil)
+        assert(target.toBeClosed === Set.empty)
         
         val f = MockCloseableTransform[PValueVariantRow] { dr => 
           dr.copy(pvalue = dr.pvalue + 1.0)

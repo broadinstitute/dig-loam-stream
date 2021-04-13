@@ -36,6 +36,8 @@ final case class DrmJobWrapper(
   private lazy val stdOutDestPath: Path = LogFileNames.stdout(jobDir)
 
   private lazy val stdErrDestPath: Path = LogFileNames.stderr(jobDir)
+  
+  private lazy val exitCodeDestPath: Path = LogFileNames.exitCode(jobDir)
 
   def outputStreams: OutputStreams = OutputStreams(stdOutDestPath, stdErrDestPath)
 
@@ -77,12 +79,14 @@ final case class DrmJobWrapper(
         |
         |stdoutDestPath="${stdOutDestPath.render}"
         |stderrDestPath="${stdErrDestPath.render}"
+        |exitcodeDestPath="${stdErrDestPath.render}"
         |
         |jobDir="${outputDir.render}"
         |
         |mkdir -p $$jobDir
         |mv $$origStdoutPath $$stdoutDestPath || echo "Couldn't move DRM std out log $$origStdoutPath; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
         |mv $$origStderrPath $$stderrDestPath || echo "Couldn't move DRM std err log $$origStderrPath; it's likely the job wasn't submitted successfully" > $$stderrDestPath
+        |echo $$LOAMSTREAM_JOB_EXIT_CODE > $$exitcodeDestPath
         |
         |exit $$LOAMSTREAM_JOB_EXIT_CODE
         |""".stripMargin

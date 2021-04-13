@@ -23,6 +23,13 @@ import loamstream.util.Tries
 import rx.lang.scala.Observable
 import rx.lang.scala.Scheduler
 import rx.lang.scala.schedulers.ExecutionContextScheduler
+import loamstream.model.jobs.JobOracle
+import loamstream.model.jobs.DrmJobOracle
+import java.nio.file.Path
+import loamstream.util.LogFileNames
+import loamstream.util.CanBeClosed
+import scala.io.Source
+import loamstream.util.Iterators
 
 /**
  * @author clint
@@ -30,10 +37,29 @@ import rx.lang.scala.schedulers.ExecutionContextScheduler
  */
 final class QstatQacctPoller private[uger] (
   qstatInvoker: CommandInvoker.Async[Unit],
-  qacctInvoker: CommandInvoker.Async[String]) extends Poller with Loggable {
+  qacctInvoker: CommandInvoker.Async[String],
+  jobOracle: DrmJobOracle) extends Poller with Loggable {
 
   import QstatQacctPoller._
 
+  private lazy val byJobIdMap: Map[String, Map[DrmTaskId, Path]] = {
+    val known = jobOracle.known
+    
+    val byJobId: Map[String, Set[DrmTaskId]] = {
+      val knownJobIds = known.map(_.jobId)
+      
+      knownJobIds.iterator.map { jobId =>
+        jobId -> known.filter(_.jobId == jobId)
+      }.toMap
+    }
+    
+    byJobId.map {
+      case (jobId, drmTaskIds) => jobId -> {
+        drmTaskIds.iterator.map(taskId => taskId -> jobOracle.dirFor(taskId))
+      }.toMap
+    }
+  }
+  
   override def poll(drmTaskIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, Try[DrmStatus])] = {
     //Invoke qstat, to get the status of all submitted-but-not-finished jobs in this session
     val qstatResultObs = {
@@ -67,14 +93,24 @@ final class QstatQacctPoller private[uger] (
 
         debug(s"${notFoundByQstat.size} finished jobs not found by qstat, ${numJobIds} job IDs")
       }
+      
+      val qacctInvocationObses = taskArrayIdsNotFoundByQstat.iterator.take(ThisMachine.numCpus).map { jobId =>
+        /*implicit val ec = ExecutionContexts.forQacct
+
+        invokeQacctFor(drmTaskIdSet)(_).observeOn(Schedulers.forQacct)*/
+        
+        val idsInTaskArray = byJobIdMap(jobId).keySet
+        
+        getExitCodes(idsInTaskArray)
+      }.toSeq
 
       //Invoke qacct once per task-array-with-unfinished-jobs; discard info about jobs we're not polling for;
       //parse out statuses by looking at the jobs' exit codes.
-      val qacctInvocationObses = taskArrayIdsNotFoundByQstat.iterator.take(ThisMachine.numCpus).map {
+      /*val qacctInvocationObses = taskArrayIdsNotFoundByQstat.iterator.take(ThisMachine.numCpus).map {
         implicit val ec = ExecutionContexts.forQacct
 
         invokeQacctFor(drmTaskIdSet)(_).observeOn(Schedulers.forQacct)
-      }.toSeq
+      }.toSeq*/
 
       val qacctResultsObs = Observables.merge(qacctInvocationObses)
 
@@ -85,6 +121,36 @@ final class QstatQacctPoller private[uger] (
     }
   }
 
+  private def getExitCodes(idsToLookFor: Set[DrmTaskId]): Observable[PollResult] = {
+    def exitCodeFor(taskId: DrmTaskId): Observable[PollResult] = {
+      val exitCodeFile: Option[Path] = jobOracle.dirOptFor(taskId).map(LogFileNames.exitCode)
+      
+      Observable.from {
+        val pollResultOpt: Option[PollResult] = exitCodeFile.flatMap { file =>
+          if(java.nio.file.Files.exists(file)) { 
+            CanBeClosed.using(Source.fromFile(file.toFile)) { source =>
+              import Iterators.Implicits.IteratorOps
+              
+              val lines: Iterator[String] = source.getLines.map(_.trim).filter(_.nonEmpty)
+              
+              val statuses: Iterator[DrmStatus] = {
+                lines.flatMap(line => Try(line.toInt).toOption).map(DrmStatus.CommandResult(_))
+              }
+              
+              statuses.map(s => taskId -> s).nextOption()
+            }
+          } else {
+            None
+          }
+        }
+        
+        pollResultOpt
+      }
+    }
+    
+    Observable.from(idsToLookFor).flatMap(exitCodeFor)
+  }
+  
   private def warnThenComplete[A](msg: => String): Throwable => Observable[A] = {
     case NonFatal(e) => {
       warn(msg, e)
@@ -149,6 +215,7 @@ object QstatQacctPoller extends Loggable {
   def fromExecutables(
     qstatPollingFrequencyInHz: Double,
     ugerConfig: UgerConfig,
+    jobOracle: DrmJobOracle,
     actualQstatExecutable: String = "qstat",
     actualQacctExecutable: String = "qacct",
     scheduler: Scheduler)(implicit ec: ExecutionContext): QstatQacctPoller = {
@@ -163,7 +230,7 @@ object QstatQacctPoller extends Loggable {
     val qacct = qacctCommandInvoker(actualQacctExecutable, ugerConfig, maxQacctCacheAge, scheduler)
     val qstat = qstatCommandInvoker(qstatPollingFrequencyInHz, actualQstatExecutable)
 
-    new QstatQacctPoller(qstat, qacct)
+    new QstatQacctPoller(qstat, qacct, jobOracle)
   }
 
   type PollResult = (DrmTaskId, DrmStatus)

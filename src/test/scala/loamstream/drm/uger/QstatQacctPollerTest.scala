@@ -21,7 +21,7 @@ import loamstream.TestHelpers.DummyDrmJobOracle
  * Jul 24, 2020
  */
 final class QstatQacctPollerTest extends FunSuite {
-  import QstatQacctPoller._
+  import QstatPoller._
   
   // scalastyle:off line.size.limit
   private val headerLines = Seq(
@@ -76,7 +76,7 @@ final class QstatQacctPollerTest extends FunSuite {
     
     val idsToLookFor = Set(tid3, tid4)
     
-    val actual = QstatQacctPoller.QacctSupport.parseMultiTaskQacctResults(idsToLookFor)(jobNumber -> lines)
+    val actual = QstatPoller.QacctSupport.parseMultiTaskQacctResults(idsToLookFor)(jobNumber -> lines)
     
     val expected = Map(tid3 -> CommandResult(42), tid4 -> CommandResult(0))
     
@@ -92,7 +92,7 @@ final class QstatQacctPollerTest extends FunSuite {
     
     val idsToLookFor = Set(tid)
     
-    val actual = QstatQacctPoller.QacctSupport.parseMultiTaskQacctResults(idsToLookFor)(jobNumber -> lines)
+    val actual = QstatPoller.QacctSupport.parseMultiTaskQacctResults(idsToLookFor)(jobNumber -> lines)
     
     val expected = Map(tid -> CommandResult(0))
     
@@ -143,7 +143,7 @@ final class QstatQacctPollerTest extends FunSuite {
     
     val qacctInvoker: CommandInvoker.Async[String] = new CommandInvoker.Async.JustOnce("MOCK_QACCT", qacctInvocationFn)
     
-    val poller = new QstatQacctPoller(qstatInvoker, qacctInvoker)
+    val poller = new QstatPoller(qstatInvoker, qacctInvoker)
     
     import Observables.Implicits._
     

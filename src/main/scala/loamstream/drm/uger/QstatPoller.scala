@@ -36,11 +36,9 @@ import loamstream.util.ValueBox
  * @author clint
  * Jul 15, 2020
  */
-final class QstatQacctPoller private[uger] (
-  qstatInvoker: CommandInvoker.Async[Unit],
-  qacctInvoker: CommandInvoker.Async[String]) extends Poller with Loggable {
+final class QstatPoller private[uger] (qstatInvoker: CommandInvoker.Async[Unit]) extends Poller with Loggable {
 
-  import QstatQacctPoller._
+  import QstatPoller._
 
   override def poll(oracle: DrmJobOracle)(drmTaskIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, Try[DrmStatus])] = {
     //Invoke qstat, to get the status of all submitted-but-not-finished jobs in this session
@@ -76,61 +74,52 @@ final class QstatQacctPoller private[uger] (
         debug(s"${notFoundByQstat.size} finished jobs not found by qstat, ${numJobIds} job IDs")
       }
       
-      val qacctInvocationObses = taskArrayIdsNotFoundByQstat.iterator.take(ThisMachine.numCpus).map { jobId =>
-        /*implicit val ec = ExecutionContexts.forQacct
-
-        invokeQacctFor(drmTaskIdSet)(_).observeOn(Schedulers.forQacct)*/
-        
+      val exitCodeStatusObses = taskArrayIdsNotFoundByQstat.iterator.take(ThisMachine.numCpus).map { jobId =>
         val idsInTaskArray = oracle.byJobIdMap(jobId).keySet
         
         getExitCodes(oracle)(idsInTaskArray)
       }.toSeq
 
-      //Invoke qacct once per task-array-with-unfinished-jobs; discard info about jobs we're not polling for;
-      //parse out statuses by looking at the jobs' exit codes.
-      /*val qacctInvocationObses = taskArrayIdsNotFoundByQstat.iterator.take(ThisMachine.numCpus).map {
-        implicit val ec = ExecutionContexts.forQacct
-
-        invokeQacctFor(drmTaskIdSet)(_).observeOn(Schedulers.forQacct)
-      }.toSeq*/
-
-      val qacctResultsObs = Observables.merge(qacctInvocationObses)
+      val exitCodeStatuesObs = Observables.merge(exitCodeStatusObses)
 
       //Concatentate results from qstat with those from qacct, wrapping in Trys as needed.
       Observable.from(byTaskId) ++ {
-        qacctResultsObs.map { case (tid, status) => (tid, Success(status)) }
+        exitCodeStatuesObs.map { case (tid, status) => (tid, Success(status)) }
       }.onBackpressureDrop
     }
   }
 
   private def getExitCodes(oracle: DrmJobOracle)(idsToLookFor: Set[DrmTaskId]): Observable[PollResult] = {
-    def exitCodeFor(taskId: DrmTaskId): Observable[PollResult] = {
-      val exitCodeFile: Option[Path] = oracle.dirOptFor(taskId).map(LogFileNames.exitCode)
-      
-      Observable.from {
-        val pollResultOpt: Option[PollResult] = exitCodeFile.flatMap { file =>
-          if(java.nio.file.Files.exists(file)) { 
-            CanBeClosed.using(Source.fromFile(file.toFile)) { source =>
-              import Iterators.Implicits.IteratorOps
-              
-              val lines: Iterator[String] = source.getLines.map(_.trim).filter(_.nonEmpty)
-              
-              val statuses: Iterator[DrmStatus] = {
-                lines.flatMap(line => Try(line.toInt).toOption).map(DrmStatus.CommandResult(_))
-              }
-              
-              statuses.map(s => taskId -> s).nextOption()
-            }
-          } else {
-            None
-          }
+    def readExitCodeFrom(file: Path): Option[DrmStatus] = {
+      CanBeClosed.using(Source.fromFile(file.toFile)) { source =>
+        import Iterators.Implicits.IteratorOps
+        
+        val lines: Iterator[String] = source.getLines.map(_.trim).filter(_.nonEmpty)
+        
+        val statuses: Iterator[DrmStatus] = {
+          lines.flatMap(line => Try(line.toInt).toOption).map(DrmStatus.CommandResult(_))
         }
         
-        pollResultOpt
+        statuses.nextOption()
       }
     }
     
-    Observable.from(idsToLookFor).flatMap(exitCodeFor)
+    def exitCodeFor(taskId: DrmTaskId): Observable[PollResult] = {
+      def toPollResult(status: DrmStatus): PollResult = taskId -> status
+      
+      import java.nio.file.Files.exists
+
+      val exitCodeFile: Option[Path] = oracle.dirOptFor(taskId).map(LogFileNames.exitCode)
+      
+      Observable.from {
+        exitCodeFile.flatMap { file =>
+          if(exists(file)) { readExitCodeFrom(file).map(toPollResult) } 
+          else { None }
+        }
+      }
+    }
+    
+    Observable.from(idsToLookFor).subscribeOn(Schedulers.forExitStatuses).flatMap(exitCodeFor)
   }
   
   private def warnThenComplete[A](msg: => String): Throwable => Observable[A] = {
@@ -141,27 +130,13 @@ final class QstatQacctPoller private[uger] (
     }
   }
   
-  private def invokeQacctFor(
-    drmTaskIds: Set[DrmTaskId])
-   (jobNumber: String)(implicit ec: ExecutionContext): Observable[(DrmTaskId, DrmStatus)] = {
-
-    Observable.from(qacctInvoker(jobNumber))
-      .observeOn(Schedulers.forQacct)
-      .map(jobNumber -> _.stdout)
-      .map(QacctSupport.parseMultiTaskQacctResults(drmTaskIds))
-      .flatMap(Observable.from(_))
-      .onErrorResumeNext {
-        warnThenComplete(s"Error invoking qacct for task array with job id '${jobNumber}'")
-      }
-  }
-
   override def stop(): Unit = {
     Throwables.quietly("Shutting down Qstat ExecutionContext") {
       ExecutionContexts.forQstatHandle.stop()
     }
 
-    Throwables.quietly("Shutting down Qacct ExecutionContext") {
-      ExecutionContexts.forQacctHandle.stop()
+    Throwables.quietly("Shutting down exit-status-lookup ExecutionContext") {
+      ExecutionContexts.forExitStatusesHandle.stop()
     }
   }
 
@@ -175,7 +150,7 @@ final class QstatQacctPoller private[uger] (
         rejectedStrategy = RejectedExecutionStrategy.Drop) //TODO: ???
     }
 
-    lazy val (forQacct: ExecutionContext, forQacctHandle: Terminable) = {
+    lazy val (forExitStatuses: ExecutionContext, forExitStatusesHandle: Terminable) = {
       val queueSize = ThisMachine.numCpus //TODO: ???
 
       loamstream.util.ExecutionContexts.oneThreadPerCpu(
@@ -188,30 +163,25 @@ final class QstatQacctPoller private[uger] (
   private[uger] object Schedulers {
     val forQstat: Scheduler = ExecutionContextScheduler(ExecutionContexts.forQstat)
 
-    val forQacct: Scheduler = ExecutionContextScheduler(ExecutionContexts.forQacct)
+    val forExitStatuses: Scheduler = ExecutionContextScheduler(ExecutionContexts.forExitStatuses)
   }
 }
 
-object QstatQacctPoller extends Loggable {
+object QstatPoller extends Loggable {
 
   def fromExecutables(
     qstatPollingFrequencyInHz: Double,
     ugerConfig: UgerConfig,
     actualQstatExecutable: String = "qstat",
-    actualQacctExecutable: String = "qacct",
-    scheduler: Scheduler)(implicit ec: ExecutionContext): QstatQacctPoller = {
+    scheduler: Scheduler)(implicit ec: ExecutionContext): QstatPoller = {
 
     import QacctInvoker.ByTaskArray.{ useActualBinary => qacctCommandInvoker }
     import Qstat.{ commandInvoker => qstatCommandInvoker }
     import scala.concurrent.duration._
 
-    //TODO: Appropriate?
-    val maxQacctCacheAge = (1.0 / qstatPollingFrequencyInHz).seconds
-
-    val qacct = qacctCommandInvoker(actualQacctExecutable, ugerConfig, maxQacctCacheAge, scheduler)
     val qstat = qstatCommandInvoker(qstatPollingFrequencyInHz, actualQstatExecutable)
 
-    new QstatQacctPoller(qstat, qacct)
+    new QstatPoller(qstat)
   }
 
   type PollResult = (DrmTaskId, DrmStatus)
@@ -373,61 +343,6 @@ object QstatQacctPoller extends Loggable {
         def unapply(s: String): Boolean = s match {
           case "s" | "S" | "N" | "ts" | "tS" | "T" | "tT" | "Rs" | "Rts" | "RS" | "RtS" | "RT" | "RtT" => true
           case _ => false
-        }
-      }
-    }
-  }
-
-  private[uger] object QacctSupport {
-    object Regexes {
-      val exitStatus = "exit_status\\s+(.+?)$".r
-      val jobNumber = "jobnumber\\s+(.+?)$".r
-      val taskId = "taskid\\s+(.+?)$".r
-    }
-
-    //
-    def parseMultiTaskQacctResults(
-      idsToLookFor: Set[DrmTaskId])(jobNumberAndQacctLines: (String, Seq[String])): Iterable[PollResult] = {
-
-      import loamstream.util.Traversables.Implicits._
-
-      def isDivider(line: String): Boolean = line.startsWith("======")
-
-      val (jobNumberToLookFor, qacctLines) = jobNumberAndQacctLines
-
-      val tuples = qacctLines.splitOn(isDivider).map(_.iterator.map(_.trim)).flatMap { linesForOneTask =>
-        def toTry(t: (Option[String], Option[Int], Option[Int])): Try[(String, Int, Int)] = t match {
-          case (Some(jn), Some(ti), Some(es)) => Success((jn, ti, es))
-          case (None, _, _) => Tries.failure(s"Missing jobnumber field in ${linesForOneTask}")
-          case (_, None, _) => Tries.failure(s"Missing taskid field in ${linesForOneTask}")
-          case (_, _, None) => Tries.failure(s"Missing exit_status field in ${linesForOneTask}")
-        }
-
-        toTry(Folds.fields.process(linesForOneTask)) match {
-          case Success((jobNumber, taskIndex, exitStatus)) => {
-            Iterator(DrmTaskId(jobNumber, taskIndex) -> DrmStatus.CommandResult(exitStatus)).filter {
-              case (drmTaskId, _) => idsToLookFor.contains(drmTaskId)
-            }
-          }
-          case Failure(e) => {
-            warn(s"Couldn't parse qacct results: ", e)
-
-            Iterator.empty
-          }
-        }
-      }
-
-      tuples.toIterable
-    }
-
-    object Folds {
-      val taskIndex = Fold.matchFirst1(Regexes.taskId).map(_.flatMap(s => Try(s.toInt).toOption))
-      val jobNumber = Fold.matchFirst1(Regexes.jobNumber)
-      val exitStatus = Fold.matchFirst1(Regexes.exitStatus).map(_.flatMap(s => Try(s.toInt).toOption))
-
-      val fields: Fold[String, _, (Option[String], Option[Int], Option[Int])] = {
-        (jobNumber |+| taskIndex |+| exitStatus).map {
-          case ((jobNumber, taskIndex), exitStatus) => (jobNumber, taskIndex, exitStatus)
         }
       }
     }

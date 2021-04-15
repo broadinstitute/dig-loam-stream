@@ -16,6 +16,7 @@ import loamstream.util.Tries
 import loamstream.drm.DrmTaskId
 import rx.lang.scala.Observable
 import loamstream.util.Observables
+import loamstream.model.jobs.DrmJobOracle
 
 /**
  * @author clint
@@ -29,7 +30,7 @@ final class BjobsPoller private[lsf] (pollingFn: InvocationFn[Set[DrmTaskId]]) e
    * @param jobIds the ids of the jobs to inquire about
    * @return a map of job ids to attempts at that job's status
    */
-  override def poll(jobIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, Try[DrmStatus])] = {
+  override def poll(oracle: DrmJobOracle)(jobIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, Try[DrmStatus])] = {
     debug(s"Polling for ${jobIds.size} jobs: $jobIds")
     
     //TODO: .get

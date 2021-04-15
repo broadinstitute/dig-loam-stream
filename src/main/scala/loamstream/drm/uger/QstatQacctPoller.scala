@@ -30,6 +30,7 @@ import loamstream.util.LogFileNames
 import loamstream.util.CanBeClosed
 import scala.io.Source
 import loamstream.util.Iterators
+import loamstream.util.ValueBox
 
 /**
  * @author clint
@@ -37,30 +38,11 @@ import loamstream.util.Iterators
  */
 final class QstatQacctPoller private[uger] (
   qstatInvoker: CommandInvoker.Async[Unit],
-  qacctInvoker: CommandInvoker.Async[String],
-  jobOracle: DrmJobOracle) extends Poller with Loggable {
+  qacctInvoker: CommandInvoker.Async[String]) extends Poller with Loggable {
 
   import QstatQacctPoller._
 
-  private lazy val byJobIdMap: Map[String, Map[DrmTaskId, Path]] = {
-    val known = jobOracle.known
-    
-    val byJobId: Map[String, Set[DrmTaskId]] = {
-      val knownJobIds = known.map(_.jobId)
-      
-      knownJobIds.iterator.map { jobId =>
-        jobId -> known.filter(_.jobId == jobId)
-      }.toMap
-    }
-    
-    byJobId.map {
-      case (jobId, drmTaskIds) => jobId -> {
-        drmTaskIds.iterator.map(taskId => taskId -> jobOracle.dirFor(taskId))
-      }.toMap
-    }
-  }
-  
-  override def poll(drmTaskIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, Try[DrmStatus])] = {
+  override def poll(oracle: DrmJobOracle)(drmTaskIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, Try[DrmStatus])] = {
     //Invoke qstat, to get the status of all submitted-but-not-finished jobs in this session
     val qstatResultObs = {
       implicit val ec = ExecutionContexts.forQstat
@@ -99,9 +81,9 @@ final class QstatQacctPoller private[uger] (
 
         invokeQacctFor(drmTaskIdSet)(_).observeOn(Schedulers.forQacct)*/
         
-        val idsInTaskArray = byJobIdMap(jobId).keySet
+        val idsInTaskArray = oracle.byJobIdMap(jobId).keySet
         
-        getExitCodes(idsInTaskArray)
+        getExitCodes(oracle)(idsInTaskArray)
       }.toSeq
 
       //Invoke qacct once per task-array-with-unfinished-jobs; discard info about jobs we're not polling for;
@@ -121,9 +103,9 @@ final class QstatQacctPoller private[uger] (
     }
   }
 
-  private def getExitCodes(idsToLookFor: Set[DrmTaskId]): Observable[PollResult] = {
+  private def getExitCodes(oracle: DrmJobOracle)(idsToLookFor: Set[DrmTaskId]): Observable[PollResult] = {
     def exitCodeFor(taskId: DrmTaskId): Observable[PollResult] = {
-      val exitCodeFile: Option[Path] = jobOracle.dirOptFor(taskId).map(LogFileNames.exitCode)
+      val exitCodeFile: Option[Path] = oracle.dirOptFor(taskId).map(LogFileNames.exitCode)
       
       Observable.from {
         val pollResultOpt: Option[PollResult] = exitCodeFile.flatMap { file =>
@@ -215,7 +197,6 @@ object QstatQacctPoller extends Loggable {
   def fromExecutables(
     qstatPollingFrequencyInHz: Double,
     ugerConfig: UgerConfig,
-    jobOracle: DrmJobOracle,
     actualQstatExecutable: String = "qstat",
     actualQacctExecutable: String = "qacct",
     scheduler: Scheduler)(implicit ec: ExecutionContext): QstatQacctPoller = {
@@ -230,7 +211,7 @@ object QstatQacctPoller extends Loggable {
     val qacct = qacctCommandInvoker(actualQacctExecutable, ugerConfig, maxQacctCacheAge, scheduler)
     val qstat = qstatCommandInvoker(qstatPollingFrequencyInHz, actualQstatExecutable)
 
-    new QstatQacctPoller(qstat, qacct, jobOracle)
+    new QstatQacctPoller(qstat, qacct)
   }
 
   type PollResult = (DrmTaskId, DrmStatus)

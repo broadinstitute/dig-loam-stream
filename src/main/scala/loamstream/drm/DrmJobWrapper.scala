@@ -25,13 +25,11 @@ final case class DrmJobWrapper(
     jobDir: Path,
     drmIndex: Int) extends Loggable {
 
-  def drmStdOutPath(taskArray: DrmTaskArray): Path = {
-    pathBuilder.reifyPathTemplate(taskArray.stdOutPathTemplate, drmIndex)
-  }
+  private def makePath(template: String): Path = pathBuilder.reifyPathTemplate(template, drmIndex)
+  
+  def drmStdOutPath(taskArray: DrmTaskArray): Path = makePath(taskArray.stdOutPathTemplate)
 
-  def drmStdErrPath(taskArray: DrmTaskArray): Path = {
-    pathBuilder.reifyPathTemplate(taskArray.stdErrPathTemplate, drmIndex)
-  }
+  def drmStdErrPath(taskArray: DrmTaskArray): Path = makePath(taskArray.stdErrPathTemplate)
   
   private lazy val stdOutDestPath: Path = LogFileNames.stdout(jobDir)
 
@@ -79,7 +77,7 @@ final case class DrmJobWrapper(
         |
         |stdoutDestPath="${stdOutDestPath.render}"
         |stderrDestPath="${stdErrDestPath.render}"
-        |exitcodeDestPath="${stdErrDestPath.render}"
+        |exitcodeDestPath="${exitCodeDestPath.render}"
         |
         |jobDir="${outputDir.render}"
         |

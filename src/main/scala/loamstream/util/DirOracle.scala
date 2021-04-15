@@ -23,11 +23,7 @@ trait DirOracle[A] { self =>
   }
   
   def via[B](mapping: Map[B, A]): DirOracle[B] = new DirOracle[B] {
-    override lazy val known: Set[B] = {
-      val a2b: Map[A, B] = mapping.iterator.map { case (b, a) => a -> b }.toMap
-      
-      self.known.map(a2b)
-    }
+    override lazy val known: Set[B] = mapping.keySet
     
     override def dirOptFor(b: B): Option[Path] = mapping.get(b).flatMap(self.dirOptFor)
   }

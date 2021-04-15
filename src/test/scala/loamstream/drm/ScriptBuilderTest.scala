@@ -53,6 +53,8 @@ final class ScriptBuilderTest extends FunSuite {
       def makePath(s: String): Path = path(s"foo/bar/baz/$s")
       
       val jobOracle: JobOracle = new JobOracle {
+        override def known: Set[LJob] = ???
+        
         override def dirOptFor(job: LJob): Option[Path] = Some(makePath(job.id.toString))
       }
       
@@ -235,12 +237,14 @@ origStderrPath="${drmOutputDir}/${jobName}.1.stderr"
 
 stdoutDestPath="$finalOutputDir0/stdout"
 stderrDestPath="$finalOutputDir0/stderr"
+exitcodeDestPath="$finalOutputDir0/exitcode"
 
 jobDir="$finalOutputDir0"
 
 mkdir -p $$jobDir
 mv $$origStdoutPath $$stdoutDestPath || echo "Couldn't move DRM std out log $$origStdoutPath; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
 mv $$origStderrPath $$stderrDestPath || echo "Couldn't move DRM std err log $$origStderrPath; it's likely the job wasn't submitted successfully" > $$stderrDestPath
+echo $$LOAMSTREAM_JOB_EXIT_CODE > $$exitcodeDestPath
 
 exit $$LOAMSTREAM_JOB_EXIT_CODE
 
@@ -255,12 +259,14 @@ origStderrPath="${drmOutputDir}/${jobName}.2.stderr"
 
 stdoutDestPath="$finalOutputDir1/stdout"
 stderrDestPath="$finalOutputDir1/stderr"
+exitcodeDestPath="$finalOutputDir1/exitcode"
 
 jobDir="$finalOutputDir1"
 
 mkdir -p $$jobDir
 mv $$origStdoutPath $$stdoutDestPath || echo "Couldn't move DRM std out log $$origStdoutPath; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
 mv $$origStderrPath $$stderrDestPath || echo "Couldn't move DRM std err log $$origStderrPath; it's likely the job wasn't submitted successfully" > $$stderrDestPath
+echo $$LOAMSTREAM_JOB_EXIT_CODE > $$exitcodeDestPath
 
 exit $$LOAMSTREAM_JOB_EXIT_CODE
 
@@ -275,12 +281,14 @@ origStderrPath="${drmOutputDir}/${jobName}.3.stderr"
 
 stdoutDestPath="$finalOutputDir2/stdout"
 stderrDestPath="$finalOutputDir2/stderr"
+exitcodeDestPath="$finalOutputDir2/exitcode"
 
 jobDir="$finalOutputDir2"
 
 mkdir -p $$jobDir
 mv $$origStdoutPath $$stdoutDestPath || echo "Couldn't move DRM std out log $$origStdoutPath; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
 mv $$origStderrPath $$stderrDestPath || echo "Couldn't move DRM std err log $$origStderrPath; it's likely the job wasn't submitted successfully" > $$stderrDestPath
+echo $$LOAMSTREAM_JOB_EXIT_CODE > $$exitcodeDestPath
 
 exit $$LOAMSTREAM_JOB_EXIT_CODE
 

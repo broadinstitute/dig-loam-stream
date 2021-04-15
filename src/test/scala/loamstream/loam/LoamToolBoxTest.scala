@@ -281,10 +281,14 @@ final class LoamToolBoxTest extends FunSuite {
   
   private object DummyOracles {
     def alwaysReturns[A](workDir: Path): DirOracle[A] = new DirOracle[A] {
+      override def known: Set[A] = ???
+      
       override def dirOptFor(job: A): Option[Path] = Some(workDir)
     }
   
     def alwaysNone[A]: DirOracle[A] = new DirOracle[A] {
+      override def known: Set[A] = Set.empty
+      
       override def dirOptFor(job: A): Option[Path] = None
     }
   }

@@ -5,6 +5,7 @@ import scala.util.Try
 import loamstream.util.Terminable
 import rx.lang.scala.Observable
 import loamstream.util.CommandInvoker
+import loamstream.model.jobs.DrmJobOracle
 
 /**
  * @author clint
@@ -17,6 +18,6 @@ trait Poller extends Terminable {
    * @param drmTaskIds the ids of the jobs to inquire about
    * @return a map of job ids to attempts at that job's status
    */
-  def poll(drmTaskIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, Try[DrmStatus])]
+  def poll(oracle: DrmJobOracle)(drmTaskIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, Try[DrmStatus])]
 }
 

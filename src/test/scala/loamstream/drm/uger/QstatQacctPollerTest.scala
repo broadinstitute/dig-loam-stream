@@ -14,6 +14,7 @@ import loamstream.util.Traversables
 import scala.util.Try
 import scala.util.Failure
 import loamstream.util.LogContext
+import loamstream.TestHelpers.DummyDrmJobOracle
 
 /**
  * @author clint
@@ -151,7 +152,7 @@ final class QstatQacctPollerTest extends FunSuite {
     val finishedTaskId = DrmTaskId("19115592", 3)
     
     {
-      val results = TestHelpers.waitFor(poller.poll(runningTaskIds).toSeq.firstAsFuture)
+      val results = TestHelpers.waitFor(poller.poll(DummyDrmJobOracle)(runningTaskIds).toSeq.firstAsFuture)
       
       val expected = Seq(
           runningTaskIds(0) -> Success(DrmStatus.Running),
@@ -161,7 +162,9 @@ final class QstatQacctPollerTest extends FunSuite {
     }
     
     {
-      val results = TestHelpers.waitFor(poller.poll(runningTaskIds :+ finishedTaskId).toSeq.firstAsFuture)
+      val results = TestHelpers.waitFor {
+        poller.poll(DummyDrmJobOracle)(runningTaskIds :+ finishedTaskId).toSeq.firstAsFuture
+      }
       
       val expected = Seq(
           runningTaskIds(0) -> Success(DrmStatus.Running),

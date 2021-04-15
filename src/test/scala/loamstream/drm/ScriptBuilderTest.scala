@@ -53,8 +53,6 @@ final class ScriptBuilderTest extends FunSuite {
       def makePath(s: String): Path = path(s"foo/bar/baz/$s")
       
       val jobOracle: JobOracle = new JobOracle {
-        override def known: Set[LJob] = ???
-        
         override def dirOptFor(job: LJob): Option[Path] = Some(makePath(job.id.toString))
       }
       

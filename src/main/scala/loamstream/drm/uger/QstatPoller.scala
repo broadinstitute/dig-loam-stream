@@ -46,7 +46,7 @@ final class QstatPoller private[uger] (qstatInvoker: CommandInvoker.Async[Unit])
       implicit val ec = ExecutionContexts.forQstat
 
       Observable.from(qstatInvoker.apply(())).observeOn(Schedulers.forQstat).onErrorResumeNext {
-        warnThenComplete(s"Error invoking qstat, will try again during at next polling time.")
+        warnThenComplete(s"Error invoking qstat, will try again at next polling time.")
       }
     }
 
@@ -59,30 +59,32 @@ final class QstatPoller private[uger] (qstatInvoker: CommandInvoker.Async[Unit])
     }.onBackpressureDrop
 
     //For all the jobs that we're polling for that were not mentioned by qstat, assume they've finished
-    //(qstat only returns info about running jobs) and invoke qacct to determine their final status.
+    //(qstat only returns info about running jobs) and look up their exit codes to determine their final statuses.
     pollingResultsFromQstatObs.flatMap { byTaskId =>
       val notFoundByQstat = drmTaskIdSet -- byTaskId.keys
 
-      //For all the DrmTaskIds we're looking for but that weren't mentioned by qstat,
-      //determine the set of distinct job ids. Or, the ids of task arrays with finished jobs
-      //from the DrmTaskIds that we're polling for.
-      val taskArrayIdsNotFoundByQstat = notFoundByQstat.map(_.jobId)
-
       if (notFoundByQstat.nonEmpty) {
+        //For all the DrmTaskIds we're looking for but that weren't mentioned by qstat,
+        //determine the set of distinct job ids. Or, the ids of task arrays with finished jobs
+        //from the DrmTaskIds that we're polling for.
+        val taskArrayIdsNotFoundByQstat = notFoundByQstat.map(_.jobId)
+        
         val numJobIds = taskArrayIdsNotFoundByQstat.size
 
         debug(s"${notFoundByQstat.size} finished jobs not found by qstat, ${numJobIds} job IDs")
       }
       
-      val exitCodeStatusObses = taskArrayIdsNotFoundByQstat.iterator.take(ThisMachine.numCpus).map { jobId =>
-        val idsInTaskArray = oracle.byJobIdMap(jobId).keySet
-        
-        getExitCodes(oracle)(idsInTaskArray)
-      }.toSeq
+      val notFoundByQstatByTaskArrayId: Map[String, Set[DrmTaskId]] = notFoundByQstat.groupBy(_.jobId)
+      
+      val exitCodeStatusObses = {
+        notFoundByQstatByTaskArrayId.values.iterator.take(ThisMachine.numCpus).map { drmTaskIdsInTaskArray =>  
+          getExitCodes(oracle)(drmTaskIdsInTaskArray)
+        }.toSeq
+      }
 
       val exitCodeStatuesObs = Observables.merge(exitCodeStatusObses)
 
-      //Concatentate results from qstat with those from qacct, wrapping in Trys as needed.
+      //Concatentate results from qstat with those from looking up exit codes, wrapping in Trys as needed.
       Observable.from(byTaskId) ++ {
         exitCodeStatuesObs.map { case (tid, status) => (tid, Success(status)) }
       }.onBackpressureDrop

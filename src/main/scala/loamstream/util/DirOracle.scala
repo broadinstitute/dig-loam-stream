@@ -12,8 +12,6 @@ import loamstream.model.jobs.LJob
 trait DirOracle[A] { self =>
   def dirOptFor(job: A): Option[Path]
   
-  def known: Set[A]
-  
   final def dirFor(job: A): Path = {
     val opt = dirOptFor(job)
     
@@ -23,8 +21,6 @@ trait DirOracle[A] { self =>
   }
   
   def via[B](mapping: Map[B, A]): DirOracle[B] = new DirOracle[B] {
-    override lazy val known: Set[B] = mapping.keySet
-    
     override def dirOptFor(b: B): Option[Path] = mapping.get(b).flatMap(self.dirOptFor)
   }
 }
@@ -52,8 +48,6 @@ object DirOracle {
         
       body
     }
-    
-    override def known: Set[A] = dirsByJob.keySet
     
     override def dirOptFor(job: A): Option[Path] = initAndThen {
       dirsByJob.get(job)

@@ -67,24 +67,16 @@ import loamstream.drm.DrmTaskId
   */
 object TestHelpers {
   object DummyJobOracle extends JobOracle {
-    override def known: Set[LJob] = ???
-    
     override def dirOptFor(job: LJob): Option[Path] = Some(path(Paths.mungePathRelatedChars(job.name)))
   }
   
   object DummyDrmJobOracle extends DrmJobOracle  {
-    override def known: Set[DrmTaskId] = ???
-    
-    override def byJobIdMap: Map[String, Map[DrmTaskId, Path]] = ???
-    
     override def dirOptFor(taskId: DrmTaskId): Option[Path] = {
       Some(path(Paths.mungePathRelatedChars(s"${taskId.jobId}-${taskId.taskIndex}")))
     }
   }
   
   final case class InDirJobOracle(dir: Path) extends JobOracle {
-    override def known: Set[LJob] = ???
-    
     override def dirOptFor(job: LJob): Option[Path] = Some(dir.resolve(Paths.mungePathRelatedChars(job.name)))
   }
   

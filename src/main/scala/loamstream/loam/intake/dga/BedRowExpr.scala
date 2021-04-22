@@ -44,7 +44,8 @@ final case class BedRowExpr(annotation: Annotation) extends DataRowParser[Try[Be
       state = requiredField(columns.state(row), "state"), 
       targetGene = columns.targetGene(row),    //TODO  only for annotation_type == "target_gene_prediction"
       targetGeneStart = columns.targetGeneStart(row),    // TODO only for annotation_type == "target_gene_prediction"
-      targetGeneEnd = columns.targetGeneEnd(row) //TODO  only for annotation_type == "target_gene_prediction"
+      targetGeneEnd = columns.targetGeneEnd(row), //TODO  only for annotation_type == "target_gene_prediction"
+      strand = columns.strand(row)
       )
   }
 }
@@ -136,6 +137,8 @@ object BedRowExpr {
     val targetGene: ColumnExpr[Option[String]] = ifTargetGenePrediction("target_gene")
     val targetGeneStart: ColumnExpr[Option[Long]] = ifTargetGenePrediction("target_gene_start").map(_.map(_.toLong))
     val targetGeneEnd: ColumnExpr[Option[Long]] = ifTargetGenePrediction("target_gene_end").map(_.map(_.toLong))
+    
+    val strand: ColumnExpr[Option[Strand]] = ColumnName("strand").asOptionWithNaValues.map(_.flatMap(Strand.fromString))
   }
   
   //See https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html 

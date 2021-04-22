@@ -27,7 +27,8 @@ final case class BedRow(
     state: String, //was name
     targetGene: Option[String],    // only for annotation_type == "target_gene_prediction"
     targetGeneStart: Option[Long],    // only for annotation_type == "target_gene_prediction"
-    targetGeneEnd: Option[Long]    // only for annotation_type == "target_gene_prediction"
+    targetGeneEnd: Option[Long],    // only for annotation_type == "target_gene_prediction"
+    strand: Option[Strand]
   ) extends RenderableJsonRow {
 
   import Json.toJValue

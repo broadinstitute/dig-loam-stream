@@ -47,6 +47,8 @@ final class TriesTest extends FunSuite {
     assert(sequence(List(f0, f1)) === f0)
     
     assert(sequence(List(s0, f0, s1)) === f0)
-    assert(sequence(List(s0, f1, f0, s1)) === f1)
+    assert(sequence(Iterator(s0, f1, f0, s1)) === f1)
+    
+    assert(sequence(Iterator(s0, s1, f0, f1)) === f0)
   }
 }

@@ -129,7 +129,7 @@ object BedRowExpr {
 
     private def ifTargetGenePrediction(column: String): ColumnExpr[Option[String]] = {
       ann.annotationType match {
-        case AnnotationType.TargetGenePrediction => ColumnName(column).asOptionWithNaValues
+        case AnnotationType.TargetGenePredictions => ColumnName(column).asOptionWithNaValues
         case _ => LiteralColumnExpr(None) 
       }
     }

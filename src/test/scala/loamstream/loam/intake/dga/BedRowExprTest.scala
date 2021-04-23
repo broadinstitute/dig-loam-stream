@@ -21,7 +21,7 @@ final class BedRowExprTest extends FunSuite {
     
     val annotations = Seq(
         annotation.copy(annotationType = AnnotationType.AccessibleChromatin),
-        annotation.copy(annotationType = AnnotationType.TargetGenePrediction),
+        annotation.copy(annotationType = AnnotationType.TargetGenePredictions),
         annotation)
     
     //NB: Use something with whitespace that needs to be normalized
@@ -44,7 +44,8 @@ final class BedRowExprTest extends FunSuite {
           "zuh" -> "bip",
           "target_gene" -> "qwerty",
           "target_gene_start" -> "456",
-          "target_gene_end" -> "789")
+          "target_gene_end" -> "789",
+          "strand" -> ".")
        
       val expr = BedRowExpr(ann)          
           
@@ -76,7 +77,7 @@ final class BedRowExprTest extends FunSuite {
            expectedTargetGeneStart: Option[Long], 
            expectedTargetGeneEnd: Option[Long]) = {
         
-        if(ann.annotationType == AnnotationType.TargetGenePrediction) { (Some("qwerty"), Some(456L), Some(789L)) }
+        if(ann.annotationType == AnnotationType.TargetGenePredictions) { (Some("qwerty"), Some(456L), Some(789L)) }
         else { (None, None, None) }
       }
       
@@ -296,11 +297,11 @@ final class BedRowExprTest extends FunSuite {
     
     val row = Helpers.csvRow("foo" -> "bar", columnName -> expected.toString)
     
-    assert(columns.ann.annotationType !== AnnotationType.TargetGenePrediction)
+    assert(columns.ann.annotationType !== AnnotationType.TargetGenePredictions)
     
     assert(column(columns)(row) === None)
     
-    val newColumns = BedRowExpr.Columns(annotation.copy(annotationType = AnnotationType.TargetGenePrediction))
+    val newColumns = BedRowExpr.Columns(annotation.copy(annotationType = AnnotationType.TargetGenePredictions))
     
     doNaValuesTest(newColumns)(column, columnName)
     

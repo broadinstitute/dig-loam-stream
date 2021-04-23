@@ -189,8 +189,8 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
         
       import Json.JsonOps
       
-      //NB: I have no idea what '11' means, if anything, but it's what's present in the JSON from DGA. 
-      val jvs = annotationJson.tryAsArray("11").getOrElse(Nil)
+      //NB: I have no idea what '17' means, if anything, but it's what's present in the JSON from DGA. 
+      val jvs = annotationJson.tryAsArray("17").getOrElse(Nil)
         
       Source.FromIterator {
         jvs.iterator.map(Annotation.fromJson(tissueIdsToNames))

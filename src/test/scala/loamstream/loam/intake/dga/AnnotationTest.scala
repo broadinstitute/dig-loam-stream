@@ -21,7 +21,7 @@ final class AnnotationTest extends FunSuite with Loggable {
         "ca504ff2221f70a3b98802e36205616e"))
     
     val annotation = Annotation(
-      annotationType = AnnotationType.CandidateRegulatoryRegions,
+      annotationType = AnnotationType.CandidateRegulatoryElements,
       annotationId = "DSR249FPB",
       category = Some("cis-regulatory elements"),
       tissueId = Some("UBERON:0002048"),
@@ -53,7 +53,7 @@ final class AnnotationTest extends FunSuite with Loggable {
 
   test("portalUsageIsNone") {
     val a = Annotation(
-      annotationType = AnnotationType.CandidateRegulatoryRegions,
+      annotationType = AnnotationType.CandidateRegulatoryElements,
       annotationId = "DSR249FPB",
       category = Some("cis-regulatory elements"),
       tissueId = Some("UBERON:0002048"),
@@ -83,7 +83,7 @@ final class AnnotationTest extends FunSuite with Loggable {
         "ca504ff2221f70a3b98802e36205616e"))
     
     val annotation = Annotation(
-      annotationType = AnnotationType.CandidateRegulatoryRegions,
+      annotationType = AnnotationType.CandidateRegulatoryElements,
       annotationId = "DSR249FPB",
       category = Some("cis-regulatory elements"),
       tissueId = Some("UBERON:0002048"),
@@ -120,7 +120,7 @@ final class AnnotationTest extends FunSuite with Loggable {
         "ca504ff2221f70a3b98802e36205616e"))
     
     val expected = Annotation(
-      annotationType = AnnotationType.CandidateRegulatoryRegions,
+      annotationType = AnnotationType.CandidateRegulatoryElements,
       annotationId = "DSR249FPB",
       category = Some("cis-regulatory elements"),
       tissueId = Some("UBERON:0002048"),
@@ -258,7 +258,7 @@ object AnnotationTest {
             "portal_tissue": [
                 "lung"
             ],
-            "annotation_type": "candidate regulatory regions",
+            "annotation_type": "candidate regulatory elements",
             "file_download": {
                 "DFF258PCW": [
                     {

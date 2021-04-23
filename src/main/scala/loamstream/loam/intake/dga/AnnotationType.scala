@@ -4,6 +4,8 @@ import scala.util.Success
 import scala.util.Try
 
 import loamstream.util.Tries
+import loamstream.loam.intake.LiteralColumnExpr
+import loamstream.loam.intake.ColumnTransforms
 
 /**
  * @author clint
@@ -16,37 +18,46 @@ sealed abstract class AnnotationType(val name: String) {
 }
 
 object AnnotationType {
-  case object AccessibleChromatin extends AnnotationType("accessible_chromatin")
-  case object ChromatinState extends AnnotationType("chromatin_state")
-  case object BindingSites extends AnnotationType("binding_sites")
-  case object TargetGenePrediction extends AnnotationType("target_gene_prediction")
   
-  case object CandidateRegulatoryRegions extends AnnotationType("candidate_regulatory_regions")
-  case object HistoneModifications extends AnnotationType("histone_modifications")
-  case object VariantAllelicEffects extends AnnotationType("variant_allelic_effects")
-  case object EQTL extends AnnotationType("eqtl")
+  case object AccessibleChromatin extends AnnotationType("accessible_chromatin")
+  case object BindingSites extends AnnotationType("binding_sites")
+  case object CandidateRegulatoryElements extends AnnotationType("candidate_regulatory_elements")
   case object CaQTL extends AnnotationType("caqtl")
-  case object BindingFootprint extends AnnotationType("binding_footprint")
+  case object ChromatinState extends AnnotationType("chromatin_state")
+  case object EQTL extends AnnotationType("eqtl")
+  case object GeneExpression extends AnnotationType("gene_expression")
+  case object HistoneModifications extends AnnotationType("histone_modifications")
+  case object HQTL extends AnnotationType("hQTL")
+  case object MeQTL extends AnnotationType("meQTL")
+  case object Other extends AnnotationType("other")
+  case object RepresentativeDNaseHypersensitivitySites extends 
+      AnnotationType("representative_DNase_hypersensitivity_sites")
+  case object SQTL extends AnnotationType("sQTL")
+  case object TargetGenePredictions extends AnnotationType("target_gene_predictions")
+  case object VariantAllelicEffects extends AnnotationType("variant_allelic_effects")
   
   lazy val values: Set[AnnotationType] = Set(
-      AccessibleChromatin, 
-      ChromatinState, 
-      BindingSites, 
-      TargetGenePrediction,
-      CandidateRegulatoryRegions,
-      HistoneModifications,
-      VariantAllelicEffects,
-      EQTL,
+      AccessibleChromatin,
+      BindingSites,
+      CandidateRegulatoryElements,
       CaQTL,
-      BindingFootprint)
+      ChromatinState,
+      EQTL,
+      GeneExpression,
+      HistoneModifications,
+      HQTL,
+      MeQTL,
+      Other,
+      RepresentativeDNaseHypersensitivitySites, 
+      SQTL,
+      TargetGenePredictions,
+      VariantAllelicEffects)
       
-  private lazy val namesToValues: Map[String, AnnotationType] = values.map(at => at.name -> at).toMap
+  private lazy val namesToValues: Map[String, AnnotationType] = values.map(at => at.name.toLowerCase -> at).toMap
   
-  def fromString(s: String): Option[AnnotationType] = {
-    val normalizedName = s.trim.replaceAll("\\s+", "_").toLowerCase
-    
-    namesToValues.get(normalizedName)
-  }
+  private def normalize(s: String): String = ColumnTransforms.doNormalizeSpaces(requireNonEmpty = false)(s).toLowerCase
+  
+  def fromString(s: String): Option[AnnotationType] = namesToValues.get(normalize(s))
   
   def tryFromString(s: String): Try[AnnotationType] = fromString(s) match {
     case Some(at) => Success(at)

@@ -21,17 +21,17 @@ import org.json4s._
 final case class Annotation private[dga] (
     annotationType: AnnotationType,
     annotationId: String,
-    category: Option[String],
+    category: String,
     tissueId: Option[String],
     tissue: Option[String],
     source: Option[String],
     assay: Option[Seq[String]],
     collection: Option[Seq[String]],
-    biosampleId: String,
-    biosampleType: String,
+    biosampleId: Option[String],
+    biosampleType: Option[String],
     biosample: Option[String],
     method: Option[String], 
-    portalUsage: String,
+    portalUsage: Option[String], //TODO: Optional since it comes back null sometimes, but technically required. 
     harmonizedStates: Option[Map[String, String]],
     downloads: Seq[Annotation.Download],
     private val derivedFrom: Option[JValue] = None) extends Loggable {
@@ -67,7 +67,11 @@ final case class Annotation private[dga] (
   
   def notUploadable: Boolean = !isUploadable
   
-  private[dga] def portalUsageIsNone: Boolean = portalUsage == "None"
+  private[dga] def portalUsageIsNone: Boolean = portalUsage match {
+    case Some(pu) => pu == "None"
+    //NB: TODO: treat null/scala.None as portal_usage != "None" until DGA fills in this field on their end
+    case _ => false  
+  }
   
   def toMetadata: Annotation.Metadata = {
     require(derivedFrom.isDefined, s"Couldn't make metadata for annotation ${annotationId}: missing source JSON")
@@ -102,18 +106,18 @@ object Annotation {
     for {
       annotationId <- json.tryAsString("annotation_id")
       annotationType <- json.tryAsString("annotation_type").flatMap(AnnotationType.tryFromString)
+      category <- json.tryAsString("annotation_category")
       fileDownloads <- filteredSortedFileDownloads(annotationId, json)
-      biosampleId <- json.tryAsString("biosample_term_id")
-      biosampleType <- json.tryAsString("biosample_type")
-      portalUsage <- json.tryAsString("portal_usage")
+      biosampleId = json.asStringOption("biosample_term_id")
+      biosampleType = json.asStringOption("biosample_type")
+      portalUsage = json.asStringOption("portal_usage")
       method = json.asStringOption("annotation_method")
       collections = json.tryAsStringArray("collection_tags").toOption
-      assay = json.tryAsStringArray("underlying_assay").toOption
+      assay = json.tryAsStringArray("underlying_assay").toOption //required?
       source = json.asStringOption("annotation_source")
-      category = json.asStringOption("annotation_category")
       tissueId = json.asStringOption("portal_tissue_id")
-      biosample = tissueIdsToNames.get(biosampleId)
       tissue = tissueId.flatMap(tissueIdsToNames.get)
+      biosample = biosampleId.flatMap(tissueIdsToNames.get)//tissueIdsToNames.get(biosampleId)
       harmonizedStates = json.tryAs[Map[String, String]]("harmonized_states").toOption
     } yield {
       Annotation(

@@ -10,13 +10,13 @@ import org.json4s.JsonAST.JValue
  */
 final case class BedRow(
     dataset: String,
-    biosampleId: String,    // e.g. UBERON:293289
-    biosampleType: String,
+    biosampleId: Option[String],    // e.g. UBERON:293289
+    biosampleType: Option[String],
     biosample: Option[String],
     tissueId: Option[String],   //TODO: Only Optional for now; e.g. UBERON:293289
     tissue: Option[String],
     annotation: String,    // annotation type, e.g. binding_site
-    category: Option[String], //TODO: Only Optional for now
+    category: String, 
     method: Option[String],  //TODO: Only Optional for now; e.g. MAC2
     source: Option[String],   //TODO: Only Optional for now; e.g. ATAC-seq-peak
     assay: Option[Seq[String]],   //TODO: Only Optional for now; e.g. ATAC-seq
@@ -27,8 +27,7 @@ final case class BedRow(
     state: String, //was name
     targetGene: Option[String],    // only for annotation_type == "target_gene_prediction"
     targetGeneStart: Option[Long],    // only for annotation_type == "target_gene_prediction"
-    targetGeneEnd: Option[Long],    // only for annotation_type == "target_gene_prediction"
-    strand: Option[Strand]
+    targetGeneEnd: Option[Long]    // only for annotation_type == "target_gene_prediction"
   ) extends RenderableJsonRow {
 
   import Json.toJValue

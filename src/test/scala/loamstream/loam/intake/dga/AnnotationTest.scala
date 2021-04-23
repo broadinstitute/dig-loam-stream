@@ -23,17 +23,17 @@ final class AnnotationTest extends FunSuite with Loggable {
     val annotation = Annotation(
       annotationType = AnnotationType.CandidateRegulatoryElements,
       annotationId = "DSR249FPB",
-      category = Some("cis-regulatory elements"),
+      category = "cis-regulatory elements",
       tissueId = Some("UBERON:0002048"),
       tissue = Some("some-tissue"),
       source = Some("cCRE definitions"),
       assay = Some(Seq("ChIP-seq", "DNase-seq")),
       collection = None,
-      biosampleId = "EFO:0001196",
-      biosampleType = "some-biosample-type",
+      biosampleId = Some("EFO:0001196"),
+      biosampleType = Some("some-biosample-type"),
       biosample = Some("some-biosample"),
       method = Some("ENCODE-cCREs"), 
-      portalUsage = "facet",
+      portalUsage = Some("facet"),
       harmonizedStates = Some(Map("x" -> "y")),
       downloads = downloads)
       
@@ -45,33 +45,42 @@ final class AnnotationTest extends FunSuite with Loggable {
     assert(noDownloads.isUploadable === false)
     assert(noDownloads.notUploadable === true)
     
-    val noUsage = annotation.copy(portalUsage = "None")
+    {
+      val noUsage = annotation.copy(portalUsage = Some("None"))
+      
+      assert(noUsage.isUploadable === false)
+      assert(noUsage.notUploadable === true)
+    }
     
-    assert(noUsage.isUploadable === false)
-    assert(noUsage.notUploadable === true)
+    {
+      val missingUsage = annotation.copy(portalUsage = None)
+      
+      assert(missingUsage.isUploadable === false)
+      assert(missingUsage.notUploadable === true)
+    }
   }
 
   test("portalUsageIsNone") {
     val a = Annotation(
       annotationType = AnnotationType.CandidateRegulatoryElements,
       annotationId = "DSR249FPB",
-      category = Some("cis-regulatory elements"),
+      category = "cis-regulatory elements",
       tissueId = Some("UBERON:0002048"),
       tissue = Some("some-tissue"),
       source = Some("cCRE definitions"),
       assay = Some(Seq("ChIP-seq", "DNase-seq")),
       collection = None,
-      biosampleId = "EFO:0001196",
-      biosampleType = "some-biosample-type",
+      biosampleId = Some("EFO:0001196"),
+      biosampleType = Some("some-biosample-type"),
       biosample = Some("some-biosample"),
       method = Some("ENCODE-cCREs"), 
-      portalUsage = "facet",
+      portalUsage = Some("facet"),
       harmonizedStates = Some(Map("x" -> "y")),
       downloads = Nil)
       
     assert(a.portalUsageIsNone === false)
-    assert(a.copy(portalUsage = "none").portalUsageIsNone === false)
-    assert(a.copy(portalUsage = "None").portalUsageIsNone === true)
+    assert(a.copy(portalUsage = Some("none")).portalUsageIsNone === false)
+    assert(a.copy(portalUsage = Some("None")).portalUsageIsNone === true)
   }
   
   test("toMetadata") {
@@ -85,17 +94,17 @@ final class AnnotationTest extends FunSuite with Loggable {
     val annotation = Annotation(
       annotationType = AnnotationType.CandidateRegulatoryElements,
       annotationId = "DSR249FPB",
-      category = Some("cis-regulatory elements"),
+      category = "cis-regulatory elements",
       tissueId = Some("UBERON:0002048"),
       tissue = Some("some-tissue"),
       source = Some("cCRE definitions"),
       assay = Some(Seq("ChIP-seq", "DNase-seq")),
       collection = None,
-      biosampleId = "EFO:0001196",
-      biosampleType = "some-biosample-type",
+      biosampleId = Some("EFO:0001196"),
+      biosampleType = Some("some-biosample-type"),
       biosample = Some("some-biosample"),
       method = Some("ENCODE-cCREs"), 
-      portalUsage = "facet",
+      portalUsage = Some("facet"),
       harmonizedStates = Some(Map("x" -> "y")),
       downloads = downloads,
       derivedFrom = Some(JInt(42)))
@@ -122,17 +131,17 @@ final class AnnotationTest extends FunSuite with Loggable {
     val expected = Annotation(
       annotationType = AnnotationType.CandidateRegulatoryElements,
       annotationId = "DSR249FPB",
-      category = Some("cis-regulatory elements"),
+      category = "cis-regulatory elements",
       tissueId = Some("UBERON:0002048"),
       tissue = Some("some-tissue"),
       source = Some("cCRE definitions"),
       assay = Some(Seq("ChIP-seq", "DNase-seq")),
       collection = Some(Seq("ENCODE", "FoOoO")),
-      biosampleId = "EFO:0001196",
-      biosampleType = "some-biosample-type",
+      biosampleId = Some("EFO:0001196"),
+      biosampleType = Some("some-biosample-type"),
       biosample = Some("some-biosample"),
       method = Some("ENCODE-cCREs"), 
-      portalUsage = "facet",
+      portalUsage = Some("facet"),
       harmonizedStates = Some(Map("x" -> "y", "abc" -> "xyz")),
       downloads = expectedDownloads,
       derivedFrom = Some(goodJson))

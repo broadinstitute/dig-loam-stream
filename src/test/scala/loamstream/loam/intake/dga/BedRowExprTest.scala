@@ -58,7 +58,7 @@ final class BedRowExprTest extends FunSuite {
       assert(bedRow.tissueId === ann.tissueId)
       assert(bedRow.tissue === ann.tissue.map(normalized))
       assert(bedRow.annotation === ann.annotationType.name)
-      assert(bedRow.category === ann.category.map(normalized))
+      assert(bedRow.category === normalized(ann.category))
       assert(bedRow.method === ann.method)
       assert(bedRow.source === ann.source)
       assert(bedRow.assay === ann.assay)
@@ -142,7 +142,7 @@ final class BedRowExprTest extends FunSuite {
     doTest(_.tissueId, _.tissueId)
     doTest(_.tissue, _.tissue.map(normalized))
     doTest(_.annotation, _.annotationType)
-    doTest(_.category, _.category.map(normalized))
+    doTest(_.category, ann => normalized(ann.category))
     doTest(_.method, _.method)
     doTest(_.source, _.source)
     doTest(_.assay, _.assay)
@@ -341,7 +341,7 @@ final class BedRowExprTest extends FunSuite {
   private val assembly: String = "asdasdasfa"
   private val annotationType: AnnotationType = AnnotationType.CaQTL
   private val annotationId: String = "ASKJhkjasf"
-  private val category: Option[String] = Some("fhd o l h ujd")
+  private val category: String = "fhd o l h ujd"
   private val tissueId: Option[String] = Some("sdgpl89dg")
   private val tissue: Option[String] = Some("v9j0 8sdf")
   private val source: Option[String] = Some("c8bvfxf")
@@ -362,11 +362,11 @@ final class BedRowExprTest extends FunSuite {
     source = source,
     assay = assay,
     collection = collections,
-    biosampleId = biosampleId,
-    biosampleType = biosampleType,
+    biosampleId = Some(biosampleId),
+    biosampleType = Some(biosampleType),
     biosample = biosample,
     method = method,
-    portalUsage = portalUsage,
+    portalUsage = Some(portalUsage),
     harmonizedStates = None,
     downloads = Nil)
 

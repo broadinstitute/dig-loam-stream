@@ -44,8 +44,7 @@ final case class BedRowExpr(annotation: Annotation) extends DataRowParser[Try[Be
       state = requiredField(columns.state(row), "state"), 
       targetGene = columns.targetGene(row),    //TODO  only for annotation_type == "target_gene_prediction"
       targetGeneStart = columns.targetGeneStart(row),    // TODO only for annotation_type == "target_gene_prediction"
-      targetGeneEnd = columns.targetGeneEnd(row), //TODO  only for annotation_type == "target_gene_prediction"
-      strand = columns.strand(row)
+      targetGeneEnd = columns.targetGeneEnd(row) //TODO  only for annotation_type == "target_gene_prediction"
       )
   }
 }

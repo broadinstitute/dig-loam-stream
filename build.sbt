@@ -25,6 +25,7 @@ lazy val Versions = new {
   val Sttp = "2.0.6"
   val CommonsCompress = "1.20"
   val Breeze = "1.1"
+  val RequestsScala = "0.6.7"
 }
 
 lazy val Orgs = new {
@@ -64,7 +65,8 @@ lazy val mainDeps = Seq(
   "org.hsqldb" % "hsqldb" % Versions.HsqlDb,
   "com.softwaremill.sttp.client" %% "core" % Versions.Sttp,
   "org.apache.commons" % "commons-compress" % Versions.CommonsCompress,
-  "org.scalanlp" %% "breeze" % Versions.Breeze
+  "org.scalanlp" %% "breeze" % Versions.Breeze,
+  "com.lihaoyi" %% "requests" % Versions.RequestsScala
 )
 
 lazy val testDeps = Seq(

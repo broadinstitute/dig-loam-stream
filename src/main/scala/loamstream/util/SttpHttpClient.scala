@@ -1,6 +1,8 @@
 package loamstream.util
 
 import sttp.client._
+import java.io.InputStream
+import scala.util.control.NonFatal
 
 /**
  * @author clint
@@ -29,6 +31,16 @@ final class SttpHttpClient extends HttpClient with Loggable {
   
   override def getAsBytes(url: String, auth: Option[HttpClient.Auth] = None): Either[String, Array[Byte]] = {
     doGetRequest(url, auth, asByteArray)
+  }
+  
+  override def getAsInputStream(url: String, auth: Option[HttpClient.Auth] = None): Either[String, InputStream] = {
+    try {
+      Right {
+        requests.get.stream(url).readBytesThrough(identity)
+      }
+    } catch {
+      case NonFatal(e) => Left(s"Couldn't download '${url}': ${e.getMessage}")
+    }
   }
   
   override def contentLength(url: String, auth: Option[HttpClient.Auth] = None): Either[String, Long] = {

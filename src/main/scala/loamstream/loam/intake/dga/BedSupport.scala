@@ -18,12 +18,15 @@ import loamstream.util.SttpHttpClient
 import loamstream.util.TimeUtils
 import loamstream.util.LogContext
 import scala.util.Try
+import scala.util.Success
+import scala.util.Failure
+import loamstream.util.Loggable
 
 /**
  * @author clint
  * Jan 20, 2021
  */
-trait BedSupport {
+trait BedSupport { self: Loggable =>
   object Beds {
     /**
      * Download the BED file in the URL and return a Source that will produce the data it contains
@@ -31,19 +34,29 @@ trait BedSupport {
     def downloadBed(
         url: URI,
         auth: HttpClient.Auth,
-        httpClient: HttpClient = new SttpHttpClient())(implicit context: LogContext): Try[Source[DataRow]] = {
+        httpClient: HttpClient = new SttpHttpClient())(implicit context: LogContext): Source[DataRow] = {
       
       val extOpt = url.getPath.split("\\.").lastOption.map(_.trim.toLowerCase)
   
       def tryBedReader: Try[Reader] = Try {
         //download the source into memory
-        val bedData = TimeUtils.time(s"Downloading ${url}", context.info(_)) {
-          httpClient.getAsBytes(url.toString, Some(auth)).right.getOrElse {
-            throw new Exception(s"HTTP request failed: GET ${url}")
+        /*val bedStream = {
+          val bedData = TimeUtils.time(s"Downloading ${url}", context.info(_)) {
+            httpClient.getAsBytes(url.toString, Some(auth)).right.getOrElse {
+              throw new Exception(s"HTTP request failed: GET ${url}")
+            }
+            
+            new ByteArrayInputStream(bedData)
+        }*/
+        
+        val bedStream: InputStream = {
+          context.info(s"Downloading ${url} ...")
+          
+          httpClient.getAsInputStream(url.toString, Some(auth)) match {
+            case Left(msg) => throw new Exception(s"HTTP request failed: GET '${url}': ${msg}")
+            case Right(stream) => stream
           }
         }
-    
-        val bedStream = new ByteArrayInputStream(bedData)
         
         val unzippedBedStream: InputStream = extOpt match {
           case Some("gz") | Some("gzip") => new GZIPInputStream(bedStream)
@@ -56,7 +69,14 @@ trait BedSupport {
         new InputStreamReader(unzippedBedStream)
       }
       
-      tryBedReader.map(bedReader => Source.fromReader(bedReader, Source.Formats.tabDelimitedWithHeader))
+      Source.producing(tryBedReader).flatMap { 
+        case Success(bedReader) => Source.fromReader(bedReader, Source.Formats.tabDelimitedWithHeader)
+        case Failure(e) => {
+          warn(s"Error downloading '${url}': ", e)
+          
+          Source.empty
+        }
+      }
     }
   }
 }

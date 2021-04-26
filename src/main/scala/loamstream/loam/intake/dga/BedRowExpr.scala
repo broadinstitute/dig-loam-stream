@@ -137,7 +137,7 @@ object BedRowExpr {
     val targetGeneStart: ColumnExpr[Option[Long]] = ifTargetGenePrediction("target_gene_start").map(_.map(_.toLong))
     val targetGeneEnd: ColumnExpr[Option[Long]] = ifTargetGenePrediction("target_gene_end").map(_.map(_.toLong))
     
-    val strand: ColumnExpr[Option[Strand]] = ColumnName("strand").asOptionWithNaValues.map(_.flatMap(Strand.fromString))
+    val strand: ColumnExpr[Option[Strand]] = ColumnName("strand").asOption.map(_.flatMap(Strand.fromString))
   }
   
   //See https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html 

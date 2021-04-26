@@ -73,28 +73,26 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
       //create the metadata for this dataset
       val metadata = annotation.toMetadata
       
-      def processDownload(download: Annotation.Download): Try[Unit] = {
+      def processDownload(download: Annotation.Download): Try[Unit] = Try {
         import download.url
-            
+        
         info(s"Processing ${url}...")
         
         val bedRowExpr = BedRowExpr(annotation)
         
-        for {
-          rawBedRows <- Beds.downloadBed(url, auth)
-        } yield {
-          val bedRowAttempts: Source[(DataRow, Try[BedRow])] = rawBedRows.map(row => (row, bedRowExpr(row)))
-          
-          val bedRows = {
-            bedRowAttempts.map(Transforms.logFailures(logCtx)).collect { case (_, Success(bedRow)) => bedRow }
-          }
-          
-          val (count, _) = TimeUtils.time(s"Uploading '${datasetName}'", info(_)) {
-            countAndUpload.process(bedRows.records)
-          }
-          
-          info(s"Uploaded ${count} rows to '${datasetName}'")
+        val rawBedRows = Beds.downloadBed(url, auth)
+        
+        val bedRowAttempts: Source[(DataRow, Try[BedRow])] = rawBedRows.map(row => (row, bedRowExpr(row)))
+        
+        val bedRows = {
+          bedRowAttempts.map(Transforms.logFailures(logCtx)).collect { case (_, Success(bedRow)) => bedRow }
         }
+        
+        val (count, _) = TimeUtils.time(s"Uploading '${datasetName}'", info(_)) {
+          countAndUpload.process(bedRows.records)
+        }
+        
+        info(s"Uploaded ${count} rows to '${datasetName}'")
       }
       
       def commitAndCloseSinkAfter(f: AwsRowSink => Any): Unit = CanBeClosed.using(sink)(f)

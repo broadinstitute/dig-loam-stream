@@ -14,7 +14,7 @@ import org.apache.commons.compress.compressors.xz.XZCompressorInputStream
 import loamstream.loam.intake.DataRow
 import loamstream.loam.intake.Source
 import loamstream.util.HttpClient
-import loamstream.util.SttpHttpClient
+import loamstream.util.DefaultHttpClient
 import loamstream.util.TimeUtils
 import loamstream.util.LogContext
 import scala.util.Try
@@ -34,21 +34,11 @@ trait BedSupport { self: Loggable =>
     def downloadBed(
         url: URI,
         auth: HttpClient.Auth,
-        httpClient: HttpClient = new SttpHttpClient())(implicit context: LogContext): Source[DataRow] = {
+        httpClient: HttpClient = new DefaultHttpClient())(implicit context: LogContext): Source[DataRow] = {
       
       val extOpt = url.getPath.split("\\.").lastOption.map(_.trim.toLowerCase)
   
       def tryBedReader: Try[Reader] = Try {
-        //download the source into memory
-        /*val bedStream = {
-          val bedData = TimeUtils.time(s"Downloading ${url}", context.info(_)) {
-            httpClient.getAsBytes(url.toString, Some(auth)).right.getOrElse {
-              throw new Exception(s"HTTP request failed: GET ${url}")
-            }
-            
-            new ByteArrayInputStream(bedData)
-        }*/
-        
         val bedStream: InputStream = {
           context.info(s"Downloading ${url} ...")
           

@@ -11,7 +11,7 @@ import loamstream.util.Fold
 import loamstream.util.HttpClient
 import loamstream.util.HttpClient.Auth
 import loamstream.util.Loggable
-import loamstream.util.SttpHttpClient
+import loamstream.util.DefaultHttpClient
 import loamstream.util.TimeUtils
 import loamstream.model.Store
 import loamstream.loam.intake.CloseablePredicate
@@ -146,7 +146,7 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
      */
     def downloadAnnotations(
         url: URI = AnnotationsSupport.Defaults.url,
-        httpClient: HttpClient = new SttpHttpClient): Source[Try[Annotation]] = {
+        httpClient: HttpClient = new DefaultHttpClient): Source[Try[Annotation]] = {
       
       info(s"Downloading region annotations from '$url' ...")
     
@@ -220,7 +220,7 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
       def bedExists(
           logTo: Store, 
           append: Boolean = false, 
-          httpClient: HttpClient = new SttpHttpClient,
+          httpClient: HttpClient = new DefaultHttpClient,
           auth: Option[HttpClient.Auth] = None): CloseablePredicate[URI] = {
         
         bedExists(httpClient, auth)(IntakeSyntax.Log.toFile(logTo, append))
@@ -247,7 +247,7 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
       def hasAnyBeds(
           logTo: Store, 
           append: Boolean = false, 
-          httpClient: HttpClient = new SttpHttpClient,
+          httpClient: HttpClient = new DefaultHttpClient,
           auth: Option[HttpClient.Auth] = None): CloseablePredicate[Annotation] = {
         
         hasAnyBeds(httpClient, auth)(IntakeSyntax.Log.toFile(logTo, append))

@@ -26,6 +26,7 @@ lazy val Versions = new {
   val CommonsCompress = "1.20"
   val Breeze = "1.1"
   val RequestsScala = "0.6.7"
+  val OkHttp = "4.9.1"
 }
 
 lazy val Orgs = new {
@@ -66,7 +67,8 @@ lazy val mainDeps = Seq(
   "com.softwaremill.sttp.client" %% "core" % Versions.Sttp,
   "org.apache.commons" % "commons-compress" % Versions.CommonsCompress,
   "org.scalanlp" %% "breeze" % Versions.Breeze,
-  "com.lihaoyi" %% "requests" % Versions.RequestsScala
+  "com.lihaoyi" %% "requests" % Versions.RequestsScala,
+  "com.squareup.okhttp3" % "okhttp" % Versions.OkHttp
 )
 
 lazy val testDeps = Seq(
@@ -84,7 +86,7 @@ lazy val root = (project in file("."))
     organization := Orgs.DIG,
     //NB: version set in version.sbt
     scalaVersion := Versions.Scala,
-    scalacOptions ++= Seq("-feature", "-deprecation", "-unchecked"),
+    scalacOptions ++= Seq("-feature", "-deprecation", "-unchecked", "-Ypartial-unification"),
     resolvers ++= Seq(Resolvers.SonatypeReleases, Resolvers.SonatypeSnapshots),
     publishTo := Some(Resolvers.LocalRepo),
     libraryDependencies ++= (mainDeps ++ testDeps),

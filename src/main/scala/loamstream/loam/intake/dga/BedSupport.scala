@@ -33,7 +33,7 @@ trait BedSupport { self: Loggable =>
      */
     def downloadBed(
         url: URI,
-        auth: HttpClient.Auth,
+        auth: Option[HttpClient.Auth],
         httpClient: HttpClient = new DefaultHttpClient())(implicit context: LogContext): Source[DataRow] = {
       
       val extOpt = url.getPath.split("\\.").lastOption.map(_.trim.toLowerCase)
@@ -42,7 +42,7 @@ trait BedSupport { self: Loggable =>
         val bedStream: InputStream = {
           context.info(s"Downloading ${url} ...")
           
-          httpClient.getAsInputStream(url.toString, Some(auth)) match {
+          httpClient.getAsInputStream(url.toString, auth) match {
             case Left(msg) => throw new Exception(s"HTTP request failed: GET '${url}': ${msg}")
             case Right(stream) => stream
           }

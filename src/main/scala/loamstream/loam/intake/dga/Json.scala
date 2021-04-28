@@ -65,7 +65,12 @@ object Json {
     
     def tryAsObject(fieldName: String): Try[Map[String, JValue]] = (jv \ fieldName) match {
       case jobj: JObject => Success(jobj.obj.toMap)
-      case _ => Tries.failure(makeMessage("string", fieldName)) 
+      case _ => Tries.failure(makeMessage("object", fieldName)) 
+    }
+    
+    def tryAsObject: Try[Map[String, JValue]] = jv match {
+      case jobj: JObject => Success(jobj.obj.toMap)
+      case _ => Tries.failure(s"Couldn't treat json as an object: ${compact(render(jv))}") 
     }
     
     def tryAs[A](fieldName: String)(implicit mf: Manifest[A], formats: Formats = DefaultFormats): Try[A] = Try {

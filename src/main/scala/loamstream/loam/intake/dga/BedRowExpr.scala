@@ -10,22 +10,24 @@ import loamstream.loam.intake.LiteralColumnExpr
 import loamstream.loam.intake.ColumnTransforms
 import scala.util.Try
 import scala.util.matching.Regex
+import scala.util.Success
+import scala.util.Failure
 
 /**
  * @author clint
  * Jan 20, 2021
  */
-final case class BedRowExpr(annotation: Annotation) extends DataRowParser[Try[BedRow]] {
+final case class BedRowExpr(annotation: Annotation, failFast: Boolean = false) extends DataRowParser[Try[BedRow]] {
   private val columns = new BedRowExpr.Columns(annotation)
   
-  override def apply(row: DataRow): Try[BedRow] = Try {
+  override def apply(row: DataRow): Try[BedRow] = {
     def requiredField[A](oa: Option[A], name: String): A = {
       require(oa.isDefined, s"Required field '${name}' failed to parse.")
       
       oa.get
     }
     
-    BedRow(
+    val attempt = Try(BedRow(
       dataset = columns.dataset(row),
       biosampleId = columns.biosampleId(row),    // e.g. UBERON:293289
       biosampleType = columns.biosampleType(row),
@@ -45,7 +47,12 @@ final case class BedRowExpr(annotation: Annotation) extends DataRowParser[Try[Be
       targetGene = columns.targetGene(row),    //TODO  only for annotation_type == "target_gene_prediction"
       targetGeneStart = columns.targetGeneStart(row),    // TODO only for annotation_type == "target_gene_prediction"
       targetGeneEnd = columns.targetGeneEnd(row) //TODO  only for annotation_type == "target_gene_prediction"
-      )
+      ))
+      
+    attempt match {
+      case f @ Failure(e) => if(failFast) throw e else f    
+      case a => a
+    }
   }
 }
 

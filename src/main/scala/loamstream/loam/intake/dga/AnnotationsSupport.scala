@@ -24,6 +24,7 @@ import loamstream.loam.intake.ConcreteCloseableTransform
 import scala.util.Success
 import loamstream.loam.intake.DataRow
 import scala.util.Failure
+import org.json4s.JsonAST.JValue
 
 /**
  * @author clint
@@ -33,14 +34,9 @@ import scala.util.Failure
  */
 trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
   object Annotations {
-    val ingestibleAnnotationTypes: Set[AnnotationType] = Set(
-        AnnotationType.AccessibleChromatin, 
-        AnnotationType.ChromatinState, 
-        AnnotationType.BindingSites)
-    
     private final class UploadOps(
         annotation: Annotation,
-        auth: Auth,
+        auth: Option[Auth],
         awsClient: AwsClient,
         logCtx: ToFileLogContext, 
         yes: Boolean = false) {
@@ -73,12 +69,12 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
       //create the metadata for this dataset
       val metadata = annotation.toMetadata
       
-      def processDownload(download: Annotation.Download): Try[Unit] = Try {
+      def processDownload(download: Annotation.Download): Unit = {
         import download.url
         
         info(s"Processing ${url}...")
         
-        val bedRowExpr = BedRowExpr(annotation)
+        val bedRowExpr = BedRowExpr(annotation, failFast = true)
         
         val rawBedRows = Beds.downloadBed(url, auth)
         
@@ -94,15 +90,13 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
         
         info(s"Uploaded ${count} rows to '${datasetName}'")
       }
-      
-      def commitAndCloseSinkAfter(f: AwsRowSink => Any): Unit = CanBeClosed.using(sink)(f)
     }
       
     /**
      * Download region annotations loaded from DGA and upload them to S3
      */
     def uploadAnnotatedDataset(
-        auth: Auth,
+        auth: Option[Auth],
         awsClient: AwsClient,
         logTo: Store, 
         append: Boolean,
@@ -115,7 +109,7 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
      * Download region annotations loaded from DGA and upload them to S3
      */
     def uploadAnnotatedDataset(
-        auth: Auth,
+        auth: Option[Auth],
         awsClient: AwsClient,
         logCtx: ToFileLogContext,
         yes: Boolean)(annotation: Annotation): Unit = {
@@ -127,8 +121,8 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
       
       val ops = new UploadOps(annotation, auth, awsClient, logCtx, yes = yes)
       
-      ops.commitAndCloseSinkAfter { sink =>
-        // if the metadata matches what's in HDFS already it can be skipped
+      CanBeClosed.using(ops.sink) { sink =>
+        // if the metadata matches what's in S3 already it can be skipped
         //TODO: Does this comparison work?  Is it field-order-dependent?
         if(sink.existingMetadata == Option(ops.metadata.toJson)) {
           info(s"Dataset ${ops.datasetName} already up to date; skipping...")
@@ -188,7 +182,7 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
       import Json.JsonOps
       
       //NB: I have no idea what '17' means, if anything, but it's what's present in the JSON from DGA. 
-      val jvs = annotationJson.tryAsArray("17").getOrElse(Nil)
+      val jvs: Iterable[JValue] = annotationJson.tryAsObject.map(_.values).getOrElse(Nil)
         
       Source.FromIterator {
         jvs.iterator.map(Annotation.fromJson(tissueIdsToNames))
@@ -287,18 +281,25 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
         }
       }
       
-      def hasAnnotationTypeWeCareAbout(logTo: Store, append: Boolean = false): CloseablePredicate[Annotation] = {
-        hasAnnotationTypeWeCareAbout(IntakeSyntax.Log.toFile(logTo, append))
+      def hasAnnotationType(
+          annotationTypes: Set[AnnotationType],
+          logTo: Store, 
+          append: Boolean = false): CloseablePredicate[Annotation] = {
+        
+        hasAnnotationType(annotationTypes)(IntakeSyntax.Log.toFile(logTo, append))
       }
       
-      def hasAnnotationTypeWeCareAbout(implicit logCtx: ToFileLogContext): CloseablePredicate[Annotation] = {
+      def hasAnnotationType(
+          annotationTypes: Set[AnnotationType])
+         (implicit logCtx: ToFileLogContext): CloseablePredicate[Annotation] = {
+        
         ConcreteCloseablePredicate[Annotation](logCtx) { annotation =>
-          val result = ingestibleAnnotationTypes.contains(annotation.annotationType)
+          val result = annotationTypes.contains(annotation.annotationType)
           
           if(!result) {
             logCtx.warn(
                 s"Annotation '${annotation.annotationType.name}:${annotation.annotationId}' had type not found in" +
-                s"${ingestibleAnnotationTypes.map(_.name).mkString("[",",","]")}")
+                s"${annotationTypes.map(_.name).mkString("[",",","]")}")
           }
           
           result

@@ -57,6 +57,8 @@ object AnnotationType {
   
   private def normalize(s: String): String = ColumnTransforms.doNormalizeSpaces(requireNonEmpty = false)(s).toLowerCase
   
+  def unsafeFromString(s: String): AnnotationType = tryFromString(s).get
+  
   def fromString(s: String): Option[AnnotationType] = namesToValues.get(normalize(s))
   
   def tryFromString(s: String): Try[AnnotationType] = fromString(s) match {

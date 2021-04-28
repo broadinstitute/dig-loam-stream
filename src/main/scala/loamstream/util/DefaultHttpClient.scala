@@ -4,6 +4,7 @@ import java.io.InputStream
 import scala.util.control.NonFatal
 import requests.RequestAuth
 import requests.Response
+import java.io.ByteArrayInputStream
 
 /**
  * @author clint
@@ -34,11 +35,47 @@ final class DefaultHttpClient extends HttpClient with Loggable {
     doGetRequest(url, auth, _.bytes)
   }
   
-  override def getAsInputStream(url: String, auth: Option[HttpClient.Auth] = None): Either[String, InputStream] = {
-    attempt(url) {
-      //TODO: Specifying auth leads to 400 errors :( 
-      requests.get.stream(url = url/*, auth = toRequestAuth(auth)*/).readBytesThrough(identity)
+  private object OkHttp {
+    val authenticator: okhttp3.Authenticator = { (route: okhttp3.Route, response: okhttp3.Response) =>
+      response.request.newBuilder
+        .removeHeader("Accept-Encoding")
+        .header("Accept-Encoding", "gzip")
+        .build
     }
+  }
+  
+  override def getAsInputStream(url: String, auth: Option[HttpClient.Auth] = None): Either[String, InputStream] = {
+    /*attempt(url) {
+      requests.get.stream(url = url, auth = toRequestAuth(auth)).readBytesThrough(identity)
+    }*/
+      
+    /*attempt(url) {
+      val client = (new okhttp3.OkHttpClient.Builder).authenticator(OkHttp.authenticator).build
+      
+      val baseReqBuilder = (new okhttp3.Request.Builder)
+          .url(url)
+          .removeHeader("Accept-Encoding")
+          //.header("Accept-Encoding", "identity")
+      
+      val reqBuilder = auth match {
+        case Some(a) => baseReqBuilder.header("Authorization", okhttp3.Credentials.basic("jesse", "password1"))
+        case None => baseReqBuilder
+      }
+      
+      val request = reqBuilder.build
+      
+      val response = client.newCall(request).execute()
+        
+      new ByteArrayInputStream(response.body.bytes)
+    }*/
+    
+    trace(s"Invoking GET $url")
+    
+    import sttp.client._
+    
+    val request = basicRequest.get(uri"${url}").withAuth(auth).response(asByteArray)
+    
+    backend.send(request).body.right.map(new ByteArrayInputStream(_))
   }
   
   override def contentLength(url: String, auth: Option[HttpClient.Auth] = None): Either[String, Long] = {

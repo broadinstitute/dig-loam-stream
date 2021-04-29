@@ -45,20 +45,25 @@ final class DefaultHttpClient extends HttpClient with Loggable {
   }
   
   override def getAsInputStream(url: String, auth: Option[HttpClient.Auth] = None): Either[String, InputStream] = {
-    /*attempt(url) {
-      requests.get.stream(url = url, auth = toRequestAuth(auth)).readBytesThrough(identity)
-    }*/
-      
-    /*attempt(url) {
+    trace(s"Invoking GET $url")
+    
+    attempt(url) {
       val client = (new okhttp3.OkHttpClient.Builder).authenticator(OkHttp.authenticator).build
       
       val baseReqBuilder = (new okhttp3.Request.Builder)
           .url(url)
           .removeHeader("Accept-Encoding")
-          //.header("Accept-Encoding", "identity")
+          .header("Accept-Encoding", "identity")
       
       val reqBuilder = auth match {
-        case Some(a) => baseReqBuilder.header("Authorization", okhttp3.Credentials.basic("jesse", "password1"))
+        case Some(a) => {
+          baseReqBuilder
+            .header("Authorization", okhttp3.Credentials.basic(a.username, a.password))
+            //NB: disable OkHttp's automagic handling of gzipped data, so we can get the actual 
+            //.bed.gz files from DGA, for example
+            .removeHeader("Accept-Encoding")
+            .header("Accept-Encoding", "identity")
+        }
         case None => baseReqBuilder
       }
       
@@ -66,16 +71,8 @@ final class DefaultHttpClient extends HttpClient with Loggable {
       
       val response = client.newCall(request).execute()
         
-      new ByteArrayInputStream(response.body.bytes)
-    }*/
-    
-    trace(s"Invoking GET $url")
-    
-    import sttp.client._
-    
-    val request = basicRequest.get(uri"${url}").withAuth(auth).response(asByteArray)
-    
-    backend.send(request).body.right.map(new ByteArrayInputStream(_))
+      response.body.byteStream
+    }
   }
   
   override def contentLength(url: String, auth: Option[HttpClient.Auth] = None): Either[String, Long] = {

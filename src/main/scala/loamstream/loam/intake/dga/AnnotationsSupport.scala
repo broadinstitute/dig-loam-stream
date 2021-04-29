@@ -25,6 +25,7 @@ import scala.util.Success
 import loamstream.loam.intake.DataRow
 import scala.util.Failure
 import org.json4s.JsonAST.JValue
+import loamstream.util.Tries
 
 /**
  * @author clint
@@ -46,11 +47,10 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
       
       val datasetName: String = toDatasetName(annotation)
       
-      //TODO: Should this be added to UploadType?
-      val topicName: String = whitespaceToUnderscores(s"annotated_regions")
+      val topicName: String = whitespaceToUnderscores(s"annotated_regions/${annotation.annotationType.name}")
       
       //create the new dataset
-      val sink = new AwsRowSink(
+      private val sink = new AwsRowSink(
           topic = topicName,
           dataset = datasetName,
           techType = None,
@@ -58,7 +58,7 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
           metadata = annotation.toMetadata.toJson,
           awsClient = awsClient)
       
-      val countAndUpload: Fold[BedRow, _, (Int, Unit)] = {
+      private val countAndUpload: Fold[BedRow, _, (Int, Unit)] = {
         val doCount: Fold[BedRow, Int, Int] = Fold.count
         
         val doUpload: Fold[BedRow, _, Unit] = Fold.foreach(sink.accept)
@@ -67,28 +67,46 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
       }
       
       //create the metadata for this dataset
-      val metadata = annotation.toMetadata
+      private val metadata = annotation.toMetadata
       
-      def processDownload(download: Annotation.Download): Unit = {
+      private def processDownload(download: Annotation.Download): Unit = {
         import download.url
         
         info(s"Processing ${url}...")
         
-        val bedRowExpr = BedRowExpr(annotation, failFast = true)
+        val bedRowExpr = BedRowExpr(annotation)
         
-        val rawBedRows = Beds.downloadBed(url, auth)
-        
-        val bedRowAttempts: Source[(DataRow, Try[BedRow])] = rawBedRows.map(row => (row, bedRowExpr(row)))
-        
-        val bedRows = {
-          bedRowAttempts.map(Transforms.logFailures(logCtx)).collect { case (_, Success(bedRow)) => bedRow }
+        val bedRowAttempts: Source[(DataRow, Try[BedRow])] = {
+          Beds.downloadBed(url, auth).map(row => (row, bedRowExpr(row)))
         }
         
-        val (count, _) = TimeUtils.time(s"Uploading '${datasetName}'", info(_)) {
+        val bedRows = bedRowAttempts
+          .map(Transforms.logFailures(logCtx))
+          .collect { case (_, Success(bedRow)) => bedRow }
+
+        //NB: Fail fast if process() fails
+        val (Success((count, _)), elapsedMillis) = TimeUtils.elapsed {
           countAndUpload.process(bedRows.records)
         }
         
-        info(s"Uploaded ${count} rows to '${datasetName}'")
+        info {
+          val rowsPerSecond = count.toDouble / (elapsedMillis.toDouble / 1000.0)
+          
+          s"Uploaded '${datasetName}' with ${count} rows in ${elapsedMillis}ms (${rowsPerSecond} rows/s)"
+        }
+      }
+      
+      def processDownloads(): Unit = {
+        CanBeClosed.using(sink) { sink =>
+          // if the metadata matches what's in S3 already it can be skipped
+          //TODO: Does this comparison work?  Is it field-order-dependent?
+          if(sink.existingMetadata == Option(metadata.toJson)) {
+            info(s"Dataset ${datasetName} already up to date; skipping...")
+          } else {
+            //load each source file
+            annotation.downloads.foreach(processDownload)
+          }
+        }
       }
     }
       
@@ -121,16 +139,7 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
       
       val ops = new UploadOps(annotation, auth, awsClient, logCtx, yes = yes)
       
-      CanBeClosed.using(ops.sink) { sink =>
-        // if the metadata matches what's in S3 already it can be skipped
-        //TODO: Does this comparison work?  Is it field-order-dependent?
-        if(sink.existingMetadata == Option(ops.metadata.toJson)) {
-          info(s"Dataset ${ops.datasetName} already up to date; skipping...")
-        } else {
-          //load each source file
-          annotation.downloads.foreach(ops.processDownload)
-        }
-      }
+      ops.processDownloads()
       
       info(s"Finished uploading ${annotationType} dataset ${annotationId}")
     }
@@ -182,7 +191,15 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
       import Json.JsonOps
       
       //NB: I have no idea what '17' means, if anything, but it's what's present in the JSON from DGA. 
-      val jvs: Iterable[JValue] = annotationJson.tryAsObject.map(_.values).getOrElse(Nil)
+      val jvs: Iterable[JValue] = {
+        val topLevelObjectAttempt = annotationJson.tryAsObject
+        
+        topLevelObjectAttempt.flatMap { topLevelObj =>
+          val valueAttempts: Iterable[Try[Seq[JValue]]] = topLevelObj.values.iterator.map(_.tryAsArray).toList
+          
+          Tries.sequence(valueAttempts).map(_.flatten)
+        }.get //:(, fail fast
+      }
         
       Source.FromIterator {
         jvs.iterator.map(Annotation.fromJson(tissueIdsToNames))

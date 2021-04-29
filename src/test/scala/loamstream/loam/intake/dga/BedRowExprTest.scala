@@ -28,24 +28,30 @@ final class BedRowExprTest extends FunSuite {
     val stateValue = "asd f g hjkl"
         
     for {
+      ann <- annotations
+      isTargetGenePredictions = ann.annotationType == AnnotationType.TargetGenePredictions
+      notTargetGenePredictions = !isTargetGenePredictions
       chromColumn <- chromColumnNames
       startColumn <- startColumnNames
       endColumn <- endColumnNames
-      stateColumn <- stateColumnNames
-      ann <- annotations
+      stateColumn <- if(isTargetGenePredictions) Seq("state") else Seq("state", "name")
     } {
-      val row = Helpers.csvRow(
-          "foo" -> "bar", 
-          chromColumn -> "cHr14",
-          startColumn -> "5432",
-          "baz" -> "blerg",
-          endColumn -> "123456",
-          stateColumn -> stateValue,
-          "zuh" -> "bip",
-          "target_gene" -> "qwerty",
-          "target_gene_start" -> "456",
-          "target_gene_end" -> "789",
-          "strand" -> ".")
+      val nameTuple: Option[(String, String)] = {
+        if(isTargetGenePredictions) Some("name" -> "1:456-789_qwerty") else None
+      }
+          
+      val rowValues = Map(
+        "foo" -> "bar", 
+        chromColumn -> "cHr14",
+        startColumn -> "5432",
+        "baz" -> "blerg",
+        endColumn -> "123456",
+        "zuh" -> "bip",
+        "strand" -> ".",
+        stateColumn -> stateValue) ++ 
+        nameTuple
+        
+      val row = Helpers.csvRow(rowValues.toSeq: _*)
        
       val expr = BedRowExpr(ann)          
           
@@ -291,11 +297,12 @@ final class BedRowExprTest extends FunSuite {
   }
 
   private def doTargetGeneColumnTest[A](
-      columnName: String, 
       expected: A, 
       column: BedRowExpr.Columns => ColumnExpr[Option[A]]): Unit = {
     
-    val row = Helpers.csvRow("foo" -> "bar", columnName -> expected.toString)
+    val columnValue = "1:456-789_qwerty"
+    
+    val row = Helpers.csvRow("foo" -> "bar", "name" -> columnValue)
     
     assert(columns.ann.annotationType !== AnnotationType.TargetGenePredictions)
     
@@ -303,21 +310,21 @@ final class BedRowExprTest extends FunSuite {
     
     val newColumns = BedRowExpr.Columns(annotation.copy(annotationType = AnnotationType.TargetGenePredictions))
     
-    doNaValuesTest(newColumns)(column, columnName)
+    doNaValuesTest(newColumns)(column, "name")
     
     assert(column(newColumns)(row) === Some(expected))
   }
 
   test("targetGene column") {
-    doTargetGeneColumnTest("target_gene", "blerg", _.targetGene)
+    doTargetGeneColumnTest("qwerty", _.targetGene)
   }
 
   test("targetGeneStart column") {
-    doTargetGeneColumnTest("target_gene_start", 42L, _.targetGeneStart)
+    doTargetGeneColumnTest(456L, _.targetGeneStart)
   }
 
   test("targetGeneEnd column") {
-    doTargetGeneColumnTest("target_gene_end", 99L, _.targetGeneEnd)
+    doTargetGeneColumnTest(789L, _.targetGeneEnd)
   }
 
   private object EmptyDataRow extends DataRow {

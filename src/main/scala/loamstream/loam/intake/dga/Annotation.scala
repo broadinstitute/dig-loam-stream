@@ -41,15 +41,11 @@ final case class Annotation private[dga] (
    */
   def isUploadable: Boolean = {
     val anyDownloads = downloads.nonEmpty
-    val portalUsageIsAcceptable = !portalUsageIsNone
     
-    //ignore any datasets with no no valid datasets to load and portalUsage != "None"
-    val result = {
-      anyDownloads && 
-      portalUsageIsAcceptable
-    }
+    //Only datasets with 1+ valid downloads are ingestible
+    val ingestible = anyDownloads
     
-    if(!result) {
+    if(!ingestible) {
       def msg(specificPart: String) = {
         s"Skipping ${annotationId}: biosample id: ${biosampleId} " +
         s"because ${specificPart} ; downloads: ${downloads}"
@@ -57,21 +53,13 @@ final case class Annotation private[dga] (
       
       if(!anyDownloads) {
         warn(msg("No bed files were available"))
-      } else if(!portalUsageIsAcceptable) {
-        warn(msg(s"portal_usage field is '${portalUsage}'"))
-      }
+      } 
     }
     
-    result
+    ingestible
   }
   
   def notUploadable: Boolean = !isUploadable
-  
-  private[dga] def portalUsageIsNone: Boolean = portalUsage match {
-    case Some(pu) => pu == "None"
-    //NB: TODO: treat null/scala.None as portal_usage != "None" until DGA fills in this field on their end
-    case _ => false  
-  }
   
   def toMetadata: Annotation.Metadata = {
     require(derivedFrom.isDefined, s"Couldn't make metadata for annotation ${annotationId}: missing source JSON")

@@ -16,7 +16,6 @@ final case class BedRow(
     tissueId: Option[String],   //TODO: Only Optional for now; e.g. UBERON:293289
     tissue: Option[String],
     annotation: String,    // annotation type, e.g. binding_site
-    category: String, 
     method: Option[String],  //TODO: Only Optional for now; e.g. MAC2
     source: Option[String],   //TODO: Only Optional for now; e.g. ATAC-seq-peak
     assay: Option[Seq[String]],   //TODO: Only Optional for now; e.g. ATAC-seq
@@ -40,7 +39,6 @@ final case class BedRow(
     "tissueId" -> toJValue(tissueId),
     "tissue" -> toJValue(tissue),
     "annotation" -> toJValue(annotation),
-    "category" -> toJValue(category),
     "method" -> toJValue(method),
     "source" -> toJValue(source),
     "assay" -> toJValue(assay),

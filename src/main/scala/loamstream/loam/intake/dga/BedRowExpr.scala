@@ -35,7 +35,6 @@ final case class BedRowExpr(annotation: Annotation, failFast: Boolean = false) e
       tissueId = columns.tissueId(row),   // e.g. UBERON:293289
       tissue = columns.tissue(row),
       annotation = columns.annotation(row).name,    // annotation type, e.g. binding_site
-      category = columns.category(row),
       method = columns.method(row),  // e.g. MAC2
       source = columns.source(row),   // e.g. ATAC-seq-peak
       assay = columns.assay(row),   // e.g. ATAC-seq
@@ -99,7 +98,6 @@ object BedRowExpr {
     val tissueId = LiteralColumnExpr(ann.tissueId)
     val tissue = LiteralColumnExpr(ann.tissue).spacesToUnderscores
     val annotation = LiteralColumnExpr(ann.annotationType)
-    val category = LiteralColumnExpr(ann.category).spacesToUnderscores
     val method = LiteralColumnExpr(ann.method)
     val source = LiteralColumnExpr(ann.source)
     val assay = LiteralColumnExpr(ann.assay)
@@ -116,11 +114,13 @@ object BedRowExpr {
     }
     val end = ColumnName("end").or(ColumnName("chromEnd")).asOptionWithNaValues.asLongOption
     
+    private val stateOrName: ColumnExpr[String] = ColumnName("state").or(ColumnName("name"))
+    
     // the annotation name needs to be harmonized (accessible chromatin is special!)
     val state: ColumnExpr[Option[String]] = {
       val baseExpr = (ann.annotationType match {
         case ac @ AnnotationType.AccessibleChromatin => LiteralColumnExpr(Option(ac.name)) 
-        case _ => ColumnName("state").or(ColumnName("name")).asOptionWithNaValues 
+        case _ => stateOrName.asOptionWithNaValues 
       }).map {
         //Strip any leading digit prefix, if present
         _.map(_.replaceAll("^\\d+_", ""))
@@ -133,10 +133,10 @@ object BedRowExpr {
       }
     }.spacesToUnderscores
 
-    private def ifTargetGenePrediction(regex: Regex, column: String = "name"): ColumnExpr[Option[String]] = {
+    private def ifTargetGenePrediction(regex: Regex): ColumnExpr[Option[String]] = {
       ann.annotationType match {
         case AnnotationType.TargetGenePredictions => {
-          ColumnName(column).asOptionWithNaValues.map {
+          stateOrName.asOptionWithNaValues.map {
             _.collect { case regex(v) => v }
           }
         }

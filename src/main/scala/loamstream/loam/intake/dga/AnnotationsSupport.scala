@@ -26,6 +26,7 @@ import loamstream.loam.intake.DataRow
 import scala.util.Failure
 import org.json4s.JsonAST.JValue
 import loamstream.util.Tries
+import loamstream.util.Terminable
 
 /**
  * @author clint
@@ -76,17 +77,18 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
         
         val bedRowExpr = BedRowExpr(annotation)
         
-        val bedRowAttempts: Source[(DataRow, Try[BedRow])] = {
-          Beds.downloadBed(url, auth).map(row => (row, bedRowExpr(row)))
-        }
+        val (handle, bedRowAttempts) = Beds.downloadBed(url, auth)
+
+        val rowTuples = bedRowAttempts.map(row => (row, bedRowExpr(row)))
         
-        val bedRows = bedRowAttempts
+        val bedRows = rowTuples
           .map(Transforms.logFailures(logCtx))
           .collect { case (_, Success(bedRow)) => bedRow }
 
         //NB: Fail fast if process() fails
         val (Success((count, _)), elapsedMillis) = TimeUtils.elapsed {
-          countAndUpload.process(bedRows.records)
+          try { countAndUpload.process(bedRows.records) }
+          finally { handle.stop() }
         }
         
         info {

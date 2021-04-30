@@ -5,6 +5,7 @@ import scala.util.control.NonFatal
 import requests.RequestAuth
 import requests.Response
 import java.io.ByteArrayInputStream
+import java.io.Closeable
 
 /**
  * @author clint
@@ -44,7 +45,7 @@ final class DefaultHttpClient extends HttpClient with Loggable {
     }
   }
   
-  override def getAsInputStream(url: String, auth: Option[HttpClient.Auth] = None): Either[String, InputStream] = {
+  override def getAsInputStream(url: String, auth: Option[HttpClient.Auth] = None): Either[String, (Terminable, InputStream)] = {
     trace(s"Invoking GET $url")
     
     attempt(url) {
@@ -70,8 +71,14 @@ final class DefaultHttpClient extends HttpClient with Loggable {
       val request = reqBuilder.build
       
       val response = client.newCall(request).execute()
-        
-      response.body.byteStream
+      
+      val body = response.body
+      
+      val stream = body.byteStream
+      
+      val handle: Terminable = Terminable.StopsComponents(stream, body)
+      
+      (handle, stream)
     }
   }
   

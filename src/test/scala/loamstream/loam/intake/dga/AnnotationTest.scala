@@ -157,7 +157,7 @@ final class AnnotationTest extends FunSuite with Loggable {
     assert(fromJson(Map.empty)(parse("""{"lalala":"asdf"}""")).isFailure)
   }
   
-  ignore("isValidDownload") {
+  test("isValidDownload") {
     fail("TODO")
   }
   

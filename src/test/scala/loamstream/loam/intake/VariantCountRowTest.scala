@@ -6,25 +6,24 @@ import org.scalatest.FunSuite
  * @author clint
  * May 4, 2021
  */
-final class PValueVariantRowTest extends FunSuite {
+final class VariantCountRowTest extends FunSuite {
   private val variant = Variant("1", 2, "A", "C")
   
   test("jsonValues - optional values present") {
     import org.json4s._
     
-    val row = new PValueVariantRow(
+    val row = new VariantCountRow(
       marker = variant,
-      pvalue = 1.23,
       dataset = "some-ds",
       phenotype = "some-pheno",
       ancestry = Ancestry.AA,
-      zscore = Some(4.56),
-      stderr = Some(7.89),
-      beta = Some(3.21),
-      oddsRatio = Some(6.54),
-      eaf = Some(99.0),
-      maf = Some(42.0),
-      n = 123.456,
+      alleleCount = Some(9),
+      alleleCountCases = Some(8), 
+      alleleCountControls = Some(7),
+      heterozygousCases = Some(6), 
+      heterozygousControls = Some(5), 
+      homozygousCases = Some(4), 
+      homozygousControls = Some(3), 
       derivedFromRecordNumber = Some(42))
       
     val expectedJson = Seq(
@@ -37,14 +36,13 @@ final class PValueVariantRowTest extends FunSuite {
       "dataset" -> JString("some-ds"),
       "phenotype" -> JString("some-pheno"),
       "ancestry" -> JString("AA"),
-      "pValue" -> JDouble(1.23),
-      "beta" -> JDouble(3.21),
-      "oddsRatio" -> JDouble(6.54),
-      "eaf" -> JDouble(99.0),
-      "maf" -> JDouble(42.0),
-      "stdErr" -> JDouble(7.89),
-      "zScore" -> JDouble(4.56),
-      "n" -> JDouble(123.456)) 
+      "alleleCount" -> JLong(9),
+      "alleleCountCases" -> JLong(8), 
+      "alleleCountControls" -> JLong(7),
+      "heterozygousCases" -> JLong(6), 
+      "heterozygousControls" -> JLong(5), 
+      "homozygousCases" -> JLong(4), 
+      "homozygousControls" -> JLong(3)) 
     
     val json = row.jsonValues
     
@@ -54,19 +52,18 @@ final class PValueVariantRowTest extends FunSuite {
   test("jsonValues - optional values missing") {
     import org.json4s._
     
-    val row = new PValueVariantRow(
+    val row = new VariantCountRow(
       marker = variant,
-      pvalue = 1.23,
       dataset = "some-ds",
       phenotype = "some-pheno",
       ancestry = Ancestry.AA,
-      zscore = None,
-      stderr = None,
-      beta = None,
-      oddsRatio = None,
-      eaf = None,
-      maf = None,
-      n = 123.456,
+      alleleCount = None,
+      alleleCountCases = None, 
+      alleleCountControls = None,
+      heterozygousCases = None, 
+      heterozygousControls = None, 
+      homozygousCases = None, 
+      homozygousControls = None, 
       derivedFromRecordNumber = None)
       
     val expectedJson = Seq(
@@ -79,14 +76,13 @@ final class PValueVariantRowTest extends FunSuite {
       "dataset" -> JString("some-ds"),
       "phenotype" -> JString("some-pheno"),
       "ancestry" -> JString("AA"),
-      "pValue" -> JDouble(1.23),
-      "beta" -> JNull,
-      "oddsRatio" -> JNull,
-      "eaf" -> JNull,
-      "maf" -> JNull,
-      "stdErr" -> JNull,
-      "zScore" -> JNull,
-      "n" -> JDouble(123.456)) 
+      "alleleCount" -> JNull,
+      "alleleCountCases" -> JNull, 
+      "alleleCountControls" -> JNull,
+      "heterozygousCases" -> JNull, 
+      "heterozygousControls" -> JNull, 
+      "homozygousCases" -> JNull, 
+      "homozygousControls" -> JNull) 
     
     val json = row.jsonValues
     
@@ -94,55 +90,52 @@ final class PValueVariantRowTest extends FunSuite {
   }
   
   test("headers") {
-    val row = new PValueVariantRow(
+    val row = new VariantCountRow(
       marker = variant,
-      pvalue = 1.23,
       dataset = "some-ds",
       phenotype = "some-pheno",
       ancestry = Ancestry.AA,
-      zscore = None,
-      stderr = None,
-      beta = None,
-      oddsRatio = None,
-      eaf = None,
-      maf = None,
-      n = 123.456,
+      alleleCount = None,
+      alleleCountCases = None, 
+      alleleCountControls = None,
+      heterozygousCases = None, 
+      heterozygousControls = None, 
+      homozygousCases = None, 
+      homozygousControls = None, 
       derivedFromRecordNumber = None)
     
-    assert(row.headers === BaseVariantRow.Headers.forVariantData)
+    assert(row.headers === BaseVariantRow.Headers.forVariantCountData)
     
     val expectedHeaders: Seq[String] = Seq(
       "marker",
       "dataset",
       "phenotype",
       "ancestry",
-      "pvalue",
-      "zscore",
-      "stderr",
-      "beta",
-      "odds_ratio",
-      "eaf",
-      "maf",
-      "n")
+      "alleleCount",
+      "alleleCountCases", 
+      "alleleCountControls",
+      "heterozygousCases", 
+      "heterozygousControls", 
+      "homozygousCases", 
+      "homozygousControls")
     
     assert(row.headers === expectedHeaders)
-    assert(BaseVariantRow.Headers.forVariantData === expectedHeaders)
+    assert(BaseVariantRow.Headers.forVariantCountData === expectedHeaders)
   }
   
   test("values - optional values present") {
-    val row = new PValueVariantRow(
+    val row = new VariantCountRow(
       marker = variant,
-      pvalue = 1.23,
       dataset = "some-ds",
       phenotype = "some-pheno",
       ancestry = Ancestry.AA,
-      zscore = Some(4.56),
-      stderr = Some(7.89),
-      beta = Some(3.21),
-      oddsRatio = Some(6.54),
-      eaf = Some(99.0),
-      maf = Some(42.0),
-      n = 123.456,
+      alleleCount = Some(9),
+      alleleCountCases = Some(8), 
+      alleleCountControls = Some(7),
+      heterozygousCases = Some(6), 
+      heterozygousControls = Some(5), 
+      homozygousCases = Some(4), 
+      homozygousControls = Some(3), 
       derivedFromRecordNumber = Some(42))
     
     val expectedValues: Seq[Option[String]] = Seq(
@@ -150,47 +143,44 @@ final class PValueVariantRowTest extends FunSuite {
       Some("some-ds"),
       Some("some-pheno"),
       Some("AA"),
-      Some("1.23"),
-      Some("4.56"),
-      Some("7.89"),
-      Some("3.21"),
-      Some("6.54"),
-      Some("99.0"),
-      Some("42.0"),
-      Some("123.456"))
+      Some("9"),
+      Some("8"),
+      Some("7"),
+      Some("6"),
+      Some("5"),
+      Some("4"),
+      Some("3"))
     
     assert(row.values === expectedValues)
   }
   
   test("values - optional values missing") {
-    val row = new PValueVariantRow(
+    val row = new VariantCountRow(
       marker = variant,
-      pvalue = 1.23,
       dataset = "some-ds",
       phenotype = "some-pheno",
       ancestry = Ancestry.AA,
-      zscore = None,
-      stderr = None,
-      beta = None,
-      oddsRatio = None,
-      eaf = None,
-      maf = None,
-      n = 123.456,
-      derivedFromRecordNumber = Some(42))
+      alleleCount = None,
+      alleleCountCases = None, 
+      alleleCountControls = None,
+      heterozygousCases = None, 
+      heterozygousControls = None, 
+      homozygousCases = None, 
+      homozygousControls = None, 
+      derivedFromRecordNumber = None)
     
     val expectedValues: Seq[Option[String]] = Seq(
       Some("1_2_A_C"),
       Some("some-ds"),
       Some("some-pheno"),
       Some("AA"),
-      Some("1.23"),
       None,
       None,
       None,
       None,
       None,
       None,
-      Some("123.456"))
+      None)
     
     assert(row.values === expectedValues)
   }

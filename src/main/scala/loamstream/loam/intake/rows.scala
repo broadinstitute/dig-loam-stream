@@ -121,21 +121,28 @@ object BaseVariantRow {
   }
   
   object Headers {
-    val forVariantData: Seq[String] = Seq(
-      AggregatorColumnNames.marker,
-      AggregatorColumnNames.pvalue,
+    val forVariantData: Seq[String] = {
+        AggregatorColumnNames.marker.name +: 
+      (Seq(
+        AggregatorJsonKeys.dataset,
+        AggregatorJsonKeys.phenotype,
+        AggregatorJsonKeys.ancestry) ++
+      Seq(
+        AggregatorColumnNames.pvalue,
+        AggregatorColumnNames.zscore,
+        AggregatorColumnNames.stderr,
+        AggregatorColumnNames.beta,
+        AggregatorColumnNames.odds_ratio,
+        AggregatorColumnNames.eaf,
+        AggregatorColumnNames.maf,
+        AggregatorColumnNames.n).map(_.name))
+    }
       
-      AggregatorColumnNames.zscore,
-      AggregatorColumnNames.stderr,
-      AggregatorColumnNames.beta,
-      AggregatorColumnNames.odds_ratio,
-      AggregatorColumnNames.eaf,
-      AggregatorColumnNames.maf,
-      AggregatorColumnNames.n).map(_.name)
-      
-    //TODO: FIXME
     val forVariantCountData: Seq[String] = Seq(
       AggregatorColumnNames.marker.name,
+      AggregatorJsonKeys.dataset,
+      AggregatorJsonKeys.phenotype,
+      AggregatorJsonKeys.ancestry,
       AggregatorJsonKeys.alleleCount,
       AggregatorJsonKeys.alleleCountCases, 
       AggregatorJsonKeys.alleleCountControls,
@@ -181,6 +188,9 @@ final case class VariantCountRow(
     //NB: ORDERING MATTERS :\
     
     buffer += Some(marker.underscoreDelimited)
+    buffer += Some(dataset)
+    buffer += Some(phenotype)
+    buffer += Some(ancestry.name)
     
     addOpt(alleleCount)
     addOpt(alleleCountCases) 
@@ -250,6 +260,9 @@ final case class PValueVariantRow(
     //NB: ORDERING MATTERS :\
     
     buffer += Some(marker.underscoreDelimited)
+    buffer += Some(dataset)
+    buffer += Some(phenotype)
+    buffer += Some(ancestry.name)
     buffer += Some(pvalue.toString)
     
     addOpt(zscore)

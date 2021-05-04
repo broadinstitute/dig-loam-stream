@@ -235,7 +235,6 @@ final case class PValueVariantRow(
   
   override def jsonValues: Seq[(String, JValue)] = PValueVariantRow.JsonSerializer(this)
   
-  //TODO: This will be wrong if non-default column names were used :( :(
   override def headers: Seq[String] = BaseVariantRow.Headers.forVariantData
   
   //NB: Profiler-informed optimization: adding to a Buffer is 2x faster than ++ or .flatten

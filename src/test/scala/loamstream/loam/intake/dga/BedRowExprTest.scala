@@ -34,7 +34,7 @@ final class BedRowExprTest extends FunSuite {
       chromColumn <- chromColumnNames
       startColumn <- startColumnNames
       endColumn <- endColumnNames
-      stateColumn <- if(isTargetGenePredictions) Seq("state") else Seq("state", "name")
+      stateColumn <- if(isTargetGenePredictions) Seq("name") else Seq("state", "name")
     } {
       val nameTuple: Option[(String, String)] = {
         if(isTargetGenePredictions) Some("name" -> "1:456-789_qwerty") else None
@@ -76,13 +76,11 @@ final class BedRowExprTest extends FunSuite {
         if(ann.annotationType == AnnotationType.AccessibleChromatin) "accessible_chromatin" else normalized(stateValue)
       }
       
-      assert(bedRow.state === expectedState)
-        
       val (expectedTargetGene: Option[String], 
            expectedTargetGeneStart: Option[Long], 
            expectedTargetGeneEnd: Option[Long]) = {
         
-        if(ann.annotationType == AnnotationType.TargetGenePredictions) { (Some("qwerty"), Some(456L), Some(789L)) }
+        if(isTargetGenePredictions) { (Some("qwerty"), Some(456L), Some(789L)) }
         else { (None, None, None) }
       }
       
@@ -130,7 +128,6 @@ final class BedRowExprTest extends FunSuite {
     doTest(badChrom = true)
     doTest(badStart = true)
     doTest(badEnd = true)
-    doTest(badState = true)
   }
   
   test("literal columns") {
@@ -346,7 +343,7 @@ final class BedRowExprTest extends FunSuite {
   private val assembly: String = "asdasdasfa"
   private val annotationType: AnnotationType = AnnotationType.CaQTL
   private val annotationId: String = "ASKJhkjasf"
-  private val category: String = "fhd o l h ujd"
+  private val category: AnnotationCategory = AnnotationCategory.CisRegulatoryElements
   private val tissueId: Option[String] = Some("sdgpl89dg")
   private val tissue: Option[String] = Some("v9j0 8sdf")
   private val source: Option[String] = Some("c8bvfxf")

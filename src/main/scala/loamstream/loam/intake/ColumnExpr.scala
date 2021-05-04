@@ -32,8 +32,9 @@ sealed abstract class ColumnExpr[A : TypeTag] extends
   
   protected def newCsvProcessingException(row: DataRow, cause: Throwable) = {
     new CsvProcessingException(
-        s"Error processing record number ${row.recordNumber} with expr ${this} (${getClass.getName}); row is '$row':", 
+        s"Error processing record number ${row.recordNumber}: ${cause.getMessage}", 
         row, 
+        this,
         cause)
   }
   

@@ -23,32 +23,40 @@ final case class BedRow(
     chromosome: String,
     start: Long,
     end: Long,
-    state: String, //was name
-    targetGene: Option[String],    // only for annotation_type == "target_gene_prediction"
-    targetGeneStart: Option[Long],    // only for annotation_type == "target_gene_prediction"
-    targetGeneEnd: Option[Long]    // only for annotation_type == "target_gene_prediction"
+    state: Option[String], 
+    targetGene: Option[String],    // only for annotation_type == "target_gene_predictions"
+    targetGeneStart: Option[Long],    // only for annotation_type == "target_gene_predictions"
+    targetGeneEnd: Option[Long]    // only for annotation_type == "target_gene_predictions"
   ) extends RenderableJsonRow {
 
   import Json.toJValue
   
-  override def jsonValues: Seq[(String, JValue)] = Seq(
-    "dataset" -> toJValue(dataset),
-    "biosampleId" -> toJValue(biosampleId),
-    "biosampleType" -> toJValue(biosampleType),
-    "biosample" -> toJValue(biosample),
-    "tissueId" -> toJValue(tissueId),
-    "tissue" -> toJValue(tissue),
-    "annotation" -> toJValue(annotation),
-    "method" -> toJValue(method),
-    "source" -> toJValue(source),
-    "assay" -> toJValue(assay),
-    "collection" -> toJValue(collection),
-    "chromosome" -> toJValue(chromosome),
-    "start" -> toJValue(start),
-    "end" -> toJValue(end),
-    "state" -> toJValue(state),
-    "targetGene" -> toJValue(targetGene),
-    "targetGeneStart" -> toJValue(targetGeneStart),
-    "targetGeneEnd" -> toJValue(targetGeneEnd)
-  )
+  override def jsonValues: Seq[(String, JValue)] = {
+    def noJNull[A](fieldName: String, opt: Option[A]): Iterator[(String, JValue)] = opt match {
+      case Some(a) => Iterator(a).map(a => fieldName -> toJValue(a))
+      case None => Iterator.empty
+    }
+    
+    val tuples = Iterator(
+      "dataset" -> toJValue(dataset),
+      "biosampleId" -> toJValue(biosampleId),
+      "biosampleType" -> toJValue(biosampleType),
+      "biosample" -> toJValue(biosample),
+      "tissueId" -> toJValue(tissueId),
+      "tissue" -> toJValue(tissue),
+      "annotation" -> toJValue(annotation),
+      "method" -> toJValue(method),
+      "source" -> toJValue(source),
+      "assay" -> toJValue(assay),
+      "collection" -> toJValue(collection),
+      "chromosome" -> toJValue(chromosome),
+      "start" -> toJValue(start),
+      "end" -> toJValue(end)) ++ 
+      noJNull("targetGene", targetGene) ++
+      noJNull("targetGeneStart", targetGeneStart) ++
+      noJNull("targetGeneEnd", targetGeneEnd) ++
+      noJNull("state", state)
+      
+    tuples.toList
+  }
 }

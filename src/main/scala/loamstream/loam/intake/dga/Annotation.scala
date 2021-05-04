@@ -21,7 +21,7 @@ import org.json4s._
 final case class Annotation private[dga] (
     annotationType: AnnotationType,
     annotationId: String,
-    category: String,
+    category: AnnotationCategory,
     tissueId: Option[String],
     tissue: Option[String],
     source: Option[String],
@@ -94,7 +94,7 @@ object Annotation {
     for {
       annotationId <- json.tryAsString("annotation_id")
       annotationType <- json.tryAsString("annotation_type").flatMap(AnnotationType.tryFromString)
-      category <- json.tryAsString("annotation_category")
+      category <- json.tryAsString("annotation_category").flatMap(AnnotationCategory.tryFromString)
       fileDownloads <- filteredSortedFileDownloads(annotationId, json)
       biosampleId = json.asStringOption("biosample_term_id")
       biosampleType = json.asStringOption("biosample_type")

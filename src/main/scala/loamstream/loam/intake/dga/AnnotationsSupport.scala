@@ -46,9 +46,11 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
       import annotation.annotationId 
       import annotation.annotationType
       
+      //TODO: TEST!
       val datasetName: String = toDatasetName(annotation)
       
-      val topicName: String = whitespaceToUnderscores(s"annotated_regions/${annotation.annotationType.name}")
+      //TODO: TEST!
+      val topicName: String = whitespaceToUnderscores(s"annotated_regions/${annotation.category.name}")
       
       //create the new dataset
       private val sink = new AwsRowSink(

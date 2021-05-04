@@ -19,7 +19,7 @@ object Json {
     
     //TODO: There must be a better way :(
     a match {
-      case s: String => s  
+      case s: String => s
       case l: Long => l
       case i: Int => i
       case d: Double => d

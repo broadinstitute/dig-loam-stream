@@ -23,7 +23,7 @@ final class AnnotationTest extends FunSuite with Loggable {
     val annotation = Annotation(
       annotationType = AnnotationType.CandidateRegulatoryElements,
       annotationId = "DSR249FPB",
-      category = "cis-regulatory elements",
+      category = AnnotationCategory.CisRegulatoryElements,
       tissueId = Some("UBERON:0002048"),
       tissue = Some("some-tissue"),
       source = Some("cCRE definitions"),
@@ -46,43 +46,22 @@ final class AnnotationTest extends FunSuite with Loggable {
     assert(noDownloads.notUploadable === true)
     
     {
+      //portalUsage is now ignored
       val noUsage = annotation.copy(portalUsage = Some("None"))
       
-      assert(noUsage.isUploadable === false)
-      assert(noUsage.notUploadable === true)
+      assert(noUsage.isUploadable === true)
+      assert(noUsage.notUploadable === false)
     }
     
     {
+      //portalUsage is now ignored
       val missingUsage = annotation.copy(portalUsage = None)
       
-      assert(missingUsage.isUploadable === false)
-      assert(missingUsage.notUploadable === true)
+      assert(missingUsage.isUploadable === true)
+      assert(missingUsage.notUploadable === false)
     }
   }
 
-  test("portalUsageIsNone") {
-    val a = Annotation(
-      annotationType = AnnotationType.CandidateRegulatoryElements,
-      annotationId = "DSR249FPB",
-      category = "cis-regulatory elements",
-      tissueId = Some("UBERON:0002048"),
-      tissue = Some("some-tissue"),
-      source = Some("cCRE definitions"),
-      assay = Some(Seq("ChIP-seq", "DNase-seq")),
-      collection = None,
-      biosampleId = Some("EFO:0001196"),
-      biosampleType = Some("some-biosample-type"),
-      biosample = Some("some-biosample"),
-      method = Some("ENCODE-cCREs"), 
-      portalUsage = Some("facet"),
-      harmonizedStates = Some(Map("x" -> "y")),
-      downloads = Nil)
-      
-    assert(a.portalUsageIsNone === false)
-    assert(a.copy(portalUsage = Some("none")).portalUsageIsNone === false)
-    assert(a.copy(portalUsage = Some("None")).portalUsageIsNone === true)
-  }
-  
   test("toMetadata") {
     val downloads = Seq(
       Annotation.Download(
@@ -94,7 +73,7 @@ final class AnnotationTest extends FunSuite with Loggable {
     val annotation = Annotation(
       annotationType = AnnotationType.CandidateRegulatoryElements,
       annotationId = "DSR249FPB",
-      category = "cis-regulatory elements",
+      category = AnnotationCategory.CisRegulatoryElements,
       tissueId = Some("UBERON:0002048"),
       tissue = Some("some-tissue"),
       source = Some("cCRE definitions"),
@@ -131,7 +110,7 @@ final class AnnotationTest extends FunSuite with Loggable {
     val expected = Annotation(
       annotationType = AnnotationType.CandidateRegulatoryElements,
       annotationId = "DSR249FPB",
-      category = "cis-regulatory elements",
+      category = AnnotationCategory.CisRegulatoryElements,
       tissueId = Some("UBERON:0002048"),
       tissue = Some("some-tissue"),
       source = Some("cCRE definitions"),

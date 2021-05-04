@@ -122,7 +122,9 @@ object AnalyzeStrands extends loamstream.LoamFile {
     flatMap(a => Source.fromIterable(a.downloads.map(d => a -> d)))
     .map { case (annotation, download) => annotation -> Dga.Beds.downloadBed(download.url, auth = None) }
     //.collect { case (annotation, Success(bedRows)) => annotation -> bedRows }
-    .map { case (annotation, bedRows) => annotation -> bedRows.map(strandExpr(annotation)).collect { case Success(r) => r }}
+    .map { case (annotation, (handle, bedRows)) => 
+      handle -> annotation -> bedRows.map(strandExpr(annotation)).collect { case Success(r) => r }
+    }
   
   val parallelism: Int = System.getProperty("DGA_INTAKE_PARALLELISM", "1").toInt
   
@@ -146,11 +148,15 @@ object AnalyzeStrands extends loamstream.LoamFile {
       val z: Counts[Option[Strand]] = Iterator(Some(Strand.+), Some(Strand.-), None).map(_ -> 0).toMap
       
       val fs = for {
-        (annotation, strandOpts) <- annotations
+        ((handle, annotation), strandOpts) <- annotations
       } yield {
         Future {
           val (Success((counts, numRows)), elapsedMillis) = TimeUtils.elapsed {
-            (countByStrand(z) |+| Fold.count).process(strandOpts.records)
+            try {
+              (countByStrand(z) |+| Fold.count).process(strandOpts.records)
+            } finally {
+              handle.stop()
+            }
           }
           
           info(s"Analyzing ${numRows} from ${annotation.annotationId} took ${elapsedMillis}ms (${numRows.toDouble / (elapsedMillis.toDouble / 1000.0)}) rows/s")

@@ -29,7 +29,7 @@ object Helpers {
       
       opt match {
         case Some(result) => result
-        case None => throw CsvProcessingException(s"Couldn't find column '${name}' in ${this}", this, null)
+        case None => throw new CsvProcessingException(s"Couldn't find column '${name}' in ${this}", this, null, null)
       }
     }
   

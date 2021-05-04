@@ -42,11 +42,11 @@ final case class BedRowExpr(annotation: Annotation, failFast: Boolean = false) e
       chromosome = requiredField(columns.chromosome(row), "chromosome"),
       start = requiredField(columns.start(row), "start"),
       end = requiredField(columns.end(row), "end"),
-      state = requiredField(columns.state(row), "state"), 
+      state = columns.state(row), 
       targetGene = columns.targetGene(row),    //TODO  only for annotation_type == "target_gene_prediction"
       targetGeneStart = columns.targetGeneStart(row),    // TODO only for annotation_type == "target_gene_prediction"
       targetGeneEnd = columns.targetGeneEnd(row) //TODO  only for annotation_type == "target_gene_prediction"
-      ))
+    ))
       
     attempt match {
       case f @ Failure(e) => if(failFast) throw e else f    
@@ -114,13 +114,13 @@ object BedRowExpr {
     }
     val end = ColumnName("end").or(ColumnName("chromEnd")).asOptionWithNaValues.asLongOption
     
-    private val stateOrName: ColumnExpr[String] = ColumnName("state").or(ColumnName("name"))
+    private val stateOrNameOpt: ColumnExpr[Option[String]] = ColumnName("state").or(ColumnName("name")).asOptionWithNaValues
     
     // the annotation name needs to be harmonized (accessible chromatin is special!)
     val state: ColumnExpr[Option[String]] = {
       val baseExpr = (ann.annotationType match {
         case ac @ AnnotationType.AccessibleChromatin => LiteralColumnExpr(Option(ac.name)) 
-        case _ => stateOrName.asOptionWithNaValues 
+        case _ => stateOrNameOpt 
       }).map {
         //Strip any leading digit prefix, if present
         _.map(_.replaceAll("^\\d+_", ""))
@@ -136,7 +136,7 @@ object BedRowExpr {
     private def ifTargetGenePrediction(regex: Regex): ColumnExpr[Option[String]] = {
       ann.annotationType match {
         case AnnotationType.TargetGenePredictions => {
-          stateOrName.asOptionWithNaValues.map {
+          stateOrNameOpt.map {
             _.collect { case regex(v) => v }
           }
         }

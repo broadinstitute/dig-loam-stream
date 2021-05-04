@@ -273,7 +273,7 @@ object PValueVariantRow {
       
       BaseVariantRow.commonJson(row) ++
       Seq(
-        AggregatorJsonKeys.pValue -> JString(pvalue.toString),
+        AggregatorJsonKeys.pValue -> JDouble(pvalue),
         AggregatorJsonKeys.beta -> toJson(beta),
         AggregatorJsonKeys.oddsRatio -> toJson(oddsRatio),
         AggregatorJsonKeys.eaf -> toJson(eaf),
@@ -285,8 +285,6 @@ object PValueVariantRow {
     }
   }
 }
-
-
 
 /**
  * @author clint

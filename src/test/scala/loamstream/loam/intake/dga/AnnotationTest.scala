@@ -183,51 +183,6 @@ final class AnnotationTest extends FunSuite with Loggable {
     transforms.permutations.foreach { case Seq(t0, t1, t2) =>
       assert(isValidDownload(t2(t1(t0(d)))) === false)
     }
-    
-    /**
-     * //only keep files of the right format, assembly and have been released
-  private[dga] def isValidDownload(
-      annotationId: String)(download: Annotation.Download)(implicit ctx: LogContext): Boolean = {
-    
-    def fileName: String = s"${annotationId}/${download.file}"
-    
-    def isReleased: Boolean = {
-      val released = download.status.countsAsReleased
-      
-      if(!released) {
-        ctx.warn(s"File ${fileName} is not released; skipping...")
-      }
-      
-      released
-    }
-    
-    def isBed: Boolean = {
-      val bed = File.isBed(download.file)
-      
-      if(!bed) {
-        ctx.warn(s"File ${fileName} is not a BED file; skipping...")
-      }
-      
-      bed
-    }
-    
-    def assemblyMatchesHg19: Boolean = {
-      
-      val hg19 = AssemblyIds.hg19
-      
-      val asmsMatch = AssemblyMap.matchAssemblies(download.assemblyId, hg19)
-      
-      if(!asmsMatch) {
-        ctx.warn(s"File ${fileName} with assembly Id '${download.assemblyId}' " +
-                 s"does not match assembly ${hg19}; skipping...")
-      }
-      
-      asmsMatch
-    }
-    
-    isReleased && isBed && assemblyMatchesHg19 
-  }
-     */
   }
   
   test("Download.fromJson") {

@@ -10,6 +10,8 @@ trait Terminable {
   def stop(): Unit
   
   def asCloseable: Closeable = () => stop()
+  
+  def stopAfter[A](f: => A): A = try { f } finally { stop() }
 }
 
 object Terminable {

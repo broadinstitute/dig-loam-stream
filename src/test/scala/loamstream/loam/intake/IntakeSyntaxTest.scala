@@ -321,9 +321,11 @@ final class IntakeSyntaxTest extends FunSuite {
         
         assert(java.nio.file.Files.exists(outfile) === true)
         
+        import metadata.{dataset, phenotype, ancestry}
+        
         val expected = s"""
-${v2.underscoreDelimited}${'\t'}1.3${'\t'}42.0
-${v3.underscoreDelimited}${'\t'}1.4${'\t'}42.0""".trim
+${v2.underscoreDelimited}${'\t'}${dataset}${'\t'}${phenotype}${'\t'}${ancestry.name}${'\t'}1.3${'\t'}42.0
+${v3.underscoreDelimited}${'\t'}${dataset}${'\t'}${phenotype}${'\t'}${ancestry.name}${'\t'}1.4${'\t'}42.0""".trim
 
         //NB: trim to avoid off-by-line-ending differences we don't care about
         assert(Files.readFrom(outfile).trim === expected)

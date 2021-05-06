@@ -6,6 +6,7 @@ import java.net.URI
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 import loamstream.util.Loggable
+import loamstream.loam.intake.dga.Annotation.Download
 
 /**
  * @author clint
@@ -136,8 +137,97 @@ final class AnnotationTest extends FunSuite with Loggable {
     assert(fromJson(Map.empty)(parse("""{"lalala":"asdf"}""")).isFailure)
   }
   
-  test("isValidDownload") {
-    fail("TODO")
+  test("isValidDownload - happy path") {
+    val someAnnotationId = "asdasdasd"
+    
+    for {
+      status <- Seq(Annotation.Status.Released, Annotation.Status.Uploading)
+      extension <- Seq("bed", "bed.gz")
+      assemblyId <- Seq(AssemblyIds.hg19, "GRCh37")
+    } {
+      val d = Download(assemblyId, URI.create(s"http://example.com/foo.${extension}"), status, md5Sum = "asdf")
+      
+      assert(Annotation.isValidDownload(someAnnotationId)(d) === true)
+    }
+  }
+   
+  test("isValidDownload - invalid cases") {
+    val someAnnotationId = "asdasdasd"
+    
+    val invalidStatus = Annotation.Status.Other
+    val invalidExtension = "txt"
+    val invalidAssemblyId = "GRCh38"
+    
+    val d = Download(AssemblyIds.hg19, URI.create(s"http://example.com/foo.bed"), Annotation.Status.Released, md5Sum = "asdf")
+    
+    def isValidDownload(d: Download) = Annotation.isValidDownload(someAnnotationId)(d)
+    
+    assert(isValidDownload(d) === true)
+      
+    val invalidateAssemblyId: Download => Download = _.copy(assemblyId = invalidAssemblyId)
+    val invalidateExtension: Download => Download = _.copy(
+        url = URI.create(s"http://example.com/foo.${invalidExtension}"),
+        file = TestHelpers.path(s"foo.${invalidExtension}"))
+    val invalidateStatus: Download => Download = _.copy(status = invalidStatus)
+    
+    val transforms: Seq[Download => Download] = Seq(invalidateAssemblyId, invalidateExtension, invalidateStatus)
+    
+    transforms.foreach { t =>
+      assert(isValidDownload(t(d)) === false)
+    }
+    
+    transforms.combinations(2).foreach { case Seq(t0, t1) =>
+      assert(isValidDownload(t1(t0(d))) === false)
+    }
+    
+    transforms.permutations.foreach { case Seq(t0, t1, t2) =>
+      assert(isValidDownload(t2(t1(t0(d)))) === false)
+    }
+    
+    /**
+     * //only keep files of the right format, assembly and have been released
+  private[dga] def isValidDownload(
+      annotationId: String)(download: Annotation.Download)(implicit ctx: LogContext): Boolean = {
+    
+    def fileName: String = s"${annotationId}/${download.file}"
+    
+    def isReleased: Boolean = {
+      val released = download.status.countsAsReleased
+      
+      if(!released) {
+        ctx.warn(s"File ${fileName} is not released; skipping...")
+      }
+      
+      released
+    }
+    
+    def isBed: Boolean = {
+      val bed = File.isBed(download.file)
+      
+      if(!bed) {
+        ctx.warn(s"File ${fileName} is not a BED file; skipping...")
+      }
+      
+      bed
+    }
+    
+    def assemblyMatchesHg19: Boolean = {
+      
+      val hg19 = AssemblyIds.hg19
+      
+      val asmsMatch = AssemblyMap.matchAssemblies(download.assemblyId, hg19)
+      
+      if(!asmsMatch) {
+        ctx.warn(s"File ${fileName} with assembly Id '${download.assemblyId}' " +
+                 s"does not match assembly ${hg19}; skipping...")
+      }
+      
+      asmsMatch
+    }
+    
+    isReleased && isBed && assemblyMatchesHg19 
+  }
+     */
   }
   
   test("Download.fromJson") {

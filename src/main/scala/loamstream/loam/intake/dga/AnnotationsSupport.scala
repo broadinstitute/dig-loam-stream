@@ -36,12 +36,12 @@ import loamstream.util.Terminable
  */
 trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
   object Annotations {
-    private final class UploadOps(
+    private[dga] final class UploadOps(
         annotation: Annotation,
         auth: Option[Auth],
         awsClient: AwsClient,
-        logCtx: ToFileLogContext, 
-        yes: Boolean = false) {
+        //TODO: Should be just a LogContext
+        logCtx: ToFileLogContext) {
       
       import annotation.annotationId 
       import annotation.annotationType
@@ -89,8 +89,9 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
 
         //NB: Fail fast if process() fails
         val (Success((count, _)), elapsedMillis) = TimeUtils.elapsed {
-          try { countAndUpload.process(bedRows.records) }
-          finally { handle.stop() }
+          handle.stopAfter { 
+            countAndUpload.process(bedRows.records) 
+          }
         }
         
         info {
@@ -121,10 +122,9 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
         auth: Option[Auth],
         awsClient: AwsClient,
         logTo: Store, 
-        append: Boolean,
-        yes: Boolean = false)(annotation: Annotation): Unit = {
+        append: Boolean)(annotation: Annotation): Unit = {
       
-      uploadAnnotatedDataset(auth, awsClient, IntakeSyntax.Log.toFile(logTo, append), yes)(annotation)
+      uploadAnnotatedDataset(auth, awsClient, IntakeSyntax.Log.toFile(logTo, append))(annotation)
     }
       
     /**
@@ -133,15 +133,14 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
     def uploadAnnotatedDataset(
         auth: Option[Auth],
         awsClient: AwsClient,
-        logCtx: ToFileLogContext,
-        yes: Boolean)(annotation: Annotation): Unit = {
+        logCtx: ToFileLogContext)(annotation: Annotation): Unit = {
       
       import annotation.annotationId 
       import annotation.annotationType
       
       info(s"Creating ${annotationType} dataset ${annotationId}")
       
-      val ops = new UploadOps(annotation, auth, awsClient, logCtx, yes = yes)
+      val ops = new UploadOps(annotation, auth, awsClient, logCtx)
       
       ops.processDownloads()
       

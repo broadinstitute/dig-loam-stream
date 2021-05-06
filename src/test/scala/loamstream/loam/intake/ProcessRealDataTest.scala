@@ -118,6 +118,9 @@ final class ProcessRealDataTest extends FunSuite with Loggable {
       val actual = {
         val format = Source.Formats.tabDelimited.withHeader(
             VAR_ID.name,
+            "dataset",
+            "phenotype",
+            "ancestry",
             P_VALUE.name,
             SE.name,
             BETA.name,
@@ -182,12 +185,12 @@ final class ProcessRealDataTest extends FunSuite with Loggable {
       }
     }
     
-    //Ignore LHS's N column for now
-    assert((lhs.size - 1) === expectations.size)
+    //Ignore LHS's N, dataset, phenotype, and ancestry columns for now
+    assert((lhs.size - 4) === expectations.size)
     assert(rhs.size === expectations.size)
     
-    //Ignore LHS's N column for now
-    assert((lhs.size - 1) === rhs.size)
+    ////Ignore LHS's N, dataset, phenotype, and ancestry columns for now
+    assert((lhs.size - 4) === rhs.size)
   }
   
   private val epsilon = 1e-8d

@@ -12,6 +12,11 @@ final class PValueVariantRowTest extends FunSuite {
   test("jsonValues - optional values present") {
     import org.json4s._
     
+    final class VariantSerializer extends CustomSerializer[Variant] (_ => ({ case JString(s) => Variant(s) }, { case v: Variant => JString(v.underscoreDelimited) }))
+    final class AncestrySerializer extends CustomSerializer[Ancestry] (_ => ({ case JString(s) => Ancestry.tryFromString(s).get }, { case a: Ancestry=> JString(a.name) }))
+    
+    val ser = FieldSerializer[PValueVariantRow](FieldSerializer.ignore("derivedFromRecordNumber"))
+    
     val row = new PValueVariantRow(
       marker = variant,
       pvalue = 1.23,

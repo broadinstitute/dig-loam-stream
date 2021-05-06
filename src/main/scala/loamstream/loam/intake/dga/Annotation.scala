@@ -224,6 +224,8 @@ object Annotation {
       case Uploading.name => Uploading
       case _ => Other
     }
+    
+    def values: Set[Status] = Set(Released, Uploading, Other)
   }
   
   object File {

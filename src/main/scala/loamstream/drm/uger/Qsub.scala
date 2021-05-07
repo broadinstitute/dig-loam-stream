@@ -12,7 +12,7 @@ import loamstream.util.CommandInvoker
 import loamstream.util.LogContext
 import loamstream.util.Processes
 import loamstream.util.RunResults
-import rx.lang.scala.Scheduler
+import monix.execution.Scheduler
 
 /**
  * @author clint
@@ -91,7 +91,7 @@ object Qsub {
   final def commandInvoker(
       ugerConfig: UgerConfig,
       actualExecutable: String = "qsub",
-      scheduler: Scheduler)(implicit ec: ExecutionContext, logCtx: LogContext): CommandInvoker.Async[Params] = {
+      scheduler: Scheduler)(implicit logCtx: LogContext): CommandInvoker.Async[Params] = {
 
     def invocationFn(params: Params): Try[RunResults] = {
       val tokens = makeTokens(actualExecutable, params)
@@ -101,7 +101,7 @@ object Qsub {
       Processes.runSync(tokens)()
     }
     
-    val justOnce = new CommandInvoker.Async.JustOnce[Params](actualExecutable, invocationFn)
+    val justOnce = new CommandInvoker.Async.JustOnce[Params](actualExecutable, invocationFn)(scheduler, logCtx)
     
     new CommandInvoker.Async.Retrying(justOnce, ugerConfig.maxRetries, scheduler = scheduler)
   }

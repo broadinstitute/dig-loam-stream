@@ -3,8 +3,7 @@ package loamstream.drm
 import scala.util.Try
 
 import loamstream.util.Terminable
-import rx.lang.scala.Observable
-import loamstream.util.CommandInvoker
+import monix.reactive.Observable
 
 /**
  * @author clint

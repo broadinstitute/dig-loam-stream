@@ -25,9 +25,8 @@ import loamstream.util.ExecutorServices
 import loamstream.util.Loggable
 import loamstream.util.Terminable
 import loamstream.util.ValueBox
-import rx.lang.scala.Observable
-import rx.lang.scala.Scheduler
-import rx.lang.scala.schedulers.ExecutionContextScheduler
+import monix.reactive.Observable
+import monix.execution.Scheduler
 
 
 /**
@@ -45,7 +44,7 @@ final case class GoogleCloudChunkRunner(
     ExecutionContext.fromExecutorService(singleThreadedExecutor)
   }
   
-  private lazy val singleThreadedScheduler: Scheduler = ExecutionContextScheduler(singleThreadedExecutionContext)
+  private lazy val singleThreadedScheduler: Scheduler = Scheduler(singleThreadedExecutionContext)
   
   private val currentClusterConfig: ValueBox[Option[ClusterConfig]] = ValueBox(None)
   
@@ -147,6 +146,8 @@ final case class GoogleCloudChunkRunner(
     }
     
     val futureResult = {
+      implicit val sch = singleThreadedScheduler
+      
       delegate.run(Set(job), jobOracle).map(addCluster(googleSettings.clusterId)).lastAsFuture
     }
     

@@ -9,8 +9,9 @@ import scala.util.Try
 
 import CommandInvoker.InvocationFn
 import CommandInvoker.AsyncInvocationFn
-import rx.lang.scala.Scheduler
-import rx.lang.scala.Observable
+import monix.reactive.Observable
+import monix.execution.Scheduler
+import scala.concurrent.duration.FiniteDuration
 
 /**
  * @author clint
@@ -44,8 +45,8 @@ object CommandInvoker {
     final class Retrying[A](
       delegate: JustOnce[A],
       maxRetries: Int,
-      delayStart: Duration = Retrying.defaultDelayStart,
-      delayCap: Duration = Retrying.defaultDelayCap) extends CommandInvoker.Sync[A] with Loggable {
+      delayStart: FiniteDuration = Retrying.defaultDelayStart,
+      delayCap: FiniteDuration = Retrying.defaultDelayCap) extends CommandInvoker.Sync[A] with Loggable {
 
       override def apply(param: A): Try[RunResults.Successful] = {
         doRetries(
@@ -58,8 +59,8 @@ object CommandInvoker {
       private def doRetries(
         binaryName: String,
         maxRetries: Int,
-        delayStart: Duration,
-        delayCap: Duration): A => Try[RunResults.Successful] = { param =>
+        delayStart: FiniteDuration,
+        delayCap: FiniteDuration): A => Try[RunResults.Successful] = { param =>
 
         val maxRuns = maxRetries + 1
 
@@ -87,8 +88,8 @@ object CommandInvoker {
         maxRetries: Int,
         binaryName: String,
         delegateFn: InvocationFn[A],
-        delayStart: Duration = Retrying.defaultDelayStart,
-        delayCap: Duration = Retrying.defaultDelayCap): Retrying[A] = {
+        delayStart: FiniteDuration = Retrying.defaultDelayStart,
+        delayCap: FiniteDuration = Retrying.defaultDelayCap): Retrying[A] = {
 
         new Retrying(
           new JustOnce[A](binaryName, delegateFn),
@@ -99,15 +100,15 @@ object CommandInvoker {
 
       import scala.concurrent.duration._
 
-      val defaultDelayStart: Duration = 0.5.seconds
-      val defaultDelayCap: Duration = 30.seconds
+      val defaultDelayStart: FiniteDuration = 0.5.seconds
+      val defaultDelayCap: FiniteDuration = 30.seconds
     }
   }
 
   object Async {
     final class JustOnce[A](
       val binaryName: String,
-      delegateFn: InvocationFn[A])(implicit ec: ExecutionContext, logCtx: LogContext) extends CommandInvoker.Async[A] {
+      delegateFn: InvocationFn[A])(implicit ec: Scheduler, logCtx: LogContext) extends CommandInvoker.Async[A] {
 
       override def apply(param: A): Future[RunResults.Successful] = {
         import Observables.Implicits._
@@ -115,7 +116,7 @@ object CommandInvoker {
         invokeBinary(param).firstAsFuture.flatMap(Future.fromTry)
       }
 
-      private[CommandInvoker] def invokeBinary(param: A): Observable[Try[RunResults.Successful]] = Observable.just {
+      private[CommandInvoker] def invokeBinary(param: A): Observable[Try[RunResults.Successful]] = Observable {
         delegateFn(param).flatMap(_.tryAsSuccess(logCtx))
       }
     }
@@ -123,9 +124,9 @@ object CommandInvoker {
     final class Retrying[A](
       delegate: JustOnce[A],
       maxRetries: Int,
-      delayStart: Duration = Retrying.defaultDelayStart,
-      delayCap: Duration = Retrying.defaultDelayCap,
-      scheduler: Scheduler)(implicit ec: ExecutionContext, logCtx: LogContext) extends CommandInvoker.Async[A] {
+      delayStart: FiniteDuration = Retrying.defaultDelayStart,
+      delayCap: FiniteDuration = Retrying.defaultDelayCap,
+      scheduler: Scheduler)(implicit logCtx: LogContext) extends CommandInvoker.Async[A] {
 
       override def apply(param: A): Future[RunResults.Successful] = runCommand(param)
 
@@ -141,8 +142,8 @@ object CommandInvoker {
       private def doRetries(
         binaryName: String,
         maxRetries: Int,
-        delayStart: Duration,
-        delayCap: Duration,
+        delayStart: FiniteDuration,
+        delayCap: FiniteDuration,
         scheduler: Scheduler): AsyncInvocationFn[A] = { param =>
 
         val maxRuns = maxRetries + 1
@@ -153,6 +154,8 @@ object CommandInvoker {
 
         import Observables.Implicits._
 
+        implicit val sch = scheduler
+        
         val result: Future[RunResults.Successful] = resultOptObs.firstAsFuture.flatMap {
           case Some(a) => Future.successful(a)
           case _ => {
@@ -173,12 +176,12 @@ object CommandInvoker {
         maxRetries: Int,
         binaryName: String,
         delegateFn: InvocationFn[A],
-        delayStart: Duration = Retrying.defaultDelayStart,
-        delayCap: Duration = Retrying.defaultDelayCap,
-        scheduler: Scheduler)(implicit ec: ExecutionContext, logCtx: LogContext): Retrying[A] = {
+        delayStart: FiniteDuration = Retrying.defaultDelayStart,
+        delayCap: FiniteDuration = Retrying.defaultDelayCap,
+        scheduler: Scheduler)(implicit logCtx: LogContext): Retrying[A] = {
 
         new Retrying(
-          new JustOnce[A](binaryName, delegateFn),
+          new JustOnce[A](binaryName, delegateFn)(scheduler, logCtx),
           maxRetries,
           delayStart,
           delayCap,
@@ -187,8 +190,8 @@ object CommandInvoker {
 
       import scala.concurrent.duration._
 
-      val defaultDelayStart: Duration = 0.5.seconds
-      val defaultDelayCap: Duration = 30.seconds
+      val defaultDelayStart: FiniteDuration = 0.5.seconds
+      val defaultDelayCap: FiniteDuration = 30.seconds
     }
   }
 }

@@ -21,7 +21,7 @@ import loamstream.conf.LsfConfig
 import loamstream.util.RunResults
 import loamstream.util.Processes
 import loamstream.drm.DrmTaskId
-import rx.lang.scala.Observable
+import monix.reactive.Observable
 
 /**
  * @author clint
@@ -33,7 +33,7 @@ final class BsubJobSubmitter private[lsf] (
   import BsubJobSubmitter._
   
   override def submitJobs(drmSettings: DrmSettings, taskArray: DrmTaskArray): Observable[DrmSubmissionResult] = {
-    val runAttemptObs = Observable.just(submissionFn(drmSettings, taskArray))
+    val runAttemptObs = Observable(submissionFn(drmSettings, taskArray))
     
     runAttemptObs.map { attempt =>
       attempt.map(toDrmSubmissionResult(taskArray)) match {

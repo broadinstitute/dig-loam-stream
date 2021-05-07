@@ -4,7 +4,8 @@ import loamstream.model.jobs.JobOracle
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.RunData
 import loamstream.util.Terminable
-import rx.lang.scala.Observable
+import monix.reactive.Observable
+
 
 /**
  * @author clint

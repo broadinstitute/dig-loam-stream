@@ -9,14 +9,14 @@ import loamstream.util.Loggable
 import loamstream.util.Terminable
 import loamstream.util.Tries
 import loamstream.util.ValueBox
-import rx.lang.scala.Observable
-import rx.lang.scala.Scheduler
-import rx.lang.scala.Subject
-import rx.lang.scala.observables.ConnectableObservable
-import rx.lang.scala.schedulers.IOScheduler
-import rx.lang.scala.subjects.PublishSubject
 import loamstream.util.Tuples
 import scala.concurrent.duration.Duration
+import monix.reactive.subjects.PublishSubject
+import monix.reactive.Observable
+import monix.execution.Scheduler
+import monix.reactive.subjects.Subject
+import scala.concurrent.duration.FiniteDuration
+import monix.reactive.OverflowStrategy
 
 /**
  * @author clint
@@ -42,16 +42,20 @@ final class JobMonitor(
   
   import JobMonitor.PollingState
   
-  private[this] val globalStopSignal: Subject[Any] = PublishSubject()
+  private[this] val globalStopSignal: Subject[Unit, Unit] = PublishSubject()
   
-  private val period: Duration = {
+  private val period: FiniteDuration = {
     import scala.concurrent.duration._
     
     (1 / pollingFrequencyInHz).seconds
   }
   
   private lazy val ticks: Observable[Long] = {
-    Observable.interval(period, scheduler).takeUntil(globalStopSignal).onBackpressureDrop
+    Observable
+      .interval(period)
+      .subscribeOn(scheduler)
+      .takeUntil(globalStopSignal)
+      .asyncBoundary(OverflowStrategy.DropOld(0))
   }
   
   /**
@@ -60,7 +64,7 @@ final class JobMonitor(
   override def stop(): Unit = {
     globalStopSignal.onNext(())
     
-    globalStopSignal.onCompleted()
+    globalStopSignal.onComplete()
     
     poller.stop()
   }
@@ -76,7 +80,7 @@ final class JobMonitor(
     
     val distinctIdsBeingPolledFor = taskIds.toSet
     
-    val stopSignal: Subject[Any] = PublishSubject()
+    val stopSignal: Subject[Unit, Unit] = PublishSubject()
     
     import JobMonitor.unpack
     
@@ -85,7 +89,7 @@ final class JobMonitor(
     
     def poll: Observable[(DrmTaskId, DrmStatus)] = poller.poll(stillWaitingFor.value).map(unpack)
     
-    val localTicks = ticks.takeUntil(stopSignal).onBackpressureDrop
+    val localTicks = ticks.takeUntil(stopSignal).asyncBoundary(OverflowStrategy.DropOld(0))
     
     val pollingResults = localTicks.flatMap(_ => poll)
     
@@ -97,7 +101,7 @@ final class JobMonitor(
       stillWaitingFor := s.stillWaitingFor
       
       s
-    }.takeUntil(_.allFinished(stopSignal))
+    }.takeWhileInclusive(_.allFinished(stopSignal))
     
     pollingStates.collect { case PollingState(_, Some(lastIdAndStatus)) => lastIdAndStatus }
   }
@@ -108,7 +112,7 @@ object JobMonitor extends Loggable {
       stillWaitingFor: Set[DrmTaskId], 
       lastIdAndStatus: Option[(DrmTaskId, DrmStatus)]) {
     
-    def allFinished(stopSignal: Subject[Any]): Boolean = {
+    def allFinished(stopSignal: Subject[Unit, Unit]): Boolean = {
       val result = stillWaitingFor.isEmpty 
       
       if(result) {
@@ -117,7 +121,7 @@ object JobMonitor extends Loggable {
         //Note side effect :(
         stopSignal.onNext(())
         
-        stopSignal.onCompleted()
+        stopSignal.onComplete()
       }
         
       result

@@ -3,7 +3,7 @@ package loamstream.model.execute
 import loamstream.model.jobs.JobNode
 import loamstream.model.jobs.LJob
 import loamstream.util.Observables
-import rx.lang.scala.Observable
+import monix.reactive.Observable
 
 /** A container of jobs to be executed */
 final case class Executable(jobNodes: Set[JobNode]) {

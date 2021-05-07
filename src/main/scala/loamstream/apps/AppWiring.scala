@@ -93,11 +93,13 @@ import scala.concurrent.duration.Duration
 import scala.util.Try
 import scala.util.Success
 
-import rx.lang.scala.Scheduler
-import rx.lang.scala.schedulers.ExecutionContextScheduler
 import loamstream.util.DirOracle
 import loamstream.model.execute.ProtectsFilesJobCanceler
 import loamstream.model.execute.SuccessfulOutputsExecutionRecorder
+import loamstream.model.execute.SuccessfulOutputsExecutionRecorder
+import loamstream.model.execute.CompositeChunkRunner
+import loamstream.googlecloud.GcsCloudStorageClient
+import monix.execution.Scheduler
 
 
 
@@ -239,7 +241,7 @@ object AppWiring extends Loggable {
 
       import loamstream.model.execute.ExecuterHelpers._
       
-      val scheduler: Scheduler = ExecutionContextScheduler(executionContextWithThreadPool)
+      val scheduler: Scheduler = Scheduler(executionContextWithThreadPool)
 
       import scala.concurrent.duration._
       
@@ -434,7 +436,7 @@ object AppWiring extends Loggable {
 
       implicit val ec = executionContext
       
-      val scheduler = ExecutionContextScheduler(executionContext)
+      val scheduler = Scheduler(executionContext)
 
       //TODO: Make configurable?
       val pollingFrequencyInHz = 0.1
@@ -443,7 +445,7 @@ object AppWiring extends Loggable {
       
       val jobMonitor = new JobMonitor(scheduler, poller, pollingFrequencyInHz)
 
-      val jobSubmitter = QsubJobSubmitter.fromExecutable(ugerConfig, scheduler = scheduler)
+      val jobSubmitter = QsubJobSubmitter.fromExecutable(ugerConfig)(scheduler = scheduler)
       
       val accountingClient = QacctAccountingClient.useActualBinary(ugerConfig, scheduler)
       
@@ -477,7 +479,7 @@ object AppWiring extends Loggable {
 
       import loamstream.model.execute.ExecuterHelpers._
 
-      val scheduler = ExecutionContextScheduler(executionContext)
+      val scheduler = Scheduler(executionContext)
       
       implicit val ec = executionContext
 

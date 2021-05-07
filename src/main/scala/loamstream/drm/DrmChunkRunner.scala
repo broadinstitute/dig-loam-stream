@@ -24,9 +24,12 @@ import loamstream.util.Classes.simpleNameOf
 import loamstream.util.Loggable
 import loamstream.util.Observables
 import loamstream.util.Terminable
-import rx.lang.scala.Observable
+import monix.execution.Scheduler
+import monix.reactive.Observable
 import loamstream.util.TimeUtils
 import loamstream.util.ExitCodes
+import cats.kernel.Eq
+import loamstream.model.jobs.commandline.HasCommandLine
 
 
 /**
@@ -162,7 +165,7 @@ final case class DrmChunkRunner(
       
       for {
         (tid, status) <- monitor(taskIds)
-        wrapper <- jobsById.get(tid).map(Observable.just(_)).getOrElse(Observable.empty)
+        wrapper <- jobsById.get(tid).map(Observable(_)).getOrElse(Observable.empty)
       } yield {
         (tid, wrapper, status)
       }
@@ -262,6 +265,8 @@ object DrmChunkRunner extends Loggable {
     val jobsToExecutionObservables = drmJobsToExecutionObservables.map { case (jobWrapper, runData) => 
       (jobWrapper.commandLineJob, runData) 
     }
+    
+    implicit val eqTuple: Eq[(HasCommandLine, RunData)] = Eq.fromUniversalEquals
 
     jobsToExecutionObservables.distinctUntilChanged
   }

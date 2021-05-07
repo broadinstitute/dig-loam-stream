@@ -20,9 +20,9 @@ import loamstream.util.Terminable
 import loamstream.util.ThisMachine
 import loamstream.util.Throwables
 import loamstream.util.Tries
-import rx.lang.scala.Observable
-import rx.lang.scala.Scheduler
-import rx.lang.scala.schedulers.ExecutionContextScheduler
+import monix.reactive.Observable
+import monix.execution.Scheduler
+import monix.reactive.OverflowStrategy
 
 /**
  * @author clint
@@ -39,7 +39,7 @@ final class QstatQacctPoller private[uger] (
     val qstatResultObs = {
       implicit val ec = ExecutionContexts.forQstat
 
-      Observable.from(qstatInvoker.apply(())).observeOn(Schedulers.forQstat).onErrorResumeNext {
+      Observable.from(qstatInvoker.apply(())).observeOn(Schedulers.forQstat).onErrorHandleWith {
         warnThenComplete(s"Error invoking qstat, will try again during at next polling time.")
       }
     }
@@ -50,7 +50,7 @@ final class QstatQacctPoller private[uger] (
     //Parse out DrmTaskIds and DrmStatuses from raw qstat output (one line per task)
     val pollingResultsFromQstatObs = qstatResultObs.map { qstatResults =>
       QstatSupport.getByTaskId(drmTaskIdSet, qstatResults.stdout)
-    }.onBackpressureDrop
+    }.asyncBoundary(OverflowStrategy.DropOld(0))
 
     //For all the jobs that we're polling for that were not mentioned by qstat, assume they've finished
     //(qstat only returns info about running jobs) and invoke qacct to determine their final status.
@@ -81,7 +81,7 @@ final class QstatQacctPoller private[uger] (
       //Concatentate results from qstat with those from qacct, wrapping in Trys as needed.
       Observable.from(byTaskId) ++ {
         qacctResultsObs.map { case (tid, status) => (tid, Success(status)) }
-      }.onBackpressureDrop
+      }.asyncBoundary(OverflowStrategy.DropOld(0))
     }
   }
 
@@ -102,7 +102,7 @@ final class QstatQacctPoller private[uger] (
       .map(jobNumber -> _.stdout)
       .map(QacctSupport.parseMultiTaskQacctResults(drmTaskIds))
       .flatMap(Observable.from(_))
-      .onErrorResumeNext {
+      .onErrorHandleWith {
         warnThenComplete(s"Error invoking qacct for task array with job id '${jobNumber}'")
       }
   }
@@ -138,9 +138,9 @@ final class QstatQacctPoller private[uger] (
   }
 
   private[uger] object Schedulers {
-    val forQstat: Scheduler = ExecutionContextScheduler(ExecutionContexts.forQstat)
+    val forQstat: Scheduler = Scheduler(ExecutionContexts.forQstat)
 
-    val forQacct: Scheduler = ExecutionContextScheduler(ExecutionContexts.forQacct)
+    val forQacct: Scheduler = Scheduler(ExecutionContexts.forQacct)
   }
 }
 
@@ -151,7 +151,7 @@ object QstatQacctPoller extends Loggable {
     ugerConfig: UgerConfig,
     actualQstatExecutable: String = "qstat",
     actualQacctExecutable: String = "qacct",
-    scheduler: Scheduler)(implicit ec: ExecutionContext): QstatQacctPoller = {
+    scheduler: Scheduler): QstatQacctPoller = {
 
     import QacctInvoker.ByTaskArray.{ useActualBinary => qacctCommandInvoker }
     import Qstat.{ commandInvoker => qstatCommandInvoker }
@@ -160,6 +160,9 @@ object QstatQacctPoller extends Loggable {
     //TODO: Appropriate?
     val maxQacctCacheAge = (1.0 / qstatPollingFrequencyInHz).seconds
 
+    //TODO
+    implicit val sch = scheduler
+    
     val qacct = qacctCommandInvoker(actualQacctExecutable, ugerConfig, maxQacctCacheAge, scheduler)
     val qstat = qstatCommandInvoker(qstatPollingFrequencyInHz, actualQstatExecutable)
 

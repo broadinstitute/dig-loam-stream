@@ -6,8 +6,10 @@ import scala.concurrent.Promise
 import scala.util.Failure
 import scala.util.Success
 
-import rx.lang.scala.Observable
 import scala.concurrent.duration.Duration
+import monix.reactive.Observable
+import monix.execution.Scheduler
+import monix.execution.Ack
 
 /**
  * @author clint
@@ -30,9 +32,11 @@ object Observables extends Loggable {
    * Observable.zip(), the method this one delegates most of its work to.
    */
   def sequence[A](os: Seq[Observable[A]]): Observable[Seq[A]] = {
-    if (os.isEmpty) { Observable.just(Nil) }
+    if (os.isEmpty) { Observable(Nil) }
     else {
-      Observable.zip(Observable.from(os))
+      //Observable.zip(Observable.from(os))
+      
+      ???
     }
   }
   
@@ -79,20 +83,7 @@ object Observables extends Loggable {
    * @see http://reactivex.io/documentation/operators/merge.html
    * @see http://reactivex.io/RxJava/javadoc/rx/Observable.html#merge(java.lang.Iterable)
    */
-  def merge[A](os: Iterable[Observable[A]]): Observable[A] = {
-    import rx.lang.scala.JavaConversions.{ toJavaObservable, toScalaObservable }
-    import scala.collection.JavaConverters._
-
-    //NB: Cast 'should be' safe.  It's needed because toJavaObservable, when given an rx.lang.scala.Observable[A],
-    //returns an rx.Observable[_ <: A].  Combined with converting the scala.Iterable to a java.lang.Iterable, this
-    //means we would have a java.lang.Iterable[rx.Observable[_ <: A]], which rx.Observable.merge won't accept. :(
-    //The cast is safe since the Java Observable made from the Scala one is guaranteed to emit the same values.
-    val javaObservables: Iterable[rx.Observable[A]] = os.map(toJavaObservable).map(_.asInstanceOf[rx.Observable[A]])
-    
-    val javaIterableOfJavaObservables: java.lang.Iterable[rx.Observable[A]] = javaObservables.asJava
-    
-    toScalaObservable(rx.Observable.merge(javaIterableOfJavaObservables))
-  }
+  def merge[A](os: Iterable[Observable[A]]): Observable[A] = Observable.fromIterable(os).merge 
   
   def merge[A](first: Observable[A], rest: Observable[A]*): Observable[A] = merge(first +: rest)
   
@@ -155,18 +146,14 @@ object Observables extends Loggable {
        * NB: Note that this was renamed to 'until' from 'takeUntil'.  The latter would be preferrable, but it conflicts
        * with a method in RxScala proper.
        */
-      def until(p: A => Boolean): Observable[A] = {
-        Observable { subscriber =>
-          def onNext(a: A): Unit = {
-            subscriber.onNext(a)
-  
-            if (p(a)) {
-              subscriber.onCompleted()
-            }
-          }
-  
-          obs.foreach(onNext, subscriber.onError, () => subscriber.onCompleted())
-        }
+      def until(p: A => Boolean): Observable[A] = obs.takeWhileInclusive(p)
+      
+      def firstOption: Observable[Option[A]] = {
+        obs.isEmpty.flatMap(isEmpty => if(isEmpty) Observable.empty else obs.map(Option(_)).take(1))
+      }
+      
+      def lastOption: Observable[Option[A]] = {
+        obs.isEmpty.flatMap(isEmpty => if(isEmpty) Observable.empty else obs.last.map(Option(_)))
       }
       
       /**
@@ -174,7 +161,7 @@ object Observables extends Loggable {
        *
        * If the wrapped Observable is empty, the returned Future will be completed with a Failure.
        */
-      def firstAsFuture: Future[A] = asFuture(obs.headOption)
+      def firstAsFuture(implicit scheduler: Scheduler): Future[A] = asFuture(firstOption)
   
       /**
        * Returns a Future that will contain the LAST value fired from the wrapped Observable.
@@ -183,21 +170,29 @@ object Observables extends Loggable {
        *
        * If the wrapped Observable is empty, the returned Future will be completed with a Failure.
        */
-      def lastAsFuture: Future[A] = asFuture(obs.lastOption)
+      def lastAsFuture(implicit scheduler: Scheduler): Future[A] = asFuture(lastOption)
   
-      private def asFuture(o: Observable[Option[A]]): Future[A] = {
+      private def asFuture(o: Observable[Option[A]])(implicit scheduler: Scheduler): Future[A] = {
         val p: Promise[A] = Promise()
   
         def completeDueToNoValue(): Unit = p.complete(Tries.failure("Observable emitted no values"))
   
-        def onNext(o: Option[A]): Unit = o match {
-          case Some(a) => p.complete(Success(a))
-          case None    => completeDueToNoValue()
+        def onNext(o: Option[A]): Future[Ack] = o match {
+          case Some(a) => {
+            p.complete(Success(a))
+            
+            Ack.Stop
+          }
+          case None => {
+            completeDueToNoValue()
+            
+            Ack.Stop
+          }
         }
   
         def onError(e: Throwable): Unit = p.complete(Failure(e))
   
-        o.firstOrElse(None).foreach(onNext, onError)
+        o.firstOrElse(None).subscribe(onNext, onError)
   
         p.future
       }

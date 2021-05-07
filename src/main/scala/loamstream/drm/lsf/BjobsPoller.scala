@@ -14,8 +14,8 @@ import loamstream.util.Maps
 import loamstream.util.Options
 import loamstream.util.Tries
 import loamstream.drm.DrmTaskId
-import rx.lang.scala.Observable
 import loamstream.util.Observables
+import monix.reactive.Observable
 
 /**
  * @author clint

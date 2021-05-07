@@ -9,6 +9,7 @@ import loamstream.util.Loggable
 import loamstream.util.ValueBox
 import loamstream.util.TimeUtils
 import loamstream.util.Sequence
+import cats.kernel.Eq
 
 /**
  * @author clint
@@ -283,5 +284,7 @@ object ExecutionState {
   
   object JobStatuses {
     val empty: JobStatuses = JobStatuses(Set.empty, Set.empty, 0, 0)
+    
+    implicit val eqJobStatuses: Eq[JobStatuses] = Eq.fromUniversalEquals
   }
 }

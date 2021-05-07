@@ -6,7 +6,7 @@ import loamstream.model.jobs.RunData
 import loamstream.util.Loggable
 import loamstream.util.Observables
 import loamstream.util.Throwables
-import rx.lang.scala.Observable
+import monix.reactive.Observable
 
 /**
  * @author clint

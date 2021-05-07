@@ -19,10 +19,11 @@ import loamstream.util.Loggable
 import loamstream.util.Observables
 import loamstream.util.Terminable
 import loamstream.util.TimeUtils
-import rx.lang.scala.Observable
-import rx.lang.scala.Scheduler
-import rx.lang.scala.schedulers.IOScheduler
 import scala.util.control.NonFatal
+import monix.reactive.Observable
+import monix.execution.Scheduler
+import scala.concurrent.duration.FiniteDuration
+import monix.reactive.OverflowStrategy
 
 
 /**
@@ -34,7 +35,7 @@ final case class RxExecuter(
     executionConfig: ExecutionConfig,
     runner: ChunkRunner,
     fileMonitor: FileMonitor,
-    windowLength: Duration,
+    windowLength: FiniteDuration,
     jobCanceler: JobCanceler,
     jobFilter: JobFilter,
     executionRecorder: ExecutionRecorder,
@@ -78,18 +79,28 @@ final case class RxExecuter(
     propagateExecutionStateOnException(executionState) {
       val jobResultTuples: Observable[(LJob, Execution)] = {
         //Note onBackpressureDrop(), in case runEligibleJobs takes too long (or the polling window is too short)
-        val ticks = Observable.interval(windowLength, scheduler).onBackpressureDrop
+        val ticks = Observable.interval(windowLength).subscribeOn(scheduler).asyncBoundary(OverflowStrategy.DropOld(0))
         
         def runJobs(jobsAndCells: ExecutionState.JobStatuses) = runEligibleJobs(executionState, jobOracle, jobsAndCells)
         
         def isFinished = executionState.isFinished
         
-        ticks.map(_ => executionState.updateJobs()).distinctUntilChanged.flatMap(runJobs).takeUntil(_ => isFinished)
+        ticks
+          .map(_ => executionState.updateJobs())
+          .distinctUntilChanged
+          .flatMap(runJobs)
+          .takeWhileInclusive(_ => isFinished)
       }
       
-      val futureMergedResults = jobResultTuples.toMap.firstAsFuture
-  
-      Await.result(futureMergedResults, timeout)
+      def toMap[A, B](tuples: Observable[(A, B)]): Observable[Map[A, B]] = tuples.foldLeft(Map.empty[A, B]) { _ + _ }
+      
+      {
+        implicit val sch = scheduler
+        
+        val futureMergedResults = toMap(jobResultTuples).firstAsFuture
+    
+        Await.result(futureMergedResults, timeout)
+      }
     }
   }
   
@@ -212,7 +223,7 @@ final case class RxExecuter(
     
     val emptyMap = Map.empty[LJob, Execution]
     
-    if(jobsToRun.isEmpty) { Observable.just(None) }
+    if(jobsToRun.isEmpty) { Observable(None) }
     else {
       val jobRunObs = runner.run(jobsToRun.toSet, jobOracle)
       
@@ -254,7 +265,7 @@ object RxExecuter extends Loggable {
   object Defaults {
     //NB: Use a short windowLength to speed up tests
     val windowLength: Double = 0.05
-    val windowLengthInSec: Duration = windowLength.seconds
+    val windowLengthInSec: FiniteDuration = windowLength.seconds
   
     val jobCanceler: JobCanceler = JobCanceler.NeverCancel
     
@@ -274,7 +285,7 @@ object RxExecuter extends Loggable {
     
     lazy val fileMonitor: FileMonitor = new FileMonitor(outputExistencePollingFrequencyInHz, maxWaitTimeForOutputs)
     
-    def scheduler: Scheduler = IOScheduler()
+    def scheduler: Scheduler = Scheduler.io(name = "LoamStream-IO")
     
     private[RxExecuter] lazy val (executionContext, ecHandle) = {
       ExecutionContexts.threadPool(Defaults.maxNumConcurrentJobs)
@@ -289,7 +300,7 @@ object RxExecuter extends Loggable {
     executionConfig: ExecutionConfig = Defaults.executionConfig,
     chunkRunner: ChunkRunner = Defaults.chunkRunner,
     fileMonitor: FileMonitor = Defaults.fileMonitor,
-    windowLength: Duration = Defaults.windowLengthInSec,
+    windowLength: FiniteDuration = Defaults.windowLengthInSec,
     jobCanceler: JobCanceler = Defaults.jobCanceler,
     jobFilter: JobFilter = Defaults.jobFilter,
     executionRecorder: ExecutionRecorder = Defaults.executionRecorder,

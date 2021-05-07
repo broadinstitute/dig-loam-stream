@@ -13,8 +13,8 @@ import loamstream.util.ProcessLoggers
 import loamstream.util.Loggable
 import loamstream.util.Observables
 import loamstream.util.Throwables
-import rx.lang.scala.Observable
 import loamstream.util.ThisMachine
+import monix.reactive.Observable
 
 /**
  * @author clint

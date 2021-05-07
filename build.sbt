@@ -25,6 +25,7 @@ lazy val Versions = new {
   val Sttp = "2.0.6"
   val CommonsCompress = "1.20"
   val Breeze = "1.1"
+  val Monix = "3.3.0"
 }
 
 lazy val Orgs = new {
@@ -50,7 +51,7 @@ lazy val mainDeps = Seq(
   "commons-io" % "commons-io" % Versions.ApacheCommonsIO,
   "ch.qos.logback" % "logback-classic" % Versions.LogBack,
   "com.typesafe" % "config" % Versions.TypesafeConfig,
-  "io.reactivex" %% "rxscala" % Versions.RxScala,
+  //"io.reactivex" %% "rxscala" % Versions.RxScala,
   "com.typesafe.slick" %% "slick" % Versions.Slick,
   "org.rogach" %% "scallop" % Versions.Scallop,
   "com.google.cloud" % "google-cloud-storage" % Versions.GoogleCloudStorage,
@@ -64,7 +65,8 @@ lazy val mainDeps = Seq(
   "org.hsqldb" % "hsqldb" % Versions.HsqlDb,
   "com.softwaremill.sttp.client" %% "core" % Versions.Sttp,
   "org.apache.commons" % "commons-compress" % Versions.CommonsCompress,
-  "org.scalanlp" %% "breeze" % Versions.Breeze
+  "org.scalanlp" %% "breeze" % Versions.Breeze,
+  "io.monix" %% "monix" % Versions.Monix
 )
 
 lazy val testDeps = Seq(

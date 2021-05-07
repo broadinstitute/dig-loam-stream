@@ -6,9 +6,9 @@ import loamstream.util.RunResults
 import scala.util.Success
 import scala.util.Failure
 import scala.concurrent.duration._
-import rx.lang.scala.schedulers.IOScheduler
 import loamstream.TestHelpers.waitFor
 import loamstream.util.Sequence
+import monix.execution.Scheduler
 
 /**
  * @author clint
@@ -49,7 +49,7 @@ final class RateLimitedQacctInvokerTest extends FunSuite {
         maxSize = 3, 
         maxAge = 1.second, 
         maxRetries = 0,
-        scheduler = IOScheduler())
+        scheduler = Scheduler.io())
     
     val invoker = caches.commandInvoker
     

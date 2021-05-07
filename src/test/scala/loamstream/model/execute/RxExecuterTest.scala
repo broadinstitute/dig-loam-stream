@@ -13,7 +13,7 @@ import loamstream.model.jobs.LJob
 import loamstream.model.jobs.RunData
 import loamstream.model.jobs.RxMockJob
 import loamstream.util.ValueBox
-import rx.lang.scala.Observable
+import monix.reactive.Observable
 
 
 /**

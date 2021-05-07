@@ -14,6 +14,7 @@ import loamstream.util.Traversables
 import scala.util.Try
 import scala.util.Failure
 import loamstream.util.LogContext
+import monix.execution.Scheduler
 
 /**
  * @author clint
@@ -99,15 +100,16 @@ final class QstatQacctPollerTest extends FunSuite {
   }
   
   test("poll - happy path") {
-    import scala.concurrent.ExecutionContext.Implicits.global
-    
     val qstatInvocationFn: CommandInvoker.InvocationFn[Unit] = { _ => 
       Success(RunResults.Successful("MOCK_QSTAT", qstatLines, Nil))
     }
     
     import LogContext.Implicits.Noop
+    import Scheduler.Implicits.global
     
-    val qstatInvoker: CommandInvoker.Async[Unit] = new CommandInvoker.Async.JustOnce("MOCK_QSTAT", qstatInvocationFn)
+    val qstatInvoker: CommandInvoker.Async[Unit] = {
+      new CommandInvoker.Async.JustOnce("MOCK_QSTAT", qstatInvocationFn)
+    }
     
     val qacctInvocationFn: CommandInvoker.InvocationFn[String] = { jobNumber =>
       val lines = {
@@ -151,7 +153,7 @@ final class QstatQacctPollerTest extends FunSuite {
     val finishedTaskId = DrmTaskId("19115592", 3)
     
     {
-      val results = TestHelpers.waitFor(poller.poll(runningTaskIds).toSeq.firstAsFuture)
+      val results = poller.poll(runningTaskIds).toListL.runSyncUnsafe(TestHelpers.defaultWaitTime)
       
       val expected = Seq(
           runningTaskIds(0) -> Success(DrmStatus.Running),
@@ -161,7 +163,7 @@ final class QstatQacctPollerTest extends FunSuite {
     }
     
     {
-      val results = TestHelpers.waitFor(poller.poll(runningTaskIds :+ finishedTaskId).toSeq.firstAsFuture)
+      val results = poller.poll(runningTaskIds :+ finishedTaskId).toListL.runSyncUnsafe(TestHelpers.defaultWaitTime)
       
       val expected = Seq(
           runningTaskIds(0) -> Success(DrmStatus.Running),

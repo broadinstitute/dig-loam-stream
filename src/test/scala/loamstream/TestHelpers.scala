@@ -58,6 +58,7 @@ import loamstream.model.execute.EnvironmentType
 import java.time.LocalDateTime
 import java.time.ZoneId
 import loamstream.conf.LsSettings
+import scala.concurrent.duration.FiniteDuration
 
 /**
   * @author clint
@@ -290,11 +291,17 @@ object TestHelpers {
     
   def dummyOutputStreams: OutputStreams = OutputStreams(dummyFileName, dummyFileName)
   
+  val defaultWaitTime: FiniteDuration = {
+    import scala.concurrent.duration._
+    
+    10.minutes
+  }
+  
   def waitFor[A](f: Future[A]): A = {
     import scala.concurrent.duration._
 
     //NB: Hard-coded timeout. :(  But at least it's no longer infinite! :)
-    Await.result(f, 10.minutes)
+    Await.result(f, defaultWaitTime)
   }
   
   //foobar => FoObAr, etc

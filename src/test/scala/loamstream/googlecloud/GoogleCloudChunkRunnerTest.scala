@@ -25,6 +25,7 @@ import java.nio.file.Path
 import loamstream.model.execute.GoogleSettings
 import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.execute.Settings
+import monix.execution.Scheduler
 
 
 /**
@@ -37,6 +38,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
   import GoogleCloudChunkRunnerTest.MockDataProcClient
   import loamstream.util.Observables.Implicits._
   import loamstream.TestHelpers.waitFor
+  import Scheduler.Implicits.global
 
   private val clusterId = "some-cluster-id"
   
@@ -307,7 +309,9 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       assert(client.startClusterInvocations() === Nil)
       assert(client.deleteClusterInvocations() === 0)
       
-      val result = waitFor(googleRunner.run(Set.empty, TestHelpers.DummyJobOracle).to[Seq].firstAsFuture)
+      val result = {
+        googleRunner.run(Set.empty, TestHelpers.DummyJobOracle).toListL.runSyncUnsafe(TestHelpers.defaultWaitTime)
+      }
       
       assert(client.clusterRunning() === false)
       assert(client.startClusterInvocations() === Nil)

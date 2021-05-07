@@ -108,7 +108,7 @@ object CommandInvoker {
   object Async {
     final class JustOnce[A](
       val binaryName: String,
-      delegateFn: InvocationFn[A])(implicit ec: Scheduler, logCtx: LogContext) extends CommandInvoker.Async[A] {
+      delegateFn: InvocationFn[A])(implicit scheduler: Scheduler, logCtx: LogContext) extends CommandInvoker.Async[A] {
 
       override def apply(param: A): Future[RunResults.Successful] = {
         import Observables.Implicits._

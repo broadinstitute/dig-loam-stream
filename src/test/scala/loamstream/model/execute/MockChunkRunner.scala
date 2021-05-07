@@ -3,8 +3,8 @@ package loamstream.model.execute
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.RunData
 import loamstream.util.ValueBox
-import rx.lang.scala.Observable
 import loamstream.model.jobs.JobOracle
+import monix.reactive.Observable
 
 /**
  * @author clint

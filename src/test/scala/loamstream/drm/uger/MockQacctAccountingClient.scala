@@ -12,8 +12,9 @@ import loamstream.model.jobs.TerminationReason
 import loamstream.util.CommandInvoker
 import loamstream.util.RunResults
 import loamstream.util.ValueBox
-import rx.lang.scala.schedulers.ComputationScheduler
 import loamstream.util.LogContext
+import scala.concurrent.duration.FiniteDuration
+import monix.execution.Scheduler
 
 /**
  * @author clint
@@ -22,8 +23,8 @@ import loamstream.util.LogContext
 final class MockQacctAccountingClient(
     delegateFn: DrmTaskId => Try[RunResults],
     ugerConfig: UgerConfig = UgerConfig(),
-    delayStart: Duration = CommandInvoker.Async.Retrying.defaultDelayStart,
-    delayCap: Duration = CommandInvoker.Async.Retrying.defaultDelayCap) extends AccountingClient {
+    delayStart: FiniteDuration = CommandInvoker.Async.Retrying.defaultDelayStart,
+    delayCap: FiniteDuration = CommandInvoker.Async.Retrying.defaultDelayCap) extends AccountingClient {
   
   private val timesGetQacctOutputForInvokedBox: ValueBox[Int] = ValueBox(0)
 
@@ -57,7 +58,7 @@ final class MockQacctAccountingClient(
           wrappedDelegateFn, 
           delayStart, 
           delayCap,
-          scheduler = ComputationScheduler())
+          scheduler = Scheduler.computation())
     }
     
     new QacctAccountingClient(invoker)

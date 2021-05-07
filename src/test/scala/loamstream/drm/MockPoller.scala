@@ -6,7 +6,8 @@ import loamstream.conf.DrmConfig
 import loamstream.model.execute.DrmSettings
 import loamstream.util.ValueBox
 import loamstream.model.execute.Resources.DrmResources
-import rx.lang.scala.Observable
+import monix.reactive.Observable
+
 
 /**
  * @author clint

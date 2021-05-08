@@ -21,7 +21,6 @@ import monix.execution.Ack
 final class ObservablesTest extends FunSuite {
   
   import Observables.Implicits._
-  import Observables.sequence
   import loamstream.TestHelpers.waitFor
   
   private def isEven(i: Int): Boolean = i % 2 == 0
@@ -36,73 +35,6 @@ final class ObservablesTest extends FunSuite {
   }
   
   private implicit val scheduler = Scheduler.global
-  
-  test("sequence") {
-    val a = "A"
-    val b = "B"
-    val c = "C"
-    
-    val os: Seq[Observable[String]] = Seq(makeObservable(50, a), makeObservable(200, b), makeObservable(100, c))
-    
-    val future = sequence(os).take(1).lastAsFuture
-    
-    val actual = waitFor(future)
-    
-    //Use a set to ignore order
-    assert(actual.toSet == Set(a, b, c))
-  }
-  
-  test("sequence - multiple events") {
-    val a = "A"
-    val b = "B"
-    val c = "C"
-    
-    val x = "X"
-    val y = "Y"
-    val z = "Z"
-    
-    val os: Seq[Observable[String]] = Seq(
-        makeObservable(50, a, x), 
-        makeObservable(200, b, y), 
-        makeObservable(100, c, z))
-    
-    val actual = sequence(os).map(_.toSet).take(2).toListL.runSyncUnsafe(TestHelpers.defaultWaitTime)
-    
-    //Use sets to ignore order
-    val expected = Seq(Set(a,b,c), Set(x,y,z))
-    
-    assert(actual == expected)
-  }
-  
-  test("sequence - multiple events, no delays") {
-    val a = "A"
-    val b = "B"
-    val c = "C"
-    
-    val x = "X"
-    val y = "Y"
-    val z = "Z"
-    
-    val os: Seq[Observable[String]] = Seq(makeObservable(0, a, x), makeObservable(0, b, y), makeObservable(0, c, z))
-    
-    val actual = sequence(os).map(_.toSet).take(2).toListL.runSyncUnsafe(TestHelpers.defaultWaitTime)
-    
-    //Use sets to ignore order
-    val expected = Seq(Set(a,b,c), Set(x,y,z))
-    
-    assert(actual == expected)
-  }
-
-  test("sequence (empty input)") {
-    
-    val os: Seq[Observable[String]] = Nil
-    
-    val future = sequence(os).take(1).lastAsFuture
-    
-    val actual = waitFor(future)
-    
-    assert(actual == Nil)
-  }
   
   test("observeAsync") {
     import scala.concurrent.ExecutionContext.Implicits.global

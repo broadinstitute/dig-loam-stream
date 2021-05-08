@@ -10,6 +10,7 @@ import scala.concurrent.duration.Duration
 import monix.reactive.Observable
 import monix.execution.Scheduler
 import monix.execution.Ack
+import monix.reactive.Observer
 
 /**
  * @author clint
@@ -18,28 +19,6 @@ import monix.execution.Ack
  * An object to hold utility methods operating on Observables
  */
 object Observables extends Loggable {
-  /**
-   * Turn a Seq of Observables into an Observable that produces Seqs, a la Future.sequence.
-   * 
-   * If the input Seq is empty, return an Observable that will immediately fire Nil to all subscribers.
-   * Otherwise, return the result of Observable.zip(os)
-   * 
-   * @param os: the sequence of observables to transform
-   * @see Observable.zip 
-   * 
-   * Note that this method takes a Seq and returns an Observable[Seq[A]].  Making the return type depend
-   * on the param type, like Future.sequence, is possible but inconvenient due to the signature of 
-   * Observable.zip(), the method this one delegates most of its work to.
-   */
-  def sequence[A](os: Seq[Observable[A]]): Observable[Seq[A]] = {
-    if (os.isEmpty) { Observable(Nil) }
-    else {
-      //Observable.zip(Observable.from(os))
-      
-      ???
-    }
-  }
-  
   /**
    * Runs a chunk of code asynchronously via the supplied ExecutionContext, and returns an
    * Observable that will fire (and then complete) when the code chunk finishes running.
@@ -146,7 +125,7 @@ object Observables extends Loggable {
        * NB: Note that this was renamed to 'until' from 'takeUntil'.  The latter would be preferrable, but it conflicts
        * with a method in RxScala proper.
        */
-      def until(p: A => Boolean): Observable[A] = obs.takeWhileInclusive(p)
+      def until(p: A => Boolean): Observable[A] = obs.takeWhileInclusive(!p(_))
       
       def firstOption: Observable[Option[A]] = {
         obs.isEmpty.flatMap(isEmpty => if(isEmpty) Observable.empty else obs.map(Option(_)).take(1))

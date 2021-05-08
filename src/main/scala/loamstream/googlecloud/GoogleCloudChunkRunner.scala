@@ -146,7 +146,7 @@ final case class GoogleCloudChunkRunner(
     }
     
     val futureResult = {
-      implicit val sch = singleThreadedScheduler
+      implicit val sch = Scheduler.Implicits.global
       
       delegate.run(Set(job), jobOracle).map(addCluster(googleSettings.clusterId)).lastAsFuture
     }

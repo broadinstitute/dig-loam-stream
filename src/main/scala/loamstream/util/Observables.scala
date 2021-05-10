@@ -128,11 +128,11 @@ object Observables extends Loggable {
       def until(p: A => Boolean): Observable[A] = obs.takeWhileInclusive(!p(_))
       
       def firstOption: Observable[Option[A]] = {
-        obs.isEmpty.flatMap(isEmpty => if(isEmpty) Observable.empty else obs.map(Option(_)).take(1))
+        obs.isEmpty.flatMap(isEmpty => if(isEmpty) Observable(None) else obs.map(Option(_)).take(1))
       }
       
       def lastOption: Observable[Option[A]] = {
-        obs.isEmpty.flatMap(isEmpty => if(isEmpty) Observable.empty else obs.last.map(Option(_)))
+        obs.isEmpty.flatMap(isEmpty => if(isEmpty) Observable(None) else obs.last.map(Option(_)))
       }
       
       /**

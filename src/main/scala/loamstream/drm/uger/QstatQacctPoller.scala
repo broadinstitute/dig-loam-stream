@@ -50,7 +50,7 @@ final class QstatQacctPoller private[uger] (
     //Parse out DrmTaskIds and DrmStatuses from raw qstat output (one line per task)
     val pollingResultsFromQstatObs = qstatResultObs.map { qstatResults =>
       QstatSupport.getByTaskId(drmTaskIdSet, qstatResults.stdout)
-    }.asyncBoundary(OverflowStrategy.DropOld(0))
+    }.asyncBoundary(Observables.defaultOverflowStrategy)
 
     //For all the jobs that we're polling for that were not mentioned by qstat, assume they've finished
     //(qstat only returns info about running jobs) and invoke qacct to determine their final status.
@@ -81,7 +81,7 @@ final class QstatQacctPoller private[uger] (
       //Concatentate results from qstat with those from qacct, wrapping in Trys as needed.
       Observable.from(byTaskId) ++ {
         qacctResultsObs.map { case (tid, status) => (tid, Success(status)) }
-      }.asyncBoundary(OverflowStrategy.DropOld(0))
+      }.asyncBoundary(Observables.defaultOverflowStrategy)
     }
   }
 

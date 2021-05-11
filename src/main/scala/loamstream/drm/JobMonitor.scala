@@ -17,6 +17,7 @@ import monix.execution.Scheduler
 import monix.reactive.subjects.Subject
 import scala.concurrent.duration.FiniteDuration
 import monix.reactive.OverflowStrategy
+import loamstream.util.Observables
 
 /**
  * @author clint
@@ -55,7 +56,7 @@ final class JobMonitor(
       .interval(period)
       .subscribeOn(scheduler)
       .takeUntil(globalStopSignal)
-      .asyncBoundary(OverflowStrategy.DropOld(0))
+      .asyncBoundary(Observables.defaultOverflowStrategy)
   }
   
   /**
@@ -89,11 +90,13 @@ final class JobMonitor(
     
     def poll: Observable[(DrmTaskId, DrmStatus)] = poller.poll(stillWaitingFor.value).map(unpack)
     
-    val localTicks = ticks.takeUntil(stopSignal).asyncBoundary(OverflowStrategy.DropOld(0))
+    val localTicks = ticks.takeUntil(stopSignal).asyncBoundary(Observables.defaultOverflowStrategy)
     
     val pollingResults = localTicks.flatMap(_ => poll)
     
     val z: PollingState = PollingState.initial(distinctIdsBeingPolledFor)
+    
+    import Observables.Implicits.ObservableOps
     
     val pollingStates = pollingResults.scan(z) { (state, idAndStatus) => 
       val s = state.handle(idAndStatus)
@@ -101,7 +104,7 @@ final class JobMonitor(
       stillWaitingFor := s.stillWaitingFor
       
       s
-    }.takeWhileInclusive(_.allFinished(stopSignal))
+    }.until(_.allFinished(stopSignal))
     
     pollingStates.collect { case PollingState(_, Some(lastIdAndStatus)) => lastIdAndStatus }
   }

@@ -11,6 +11,9 @@ import monix.reactive.Observable
 import monix.execution.Scheduler
 import monix.execution.Ack
 import monix.reactive.Observer
+import monix.reactive.OverflowStrategy
+import monix.reactive.observers.Subscriber
+import monix.reactive.observers.SafeSubscriber
 
 /**
  * @author clint
@@ -19,6 +22,9 @@ import monix.reactive.Observer
  * An object to hold utility methods operating on Observables
  */
 object Observables extends Loggable {
+  //def defaultOverflowStrategy[A]: OverflowStrategy[A] = OverflowStrategy.Unbounded
+  def defaultOverflowStrategy[A]: OverflowStrategy[A] = OverflowStrategy.DropNew(2)
+  
   /**
    * Runs a chunk of code asynchronously via the supplied ExecutionContext, and returns an
    * Observable that will fire (and then complete) when the code chunk finishes running.
@@ -127,12 +133,12 @@ object Observables extends Loggable {
        */
       def until(p: A => Boolean): Observable[A] = obs.takeWhileInclusive(!p(_))
       
-      def firstOption: Observable[Option[A]] = {
-        obs.isEmpty.flatMap(isEmpty => if(isEmpty) Observable(None) else obs.map(Option(_)).take(1))
-      }
+      def firstOption: Observable[Option[A]] = obs.map(Option(_)).firstOrElse(None)
       
-      def lastOption: Observable[Option[A]] = {
-        obs.isEmpty.flatMap(isEmpty => if(isEmpty) Observable(None) else obs.last.map(Option(_)))
+      def lastOption: Observable[Option[A]] = ifNotEmpty(obs.last.map(Option(_)))
+
+      private def ifNotEmpty(nonEmptyCase: => Observable[Option[A]]): Observable[Option[A]] = {
+        obs.isEmpty.flatMap(isEmpty => if(isEmpty) Observable(None) else nonEmptyCase)
       }
       
       /**
@@ -156,22 +162,20 @@ object Observables extends Loggable {
   
         def completeDueToNoValue(): Unit = p.complete(Tries.failure("Observable emitted no values"))
   
-        def onNext(o: Option[A]): Future[Ack] = o match {
-          case Some(a) => {
-            p.complete(Success(a))
-            
-            Ack.Stop
+        def completeWithFirstValue(a: A): Unit = p.complete(Success(a))
+        
+        def onNext(o: Option[A]): Future[Ack] = {
+          o match {
+            case Some(a) => completeWithFirstValue(a)
+            case None => completeDueToNoValue()
           }
-          case None => {
-            completeDueToNoValue()
-            
-            Ack.Stop
-          }
+          
+          Ack.Stop
         }
-  
+        
         def onError(e: Throwable): Unit = p.complete(Failure(e))
-  
-        o.firstOrElse(None).subscribe(onNext, onError)
+        
+        o.take(1).subscribe(onNext, onError)
   
         p.future
       }

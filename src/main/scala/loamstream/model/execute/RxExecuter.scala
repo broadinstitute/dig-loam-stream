@@ -24,6 +24,7 @@ import monix.reactive.Observable
 import monix.execution.Scheduler
 import scala.concurrent.duration.FiniteDuration
 import monix.reactive.OverflowStrategy
+import monix.reactive.observers.Subscriber
 
 
 /**
@@ -79,7 +80,7 @@ final case class RxExecuter(
     propagateExecutionStateOnException(executionState) {
       val jobResultTuples: Observable[(LJob, Execution)] = {
         //Note onBackpressureDrop(), in case runEligibleJobs takes too long (or the polling window is too short)
-        val ticks = Observable.interval(windowLength).subscribeOn(scheduler).asyncBoundary(OverflowStrategy.DropOld(0))
+        val ticks = Observable.interval(windowLength).asyncBoundary(Observables.defaultOverflowStrategy).executeOn(scheduler)
         
         def runJobs(jobsAndCells: ExecutionState.JobStatuses) = runEligibleJobs(executionState, jobOracle, jobsAndCells)
         
@@ -89,18 +90,14 @@ final case class RxExecuter(
           .map(_ => executionState.updateJobs())
           .distinctUntilChanged
           .flatMap(runJobs)
-          .takeWhileInclusive(_ => isFinished)
+          .until(_ => isFinished)
       }
       
-      def toMap[A, B](tuples: Observable[(A, B)]): Observable[Map[A, B]] = tuples.foldLeft(Map.empty[A, B]) { _ + _ }
+      def toMap[A, B](tuples: Observable[(A, B)]): Observable[Map[A, B]] = tuples.foldLeft(Map.empty[A, B])(_ + _)
       
-      {
-        implicit val sch = scheduler
+      val futureMergedResults = toMap(jobResultTuples).firstAsFuture(scheduler)
         
-        val futureMergedResults = toMap(jobResultTuples).firstAsFuture
-    
-        Await.result(futureMergedResults, timeout)
-      }
+      Await.result(futureMergedResults, timeout)
     }
   }
   

@@ -70,9 +70,7 @@ object Loops {
     
     val delays = Backoff.delaySequence(delayStart, delayCap)
     
-    def delayAndThen[X](f: => X): Observable[X] = {
-      Observable.interval(delays.next()).drop(1).take(1).subscribeOn(scheduler).map(_ => f)
-    }
+    def delayAndThen[X](f: => X): Observable[X] = Observable.evalDelayed(delays.next(), f)
     
     def next(tuple: (Int, Observable[Try[A]])): Observable[(Int, Try[A])] = {
       val (i, attemptObs) = tuple

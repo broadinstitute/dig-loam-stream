@@ -42,10 +42,10 @@ final class JobMonitorTest extends FunSuite {
     import Observables.Implicits._
     
     withThreadPoolScheduler(3) { scheduler =>
-      val statuses = (new JobMonitor(scheduler, poller, 9.99)).monitor(jobIds)
-    
       def futureStatuses(taskId: DrmTaskId): Seq[DrmStatus] = {
         import Scheduler.Implicits.global
+        
+        val statuses = (new JobMonitor(scheduler, poller, 9.99)).monitor(jobIds)
         
         statuses
           .collect { case (tid, status) if tid == taskId => status }

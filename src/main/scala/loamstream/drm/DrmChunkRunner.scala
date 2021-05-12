@@ -71,7 +71,7 @@ final case class DrmChunkRunner(
    * will throw otherwise.
    */
   override def run(
-      jobs: Set[LJob], 
+      jobs: Iterable[LJob], 
       jobOracle: JobOracle): Observable[(LJob, RunData)] = {
 
     debug(s"${getClass.getSimpleName}: Running ${jobs.size} jobs: ")

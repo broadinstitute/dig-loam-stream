@@ -456,11 +456,11 @@ final class DrmChunkRunnerTest extends FunSuite {
       val mockJobSubmitter = new MockJobSubmitter
       
       val chunkRunner = makeChunkRunner(drmSystem, mockJobSubmitter)
-          
       
-      val results = {
-        chunkRunner.run(jobs.map(_.job).toSet, TestHelpers.DummyJobOracle).toListL.runSyncUnsafe(TestHelpers.defaultWaitTime).toMap
-      }
+      //TODO: We don't need to wait here, since we're only checking that run()
+      //submitted jobs properly, and that should happen synchronously before run()
+      //returns.
+      val results = chunkRunner.run(jobs.map(_.job).toSet, TestHelpers.DummyJobOracle)
       
       val actualSubmissionParams = mockJobSubmitter.params
       
@@ -556,9 +556,10 @@ final class DrmChunkRunnerTest extends FunSuite {
       
       val chunkRunner = makeChunkRunner(drmSystem, mockJobSubmitter)
           
-      val results = {
-        chunkRunner.run(jobs.map(_.job).toSet, TestHelpers.DummyJobOracle).toListL.runSyncUnsafe(TestHelpers.defaultWaitTime).toMap
-      }
+      //TODO: We don't need to wait here, since we're only checking that run()
+      //submitted jobs properly, and that should happen synchronously before run()
+      //returns.      
+      val results = chunkRunner.run(jobs.map(_.job).toSet, TestHelpers.DummyJobOracle)
       
       val actualSubmissionParams = mockJobSubmitter.params
       

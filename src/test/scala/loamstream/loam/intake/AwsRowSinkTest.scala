@@ -123,8 +123,11 @@ final class AwsRowSinkTest extends FunSuite {
     val newline = '\n'
     
     val expected0 = Map(
-      s"some-bucket/some-topic/some-name/part-00002-${uuid}.json" -> 
-        AwsRowSinkTest.MockValue(s"""{"X":"4","Y":"3","Z":"2"}${newline}{"X":"z","Y":"x","Z":"c"}""", Some(AwsClient.ContentType.ApplicationJson)))
+      s"some-bucket/some-topic/some-name/part-00002-${uuid}.json" ->
+        AwsRowSinkTest.MockValue(
+            s"""{"X":"4","Y":"3","Z":"2"}${newline}{"X":"z","Y":"x","Z":"c"}""", 
+            Some(AwsClient.ContentType.ApplicationJson)))
+      
     
     assert(client.data === expected0)
     assert(sink.uploadedSoFar === 2)
@@ -140,7 +143,9 @@ final class AwsRowSinkTest extends FunSuite {
     
     val expected1 = expected0 + (
       s"some-bucket/some-topic/some-name/part-00004-${uuid}.json" -> 
-        AwsRowSinkTest.MockValue(s"""{"X":"q","Y":"w","Z":"e"}${newline}{"X":"f","Y":"o","Z":"o"}""", Some(AwsClient.ContentType.ApplicationJson)))
+        AwsRowSinkTest.MockValue(
+            s"""{"X":"q","Y":"w","Z":"e"}${newline}{"X":"f","Y":"o","Z":"o"}""", 
+            Some(AwsClient.ContentType.ApplicationJson)))
         
     assert(client.data === expected1)
     assert(sink.uploadedSoFar === 4)

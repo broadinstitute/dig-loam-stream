@@ -9,7 +9,7 @@ import loamstream.model.jobs.LJob
  * @author clint
  * May 22, 2019
  */
-trait DirOracle[A] {
+trait DirOracle[A] { self =>
   def dirOptFor(job: A): Option[Path]
   
   final def dirFor(job: A): Path = {
@@ -18,6 +18,10 @@ trait DirOracle[A] {
     require(opt.isDefined, s"Value is not know to this oracle: $job")
     
     opt.get
+  }
+  
+  def via[B](mapping: Map[B, A]): DirOracle[B] = new DirOracle[B] {
+    override def dirOptFor(b: B): Option[Path] = mapping.get(b).flatMap(self.dirOptFor)
   }
 }
 

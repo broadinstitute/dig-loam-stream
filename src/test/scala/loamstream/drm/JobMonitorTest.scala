@@ -12,6 +12,7 @@ import loamstream.util.RxSchedulers
 import loamstream.util.Tries
 
 import rx.lang.scala.Scheduler
+import loamstream.TestHelpers.DummyDrmJobOracle
 
 
 /**
@@ -41,7 +42,7 @@ final class JobMonitorTest extends FunSuite {
     import Observables.Implicits._
     
     withThreadPoolScheduler(3) { scheduler =>
-      val statuses = (new JobMonitor(scheduler, poller, 9.99)).monitor(jobIds)
+      val statuses = (new JobMonitor(scheduler, poller, 9.99)).monitor(DummyDrmJobOracle)(jobIds)
     
       def futureStatuses(taskId: DrmTaskId): Future[Seq[DrmStatus]] = {
         statuses.collect { case (tid, status) if tid == taskId => status }.to[Seq].firstAsFuture

@@ -17,6 +17,7 @@ import loamstream.util.Tries
 import loamstream.drm.DrmTaskId
 import loamstream.util.Observables
 import loamstream.TestHelpers
+import loamstream.TestHelpers.DummyDrmJobOracle
 
 /**
  * @author clint
@@ -44,7 +45,7 @@ final class BjobsPollerTest extends FunSuite {
         DrmTaskId("2842408", 2), 
         DrmTaskId("2842408", 3))
     
-    val results = new BjobsPoller(pollFn).poll(taskIds)
+    val results = new BjobsPoller(pollFn).poll(DummyDrmJobOracle)(taskIds)
     
     val expected: Map[DrmTaskId, Try[DrmStatus]] = Map(
       DrmTaskId("2842408", 1) -> Success(DrmStatus.CommandResult(42)),
@@ -62,7 +63,7 @@ final class BjobsPollerTest extends FunSuite {
         DrmTaskId("2842408", 2), 
         DrmTaskId("2842408", 3))
     
-    val resultsObs = new BjobsPoller(pollFn).poll(taskIds)
+    val resultsObs = new BjobsPoller(pollFn).poll(DummyDrmJobOracle)(taskIds)
     
     val results = TestHelpers.waitFor(resultsObs.toSeq.map(_.toMap).firstAsFuture)
     
@@ -82,7 +83,7 @@ final class BjobsPollerTest extends FunSuite {
         DrmTaskId("2842408", 2), 
         DrmTaskId("2842408", 3))
     
-    val resultsObs = new BjobsPoller(pollFn).poll(taskIds)
+    val resultsObs = new BjobsPoller(pollFn).poll(DummyDrmJobOracle)(taskIds)
     
     val results = TestHelpers.waitFor(resultsObs.toSeq.map(_.toMap).firstAsFuture)
     

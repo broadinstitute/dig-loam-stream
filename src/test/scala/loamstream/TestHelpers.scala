@@ -54,10 +54,12 @@ import loamstream.model.jobs.TerminationReason
 import loamstream.model.execute.Settings
 import loamstream.model.execute.LocalSettings
 import loamstream.model.jobs.JobOracle
+import loamstream.model.jobs.DrmJobOracle
 import loamstream.model.execute.EnvironmentType
 import java.time.LocalDateTime
 import java.time.ZoneId
 import loamstream.conf.LsSettings
+import loamstream.drm.DrmTaskId
 
 /**
   * @author clint
@@ -66,6 +68,12 @@ import loamstream.conf.LsSettings
 object TestHelpers {
   object DummyJobOracle extends JobOracle {
     override def dirOptFor(job: LJob): Option[Path] = Some(path(Paths.mungePathRelatedChars(job.name)))
+  }
+  
+  object DummyDrmJobOracle extends DrmJobOracle  {
+    override def dirOptFor(taskId: DrmTaskId): Option[Path] = {
+      Some(path(Paths.mungePathRelatedChars(s"${taskId.jobId}-${taskId.taskIndex}")))
+    }
   }
   
   final case class InDirJobOracle(dir: Path) extends JobOracle {

@@ -11,6 +11,7 @@ import loamstream.model.execute.ChunkRunnerFor
 import loamstream.model.execute.DrmSettings
 import loamstream.model.execute.EnvironmentType
 import loamstream.model.execute.ExecuterHelpers
+import loamstream.model.jobs.DrmJobOracle
 import loamstream.model.jobs.JobOracle
 import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.JobStatus
@@ -96,7 +97,7 @@ final case class DrmChunkRunner(
           fromCommandLineJobs(executionConfig, jobOracle, settings, drmConfig, pathBuilder, rawJobChunk)
         }
         
-        runJobs(settings, drmTaskArray)
+        runJobs(settings, drmTaskArray, jobOracle)
       }
     }
 
@@ -130,16 +131,18 @@ final case class DrmChunkRunner(
    */
   private def runJobs(
     drmSettings: DrmSettings,
-    drmTaskArray: DrmTaskArray): Observable[(LJob, RunData)] = {
+    drmTaskArray: DrmTaskArray,
+    jobOracle: JobOracle): Observable[(LJob, RunData)] = {
 
     drmTaskArray.drmJobs match {
       case Nil => Observable.empty
-      case drmJobs => submit(drmSettings, drmTaskArray).flatMap(toRunDataStream(drmJobs, _))
+      case drmJobs => submit(drmSettings, drmTaskArray).flatMap(toRunDataStream(jobOracle, drmJobs))
     }
   }
   
-  private def toRunDataStream(
-    drmJobs: Seq[DrmJobWrapper],
+  private def toRunDataStream
+    (jobOracle: JobOracle,
+     drmJobs: Seq[DrmJobWrapper])(
     submissionResult: DrmSubmissionResult)(implicit ec: ExecutionContext): Observable[(LJob, RunData)] = {
     
     val commandLineJobs = drmJobs.map(_.commandLineJob)
@@ -147,21 +150,24 @@ final case class DrmChunkRunner(
     import loamstream.drm.DrmSubmissionResult._
     
     submissionResult match {
-      case SubmissionSuccess(drmJobsByDrmId) => jobsToRunDatas(drmJobsByDrmId)
+      case SubmissionSuccess(drmJobsByDrmId) => jobsToRunDatas(drmJobsByDrmId, jobOracle)
       case SubmissionFailure(e) => makeAllFailureMap(drmJobs, Some(e))
     }
   }
   
   private[drm] def jobsToRunDatas(
-    jobsById: Map[DrmTaskId, DrmJobWrapper])(implicit ec: ExecutionContext): Observable[(LJob, RunData)] = {
+    jobsById: Map[DrmTaskId, DrmJobWrapper],
+    jobOracle: JobOracle)(implicit ec: ExecutionContext): Observable[(LJob, RunData)] = {
 
+    val drmJobOracle = DrmJobOracle.from(jobOracle, jobsById.mapValues(_.commandLineJob))
+    
     import jobMonitor.monitor
 
     val jobsAndDrmStatuses: Observable[(DrmTaskId, DrmJobWrapper, DrmStatus)] = {
       val taskIds = jobsById.keys
       
       for {
-        (tid, status) <- monitor(taskIds)
+        (tid, status) <- monitor(drmJobOracle)(taskIds)
         wrapper <- jobsById.get(tid).map(Observable.just(_)).getOrElse(Observable.empty)
       } yield {
         (tid, wrapper, status)

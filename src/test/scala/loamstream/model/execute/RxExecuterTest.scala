@@ -630,10 +630,10 @@ object RxExecuterTest {
   private final case class MockChunkRunner(delegate: ChunkRunner) extends ChunkRunner {
     override def canRun(job: LJob): Boolean = delegate.canRun(job)
     
-    val chunks: ValueBox[Seq[Set[LJob]]] = ValueBox(Vector.empty)
+    val chunks: ValueBox[Seq[Iterable[LJob]]] = ValueBox(Vector.empty)
 
     override def run(
-        jobs: Set[LJob], 
+        jobs: Iterable[LJob], 
         jobOracle: JobOracle): Observable[(LJob, RunData)] = {
       
       chunks.mutate(_ :+ jobs)

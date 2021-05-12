@@ -81,7 +81,7 @@ object CompositeChunkRunnerTest {
     private val delegate = local(1)
     
     override def run(
-        jobs: Set[LJob], 
+        jobs: Iterable[LJob], 
         jobOracle: JobOracle): Observable[(LJob, RunData)] = delegate.run(jobs, jobOracle)
   }
 }

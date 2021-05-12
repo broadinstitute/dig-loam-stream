@@ -3,9 +3,7 @@ package loamstream.googlecloud
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-import scala.concurrent.Await
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.Duration
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
@@ -25,8 +23,8 @@ import loamstream.util.ExecutorServices
 import loamstream.util.Loggable
 import loamstream.util.Terminable
 import loamstream.util.ValueBox
-import monix.reactive.Observable
 import monix.execution.Scheduler
+import monix.reactive.Observable
 
 
 /**
@@ -49,7 +47,7 @@ final case class GoogleCloudChunkRunner(
   private val currentClusterConfig: ValueBox[Option[ClusterConfig]] = ValueBox(None)
   
   override def run(
-      jobs: Set[LJob], 
+      jobs: Iterable[LJob], 
       jobOracle: JobOracle): Observable[(LJob, RunData)] = {
     
     if(jobs.isEmpty) { Observable.empty }
@@ -87,8 +85,6 @@ final case class GoogleCloudChunkRunner(
       currentClusterConfig := Option(clusterConfig) 
     }
     
-    //NB: If anything goes wrong determining whether or not the cluster is up, try to shut it down
-    //anyway, to be safe.
     determineClusterStatus() match {
       case ClusterStatus.Running => debug("Cluster already running, not attempting to start it")  
       case ClusterStatus.NotRunning => start()
@@ -109,10 +105,10 @@ final case class GoogleCloudChunkRunner(
   }
   
   private[googlecloud] def runJobsSequentially(
-      jobs: Set[LJob], 
+      jobs: Iterable[LJob], 
       jobOracle: JobOracle): Observable[(LJob, RunData)] = {
     
-    def doRunSingle(j: LJob): (LJob, RunData) = {
+    def doRunSingle(j: LJob): Observable[(LJob, RunData)] = {
       def runDataForNonGoogleJob = RunData(
           job = j, 
           settings = j.initialSettings, 
@@ -124,35 +120,29 @@ final case class GoogleCloudChunkRunner(
         case GoogleSettings(_, clusterConfig) => withCluster(clusterConfig) {
           runSingle(delegate, jobOracle)(j)
         }
-        case settings => j -> runDataForNonGoogleJob
+        case settings => Observable(j -> runDataForNonGoogleJob)
       }
     }
     
-    Observable.from(jobs).subscribeOn(singleThreadedScheduler).map(doRunSingle)
+    //NB: Enforce single-threaded execution, since we don't want multiple jobs running 
+    //on the same cluster simultaneously
+    //NB: .share() is required, or else jobs will run multiple times :\
+    //NB: Monix flatMap is like Rx concatMap, so that ordering and at-most-once semantics are preserved
+    Observable(jobs.toSeq: _*).share(singleThreadedScheduler).executeOn(singleThreadedScheduler).flatMap(doRunSingle)
   }
 
   private[googlecloud] def runSingle(
       delegate: ChunkRunner, 
-      jobOracle: JobOracle)(job: LJob): (LJob, RunData) = {
+      jobOracle: JobOracle)(job: LJob): Observable[(LJob, RunData)] = {
     
-    //NB: Enforce single-threaded execution, since we don't want multiple jobs running 
     import GoogleCloudChunkRunner.addCluster
-    //on the same cluster simultaneously
-    import loamstream.util.Observables.Implicits._
 
     val googleSettings = job.initialSettings match {
       case gs: GoogleSettings => gs
       case _ => sys.error(s"Only jobs with Google settings are supported, but got ${job.initialSettings}")
     }
-    
-    val futureResult = {
-      implicit val sch = Scheduler.Implicits.global
-      
-      delegate.run(Set(job), jobOracle).map(addCluster(googleSettings.clusterId)).lastAsFuture
-    }
-    
-    //TODO: add some timeout
-    Await.result(futureResult, Duration.Inf)
+
+    delegate.run(Set(job), jobOracle).map(addCluster(googleSettings.clusterId))
   }
   
   private[googlecloud] def withCluster[A](clusterConfig: ClusterConfig)(f: => A): A = {

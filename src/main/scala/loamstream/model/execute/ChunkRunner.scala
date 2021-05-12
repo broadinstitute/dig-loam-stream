@@ -14,7 +14,7 @@ import monix.reactive.Observable
 trait ChunkRunner extends Terminable {
   def canRun(job: LJob): Boolean
   
-  def run(jobs: Set[LJob], jobOracle: JobOracle): Observable[(LJob, RunData)]
+  def run(jobs: Iterable[LJob], jobOracle: JobOracle): Observable[(LJob, RunData)]
   
   override def stop(): Unit = ()
 }

@@ -28,7 +28,7 @@ final case class AsyncLocalChunkRunner(
   import AsyncLocalChunkRunner._
   
   override def run(
-      jobs: Set[LJob], 
+      jobs: Iterable[LJob], 
       jobOracle: JobOracle): Observable[(LJob, RunData)] = {
     
     if(jobs.isEmpty) { Observable.empty }

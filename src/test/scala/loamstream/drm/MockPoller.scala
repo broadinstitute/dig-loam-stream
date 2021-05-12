@@ -8,6 +8,7 @@ import loamstream.util.ValueBox
 import loamstream.model.execute.Resources.DrmResources
 import monix.reactive.Observable
 
+import loamstream.model.jobs.DrmJobOracle
 
 /**
  * @author clint
@@ -28,7 +29,7 @@ final case class MockPoller(private val toReturn: Map[DrmTaskId, Seq[Try[DrmStat
   
   def isStopped: Boolean = isStoppedBox.value
   
-  override def poll(jobIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, Try[DrmStatus])] = {
+  override def poll(oracle: DrmJobOracle)(jobIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, Try[DrmStatus])] = {
     val jobIdsToPoll = jobIds.toSet
     
     val resultsByTaskId = toReturn.filterKeys(jobIdsToPoll.contains)

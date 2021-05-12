@@ -13,6 +13,7 @@ import loamstream.util.Tries
 
 import loamstream.TestHelpers
 import monix.execution.Scheduler
+import loamstream.TestHelpers.DummyDrmJobOracle
 
 
 /**
@@ -45,7 +46,7 @@ final class JobMonitorTest extends FunSuite {
       def futureStatuses(taskId: DrmTaskId): Seq[DrmStatus] = {
         import Scheduler.Implicits.global
         
-        val statuses = (new JobMonitor(scheduler, poller, 9.99)).monitor(jobIds)
+        val statuses = (new JobMonitor(scheduler, poller, 9.99)).monitor(DummyDrmJobOracle)(jobIds)
         
         statuses
           .collect { case (tid, status) if tid == taskId => status }

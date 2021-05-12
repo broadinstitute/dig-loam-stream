@@ -50,6 +50,7 @@ import loamstream.drm.uger.QdelJobKiller
 import loamstream.model.execute.LsfDrmSettings
 import monix.reactive.Observable
 import monix.execution.Scheduler
+import loamstream.model.jobs.DrmJobOracle
 
 
 /**
@@ -94,7 +95,7 @@ final class DrmChunkRunnerTest extends FunSuite {
   import loamstream.util.Observables.Implicits._
   
   private object JustFailsMockPoller extends Poller {
-    override def poll(jobIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, Try[DrmStatus])] = ???
+    override def poll(oracle: DrmJobOracle)(jobIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, Try[DrmStatus])] = ???
     
     override def stop(): Unit = ()
   }

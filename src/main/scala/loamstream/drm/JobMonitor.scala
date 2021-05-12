@@ -18,6 +18,7 @@ import monix.reactive.subjects.Subject
 import scala.concurrent.duration.FiniteDuration
 import monix.reactive.OverflowStrategy
 import loamstream.util.Observables
+import loamstream.model.jobs.DrmJobOracle
 
 /**
  * @author clint
@@ -77,7 +78,7 @@ final class JobMonitor(
    * @return a map of job ids to Observable streams of statuses for each job. The statuses are the result of polling 
    * the DRM system *synchronously* via the supplied poller at the supplied rate.
    */
-  def monitor(taskIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, DrmStatus)] = {
+  def monitor(oracle: DrmJobOracle)(taskIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, DrmStatus)] = {
     
     val distinctIdsBeingPolledFor = taskIds.toSet
     
@@ -88,7 +89,7 @@ final class JobMonitor(
     //NB: Mutability is lame, but it makes for much simpler code than making poll() recursive.
     val stillWaitingFor: ValueBox[Iterable[DrmTaskId]] = ValueBox(taskIds)
     
-    def poll: Observable[(DrmTaskId, DrmStatus)] = poller.poll(stillWaitingFor.value).map(unpack)
+    def poll: Observable[(DrmTaskId, DrmStatus)] = poller.poll(oracle)(stillWaitingFor.value).map(unpack)
     
     val localTicks = ticks.takeUntil(stopSignal).asyncBoundary(Observables.defaultOverflowStrategy)
     

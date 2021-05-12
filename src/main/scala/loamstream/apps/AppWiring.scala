@@ -41,7 +41,7 @@ import loamstream.drm.lsf.LsfPathBuilder
 import loamstream.drm.uger.UgerScriptBuilderParams
 import loamstream.drm.uger.QacctAccountingClient
 import loamstream.drm.uger.QdelJobKiller
-import loamstream.drm.uger.QstatQacctPoller
+import loamstream.drm.uger.QstatPoller
 import loamstream.drm.uger.Qsub
 import loamstream.drm.uger.QsubJobSubmitter
 import loamstream.drm.uger.UgerPathBuilder
@@ -441,7 +441,7 @@ object AppWiring extends Loggable {
       //TODO: Make configurable?
       val pollingFrequencyInHz = 0.1
       
-      val poller = QstatQacctPoller.fromExecutables(pollingFrequencyInHz, ugerConfig, scheduler = scheduler)
+      val poller = QstatPoller.fromExecutables(pollingFrequencyInHz, ugerConfig, scheduler = scheduler)
       
       val jobMonitor = new JobMonitor(scheduler, poller, pollingFrequencyInHz)
 

@@ -90,7 +90,9 @@ final class QstatPollerTest extends FunSuite {
     }
     
     {
-      val results = poller.poll(DummyDrmJobOracle)(runningTaskIds :+ finishedTaskId).toListL.runSyncUnsafe(TestHelpers.defaultWaitTime)
+      val results = poller.poll(DummyDrmJobOracle)(runningTaskIds :+ finishedTaskId)
+                          .toListL
+                          .runSyncUnsafe(TestHelpers.defaultWaitTime)
       
       val expected = Seq(
           runningTaskIds(0) -> Success(DrmStatus.Running),

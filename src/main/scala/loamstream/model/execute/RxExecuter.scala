@@ -79,8 +79,10 @@ final case class RxExecuter(
     
     propagateExecutionStateOnException(executionState) {
       val jobResultTuples: Observable[(LJob, Execution)] = {
-        //Note onBackpressureDrop(), in case runEligibleJobs takes too long (or the polling window is too short)
-        val ticks = Observable.interval(windowLength).asyncBoundary(Observables.defaultOverflowStrategy).executeOn(scheduler)
+        val ticks = Observable
+                      .interval(windowLength)
+                      .asyncBoundary(Observables.defaultOverflowStrategy)
+                      .executeOn(scheduler)
         
         def runJobs(jobsAndCells: ExecutionState.JobStatuses) = runEligibleJobs(executionState, jobOracle, jobsAndCells)
         

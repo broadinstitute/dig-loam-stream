@@ -392,8 +392,6 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       
       val z: Map[LJob, RunData] = Map.empty
       
-      println(s"%%%%%%%%%%%%% running: ${Seq(job1, job2, job3, job4).map(_.id)}")
-      
       val runDataObs = googleRunner.run(Seq(job1, job2, job3, job4), TestHelpers.DummyJobOracle)
       
       val jobRuns = waitFor(runDataObs.foldLeft(z)(_ + _).firstAsFuture)
@@ -781,8 +779,6 @@ object GoogleCloudChunkRunnerTest {
     
     override def stopCluster(): Unit = {
       deleteClusterInvocations.mutate(_ + 1)
-      
-      println(s"Deleting cluster from ${Thread.currentThread.getName}")
       
       clusterRunning := false
     }

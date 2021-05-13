@@ -3,6 +3,7 @@ package loamstream.loam.intake
 import org.scalatest.FunSuite
 import scala.reflect.runtime.universe.TypeTag
 import loamstream.loam.intake.flip.Disposition
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -113,10 +114,10 @@ final class AggregatorRowExprTest extends FunSuite {
       //Should fail, since we've declared a value for betaDef, but there is no beta column in the input
       if(failFast) {
         intercept[Exception] {
-          dataRows.records.toList
+          dataRows.records.to(List)
         }
       } else {
-        val results = dataRows.records.toList
+        val results = dataRows.records.to(List)
         
         assert(results.map(_.isSkipped) === Seq(true, true, true))
       }
@@ -158,7 +159,7 @@ final class AggregatorRowExprTest extends FunSuite {
                             map(_.skip).
                             map(expr).
                             records.
-                            toList
+                            to(List)
                             
     assert(skippedDataRows.map(_.isSkipped) === Seq(true, true, true))
   }

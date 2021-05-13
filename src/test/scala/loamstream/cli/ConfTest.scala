@@ -7,6 +7,8 @@ import org.scalatest.FunSuite
 import org.scalatest.Matchers
 import java.net.URI
 import loamstream.TestHelpers
+import scala.collection.compat._
+
 
 /**
  * Created by kyuksel on 10/12/16.
@@ -255,7 +257,7 @@ final class ConfTest extends FunSuite with Matchers {
   
   test("Values.toArguments - real-world") {
     def doTest(argLine: String): Unit = {
-      val args: Seq[String] = argLine.split("\\s+").toList
+      val args: Seq[String] = argLine.split("\\s+").to(List)
     
       val conf = Conf(args)
     
@@ -271,7 +273,7 @@ final class ConfTest extends FunSuite with Matchers {
   test("Values.toArguments - --worker is added") {
     val argLine = "--conf foo.conf --backend uger --loams u.loam v.loam"
     
-    val args: Seq[String] = argLine.split("\\s+").toList
+    val args: Seq[String] = argLine.split("\\s+").to(List)
     
     val values = Conf(args).toValues
     

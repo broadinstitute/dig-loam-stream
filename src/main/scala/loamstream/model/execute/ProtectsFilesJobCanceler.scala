@@ -121,6 +121,6 @@ object ProtectsFilesJobCanceler {
     
     val locs = lines.map(_.trim).filterNot(shouldSkip).map(parse)
     
-    fromEithers(locs.toList)
+    fromEithers(locs.to(List))
   }
 }

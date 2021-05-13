@@ -215,7 +215,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       import org.json4s._
       
       rowSink match {
-        case aws: AwsRowSink => aws.commit(JObject(metadata.asJson.toList))
+        case aws: AwsRowSink => aws.commit(JObject(metadata.asJson.to(List)))
         case _ => ()
       }
     }

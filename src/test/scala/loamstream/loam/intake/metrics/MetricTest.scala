@@ -18,6 +18,7 @@ import loamstream.loam.intake.RowSink
 import loamstream.loam.intake.RenderableRow
 import loamstream.loam.intake.BaseVariantRow
 import loamstream.loam.intake.LiteralColumnExpr
+import scala.collection.compat._
 
 
 /**
@@ -586,7 +587,7 @@ final class MetricTest extends FunSuite {
     
     assert(Fold.fold(rows.records)(metric) === expected)
     
-    assert(Fold.fold(rows.records.toList)(metric) === expected)
+    assert(Fold.fold(rows.records.to(List))(metric) === expected)
   }
 }
 

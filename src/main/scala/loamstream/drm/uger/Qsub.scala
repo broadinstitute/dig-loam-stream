@@ -13,6 +13,7 @@ import loamstream.util.LogContext
 import loamstream.util.Processes
 import loamstream.util.RunResults
 import monix.execution.Scheduler
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -85,7 +86,7 @@ object Qsub {
       drmScriptFile.toAbsolutePath.toString
     }
 
-    actualExecutable +: (staticPartFromUgerConfig.toList ++ dynamicPart)
+    actualExecutable +: (staticPartFromUgerConfig.to(List) ++ dynamicPart)
   }
     
   final def commandInvoker(

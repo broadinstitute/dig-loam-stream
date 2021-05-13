@@ -11,6 +11,8 @@ import loamstream.util.Files
 import loamstream.loam.InvokesLsTool
 import loamstream.drm.DrmSystem
 
+import scala.collection.compat._
+
 /**
  * @author clint
  * Nov 19, 2020
@@ -70,7 +72,7 @@ final class IntakeSyntaxTest extends FunSuite {
           ("c3", true),
           ("d4", false))
           
-      assert(filtered.rows.records.toList.map(toTuple) === expected)
+      assert(filtered.rows.records.to(List).map(toTuple) === expected)
     }
   }
   
@@ -94,7 +96,7 @@ final class IntakeSyntaxTest extends FunSuite {
           ("c3", false),
           ("d4", false))
           
-      assert(filtered.rows.records.toList.map(toTuple) === expected)
+      assert(filtered.rows.records.to(List).map(toTuple) === expected)
     }
   }
   
@@ -120,7 +122,7 @@ final class IntakeSyntaxTest extends FunSuite {
           ("c3", false),
           ("d4", true))
           
-      assert(filtered.rows.records.toList.map(toTuple) === expected)
+      assert(filtered.rows.records.to(List).map(toTuple) === expected)
     }
   }
   
@@ -189,7 +191,7 @@ final class IntakeSyntaxTest extends FunSuite {
       
       assert(target.toBeClosed === Nil)
       
-      val unfilteredRows = source.records.toList
+      val unfilteredRows = source.records.to(List)
       
       val p = MockCloseablePredicate[PValueVariantRow](_.pvalue > 0.2)
       
@@ -199,7 +201,7 @@ final class IntakeSyntaxTest extends FunSuite {
       
       val expected = unfilteredRows.take(2).map(_.skip) ++ unfilteredRows.drop(2)
       
-      assert(filtered.rows.records.toList === expected)
+      assert(filtered.rows.records.to(List) === expected)
     }
   }
   
@@ -211,7 +213,7 @@ final class IntakeSyntaxTest extends FunSuite {
       val source = {
         val orig = mapSource.tagFlips(markerDef, Helpers.FlipDetectors.NoFlipsEver).map(expr)
         
-        val unfilteredRows = orig.records.toList
+        val unfilteredRows = orig.records.to(List)
         
         Source.fromIterable(unfilteredRows.take(2).map(_.skip) ++ unfilteredRows.drop(2))
       }
@@ -225,13 +227,13 @@ final class IntakeSyntaxTest extends FunSuite {
       
       assert(target.toBeClosed === Nil)
       
-      val unfilteredRows = source.records.toList
+      val unfilteredRows = source.records.to(List)
       
       val filtered = target.filter(_.pvalue > 0.3)
       
       val expected = unfilteredRows.take(3).map(_.skip) ++ unfilteredRows.drop(3)
       
-      assert(filtered.rows.records.toList === expected)
+      assert(filtered.rows.records.to(List) === expected)
     }
   }
   
@@ -243,7 +245,7 @@ final class IntakeSyntaxTest extends FunSuite {
       val source = {
         val orig = mapSource.tagFlips(markerDef, Helpers.FlipDetectors.NoFlipsEver).map(expr)
         
-        val unfilteredRows = orig.records.toList
+        val unfilteredRows = orig.records.to(List)
         
         Source.fromIterable(unfilteredRows.take(2).map(_.skip) ++ unfilteredRows.drop(2))
       }
@@ -257,7 +259,7 @@ final class IntakeSyntaxTest extends FunSuite {
       
       assert(target.toBeClosed === Nil)
       
-      val unmappedRows = source.records.toList
+      val unmappedRows = source.records.to(List)
       
       val f: Transform[PValueVariantRow] = MockCloseableTransform { dr => 
         dr.copy(pvalue = dr.pvalue + 1.0)
@@ -269,7 +271,7 @@ final class IntakeSyntaxTest extends FunSuite {
       
       val expected = unmappedRows.take(2) ++ unmappedRows.drop(2).map(_.transform(f))
       
-      assert(mapped.rows.records.toList === expected)
+      assert(mapped.rows.records.to(List) === expected)
     }
   }
   
@@ -285,7 +287,7 @@ final class IntakeSyntaxTest extends FunSuite {
         val source = {
           val orig = mapSource.tagFlips(markerDef, Helpers.FlipDetectors.NoFlipsEver).map(expr)
           
-          val unfilteredRows = orig.records.toList
+          val unfilteredRows = orig.records.to(List)
           
           Source.fromIterable(unfilteredRows.take(2).map(_.skip) ++ unfilteredRows.drop(2))
         }
@@ -299,7 +301,7 @@ final class IntakeSyntaxTest extends FunSuite {
         
         assert(target.toBeClosed === Nil)
         
-        val unmappedRows = source.records.toList
+        val unmappedRows = source.records.to(List)
         
         val f = MockCloseableTransform[PValueVariantRow] { dr => 
           dr.copy(pvalue = dr.pvalue + 1.0)

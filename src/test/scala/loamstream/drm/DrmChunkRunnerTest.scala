@@ -146,7 +146,7 @@ final class DrmChunkRunnerTest extends FunSuite {
     
     val mockJob = jobWrapper.commandLineJob.asInstanceOf[MockDrmJob]
     
-    Observable.from(mockJob.statusesToReturn.toList).map(status => jobWrapper -> status)
+    Observable.from(mockJob.statusesToReturn.to(List)).map(status => jobWrapper -> status)
   }
   
   test("submit - submission failure") {

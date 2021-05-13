@@ -115,9 +115,9 @@ final class QstatPollerTest extends FunSuite {
       Success(id2 -> DrmStatus.Running),
       Success(id1 -> DrmStatus.Running))
         
-    assert(QstatSupport.parseQstatOutput(ids, qstatLines).toList === expected)
+    assert(QstatSupport.parseQstatOutput(ids, qstatLines).to(List) === expected)
     
-    assert(QstatSupport.parseQstatOutput(ids, dataLines).toList === expected)
+    assert(QstatSupport.parseQstatOutput(ids, dataLines).to(List) === expected)
     
     assert(QstatSupport.parseQstatOutput(ids, headerLines).isEmpty)
     
@@ -166,7 +166,7 @@ final class QstatPollerTest extends FunSuite {
       s.to(Seq).sorted(ordering)
     }
         
-    assert(sort(QstatSupport.parseQstatOutput(ids, lines).toList) === sort(expected))
+    assert(sort(QstatSupport.parseQstatOutput(ids, lines).to(List)) === sort(expected))
   }
   
   test("parseQstatOutput - bad lines should be ignored") {
@@ -184,7 +184,7 @@ final class QstatPollerTest extends FunSuite {
       Success(id2 -> DrmStatus.Running),
       Success(id1 -> DrmStatus.Running))
         
-    assert(QstatSupport.parseQstatOutput(ids, lines).toList === expected)
+    assert(QstatSupport.parseQstatOutput(ids, lines).to(List) === expected)
   }
   
   test("parseQstatOutput - bad statuses should be failures") {
@@ -196,7 +196,7 @@ final class QstatPollerTest extends FunSuite {
     
     val ids = Set(id1, id2, id3)
     
-    val actual = QstatSupport.parseQstatOutput(ids, lines).toList
+    val actual = QstatSupport.parseQstatOutput(ids, lines).to(List)
     
     assert(actual.forall { 
       case Success((drmTaskId, drmStatus)) => drmStatus.isUndetermined

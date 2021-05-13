@@ -2,6 +2,7 @@ package loamstream.loam.intake
 
 import org.scalatest.FunSuite
 import loamstream.loam.intake.flip.Disposition
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -15,7 +16,7 @@ object CsvRowTest {
       
       val rows = Source.fromString(csvData, Source.Formats.spaceDelimitedWithHeader)
           
-      val rowsList = rows.records.toList
+      val rowsList = rows.records.to(List)
       
       assert(rowsList.size === 1)
       
@@ -41,7 +42,7 @@ final class CsvRowTest extends FunSuite with CsvRowTest.RowHelpers {
     assert(firstRow.getFieldByIndex(1) === "hello")
     assert(firstRow.getFieldByIndex(2) === "blah_123")
     
-    assert(firstRow.values.toList === (Seq("1", "hello", "blah_123").map(Option(_))))
+    assert(firstRow.values.to(List) === (Seq("1", "hello", "blah_123").map(Option(_))))
     
     val skipped = firstRow.skip
     
@@ -53,9 +54,9 @@ final class CsvRowTest extends FunSuite with CsvRowTest.RowHelpers {
     assert(skipped.isSkipped === true)
     assert(skipped.notSkipped === false)
     
-    assert(firstRow.values.toList === Seq("1", "hello", "blah_123").map(Option(_)))
+    assert(firstRow.values.to(List) === Seq("1", "hello", "blah_123").map(Option(_)))
     
-    assert(firstRow.values.toList === skipped.values.toList)
+    assert(firstRow.values.to(List) === skipped.values.to(List))
   }
   
 }

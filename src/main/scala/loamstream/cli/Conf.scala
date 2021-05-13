@@ -278,7 +278,7 @@ object Conf {
       result ++= workerPart ++= cleanParts ++= confPart ++= noValidationPart ++= compileOnlyPart ++= dryRunPart ++= 
       disableHashingPart ++= backendPart ++= runPart ++= loamsPart
       
-      result.toList.filter(_.nonEmpty)
+      result.to(List).filter(_.nonEmpty)
     }
   }
   

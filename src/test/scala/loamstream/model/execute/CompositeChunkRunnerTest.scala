@@ -14,6 +14,7 @@ import loamstream.TestHelpers
 import loamstream.model.jobs.JobOracle
 import monix.execution.Scheduler
 import monix.reactive.Observable
+import scala.collection.compat._
 
 /**
  * @author clint

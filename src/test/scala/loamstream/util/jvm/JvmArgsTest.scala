@@ -3,6 +3,7 @@ package loamstream.util.jvm
 import org.scalatest.FunSuite
 import java.nio.file.Paths
 import loamstream.cli.Conf
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -27,7 +28,7 @@ final class JvmArgsTest extends FunSuite {
     val sysprop0 = "-Dx=123"
     val sysprop1 = "-Dy=456"
     
-    val args = "--conf foo.conf --backend uger --run everything --loams u.loam v.loam".split("\\s+").toList
+    val args = "--conf foo.conf --backend uger --run everything --loams u.loam v.loam".split("\\s+").to(List)
     
     val expected = Seq(
         expectedJavaBinary.toString,

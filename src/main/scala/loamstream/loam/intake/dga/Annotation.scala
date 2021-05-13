@@ -254,7 +254,7 @@ object Annotation {
       val annotationMethodPart: Option[JField] = annotationMethod.map("method" -> JString(_))
       
       val fields: Seq[JField] = Seq(
-        "sources" -> JArray(this.sources.toList.map(_.toJson))
+        "sources" -> JArray(this.sources.to(List).map(_.toJson))
       ) ++ annotationMethodPart
       
       JObject(fields: _*)

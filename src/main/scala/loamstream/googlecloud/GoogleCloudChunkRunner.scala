@@ -26,6 +26,8 @@ import loamstream.util.ValueBox
 import monix.execution.Scheduler
 import monix.reactive.Observable
 
+import scala.collection.compat._
+
 
 /**
  * @author clint
@@ -128,7 +130,7 @@ final case class GoogleCloudChunkRunner(
     //on the same cluster simultaneously
     //NB: .share() is required, or else jobs will run multiple times :\
     //NB: Monix flatMap is like Rx concatMap, so that ordering and at-most-once semantics are preserved
-    Observable(jobs.toSeq: _*).share(singleThreadedScheduler).executeOn(singleThreadedScheduler).flatMap(doRunSingle)
+    Observable(jobs.to(Seq): _*).share(singleThreadedScheduler).executeOn(singleThreadedScheduler).flatMap(doRunSingle)
   }
 
   private[googlecloud] def runSingle(

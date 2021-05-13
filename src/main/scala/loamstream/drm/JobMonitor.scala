@@ -19,6 +19,7 @@ import scala.concurrent.duration.FiniteDuration
 import monix.reactive.OverflowStrategy
 import loamstream.util.Observables
 import loamstream.model.jobs.DrmJobOracle
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -120,7 +121,7 @@ object JobMonitor extends Loggable {
       val result = stillWaitingFor.isEmpty 
       
       if(result) {
-        debug(s"Jobs are all finished: ${stillWaitingFor.toSeq.sorted.mkString(",")}")
+        debug(s"Jobs are all finished: ${stillWaitingFor.to(Seq).sorted.mkString(",")}")
         
         //Note side effect :(
         stopSignal.onNext(())

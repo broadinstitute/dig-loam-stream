@@ -10,6 +10,8 @@ import monix.reactive.Observable
 
 import loamstream.model.jobs.DrmJobOracle
 
+import scala.collection.compat._
+
 /**
  * @author clint
  * date: Jul 6, 2016
@@ -35,7 +37,7 @@ final case class MockPoller(private val toReturn: Map[DrmTaskId, Seq[Try[DrmStat
     val resultsByTaskId = toReturn.filterKeys(jobIdsToPoll.contains)
     
     val pollingResults = for {
-      (tid, attempts) <- resultsByTaskId.toSeq
+      (tid, attempts) <- resultsByTaskId.to(Seq)
       attempt <- attempts
     } yield (tid, attempt)
     

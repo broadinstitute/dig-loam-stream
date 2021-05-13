@@ -17,6 +17,7 @@ import loamstream.util.LogContext
 import monix.execution.Scheduler
 import loamstream.TestHelpers.DummyDrmJobOracle
 import loamstream.util.Files
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -162,7 +163,7 @@ final class QstatPollerTest extends FunSuite {
         case Failure(_) => ???
       }
       
-      s.toSeq.sorted(ordering)
+      s.to(Seq).sorted(ordering)
     }
         
     assert(sort(QstatSupport.parseQstatOutput(ids, lines).toList) === sort(expected))

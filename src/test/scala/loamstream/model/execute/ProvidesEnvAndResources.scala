@@ -24,6 +24,7 @@ import loamstream.drm.lsf.LsfDefaults
 import loamstream.googlecloud.ClusterConfig
 import loamstream.model.jobs.PseudoExecution
 import loamstream.model.jobs.StoreRecord
+import scala.collection.compat._
 
 /**
  * @author kyuksel
@@ -70,7 +71,7 @@ trait ProvidesEnvAndResources extends FunSuite {
 
   protected def assertEqualFieldsFor(actual: Iterable[Execution.Persisted], expected: Iterable[Execution]): Unit = {
     implicit final class StoreRecordIterableOps(srs: Iterable[StoreRecord]) {
-      def sortedByLoc: Seq[StoreRecord] = srs.toSeq.sortBy(_.loc)
+      def sortedByLoc: Seq[StoreRecord] = srs.to(Seq).sortBy(_.loc)
     }
     
     assert(actual.map(_.envType) === expected.map(_.envType))

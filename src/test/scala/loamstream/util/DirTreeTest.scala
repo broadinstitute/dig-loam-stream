@@ -15,6 +15,7 @@ import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.MockJob
 import loamstream.model.jobs.RunData
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -376,7 +377,7 @@ final class DirTreeTest extends FunSuite {
     
     val branchingFactor = 500
     
-    val node = DirTree.allocate(jobs.toSeq, branchingFactor)
+    val node = DirTree.allocate(jobs.to(Seq), branchingFactor)
     
     assert(node.isInstanceOf[Interior[_]])
     
@@ -395,7 +396,7 @@ final class DirTreeTest extends FunSuite {
     
     val branchingFactor = 10
     
-    val node: DirNode[LJob] = DirTree.allocate(jobs.toSeq, branchingFactor)
+    val node: DirNode[LJob] = DirTree.allocate(jobs.to(Seq), branchingFactor)
     
     val root = node.asInstanceOf[Interior[_]]
     

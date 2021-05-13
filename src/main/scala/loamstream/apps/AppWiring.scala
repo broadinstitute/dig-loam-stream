@@ -101,6 +101,7 @@ import loamstream.model.execute.CompositeChunkRunner
 import loamstream.googlecloud.GcsCloudStorageClient
 import monix.execution.Scheduler
 
+import scala.collection.compat._
 
 
 /**
@@ -280,7 +281,7 @@ object AppWiring extends Loggable {
       
       val googleRunner = googleChunkRunner(intent.confFile, config.googleConfig, config.hailConfig, localRunner)
 
-      val compositeRunner = CompositeChunkRunner(localRunner +: (drmRunner.toSeq ++ googleRunner))
+      val compositeRunner = CompositeChunkRunner(localRunner +: (drmRunner.to(Seq) ++ googleRunner))
       
       val toBeStopped = compositeRunner +: localEcHandle +: (drmRunnerHandles ++ compositeRunner.components)
       

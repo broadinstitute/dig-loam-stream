@@ -8,6 +8,7 @@ import AwsRowSinkTest.MockAwsClient
 import java.util.UUID
 import org.json4s.JsonAST.JValue
 import loamstream.loam.intake.dga.Json
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -210,7 +211,7 @@ object AwsRowSinkTest {
     
     override def list(prefix: String, delimiter: String): Seq[String] = {
       //TODO: Delim?
-      data.keys.toSeq.sorted.filter(_.startsWith(prefix))
+      data.keys.to(Seq).sorted.filter(_.startsWith(prefix))
     }
   
     override def deleteDir(key: String): Unit = {

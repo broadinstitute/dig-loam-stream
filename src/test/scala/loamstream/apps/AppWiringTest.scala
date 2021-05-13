@@ -29,6 +29,7 @@ import loamstream.model.execute.ProtectsFilesJobCanceler
 import loamstream.TestHelpers
 import loamstream.util.Files
 
+import scala.collection.compat._
 
 
 /**
@@ -42,7 +43,7 @@ final class AppWiringTest extends FunSuite with Matchers {
   
   private val confFileForUger = Paths.get("src/test/resources/for-uger-and-lsf.conf")
   
-  private def cliConf(argString: String): Conf = Conf(argString.split("\\s+").toSeq)
+  private def cliConf(argString: String): Conf = Conf(argString.split("\\s+").to(Seq))
   
   //TODO: Purely expedient
   private def appWiring(cli: Conf): AppWiring = {

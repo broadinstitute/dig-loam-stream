@@ -20,6 +20,7 @@ import loamstream.util.Functions
 import scala.util.Try
 import loamstream.util.FileMonitor
 import scala.util.control.NonFatal
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -65,7 +66,7 @@ object ExecuterHelpers extends Loggable {
     val anyMissingOutputs = job.outputs.exists(_.isMissing)
     
     if(anyMissingOutputs) {
-      val missingOutputs = job.outputs.toSeq.filter(_.isMissing)
+      val missingOutputs = job.outputs.to(Seq).filter(_.isMissing)
       
       error(s"Will wait for these missing outputs for job ${job.id} : ${missingOutputs}")
       

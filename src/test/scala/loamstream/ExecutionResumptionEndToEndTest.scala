@@ -40,6 +40,7 @@ import loamstream.conf.LsSettings
 import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.JobResult
 import loamstream.model.execute.HashingStrategy
+import scala.collection.compat._
 
 
 
@@ -353,7 +354,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
   }
 
   private def allJobsFrom(executable: Executable): Seq[JobNode] = {
-    ExecuterHelpers.flattenTree(executable.jobNodes).toSeq
+    ExecuterHelpers.flattenTree(executable.jobNodes).to(Seq)
   }
 
   private def jobThatWritesTo(executable: Executable)(fileNameSuffix: Path): Option[LJob] = {

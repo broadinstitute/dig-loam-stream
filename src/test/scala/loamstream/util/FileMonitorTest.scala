@@ -5,6 +5,7 @@ import loamstream.TestHelpers
 import java.nio.file.{ Files => JFiles }
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -148,7 +149,7 @@ final class FileMonitorTest extends FunSuite {
     
     val futures = (1 to 5).map(_ => fileMonitor.waitForCreationOf(initiallyNonExistantFile))
     
-    val watchers = fileMonitor.getWatchedFiles(initiallyNonExistantFile).toSeq
+    val watchers = fileMonitor.getWatchedFiles(initiallyNonExistantFile).to(Seq)
     
     assert(watchers.size === 5)
     
@@ -195,7 +196,7 @@ final class FileMonitorTest extends FunSuite {
     
     val futures = (1 to 5).map(_ => fileMonitor.waitForCreationOf(fileThatNeverAppears))
     
-    val watchers = fileMonitor.getWatchedFiles(fileThatNeverAppears).toSeq
+    val watchers = fileMonitor.getWatchedFiles(fileThatNeverAppears).to(Seq)
     
     assert(watchers.size === 5)
     

@@ -12,6 +12,7 @@ import loamstream.TestHelpers
 import monix.reactive.subjects.Subject
 import monix.execution.Ack
 
+import scala.collection.compat._
 
 
 /**
@@ -137,28 +138,28 @@ final class ObservablesTest extends FunSuite {
   test("until") {
     def observable = Observable(2, 4, 6, 7, 8, 9, 10) 
 
-    def toSeq[A](o: Observable[A]): Seq[A] = o.toListL.runSyncUnsafe(TestHelpers.defaultWaitTime)
+    def asSeq[A](o: Observable[A]): Seq[A] = o.toListL.runSyncUnsafe(TestHelpers.defaultWaitTime)
     
     {
-      val is = toSeq(observable.until(isOdd))
+      val is = asSeq(observable.until(isOdd))
 
       assert(is == Seq(2, 4, 6, 7)) 
     }
 
     {
-      val is = toSeq(observable.until(isEven))
+      val is = asSeq(observable.until(isEven))
 
       assert(is == Seq(2))
     }
 
     {
-      val is = toSeq(observable.until(_ == 8))
+      val is = asSeq(observable.until(_ == 8))
 
       assert(is == Seq(2, 4, 6, 7, 8)) 
     }
 
     {
-      val is = toSeq(observable.until(_ == 42))
+      val is = asSeq(observable.until(_ == 42))
 
       assert(is == Seq(2, 4, 6, 7, 8, 9, 10)) 
     }

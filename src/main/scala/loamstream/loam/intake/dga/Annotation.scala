@@ -9,6 +9,7 @@ import loamstream.util.Tries
 import scala.util.Success
 import loamstream.util.LogContext
 import org.json4s._
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -90,7 +91,7 @@ object Annotation {
       annotationId: String, 
       json: JValue)(implicit ctx: LogContext): Try[Seq[Download]] = {
     
-    allFileDownloads(json).map(_.filter(isValidDownload(annotationId)).toSeq.sortBy(_.md5Sum))
+    allFileDownloads(json).map(_.filter(isValidDownload(annotationId)).to(Seq).sortBy(_.md5Sum))
   }
   
   def fromJson(

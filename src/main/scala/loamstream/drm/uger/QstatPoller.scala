@@ -31,6 +31,7 @@ import loamstream.util.CanBeClosed
 import scala.io.Source
 import loamstream.util.Iterators
 import loamstream.util.ValueBox
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -79,7 +80,7 @@ final class QstatPoller private[uger] (qstatInvoker: CommandInvoker.Async[Unit])
       val exitCodeStatusObses = {
         notFoundByQstatByTaskArrayId.values.iterator.take(ThisMachine.numCpus).map { drmTaskIdsInTaskArray =>  
           getExitCodes(oracle)(drmTaskIdsInTaskArray)
-        }.toSeq
+        }.to(Seq)
       }
 
       val exitCodeStatuesObs = Observables.merge(exitCodeStatusObses)

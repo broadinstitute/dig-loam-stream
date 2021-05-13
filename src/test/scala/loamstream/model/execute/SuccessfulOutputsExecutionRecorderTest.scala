@@ -8,6 +8,7 @@ import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.MockJob
 import loamstream.util.Files
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -56,7 +57,7 @@ final class SuccessfulOutputsExecutionRecorderTest extends FunSuite {
       
       val expected = for {
         job <- Seq(j0, j2, j3, j4)
-        output <- job.outputs.toSeq
+        output <- job.outputs.to(Seq)
       } yield {
         s"${job.toReturn.jobStatus}\t${output.location}"
       }

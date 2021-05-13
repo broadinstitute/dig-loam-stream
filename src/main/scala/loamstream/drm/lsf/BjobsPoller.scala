@@ -17,6 +17,7 @@ import loamstream.drm.DrmTaskId
 import loamstream.util.Observables
 import monix.reactive.Observable
 import loamstream.model.jobs.DrmJobOracle
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -161,7 +162,7 @@ object BjobsPoller extends InvokesBjobs.Companion(new BjobsPoller(_)) {
     
     val indices = lsfJobIds.map(_.taskIndex)
     
-    val Seq(baseJobId) = baseJobIds.toSeq
+    val Seq(baseJobId) = baseJobIds.to(Seq)
         
     val toQueryFor = s"${baseJobId}[${indices.mkString(",")}]"
     

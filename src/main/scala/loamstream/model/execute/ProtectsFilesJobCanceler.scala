@@ -15,6 +15,7 @@ import loamstream.util.CanBeClosed
 import loamstream.util.Loggable
 import loamstream.util.{Paths => LPaths}
 import java.nio.file.Paths
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -33,7 +34,7 @@ final class ProtectsFilesJobCanceler private (
     debug(s"Made ${ProtectsFilesJobCanceler.getClass.getSimpleName} that will protect ${size} locations:")
     
     if(isDebugEnabled) {
-      locationsToProtect.toSeq.sorted.foreach(debug(_))
+      locationsToProtect.to(Seq).sorted.foreach(debug(_))
     }
   }
   

@@ -10,6 +10,7 @@ import loamstream.util.ValueBox
 import loamstream.util.TimeUtils
 import loamstream.util.Sequence
 import cats.kernel.Eq
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -108,7 +109,7 @@ final class ExecutionState private (
         
         def anyDepsStopExecution: Boolean = {
           //Profiler-guided optimization: mapping over a Set is slow enough that we convert to a Seq first here.
-          def depStates = statesFor(jobStates)(job.dependencies.toSeq.map(_.job)) 
+          def depStates = statesFor(jobStates)(job.dependencies.to(Seq).map(_.job)) 
           
           jobState.notStarted && depStates.exists(_.canStopExecution)
         }

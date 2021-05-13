@@ -22,6 +22,7 @@ import loamstream.util.RunResults
 import loamstream.util.Processes
 import loamstream.drm.DrmTaskId
 import monix.reactive.Observable
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -154,7 +155,7 @@ object BsubJobSubmitter extends Loggable {
     
     val coresPart = Seq("-n", numCores.toString, "-R", s"span[hosts=1]")
     
-    val queuePart: Seq[String] = drmSettings.queue.toSeq.flatMap(q => Seq("-q", q.name))
+    val queuePart: Seq[String] = drmSettings.queue.to(Seq).flatMap(q => Seq("-q", q.name))
     
     val jobNamePart = Seq("-J", s"${taskArray.drmJobName}[1-${taskArray.size}]")
     

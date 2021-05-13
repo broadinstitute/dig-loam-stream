@@ -52,6 +52,8 @@ import monix.reactive.Observable
 import monix.execution.Scheduler
 import loamstream.model.jobs.DrmJobOracle
 
+import scala.collection.compat._
+
 
 /**
  * @author clint
@@ -440,7 +442,7 @@ final class DrmChunkRunnerTest extends FunSuite {
     def doTest(drmSystem: DrmSystem): Unit = {
       val graph = makeGraph(drmSystem)
       val executable = LoamEngine.toExecutable(graph)
-      val jobs = executable.jobs.toSeq
+      val jobs = executable.jobs.to(Seq)
       
       assert(jobs.size === 2)
       
@@ -531,7 +533,7 @@ final class DrmChunkRunnerTest extends FunSuite {
      
       val (graph, tool0, tool1, tool2, tool3) = makeGraphAndTools(drmSystem)
       val executable = LoamEngine.toExecutable(graph)
-      val jobs = executable.jobs.toSeq
+      val jobs = executable.jobs.to(Seq)
       
       assert(jobs.size === 4)
       

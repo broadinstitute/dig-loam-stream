@@ -29,6 +29,7 @@ import loamstream.util.Loggable
 import loamstream.util.Terminable
 import loamstream.util.Throwables
 import loamstream.util.TimeUtils
+import scala.collection.compat._
 
 
 /**
@@ -183,7 +184,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     def using(flipDetector: => FlipDetector): ViaTarget = new ViaTarget(rowSink, rows, flipDetector)
   }
   
-  private[intake] def asCloseable[A](a: AnyRef): Seq[Closeable] = Option(a).collect { case c: Closeable => c }.toSeq
+  private[intake] def asCloseable[A](a: AnyRef): Seq[Closeable] = Option(a).collect { case c: Closeable => c }.to(Seq)
   
   final class ViaTarget(
       rowSink: RowSink[RenderableJsonRow], 

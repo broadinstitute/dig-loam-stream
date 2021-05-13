@@ -14,6 +14,7 @@ import loamstream.model.jobs.RunData
 import loamstream.model.jobs.RxMockJob
 import loamstream.util.ValueBox
 import monix.reactive.Observable
+import scala.collection.compat._
 
 
 /**
@@ -357,7 +358,7 @@ final class RxExecuterTest extends FunSuite {
       
       assert(result.size === 2)
       
-      val expectedChunks: Seq[Set[RxMockJob]] = Set(job1) +: (0 until expectedRuns2).toSeq.map(_ => Set(job2))
+      val expectedChunks: Seq[Set[RxMockJob]] = Set(job1) +: (0 until expectedRuns2).to(Seq).map(_ => Set(job2))
       
       assert(chunks === expectedChunks)
       
@@ -414,7 +415,7 @@ final class RxExecuterTest extends FunSuite {
       assert(result.size === expectedNumResults)
       
       val expectedChunks = {
-        val expectedChunksForJob2 = (0 until expectedRuns2).toSeq.map(_ => Set(job2))
+        val expectedChunksForJob2 = (0 until expectedRuns2).to(Seq).map(_ => Set(job2))
         val expectedChunksForJobs1And2 = Set(job1) +: expectedChunksForJob2
         
         if(job3ShouldFail) { expectedChunksForJobs1And2 } 

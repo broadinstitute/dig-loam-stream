@@ -1,12 +1,15 @@
 package loamstream.model.execute
 
 import org.scalatest.FunSuite
-import loamstream.model.jobs.MockJob
-import loamstream.model.jobs.JobStatus
+
 import loamstream.TestHelpers
 import loamstream.model.jobs.DataHandle
 import loamstream.model.jobs.DataHandle.PathHandle
+import loamstream.model.jobs.JobStatus
+import loamstream.model.jobs.MockJob
 import loamstream.util.Files
+
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -14,7 +17,7 @@ import loamstream.util.Files
  */
 final class MissingOutputsJobFilterTest extends FunSuite {
   import MissingOutputsJobFilter.shouldRun
-  import TestHelpers.path
+  import loamstream.TestHelpers.path
   
   test("shouldRun - no outputs") {
     val j0 = MockJob(JobStatus.Succeeded)
@@ -25,7 +28,7 @@ final class MissingOutputsJobFilterTest extends FunSuite {
   }
   
   test("shouldRun - missing outputs") {
-    val outputs: Set[DataHandle] = Seq("foo/bar/baz/", "/blerg/nerg").map(path).map(PathHandle(_)).toSet
+    val outputs: Set[DataHandle] = Seq("foo/bar/baz/", "/blerg/nerg").map(path).map(PathHandle(_): DataHandle).to(Set)
     
     assert(outputs.forall(_.isMissing))
     
@@ -61,7 +64,7 @@ final class MissingOutputsJobFilterTest extends FunSuite {
         Files.writeTo(p)("sadf")
       }
       
-      val outputs: Set[DataHandle] = paths.map(PathHandle(_)).toSet
+      val outputs: Set[DataHandle] = paths.map(PathHandle(_): DataHandle).to(Set)
       
       assert(outputs.nonEmpty)
       
@@ -109,9 +112,9 @@ final class MissingOutputsJobFilterTest extends FunSuite {
       
       //One missing, two present
 
-      val j1 = MockJob(JobStatus.Succeeded, name = "J1", outputs = outputs.toSet)
+      val j1 = MockJob(JobStatus.Succeeded, name = "J1", outputs = outputs.to(Set))
       
-      assert(j1.outputs === outputs.toSet)
+      assert(j1.outputs === outputs.to(Set))
         
       assert(shouldRun(j1) === true)
     }

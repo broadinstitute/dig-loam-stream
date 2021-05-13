@@ -52,7 +52,7 @@ final class QstatPoller private[uger] (qstatInvoker: CommandInvoker.Async[Unit])
     }
 
     //The Set of distinct DrmTaskIds (jobId/task index coords) that we're polling for
-    val drmTaskIdSet = drmTaskIds.toSet
+    val drmTaskIdSet = drmTaskIds.to(Set)
 
     //Parse out DrmTaskIds and DrmStatuses from raw qstat output (one line per task)
     val pollingResultsFromQstatObs = qstatResultObs.map { qstatResults =>
@@ -222,7 +222,7 @@ object QstatPoller extends Loggable {
       idsWereLookingFor: Iterable[DrmTaskId],
       lines: Seq[String]): Iterator[Try[PollResult]] = {
 
-      val idsWereLookingForSet = idsWereLookingFor.toSet
+      val idsWereLookingForSet = idsWereLookingFor.to(Set)
 
       val isIdWeCareAbout: PollResult => Boolean = {
         case (taskId, _) => idsWereLookingForSet.contains(taskId)

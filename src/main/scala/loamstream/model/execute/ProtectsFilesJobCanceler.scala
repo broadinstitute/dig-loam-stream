@@ -49,7 +49,7 @@ final class ProtectsFilesJobCanceler private (
     case _ => false
   }
   
-  private[execute] def locationsToProtect: Set[String] = _locationsToProtect.asScala.toSet
+  private[execute] def locationsToProtect: Set[String] = _locationsToProtect.asScala.to(Set)
   
   override def shouldCancel(job: LJob): Boolean = {
     def isProtected(output: DataHandle): Boolean = _locationsToProtect.contains(output.location)

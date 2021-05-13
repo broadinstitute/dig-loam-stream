@@ -2,8 +2,12 @@ package loamstream.model
 
 import java.nio.file.Path
 
-import loamstream.loam.{LoamGraph, LoamProjectContext, LoamScriptContext}
+import loamstream.loam.LoamGraph
+import loamstream.loam.LoamProjectContext
+import loamstream.loam.LoamScriptContext
 import loamstream.model.Tool.DefaultStores
+
+import scala.collection.compat._
 
 /**
   * @author Clint
@@ -39,7 +43,7 @@ trait Tool extends LId.HasId {
 
   /** Adds input stores to this tool */
   def in(inStores: Iterable[Store]): this.type = {
-    projectContext.updateGraph(_.withInputStores(this, inStores.toSet))
+    projectContext.updateGraph(_.withInputStores(this, inStores.to(Set)))
     
     this
   }
@@ -49,7 +53,7 @@ trait Tool extends LId.HasId {
 
   /** Adds output stores to this tool */
   def out(outStores: Iterable[Store]): this.type = {
-    projectContext.updateGraph(_.withOutputStores(this, outStores.toSet))
+    projectContext.updateGraph(_.withOutputStores(this, outStores.to(Set)))
     
     this
   }
@@ -95,7 +99,7 @@ object Tool {
 
   final case class InputsAndOutputs(inputs: Iterable[Store],
                                     outputs: Iterable[Store]) extends DefaultStores {
-    override def all: Set[Store] = (inputs ++ outputs).toSet
+    override def all: Set[Store] = (inputs ++ outputs).to(Set)
   }
 
   object InputsAndOutputs {

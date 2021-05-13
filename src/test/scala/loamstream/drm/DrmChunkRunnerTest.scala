@@ -242,7 +242,7 @@ final class DrmChunkRunnerTest extends FunSuite {
     
     assert(TestHelpers.waitFor(runner.submit(drmSettings, taskArray).firstAsFuture) === expected)
     
-    assert(runner.submittedTaskArrayIds.toSet === Set(taskId.jobId))
+    assert(runner.submittedTaskArrayIds.to(Set) === Set(taskId.jobId))
   }
   
   test("toRunDatas - one failed job") {
@@ -463,14 +463,14 @@ final class DrmChunkRunnerTest extends FunSuite {
       //TODO: We don't need to wait here, since we're only checking that run()
       //submitted jobs properly, and that should happen synchronously before run()
       //returns.
-      val results = chunkRunner.run(jobs.map(_.job).toSet, TestHelpers.DummyJobOracle)
+      val results = chunkRunner.run(jobs.map(_.job).to(Set), TestHelpers.DummyJobOracle)
       
       val actualSubmissionParams = mockJobSubmitter.params
       
       val Seq((actualSettings, actualSubmittedJobs)) = actualSubmissionParams
       
       assert(actualSettings === expectedSettings)
-      assert(actualSubmittedJobs.drmJobs.map(_.commandLineJob).toSet === jobs.toSet)
+      assert(actualSubmittedJobs.drmJobs.map(_.commandLineJob).to(Set) === jobs.to(Set))
     }
     
     doTest(DrmSystem.Uger)
@@ -562,14 +562,14 @@ final class DrmChunkRunnerTest extends FunSuite {
       //TODO: We don't need to wait here, since we're only checking that run()
       //submitted jobs properly, and that should happen synchronously before run()
       //returns.      
-      val results = chunkRunner.run(jobs.map(_.job).toSet, TestHelpers.DummyJobOracle)
+      val results = chunkRunner.run(jobs.map(_.job).to(Set), TestHelpers.DummyJobOracle)
       
       val actualSubmissionParams = mockJobSubmitter.params
       
       val actualParamsUnordered: Set[(DrmSettings, Set[LJob])] = {
         actualSubmissionParams.map { case (settings, taskArray) => 
-          (settings, taskArray.drmJobs.map(_.commandLineJob).toSet[LJob]) 
-        }.toSet
+          (settings, taskArray.drmJobs.map(_.commandLineJob: LJob).to(Set)) 
+        }.to(Set)
       }
       
       val expectedParamsUnordered: Set[(DrmSettings, Set[LJob])] = Set(

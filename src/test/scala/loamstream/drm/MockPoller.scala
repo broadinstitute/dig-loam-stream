@@ -32,7 +32,7 @@ final case class MockPoller(private val toReturn: Map[DrmTaskId, Seq[Try[DrmStat
   def isStopped: Boolean = isStoppedBox.value
   
   override def poll(oracle: DrmJobOracle)(jobIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, Try[DrmStatus])] = {
-    val jobIdsToPoll = jobIds.toSet
+    val jobIdsToPoll = jobIds.to(Set)
     
     val resultsByTaskId = toReturn.filterKeys(jobIdsToPoll.contains)
     

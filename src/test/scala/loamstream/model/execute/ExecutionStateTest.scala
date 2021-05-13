@@ -1,9 +1,11 @@
 package loamstream.model.execute
 
 import org.scalatest.FunSuite
-import loamstream.model.jobs.MockJob
+
 import loamstream.model.jobs.JobStatus
-import loamstream.model.jobs.LJob
+import loamstream.model.jobs.MockJob
+
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -22,7 +24,7 @@ final class ExecutionStateTest extends FunSuite {
     val state = ExecutionState.initialFor(executable, maxRunsPerJob)
     
     assert(state.maxRunsPerJob === maxRunsPerJob)
-    assert(state.allJobs.toSet === Set(j0, j1, j2))
+    assert(state.allJobs.to(Set) === Set(j0, j1, j2))
     
     assert(state.statusOf(j0) === JobStatus.NotStarted)
     assert(state.statusOf(j1) === JobStatus.NotStarted)

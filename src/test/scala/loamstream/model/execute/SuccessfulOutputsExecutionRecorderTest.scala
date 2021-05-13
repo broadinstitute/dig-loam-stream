@@ -53,7 +53,7 @@ final class SuccessfulOutputsExecutionRecorderTest extends FunSuite {
       
       assert(exists(file) === true)
       
-      val recordedLocs = Files.readFrom(file).split(System.lineSeparator).iterator.map(_.trim).toSet
+      val recordedLocs = Files.readFrom(file).split(System.lineSeparator).iterator.map(_.trim).to(Set)
       
       val expected = for {
         job <- Seq(j0, j2, j3, j4)
@@ -62,7 +62,7 @@ final class SuccessfulOutputsExecutionRecorderTest extends FunSuite {
         s"${job.toReturn.jobStatus}\t${output.location}"
       }
       
-      assert(recordedLocs === expected.toSet)
+      assert(recordedLocs === expected.to(Set))
     }
   }
 }

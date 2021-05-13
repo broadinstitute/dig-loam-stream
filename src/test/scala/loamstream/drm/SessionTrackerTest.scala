@@ -2,6 +2,8 @@ package loamstream.drm
 
 import org.scalatest.FunSuite
 
+import scala.collection.compat._
+
 /**
  * @author clint
  * Jan 12, 2021
@@ -26,19 +28,19 @@ final class SessionTrackerTest extends FunSuite {
     
     assert(tracker.isEmpty === false)
     assert(tracker.nonEmpty === true)
-    assert(tracker.taskArrayIdsSoFar.toSet === Set("foo"))
+    assert(tracker.taskArrayIdsSoFar.to(Set) === Set("foo"))
     
     tracker.register(Nil)
     
     assert(tracker.isEmpty === false)
     assert(tracker.nonEmpty === true)
-    assert(tracker.taskArrayIdsSoFar.toSet === Set("foo"))
+    assert(tracker.taskArrayIdsSoFar.to(Set) === Set("foo"))
     
     tracker.register(Seq(tid3, tid4, tid2))
     
     assert(tracker.isEmpty === false)
     assert(tracker.nonEmpty === true)
-    assert(tracker.taskArrayIdsSoFar.toSet === Set("foo", "bar", "baz", "blerg"))
+    assert(tracker.taskArrayIdsSoFar.to(Set) === Set("foo", "bar", "baz", "blerg"))
   }
   
   test("Noop") {

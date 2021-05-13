@@ -1,20 +1,20 @@
 package loamstream.drm
 
 import org.scalatest.FunSuite
+
+import loamstream.TestHelpers
 import loamstream.drm.uger.UgerDefaults
 import loamstream.model.execute.DrmSettings
-import loamstream.model.quantities.Cpus
-import loamstream.model.quantities.Memory
-import loamstream.model.quantities.CpuTime
-import loamstream.TestHelpers
+
+import scala.collection.compat._
 
 /**
  * @author clint
  * May 25, 2018
  */
 final class DrmSystemTest extends FunSuite {
-  import DrmSystem.Uger
   import DrmSystem.Lsf
+  import DrmSystem.Uger
   
   test("defaultQueue") {
     assert(Uger.defaultQueue === Some(UgerDefaults.queue))
@@ -63,6 +63,6 @@ final class DrmSystemTest extends FunSuite {
   }
   
   test("values") {
-    assert(DrmSystem.values.toSet === Set(Uger, Lsf))
+    assert(DrmSystem.values.to(Set) === Set(Uger, Lsf))
   }
 }

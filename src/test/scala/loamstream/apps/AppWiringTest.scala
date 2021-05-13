@@ -116,7 +116,7 @@ final class AppWiringTest extends FunSuite with Matchers {
       
       val runner = actualExecuter.runner.asInstanceOf[CompositeChunkRunner]
       
-      assert(runner.components.map(_.getClass).toSet === Set(classOf[AsyncLocalChunkRunner], classOf[DrmChunkRunner]))
+      assert(runner.components.map(_.getClass).to(Set) === Set(classOf[AsyncLocalChunkRunner], classOf[DrmChunkRunner]))
       
       import JobFilter.{AndJobFilter, OrJobFilter}
       
@@ -158,7 +158,7 @@ final class AppWiringTest extends FunSuite with Matchers {
       
       val runner = actualExecuter.runner.asInstanceOf[CompositeChunkRunner]
       
-      assert(runner.components.map(_.getClass).toSet === Set(classOf[AsyncLocalChunkRunner], classOf[DrmChunkRunner]))
+      assert(runner.components.map(_.getClass).to(Set) === Set(classOf[AsyncLocalChunkRunner], classOf[DrmChunkRunner]))
     }
     
     doTest(DrmSystem.Uger, Conf.RunStrategies.AllOf)
@@ -187,7 +187,7 @@ final class AppWiringTest extends FunSuite with Matchers {
       
       val runner = actualExecuter.runner.asInstanceOf[CompositeChunkRunner]
       
-      assert(runner.components.map(_.getClass).toSet === Set(classOf[AsyncLocalChunkRunner], classOf[DrmChunkRunner]))
+      assert(runner.components.map(_.getClass).to(Set) === Set(classOf[AsyncLocalChunkRunner], classOf[DrmChunkRunner]))
       
       actualExecuter.asInstanceOf[RxExecuter].jobFilter shouldBe JobFilter.RunEverything
     }
@@ -206,7 +206,7 @@ final class AppWiringTest extends FunSuite with Matchers {
       
       val runner = actualExecuter.runner.asInstanceOf[CompositeChunkRunner]
       
-      assert(runner.components.map(_.getClass).toSet === Set(classOf[AsyncLocalChunkRunner], classOf[DrmChunkRunner]))
+      assert(runner.components.map(_.getClass).to(Set) === Set(classOf[AsyncLocalChunkRunner], classOf[DrmChunkRunner]))
       
       val drmRunner = runner.components.collectFirst { case drmRunner: DrmChunkRunner => drmRunner }.get
       

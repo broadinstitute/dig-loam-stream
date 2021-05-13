@@ -2,6 +2,8 @@ package loamstream.model
 
 import org.scalatest.FunSuite
 
+import scala.collection.compat._
+
 /**
  * @author clint
  * date: May 23, 2016
@@ -71,6 +73,6 @@ final class LIdTest extends FunSuite {
     val ids = (0 until n).map(_ => newAnonId)
     
     assert(ids.size == n)
-    assert(ids.toSet.size == n)
+    assert(ids.to(Set).size == n)
   }
 }

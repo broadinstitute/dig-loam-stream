@@ -166,7 +166,7 @@ final class ExecutionState private (
   
   private def transition(jobs: TraversableOnce[LJob], doTransition: JobExecutionState => JobExecutionState): Unit = {
     if(jobs.nonEmpty) {
-      val jobSet = jobs.toSet
+      val jobSet = jobs.to(Set)
       
       jobStatesBox.foreach { jobStates =>
         val jobIndices: Iterator[Int] = jobSet.iterator.map(index.get(_))
@@ -238,7 +238,7 @@ final class ExecutionState private (
    */
   private[execute] def cancelSuccessors(failedJob: LJob): Unit = {
     TimeUtils.time(s"Cancelling successors for failed job with id ${failedJob.id}", debug(_)) {
-      val successors = ExecuterHelpers.flattenTree(Set(failedJob), _.successors).toSet - failedJob
+      val successors = ExecuterHelpers.flattenTree(Set(failedJob), _.successors).to(Set) - failedJob
       
       markAs(successors.iterator.map(_.job), JobStatus.CouldNotStart)
     }

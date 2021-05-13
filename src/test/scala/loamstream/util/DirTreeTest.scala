@@ -415,8 +415,8 @@ final class DirTreeTest extends FunSuite {
     val lhsLeaves = leftBranch.children.map(_.asInstanceOf[DirNode.Leaf[LJob]])
     val rhsLeaves = rightBranch.children.map(_.asInstanceOf[DirNode.Leaf[LJob]])
     
-    assert(lhsLeaves.map(_.value.name).toSet === (0 to 9).map(_.toString).toSet)
-    assert(rhsLeaves.map(_.value.name).toSet === Set("10"))
+    assert(lhsLeaves.map(_.value.name).to(Set) === (0 to 9).map(_.toString).to(Set))
+    assert(rhsLeaves.map(_.value.name).to(Set) === Set("10"))
   }
 }
 

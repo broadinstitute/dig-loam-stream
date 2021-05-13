@@ -1,16 +1,17 @@
 package loamstream.apps
 
 import org.scalatest.FunSuite
-import loamstream.model.jobs.MockJob
-import loamstream.model.jobs.JobStatus
-import loamstream.model.execute.Executable
-import loamstream.model.execute.DbBackedJobFilter
-import loamstream.db.slick.ProvidesSlickLoamDao
-import loamstream.model.execute.JobFilter
-import loamstream.model.jobs.Execution
-import loamstream.model.jobs.LJob
-import loamstream.model.execute.DryRunner
+
 import loamstream.model.execute.ByNameJobFilter
+import loamstream.model.execute.DryRunner
+import loamstream.model.execute.Executable
+import loamstream.model.execute.JobFilter
+import loamstream.model.jobs.JobStatus
+import loamstream.model.jobs.LJob
+import loamstream.model.jobs.MockJob
+
+import scala.collection.compat._
+import loamstream.model.jobs.JobNode
 
 /**
  * @author clint
@@ -28,7 +29,7 @@ final class DryRunnerTest extends FunSuite {
   private def mockJob(name: String) = MockJob(toReturn = JobStatus.Succeeded, name = name)
   
   private def mockJob(name: String, dependencies: MockJob*): MockJob = {
-    MockJob(toReturn = JobStatus.Succeeded, name = name, dependencies = dependencies.toSet)
+    MockJob(toReturn = JobStatus.Succeeded, name = name, dependencies = (dependencies.toSeq: Seq[JobNode]).to(Set))
   }
   
   test("toBeRun - single job, should be run") {
@@ -250,7 +251,7 @@ final class DryRunnerTest extends FunSuite {
     
     val executable = Executable(Set(job100))
     
-    val jobFilter = MockJobFilter(shouldRun = Set(job0), shouldNOTRun = (jobs1to99.toSet + job100))
+    val jobFilter = MockJobFilter(shouldRun = Set(job0), shouldNOTRun = ((jobs1to99: Seq[LJob]).to(Set) + job100))
     
     val actual = DryRunner.toBeRun(jobFilter, executable)
     
@@ -278,7 +279,7 @@ final class DryRunnerTest extends FunSuite {
     
     val executable = Executable(Set(job100))
     
-    val jobFilter = MockJobFilter(shouldRun = Set(job0), shouldNOTRun = (jobs1to99.toSet + job100))
+    val jobFilter = MockJobFilter(shouldRun = Set(job0), shouldNOTRun = ((jobs1to99: Seq[LJob]).to(Set) + job100))
     
     val actual = DryRunner.toBeRun(jobFilter, executable)
     
@@ -342,7 +343,7 @@ final class DryRunnerTest extends FunSuite {
     
     //NB: DryRunner is 'conservative'; if the JobFilter says a job should run, but subsequent jobs shouldn't, 
     //indicate that the subsequnt jobs will run since they follow on from one that does.
-    assert(actual.toSet === (job0 +: jobs1to99 :+ job100).toSet)
+    assert(actual.to(Set) === (job0 +: jobs1to99 :+ job100).to(Set))
   }
   
   test("toBeRun with ByNameJobFilter - more-complex topology, wide fanout") {
@@ -369,7 +370,7 @@ final class DryRunnerTest extends FunSuite {
     val actual = DryRunner.toBeRun(jobFilter, executable)
     
     //NB: In this case, dependency relationships are ignored, and what the ByNameJobFilter says goes.
-    assert(actual.map(_.name).toSet === Set("j0","j40","j41","j42","j43","j44","j45","j46","j47","j48","j49"))
+    assert(actual.map(_.name).to(Set) === Set("j0","j40","j41","j42","j43","j44","j45","j46","j47","j48","j49"))
   }
 }
 

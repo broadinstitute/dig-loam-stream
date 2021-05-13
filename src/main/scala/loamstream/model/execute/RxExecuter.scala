@@ -26,6 +26,8 @@ import scala.concurrent.duration.FiniteDuration
 import monix.reactive.OverflowStrategy
 import monix.reactive.observers.Subscriber
 
+import scala.collection.compat._
+
 
 /**
  * @author kaan
@@ -48,7 +50,7 @@ final case class RxExecuter(
   require(maxRunsPerJob >= 1, s"The maximum number of times to run each job must not be negative; got $maxRunsPerJob")
 
   protected override val terminableComponents: Iterable[Terminable] = {
-    additionalTerminableComponents.toSet + executionRecorder
+    additionalTerminableComponents.to(Set) + executionRecorder
   }
   
   import executionRecorder.record
@@ -224,7 +226,7 @@ final case class RxExecuter(
     
     if(jobsToRun.isEmpty) { Observable(None) }
     else {
-      val jobRunObs = runner.run(jobsToRun.toSet, jobOracle)
+      val jobRunObs = runner.run(jobsToRun.to(Set), jobOracle)
       
       jobRunObs.flatMap(toExecutionMap(fileMonitor)).map(Option(_))
     }

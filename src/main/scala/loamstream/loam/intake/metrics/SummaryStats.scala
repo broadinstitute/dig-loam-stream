@@ -32,7 +32,7 @@ final case class SummaryStats(
   def percentComplemented: Double = toPercent(fractionComplemented)
   
   def chromosomesWithNoValidVariants: Set[String] = {
-    validVariantsByChromosome.collect { case (chrom, 0) => chrom }.toSet
+    validVariantsByChromosome.collect { case (chrom, 0) => chrom }.to(Set)
   }
   
   def toFileContents: String = {

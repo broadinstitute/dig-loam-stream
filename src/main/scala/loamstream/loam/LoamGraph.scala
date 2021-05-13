@@ -3,15 +3,15 @@ package loamstream.loam
 import java.net.URI
 import java.nio.file.Path
 
-import loamstream.loam.LoamGraph.StoreLocation
 import loamstream.model.Store
 import loamstream.model.Tool
 import loamstream.model.Tool.AllStores
 import loamstream.model.Tool.InputsAndOutputs
-import loamstream.util.Sequence
-import loamstream.util.Traversables
-import loamstream.util.BiMap
 import loamstream.model.execute.Settings
+import loamstream.util.BiMap
+import loamstream.util.Sequence
+
+import scala.collection.compat._
 
 /** The graph of all Loam stores and tools and their relationships */
 object LoamGraph {
@@ -95,10 +95,10 @@ final case class LoamGraph(
           
           (toolInputStores, toolOutputStores)
         }
-        case InputsAndOutputs(inputs, outputs) => (inputs.toSet, outputs.toSet)
+        case InputsAndOutputs(inputs, outputs) => (inputs.to(Set), outputs.to(Set))
       }
 
-      import Traversables.Implicits._
+      import loamstream.util.Traversables.Implicits._
       
       val outputsWithProducer: Map[Store, Tool] = toolOutputStores.mapTo(_ => tool)
       

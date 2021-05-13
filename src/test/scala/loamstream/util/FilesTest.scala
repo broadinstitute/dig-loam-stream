@@ -1,14 +1,17 @@
 package loamstream.util
 
 import java.nio.charset.StandardCharsets
+import java.nio.file.{ Files => JFiles }
 import java.nio.file.Path
-import java.nio.file.{Files => JFiles}
-
-import org.scalatest.FunSuite
 
 import scala.collection.JavaConverters.asScalaIteratorConverter
 import scala.util.Success
+
+import org.scalatest.FunSuite
+
 import loamstream.TestHelpers
+
+import scala.collection.compat._
 
 /**
   * @author clint
@@ -16,8 +19,8 @@ import loamstream.TestHelpers
   */
 final class FilesTest extends FunSuite {
   import Paths.Implicits._
-  import TestHelpers.path
   import java.nio.file.Files.exists
+  import loamstream.TestHelpers.path
   
   test("copyAndOverwrite") {
     TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
@@ -102,9 +105,9 @@ final class FilesTest extends FunSuite {
     assert(Files.listFiles(dummy, ".*") === List(dummyFile1))
 
     val dummyFile2 = Files.tempFile(dummyFileSuffix, dummy.toFile).toFile
-    assert(Files.listFiles(dummy, ".*").toSet === Set(dummyFile1, dummyFile2))
-    assert(Files.listFiles(dummy, ".*dummy.*").toSet === Set(dummyFile1, dummyFile2))
-    assert(Files.listFiles(dummy, ".*duMMy.*").toSet === Set.empty)
+    assert(Files.listFiles(dummy, ".*").to(Set) === Set(dummyFile1, dummyFile2))
+    assert(Files.listFiles(dummy, ".*dummy.*").to(Set) === Set(dummyFile1, dummyFile2))
+    assert(Files.listFiles(dummy, ".*duMMy.*").to(Set) === Set.empty)
 
     assert(dummyFile1.delete)
     assert(dummyFile2.delete)

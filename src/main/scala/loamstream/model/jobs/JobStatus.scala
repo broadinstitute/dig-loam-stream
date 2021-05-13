@@ -2,6 +2,7 @@ package loamstream.model.jobs
 
 import loamstream.util.Loggable
 import loamstream.util.ExitCodes
+import scala.collection.compat._
 
 /**
  * @author kyuksel
@@ -51,7 +52,7 @@ object JobStatus extends Loggable {
   case object Canceled extends NeitherSuccessNorFailure(isTerminal = true)
   case object FailedPermanently extends Failure(isTerminal = true)
 
-  def values: Set[JobStatus] = namesToInstances.values.toSet
+  def values: Set[JobStatus] = namesToInstances.values.to(Set)
   
   def fromString(s: String): Option[JobStatus] = namesToInstances.get(s.toLowerCase.trim)
 

@@ -81,7 +81,7 @@ final class JobMonitor(
    */
   def monitor(oracle: DrmJobOracle)(taskIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, DrmStatus)] = {
     
-    val distinctIdsBeingPolledFor = taskIds.toSet
+    val distinctIdsBeingPolledFor = taskIds.to(Set)
     
     val stopSignal: Subject[Unit, Unit] = PublishSubject()
     

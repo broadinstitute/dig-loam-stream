@@ -69,7 +69,7 @@ final case class Execution(
   def withStoreRecords(newOutputs: Set[StoreRecord]): Execution = copy(outputs = newOutputs)
   
   def withStoreRecords(newOutput: StoreRecord, others: StoreRecord*): Execution = {
-    withStoreRecords((newOutput +: others).toSet)
+    withStoreRecords((newOutput +: others).to(Set))
   }
 
   def withResources(rs: Resources): Execution = copy(resources = Some(rs))

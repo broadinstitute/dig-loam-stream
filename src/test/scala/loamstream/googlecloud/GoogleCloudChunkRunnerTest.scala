@@ -1,31 +1,28 @@
 package loamstream.googlecloud
 
+import java.nio.file.Path
+
 import scala.concurrent.ExecutionContext
 
 import org.scalatest.FunSuite
 
 import loamstream.TestHelpers
+import loamstream.conf.ExecutionConfig
 import loamstream.model.execute.AsyncLocalChunkRunner
-import loamstream.model.execute.EnvironmentType
+import loamstream.model.execute.GoogleSettings
 import loamstream.model.execute.MockChunkRunner
 import loamstream.model.execute.ProvidesEnvAndResources
 import loamstream.model.execute.Resources
 import loamstream.model.execute.Resources.GoogleResources
-import loamstream.model.jobs.Execution
+import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.JobResult.CommandResult
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.MockJob
-import loamstream.util.ValueBox
-import loamstream.conf.ExecutionConfig
-import loamstream.model.jobs.OutputStreams
 import loamstream.model.jobs.RunData
-import loamstream.util.Maps
-import java.nio.file.Path
-import loamstream.model.execute.GoogleSettings
-import loamstream.model.execute.Resources.LocalResources
-import loamstream.model.execute.Settings
-import monix.execution.Scheduler
+import loamstream.util.ValueBox
+
+import scala.collection.compat._
 
 
 /**
@@ -36,9 +33,9 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
   
   import GoogleCloudChunkRunnerTest.LiteralMockDataProcClient
   import GoogleCloudChunkRunnerTest.MockDataProcClient
-  import loamstream.util.Observables.Implicits._
   import loamstream.TestHelpers.waitFor
-  import Scheduler.Implicits.global
+  import loamstream.util.Observables.Implicits._
+  import monix.execution.Scheduler.Implicits.global
 
   private val clusterId = "some-cluster-id"
   
@@ -397,7 +394,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       val jobRuns = waitFor(runDataObs.foldLeft(z)(_ + _).firstAsFuture)
       
       assert(client.clusterRunning() === true)
-      assert(client.startClusterInvocations().toSet === 
+      assert(client.startClusterInvocations().to(Set) === 
         Set(settings12.clusterConfig, settings3.clusterConfig, settings4.clusterConfig))
       assert(client.deleteClusterInvocations() === 2)
       

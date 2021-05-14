@@ -1,13 +1,15 @@
 package loamstream.loam.intake
 
+import java.util.UUID
+
+import org.json4s.JsonAST.JValue
 import org.scalatest.FunSuite
+
+import AwsRowSinkTest.MockS3Client
+import loamstream.loam.intake.dga.Json
 import loamstream.util.S3Client
 import loamstream.util.S3Client.ContentType
-import loamstream.util.Maps
-import AwsRowSinkTest.MockS3Client
-import java.util.UUID
-import org.json4s.JsonAST.JValue
-import loamstream.loam.intake.dga.Json
+
 import scala.collection.compat._
 
 /**
@@ -203,7 +205,7 @@ object AwsRowSinkTest {
   }
   
   final case class MockS3Client(bucket: String, initialData: Map[String, String] = Map.empty) extends S3Client {
-    import Maps.Implicits._
+    import loamstream.util.Maps.Implicits._
     
     var data: Map[String, MockValue] = initialData.strictMapValues(MockValue(_, None))
     
@@ -215,7 +217,7 @@ object AwsRowSinkTest {
     }
   
     override def deleteDir(key: String): Unit = {
-      data = data.filterKeys(!_.startsWith(key))
+      data = data.strictFilterKeys(!_.startsWith(key))
     }
   
     override def put(key: String, body: String, contentType: Option[ContentType] = None): Unit = {

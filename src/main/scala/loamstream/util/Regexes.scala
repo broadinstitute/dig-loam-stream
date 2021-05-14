@@ -9,9 +9,9 @@ import scala.util.matching.Regex
 object Regexes {
   object Implicits {
     final implicit class RegexOps(val regex: Regex) extends AnyVal {
-      def matches(input: String): Boolean = regex.findFirstMatchIn(input).isDefined
+      def foundIn(input: String): Boolean = regex.findFirstIn(input).isDefined
     
-      def doesntMatch(input: String): Boolean = !matches(input)
+      def notFoundIn(input: String): Boolean = !foundIn(input)
     }
   }
 }

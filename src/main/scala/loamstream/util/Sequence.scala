@@ -14,8 +14,10 @@ package loamstream.util
  * @param N the type of values produced by the sequence.  An instance of scala.Numeric[N] needs to be available.
  * By default, this means we can make Sequences of Bytes, Shorts, Ints, Longs, Doubles, Floats, and possibly more. 
  */
-final class Sequence[N](val start: N, val step: N)(implicit evidence: Numeric[N]) extends Iterable[N] {
+final class Sequence[N] private (val start: N, val step: N)(implicit evidence: Numeric[N]) extends Iterable[N] {
   private val current: ValueBox[N] = ValueBox(start)
+  
+  override def toString: String = s"${getClass.getSimpleName}(start = $start, step = $step, current = ${current()})"
   
   /**
    * @return the next value in this Sequence
@@ -37,5 +39,7 @@ object Sequence {
    * @param step the amount to advance the Sequence by - default is 1
    * @param N the type of values produced by the sequence.  An instance of scala.Numeric[N] needs to be available.
    */
-  def apply[N: Numeric](start: N = 0, step: N = 1): Sequence[N] = new Sequence(start, step)
+  def apply[N]()(implicit ev: Numeric[N]): Sequence[N] = apply(ev.zero, ev.one)
+  
+  def apply[N: Numeric](start: N, step: N): Sequence[N] = new Sequence(start, step)
 }

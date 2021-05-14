@@ -17,7 +17,7 @@ import loamstream.util.Options
 import loamstream.drm.ContainerParams
 import loamstream.model.jobs.commandline.HasCommandLine
 import loamstream.googlecloud.ClusterConfig
-import org.broadinstitute.dig.aws.emr.Cluster
+import org.broadinstitute.dig.aws.emr.ClusterDef
 
 /**
  * @author kyuksel
@@ -99,6 +99,6 @@ final case class GoogleSettings(
 /**
  * Execution-time settings for an AWS job 
  */
-final case class AwsSettings(clusterConfig: Cluster) extends Settings(EnvironmentType.Aws) {
-  def clusterId: String = clusterConfig.name
+final case class AwsSettings(clusterDef: ClusterDef) extends Settings(EnvironmentType.Aws) {
+  def clusterId: String = clusterDef.name
 }

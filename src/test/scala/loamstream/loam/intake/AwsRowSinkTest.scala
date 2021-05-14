@@ -1,8 +1,8 @@
 package loamstream.loam.intake
 
 import org.scalatest.FunSuite
-import loamstream.util.AwsClient
-import loamstream.util.AwsClient.ContentType
+import loamstream.util.S3Client
+import loamstream.util.S3Client.ContentType
 import loamstream.util.Maps
 import AwsRowSinkTest.MockAwsClient
 import java.util.UUID
@@ -127,7 +127,7 @@ final class AwsRowSinkTest extends FunSuite {
       s"some-bucket/some-topic/some-name/part-00002-${uuid}.json" ->
         AwsRowSinkTest.MockValue(
             s"""{"X":"4","Y":"3","Z":"2"}${newline}{"X":"z","Y":"x","Z":"c"}""", 
-            Some(AwsClient.ContentType.ApplicationJson)))
+            Some(S3Client.ContentType.ApplicationJson)))
       
     
     assert(client.data === expected0)
@@ -146,7 +146,7 @@ final class AwsRowSinkTest extends FunSuite {
       s"some-bucket/some-topic/some-name/part-00004-${uuid}.json" -> 
         AwsRowSinkTest.MockValue(
             s"""{"X":"q","Y":"w","Z":"e"}${newline}{"X":"f","Y":"o","Z":"o"}""", 
-            Some(AwsClient.ContentType.ApplicationJson)))
+            Some(S3Client.ContentType.ApplicationJson)))
         
     assert(client.data === expected1)
     assert(sink.uploadedSoFar === 4)
@@ -185,7 +185,7 @@ final class AwsRowSinkTest extends FunSuite {
     
     sink.flush()
     
-    val json = Some(AwsClient.ContentType.ApplicationJson)
+    val json = Some(S3Client.ContentType.ApplicationJson)
     
     val expected0 = Map(
       s"some-bucket/some-topic/some-name/part-00002-${uuid}.json" -> 
@@ -202,7 +202,7 @@ object AwsRowSinkTest {
     def empty(bucket: String): MockAwsClient = new MockAwsClient(bucket)
   }
   
-  final case class MockAwsClient(bucket: String, initialData: Map[String, String] = Map.empty) extends AwsClient {
+  final case class MockAwsClient(bucket: String, initialData: Map[String, String] = Map.empty) extends S3Client {
     import Maps.Implicits._
     
     var data: Map[String, MockValue] = initialData.strictMapValues(MockValue(_, None))

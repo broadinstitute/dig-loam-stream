@@ -3,12 +3,6 @@ package loamstream.loam.intake
 import java.io.Closeable
 import java.nio.file.Path
 
-import org.broadinstitute.dig.aws.AWS
-import org.broadinstitute.dig.aws.config.AWSConfig
-import org.broadinstitute.dig.aws.config.S3Config
-import org.broadinstitute.dig.aws.config.emr.EmrConfig
-import org.broadinstitute.dig.aws.config.emr.SubnetId
-
 import loamstream.compiler.LoamPredef
 import loamstream.loam.GraphFunctions
 import loamstream.loam.InvokesLsTool
@@ -20,7 +14,7 @@ import loamstream.loam.intake.metrics.Metrics
 import loamstream.model.Store
 import loamstream.model.Tool
 import loamstream.model.execute.DrmSettings
-import loamstream.util.AwsClient
+import loamstream.util.S3Client
 import loamstream.util.CanBeClosed
 import loamstream.util.CompositeException
 import loamstream.util.Files
@@ -394,25 +388,16 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       uploadType: UploadType,
       metadata: AggregatorMetadata): TransformationTarget = {
     
-    val awsConfig: AWSConfig = {
-      //dummy values, except fot the bucket name
-      AWSConfig(
-          S3Config(bucketName), 
-          EmrConfig("some-ssh-key-name", SubnetId("subnet-foo")))
-    }
-  
-    val awsClient: AwsClient = new AwsClient.Default(new AWS(awsConfig))
+    val s3Client: S3Client = new S3Client.Default(bucketName)
     
     val rowSink: RowSink[RenderableJsonRow] = new AwsRowSink(
         topic = uploadType.s3Dir,
         dataset = metadata.dataset,
         techType = Option(metadata.tech),
         phenotype = Option(metadata.phenotype),
-        awsClient = awsClient,
+        s3Client = s3Client,
         yes = true)
     
     uploadTo(rowSink)
   }
-  
-  
 }

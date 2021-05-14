@@ -11,6 +11,8 @@ import loamstream.util.Loggable
 import loamstream.compiler.LoamEngine
 import loamstream.model.execute.RxExecuter
 
+import scala.collection.compat._
+
 /**
  * @author clint
  * Apr 6, 2020
@@ -149,8 +151,8 @@ final class ProcessRealDataTest extends FunSuite with Loggable {
           asDouble(MAF_PH.name))
       }
         
-      val actualRecords = actual.records.toList
-      val expectedRecords = expected.records.toList
+      val actualRecords = actual.records.to(List)
+      val expectedRecords = expected.records.to(List)
       
       actualRecords.zip(expectedRecords).foreach { case (lhs, rhs) => assertSame(lhs, rhs, expectations) }
       

@@ -16,8 +16,8 @@ import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Memory
 import loamstream.util.CommandInvoker
 import loamstream.util.RunResults
-import rx.lang.scala.schedulers.ComputationScheduler
 import loamstream.util.LogContext
+import monix.execution.Scheduler
 
 /**
  * @author clint
@@ -47,7 +47,7 @@ final class BacctAccountingClientTest extends FunSuite {
           0, 
           "MOCK", 
           _ => runResultsAttempt(stdout = bacctOutput), 
-          scheduler = ComputationScheduler())
+          scheduler = Scheduler.computation())
 
       val taskId = DrmTaskId("foo", 42)
       
@@ -67,7 +67,7 @@ final class BacctAccountingClientTest extends FunSuite {
         0, 
         "MOCK", 
         _ => runResultsAttempt(stdout = splitOutput),
-        scheduler = ComputationScheduler())
+        scheduler = Scheduler.computation())
     
     val taskId = DrmTaskId("someJobId", 42)
     
@@ -104,7 +104,7 @@ final class BacctAccountingClientTest extends FunSuite {
           0, 
           "MOCK", 
           _ => runResultsAttempt(stdout = splitOutput),
-          scheduler = ComputationScheduler())
+          scheduler = Scheduler.computation())
       
       val taskId = DrmTaskId("someJobId", 42)
       
@@ -139,7 +139,7 @@ final class BacctAccountingClientTest extends FunSuite {
         0, 
         "MOCK", 
         _ => runResultsAttempt(stdout = splitOutput),
-        scheduler = ComputationScheduler())
+        scheduler = Scheduler.computation())
     
     val taskId = DrmTaskId("someJobId", 42)
     

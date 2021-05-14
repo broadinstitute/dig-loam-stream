@@ -14,8 +14,10 @@ import loamstream.util.Traversables
 import scala.util.Try
 import scala.util.Failure
 import loamstream.util.LogContext
+import monix.execution.Scheduler
 import loamstream.TestHelpers.DummyDrmJobOracle
 import loamstream.util.Files
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -41,15 +43,16 @@ final class QstatPollerTest extends FunSuite {
   private val qstatLines = headerLines ++ dataLines
     
   test("poll - happy path") {
-    import scala.concurrent.ExecutionContext.Implicits.global
-    
     val qstatInvocationFn: CommandInvoker.InvocationFn[Unit] = { _ => 
       Success(RunResults.Successful("MOCK_QSTAT", qstatLines, Nil))
     }
     
     import LogContext.Implicits.Noop
+    import Scheduler.Implicits.global
     
-    val qstatInvoker: CommandInvoker.Async[Unit] = new CommandInvoker.Async.JustOnce("MOCK_QSTAT", qstatInvocationFn)
+    val qstatInvoker: CommandInvoker.Async[Unit] = {
+      new CommandInvoker.Async.JustOnce("MOCK_QSTAT", qstatInvocationFn)
+    }
     
     val poller = new QstatPoller(qstatInvoker)
     
@@ -77,7 +80,8 @@ final class QstatPollerTest extends FunSuite {
     }
     
     {
-      val results = TestHelpers.waitFor(poller.poll(DummyDrmJobOracle)(runningTaskIds).toSeq.firstAsFuture)
+
+      val results = poller.poll(DummyDrmJobOracle)(runningTaskIds).toListL.runSyncUnsafe(TestHelpers.defaultWaitTime)
       
       val expected = Seq(
           runningTaskIds(0) -> Success(DrmStatus.Running),
@@ -87,9 +91,9 @@ final class QstatPollerTest extends FunSuite {
     }
     
     {
-      val results = TestHelpers.waitFor {
-        poller.poll(DummyDrmJobOracle)(runningTaskIds :+ finishedTaskId).toSeq.firstAsFuture
-      }
+      val results = poller.poll(DummyDrmJobOracle)(runningTaskIds :+ finishedTaskId)
+                          .toListL
+                          .runSyncUnsafe(TestHelpers.defaultWaitTime)
       
       val expected = Seq(
           runningTaskIds(0) -> Success(DrmStatus.Running),
@@ -111,9 +115,9 @@ final class QstatPollerTest extends FunSuite {
       Success(id2 -> DrmStatus.Running),
       Success(id1 -> DrmStatus.Running))
         
-    assert(QstatSupport.parseQstatOutput(ids, qstatLines).toList === expected)
+    assert(QstatSupport.parseQstatOutput(ids, qstatLines).to(List) === expected)
     
-    assert(QstatSupport.parseQstatOutput(ids, dataLines).toList === expected)
+    assert(QstatSupport.parseQstatOutput(ids, dataLines).to(List) === expected)
     
     assert(QstatSupport.parseQstatOutput(ids, headerLines).isEmpty)
     
@@ -159,10 +163,10 @@ final class QstatPollerTest extends FunSuite {
         case Failure(_) => ???
       }
       
-      s.toSeq.sorted(ordering)
+      s.to(Seq).sorted(ordering)
     }
         
-    assert(sort(QstatSupport.parseQstatOutput(ids, lines).toList) === sort(expected))
+    assert(sort(QstatSupport.parseQstatOutput(ids, lines).to(List)) === sort(expected))
   }
   
   test("parseQstatOutput - bad lines should be ignored") {
@@ -180,7 +184,7 @@ final class QstatPollerTest extends FunSuite {
       Success(id2 -> DrmStatus.Running),
       Success(id1 -> DrmStatus.Running))
         
-    assert(QstatSupport.parseQstatOutput(ids, lines).toList === expected)
+    assert(QstatSupport.parseQstatOutput(ids, lines).to(List) === expected)
   }
   
   test("parseQstatOutput - bad statuses should be failures") {
@@ -192,7 +196,7 @@ final class QstatPollerTest extends FunSuite {
     
     val ids = Set(id1, id2, id3)
     
-    val actual = QstatSupport.parseQstatOutput(ids, lines).toList
+    val actual = QstatSupport.parseQstatOutput(ids, lines).to(List)
     
     assert(actual.forall { 
       case Success((drmTaskId, drmStatus)) => drmStatus.isUndetermined

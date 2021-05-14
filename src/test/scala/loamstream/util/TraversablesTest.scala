@@ -2,6 +2,8 @@ package loamstream.util
 
 import org.scalatest.FunSuite
 
+import scala.collection.compat._
+
 /**
  * @author clint
  * date: Aug 11, 2016
@@ -17,7 +19,7 @@ final class TraversablesTest extends FunSuite {
   test("splitOn") {
     import Traversables.Implicits._
     
-    def split(t: Traversable[Char]): List[String] = t.splitOn(_ == '-').toList.map(_.mkString)
+    def split(t: Traversable[Char]): List[String] = t.splitOn(_ == '-').to(List).map(_.mkString)
     
     assert(split("abc-tuv-xyz-".toTraversable) === List("abc", "tuv", "xyz"))
     assert(split("-abc-tuv-xyz".toTraversable) === List("abc", "tuv", "xyz"))

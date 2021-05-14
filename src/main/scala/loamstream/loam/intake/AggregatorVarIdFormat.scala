@@ -1,5 +1,7 @@
 package loamstream.loam.intake
 
+import scala.collection.compat._
+
 /**
  * @author clint
  * Feb 12, 2020
@@ -22,6 +24,6 @@ object AggregatorVarIdFormat {
     
     val values: Set[Component] = Set(Chrom, Pos, Ref, Alt)
     
-    val names: Seq[String] = values.toSeq.map(_.name).sorted
+    val names: Seq[String] = values.to(Seq).map(_.name).sorted
   }
 }

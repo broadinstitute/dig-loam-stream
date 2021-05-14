@@ -3,8 +3,8 @@ package loamstream.model.execute
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.RunData
 import loamstream.util.ValueBox
-import rx.lang.scala.Observable
 import loamstream.model.jobs.JobOracle
+import monix.reactive.Observable
 
 /**
  * @author clint
@@ -13,12 +13,12 @@ import loamstream.model.jobs.JobOracle
 final case class MockChunkRunner(delegate: ChunkRunner) extends ChunkRunner {
   override def canRun(job: LJob): Boolean = delegate.canRun(job)
   
-  val chunks: ValueBox[Seq[Set[LJob]]] = ValueBox(Vector.empty)
+  val chunks: ValueBox[Seq[Iterable[LJob]]] = ValueBox(Vector.empty)
   
-  val chunksWithSettings: ValueBox[Seq[Set[(LJob, Settings)]]] = ValueBox(Vector.empty)
+  val chunksWithSettings: ValueBox[Seq[Iterable[(LJob, Settings)]]] = ValueBox(Vector.empty)
 
   override def run(
-      chunk: Set[LJob], 
+      chunk: Iterable[LJob], 
       jobOracle: JobOracle): Observable[(LJob, RunData)] = {
     
     chunks.mutate(_ :+ chunk)

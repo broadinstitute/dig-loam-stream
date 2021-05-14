@@ -1,7 +1,6 @@
 package loamstream.drm.uger
 
 
-
 import scala.concurrent.ExecutionContext
 import scala.util.Try
 
@@ -15,9 +14,9 @@ import loamstream.util.CommandInvoker
 import loamstream.util.Loggable
 import loamstream.util.RunResults
 import loamstream.util.Tries
-import rx.lang.scala.Observable
-import rx.lang.scala.Scheduler
 import loamstream.util.LogContext
+import monix.reactive.Observable
+import monix.execution.Scheduler
 
 
 /**
@@ -26,7 +25,7 @@ import loamstream.util.LogContext
  */
 final class QsubJobSubmitter private[uger] (
     commandInvoker: CommandInvoker.Async[Qsub.Params],
-    ugerConfig: UgerConfig)(implicit ec: ExecutionContext) extends JobSubmitter with Loggable {
+    ugerConfig: UgerConfig) extends JobSubmitter with Loggable {
   
   override def submitJobs(drmSettings: DrmSettings, taskArray: DrmTaskArray): Observable[DrmSubmissionResult] = {
     val resultsObs = Observable.from(commandInvoker.apply(Qsub.Params(ugerConfig, drmSettings, taskArray)))
@@ -34,7 +33,7 @@ final class QsubJobSubmitter private[uger] (
     import QsubJobSubmitter.parseQsubOutput
     
     val taskIdsObs = resultsObs.flatMap { results => 
-      Observable.just(parseQsubOutput(results.stdout, taskArray.drmJobName))
+      Observable(parseQsubOutput(results.stdout, taskArray.drmJobName))
     }
     
     for {
@@ -55,8 +54,8 @@ object QsubJobSubmitter extends Loggable {
   
   def fromExecutable(
       ugerConfig: UgerConfig, 
-      actualExecutable: String = "qsub",
-      scheduler: Scheduler)(implicit ec: ExecutionContext): QsubJobSubmitter = {
+      actualExecutable: String = "qsub")(
+      implicit scheduler: Scheduler): QsubJobSubmitter = {
     
     new QsubJobSubmitter(
         Qsub.commandInvoker(ugerConfig, actualExecutable, scheduler), 

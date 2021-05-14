@@ -9,10 +9,12 @@ import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.MockJob
 import loamstream.model.jobs.RunData
-import rx.lang.scala.Observable
 import loamstream.util.Observables
 import loamstream.TestHelpers
 import loamstream.model.jobs.JobOracle
+import monix.execution.Scheduler
+import monix.reactive.Observable
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -59,13 +61,15 @@ final class CompositeChunkRunnerTest extends FunSuite {
       runner.run(Set(job1, job4), TestHelpers.DummyJobOracle)
     }
     
-    import Observables.Implicits._
-    
-    val futureResults = runner.run(Set(job1, job2), TestHelpers.DummyJobOracle).to[Seq].map(_.toMap).firstAsFuture
+    val results = {
+      import Scheduler.Implicits.global
+      
+      runner.run(Set(job1, job2), TestHelpers.DummyJobOracle).toListL.runSyncUnsafe(TestHelpers.defaultWaitTime).toMap
+    }
     
     val expected = Map(job1 -> JobStatus.Succeeded, job2 -> JobStatus.Failed)
     
-    assert(waitFor(futureResults).mapValues(_.jobStatus) === expected)
+    assert(results.mapValues(_.jobStatus) === expected)
   }
 }
 
@@ -78,7 +82,7 @@ object CompositeChunkRunnerTest {
     private val delegate = local(1)
     
     override def run(
-        jobs: Set[LJob], 
+        jobs: Iterable[LJob], 
         jobOracle: JobOracle): Observable[(LJob, RunData)] = delegate.run(jobs, jobOracle)
   }
 }

@@ -12,6 +12,8 @@ import loamstream.util.Loggable
 
 import scala.util.Try
 
+import scala.collection.compat._
+
 
 /**
  * @author kyuksel
@@ -28,7 +30,7 @@ final case class GcsCloudStorageClient(driver: CloudStorageDriver) extends Cloud
   override def hash(uri: URI): Option[Hash] = {
     val bs = blobs(uri)
 
-    bs.toSeq match {
+    bs.to(Seq) match {
       case Nil => None
       //For a single blob, use the hash computed by Google
       case Seq(only) => Hash.fromStrings(Some(only.hash), hashAlgorithm.algorithmName)

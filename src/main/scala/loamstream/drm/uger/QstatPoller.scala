@@ -20,9 +20,9 @@ import loamstream.util.Terminable
 import loamstream.util.ThisMachine
 import loamstream.util.Throwables
 import loamstream.util.Tries
-import rx.lang.scala.Observable
-import rx.lang.scala.Scheduler
-import rx.lang.scala.schedulers.ExecutionContextScheduler
+import monix.reactive.Observable
+import monix.execution.Scheduler
+import monix.reactive.OverflowStrategy
 import loamstream.model.jobs.JobOracle
 import loamstream.model.jobs.DrmJobOracle
 import java.nio.file.Path
@@ -31,6 +31,7 @@ import loamstream.util.CanBeClosed
 import scala.io.Source
 import loamstream.util.Iterators
 import loamstream.util.ValueBox
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -45,18 +46,18 @@ final class QstatPoller private[uger] (qstatInvoker: CommandInvoker.Async[Unit])
     val qstatResultObs = {
       implicit val ec = ExecutionContexts.forQstat
 
-      Observable.from(qstatInvoker.apply(())).observeOn(Schedulers.forQstat).onErrorResumeNext {
-        warnThenComplete(s"Error invoking qstat, will try again at next polling time.")
+      Observable.from(qstatInvoker.apply(())).observeOn(Schedulers.forQstat).onErrorHandleWith {
+        warnThenComplete(s"Error invoking qstat, will try again during at next polling time.")
       }
     }
 
     //The Set of distinct DrmTaskIds (jobId/task index coords) that we're polling for
-    val drmTaskIdSet = drmTaskIds.toSet
+    val drmTaskIdSet = drmTaskIds.to(Set)
 
     //Parse out DrmTaskIds and DrmStatuses from raw qstat output (one line per task)
     val pollingResultsFromQstatObs = qstatResultObs.map { qstatResults =>
       QstatSupport.getByTaskId(drmTaskIdSet, qstatResults.stdout)
-    }.onBackpressureDrop
+    }.asyncBoundary(Observables.defaultOverflowStrategy)
 
     //For all the jobs that we're polling for that were not mentioned by qstat, assume they've finished
     //(qstat only returns info about running jobs) and look up their exit codes to determine their final statuses.
@@ -79,7 +80,7 @@ final class QstatPoller private[uger] (qstatInvoker: CommandInvoker.Async[Unit])
       val exitCodeStatusObses = {
         notFoundByQstatByTaskArrayId.values.iterator.take(ThisMachine.numCpus).map { drmTaskIdsInTaskArray =>  
           getExitCodes(oracle)(drmTaskIdsInTaskArray)
-        }.toSeq
+        }.to(Seq)
       }
 
       val exitCodeStatuesObs = Observables.merge(exitCodeStatusObses)
@@ -87,7 +88,7 @@ final class QstatPoller private[uger] (qstatInvoker: CommandInvoker.Async[Unit])
       //Concatentate results from qstat with those from looking up exit codes, wrapping in Trys as needed.
       Observable.from(byTaskId) ++ {
         exitCodeStatuesObs.map { case (tid, status) => (tid, Success(status)) }
-      }.onBackpressureDrop
+      }.asyncBoundary(Observables.defaultOverflowStrategy)
     }
   }
 
@@ -111,9 +112,9 @@ final class QstatPoller private[uger] (qstatInvoker: CommandInvoker.Async[Unit])
       
       import java.nio.file.Files.exists
 
-      val exitCodeFile: Option[Path] = oracle.dirOptFor(taskId).map(LogFileNames.exitCode)
-      
-      Observable.from {
+      Observable.fromIterable {
+        val exitCodeFile: Option[Path] = oracle.dirOptFor(taskId).map(LogFileNames.exitCode)
+        
         exitCodeFile.flatMap { file =>
           if(exists(file)) { readExitCodeFrom(file).map(toPollResult) } 
           else { None }
@@ -163,9 +164,9 @@ final class QstatPoller private[uger] (qstatInvoker: CommandInvoker.Async[Unit])
   }
 
   private[uger] object Schedulers {
-    val forQstat: Scheduler = ExecutionContextScheduler(ExecutionContexts.forQstat)
+    val forQstat: Scheduler = Scheduler(ExecutionContexts.forQstat)
 
-    val forExitStatuses: Scheduler = ExecutionContextScheduler(ExecutionContexts.forExitStatuses)
+    val forExitStatuses: Scheduler = Scheduler(ExecutionContexts.forExitStatuses)
   }
 }
 
@@ -175,12 +176,14 @@ object QstatPoller extends Loggable {
     qstatPollingFrequencyInHz: Double,
     ugerConfig: UgerConfig,
     actualQstatExecutable: String = "qstat",
-    scheduler: Scheduler)(implicit ec: ExecutionContext): QstatPoller = {
+    scheduler: Scheduler): QstatPoller = {
 
-    import QacctInvoker.ByTaskArray.{ useActualBinary => qacctCommandInvoker }
     import Qstat.{ commandInvoker => qstatCommandInvoker }
     import scala.concurrent.duration._
 
+    //TODO
+    implicit val sch = scheduler
+    
     val qstat = qstatCommandInvoker(qstatPollingFrequencyInHz, actualQstatExecutable)
 
     new QstatPoller(qstat)
@@ -219,7 +222,7 @@ object QstatPoller extends Loggable {
       idsWereLookingFor: Iterable[DrmTaskId],
       lines: Seq[String]): Iterator[Try[PollResult]] = {
 
-      val idsWereLookingForSet = idsWereLookingFor.toSet
+      val idsWereLookingForSet = idsWereLookingFor.to(Set)
 
       val isIdWeCareAbout: PollResult => Boolean = {
         case (taskId, _) => idsWereLookingForSet.contains(taskId)

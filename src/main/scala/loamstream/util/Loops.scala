@@ -8,11 +8,10 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-import rx.lang.scala.Observable
-import rx.lang.scala.schedulers.IOScheduler
-import rx.lang.scala.Scheduler
-
 import scala.language.higherKinds
+import monix.reactive.Observable
+import monix.execution.Scheduler
+import scala.concurrent.duration.FiniteDuration
 
 /**
  * @author clint
@@ -21,7 +20,7 @@ import scala.language.higherKinds
 object Loops {
   
   private[util] object Backoff {
-    def delaySequence(start: Duration, cap: Duration): Iterator[Duration] = {
+    def delaySequence(start: FiniteDuration, cap: FiniteDuration): Iterator[FiniteDuration] = {
       require(start gt 0.seconds)
       require(cap gt 0.seconds)
       
@@ -37,8 +36,8 @@ object Loops {
    */
   def retryUntilSuccessWithBackoff[A](
       maxRuns: Int, 
-      delayStart: Duration, 
-      delayCap: Duration)(op: => Try[A]): Option[A] = {
+      delayStart: FiniteDuration, 
+      delayCap: FiniteDuration)(op: => Try[A]): Option[A] = {
     
     val delays = Backoff.delaySequence(delayStart, delayCap)
     
@@ -65,13 +64,13 @@ object Loops {
   
   def retryUntilSuccessWithBackoffAsync[A](
       maxRuns: Int, 
-      delayStart: Duration, 
-      delayCap: Duration,
+      delayStart: FiniteDuration, 
+      delayCap: FiniteDuration,
       scheduler: Scheduler)(op: => Observable[Try[A]]): Observable[Option[A]] = {
     
     val delays = Backoff.delaySequence(delayStart, delayCap)
     
-    def delayAndThen[X](f: => X): Observable[X] = Observable.timer(delays.next(), scheduler).map(_ => f)
+    def delayAndThen[X](f: => X): Observable[X] = Observable.evalDelayed(delays.next(), f)
     
     def next(tuple: (Int, Observable[Try[A]])): Observable[(Int, Try[A])] = {
       val (i, attemptObs) = tuple
@@ -84,9 +83,11 @@ object Loops {
     }
     
     if(maxRuns == 0) { 
-      Observable.just(None)
+      Observable(None)
     } else {
-      next(1 -> op).collect { case (_, attempt) => attempt.toOption }.headOption.map(_.flatten)
+      import Observables.Implicits._
+      
+      next(1 -> op).collect { case (_, attempt) => attempt.toOption }.firstOption.map(_.flatten)
     }
   }
 }

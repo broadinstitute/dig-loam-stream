@@ -1,5 +1,7 @@
 package loamstream.util
 
+import scala.collection.compat._
+
 /**
  * @author clint
  * Sep 25, 2017
@@ -13,7 +15,7 @@ object Iterators {
   }
   
   def sample[A](as: Iterator[A], indices: Seq[Int]): Iterator[A] = {
-    val indicesSet = indices.toSet
+    val indicesSet = indices.to(Set)
 
     as.zipWithIndex.collect { case (a, i) if indicesSet.contains(i) => a }
   }

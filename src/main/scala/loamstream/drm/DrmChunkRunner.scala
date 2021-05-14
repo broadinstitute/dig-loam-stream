@@ -25,10 +25,13 @@ import loamstream.util.Classes.simpleNameOf
 import loamstream.util.Loggable
 import loamstream.util.Observables
 import loamstream.util.Terminable
-import rx.lang.scala.Observable
+import monix.execution.Scheduler
+import monix.reactive.Observable
 import loamstream.util.TimeUtils
 import loamstream.util.ExitCodes
-
+import cats.kernel.Eq
+import loamstream.model.jobs.commandline.HasCommandLine
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -69,7 +72,7 @@ final case class DrmChunkRunner(
    * will throw otherwise.
    */
   override def run(
-      jobs: Set[LJob], 
+      jobs: Iterable[LJob], 
       jobOracle: JobOracle): Observable[(LJob, RunData)] = {
 
     debug(s"${getClass.getSimpleName}: Running ${jobs.size} jobs: ")
@@ -80,7 +83,7 @@ final case class DrmChunkRunner(
       s"For now, we only know how to run ${simpleNameOf[CommandLineJob]}s on a DRM system")
 
     // Filter out NoOpJob's
-    val commandLineJobs = jobs.toSeq.collect { case clj: CommandLineJob => clj }
+    val commandLineJobs = jobs.to(Seq).collect { case clj: CommandLineJob => clj }
 
     //Group Jobs by their uger settings, and run each group.  This is necessary because the jobs in a group will
     //be run as 1 Uger task array, and Uger params are per-task-array.
@@ -168,7 +171,7 @@ final case class DrmChunkRunner(
       
       for {
         (tid, status) <- monitor(drmJobOracle)(taskIds)
-        wrapper <- jobsById.get(tid).map(Observable.just(_)).getOrElse(Observable.empty)
+        wrapper <- jobsById.get(tid).map(Observable(_)).getOrElse(Observable.empty)
       } yield {
         (tid, wrapper, status)
       }
@@ -268,6 +271,8 @@ object DrmChunkRunner extends Loggable {
     val jobsToExecutionObservables = drmJobsToExecutionObservables.map { case (jobWrapper, runData) => 
       (jobWrapper.commandLineJob, runData) 
     }
+    
+    implicit val eqTuple: Eq[(HasCommandLine, RunData)] = Eq.fromUniversalEquals
 
     jobsToExecutionObservables.distinctUntilChanged
   }

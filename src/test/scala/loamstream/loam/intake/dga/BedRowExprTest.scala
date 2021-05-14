@@ -4,6 +4,7 @@ import org.scalatest.FunSuite
 import loamstream.loam.intake.ColumnExpr
 import loamstream.loam.intake.DataRow
 import loamstream.loam.intake.Helpers
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -148,7 +149,7 @@ final class BedRowExprTest extends FunSuite {
       columnNames: String*): Unit = {
     
     val rows = for {
-      v <- naValues.toSeq
+      v <- naValues.to(Seq)
       columnName <- columnNames
     } yield Helpers.csvRow("foo" -> "bar", columnName -> v)
 

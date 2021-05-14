@@ -1,12 +1,8 @@
 package loamstream.loam
 
-import java.nio.file.Paths
-
 import loamstream.model.Store
-import java.nio.file.Path
-import loamstream.model.UriStore
-import loamstream.model.PathStore
-import scala.reflect.ClassTag
+
+import scala.collection.compat._
 
 /**
  * LoamStream
@@ -21,7 +17,7 @@ sealed trait LoamToken {
 object LoamToken {
 
   def storesFromTokens(tokens: Seq[LoamToken]): Set[Store] = {
-    tokens.collect { case StoreToken(store) => store }.toSet
+    tokens.collect { case StoreToken(store) => store }.to(Set)
   }
 
   final case class StringToken(string: String) extends LoamToken {

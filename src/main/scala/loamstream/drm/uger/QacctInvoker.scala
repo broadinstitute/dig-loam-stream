@@ -2,7 +2,6 @@ package loamstream.drm.uger
 
 import loamstream.drm.AccountingCommandInvoker
 import loamstream.drm.DrmTaskId
-import rx.lang.scala.Scheduler
 import scala.concurrent.ExecutionContext
 import loamstream.util.CommandInvoker
 import loamstream.util.Processes
@@ -12,6 +11,7 @@ import loamstream.util.RunResults
 import loamstream.util.ValueBox
 import loamstream.conf.UgerConfig
 import scala.concurrent.duration.Duration
+import monix.execution.Scheduler
 
 /**
  * @author clint

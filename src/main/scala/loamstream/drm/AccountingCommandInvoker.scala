@@ -5,7 +5,7 @@ import scala.concurrent.ExecutionContext
 import loamstream.util.CommandInvoker
 import loamstream.util.Loggable
 import loamstream.util.Processes
-import rx.lang.scala.Scheduler
+import monix.execution.Scheduler
 
 /**
  * @author clint
@@ -31,7 +31,11 @@ object AccountingCommandInvoker {
       
       val notRetrying = maxRetries == 0
       
-      val invokeOnce = new CommandInvoker.Async.JustOnce[P](binaryName, invokeBinaryFor)
+      val invokeOnce = {
+        implicit val sch = scheduler
+        
+        new CommandInvoker.Async.JustOnce[P](binaryName, invokeBinaryFor)
+      }
       
       if(notRetrying) {
         invokeOnce

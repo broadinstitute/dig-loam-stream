@@ -1,11 +1,11 @@
 package loamstream.model.execute
 
-import loamstream.util.Loggable
 import loamstream.db.LoamDao
 import loamstream.model.jobs.Execution
-import loamstream.model.jobs.LJob
 import loamstream.model.jobs.JobOracle
+import loamstream.model.jobs.LJob
 import loamstream.model.jobs.StoreRecord
+import loamstream.util.Loggable
 
 /**
  * @author clint

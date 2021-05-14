@@ -1,5 +1,7 @@
 package loamstream.util
 
+import scala.collection.compat._
+
 /**
  * @author clint
  * date: Aug 11, 2016
@@ -28,7 +30,7 @@ object Traversables {
         override def hasNext: Boolean = itr.hasNext
         
         override def next(): List[A] = {
-          try { itr.takeWhile(a => !p(a)).toList }
+          try { itr.takeWhile(a => !p(a)).to(List) }
           finally { itr.dropWhile(p) }
         }
       }.filter(_.nonEmpty)

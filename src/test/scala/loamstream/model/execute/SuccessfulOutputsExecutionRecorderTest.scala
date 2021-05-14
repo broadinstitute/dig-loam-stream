@@ -8,6 +8,7 @@ import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.MockJob
 import loamstream.util.Files
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -52,16 +53,16 @@ final class SuccessfulOutputsExecutionRecorderTest extends FunSuite {
       
       assert(exists(file) === true)
       
-      val recordedLocs = Files.readFrom(file).split(System.lineSeparator).iterator.map(_.trim).toSet
+      val recordedLocs = Files.readFrom(file).split(System.lineSeparator).iterator.map(_.trim).to(Set)
       
       val expected = for {
         job <- Seq(j0, j2, j3, j4)
-        output <- job.outputs.toSeq
+        output <- job.outputs.to(Seq)
       } yield {
         s"${job.toReturn.jobStatus}\t${output.location}"
       }
       
-      assert(recordedLocs === expected.toSet)
+      assert(recordedLocs === expected.to(Set))
     }
   }
 }

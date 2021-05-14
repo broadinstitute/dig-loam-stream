@@ -2,7 +2,8 @@ package loamstream.drm
 
 import loamstream.model.execute.DrmSettings
 import loamstream.util.Terminable
-import rx.lang.scala.Observable
+import monix.reactive.Observable
+
 
 /**
  * @author clint

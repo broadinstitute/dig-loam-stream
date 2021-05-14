@@ -5,8 +5,8 @@ import scala.util.Try
 import scala.util.Success
 import scala.concurrent.duration._
 import loamstream.TestHelpers
-import rx.lang.scala.Observable
-import rx.lang.scala.schedulers.IOScheduler
+import monix.reactive.Observable
+import monix.execution.Scheduler
 
 
 /**
@@ -17,8 +17,8 @@ final class LoopsTest extends FunSuite {
   private def alwaysWorks: Try[Int] = Success(42)
   private def alwaysFails: Try[Int] = Tries.failure("blarg")
   
-  private def alwaysWorksObs: Observable[Try[Int]] = Observable.just(Success(42))
-  private def alwaysFailsObs: Observable[Try[Int]] = Observable.just(Tries.failure("blarg"))
+  private def alwaysWorksObs: Observable[Try[Int]] = Observable(Success(42))
+  private def alwaysFailsObs: Observable[Try[Int]] = Observable(Tries.failure("blarg"))
   
   private def worksAfter[A](howManyTries: Int, returning: A): () => Try[A] = {
     var count = 0
@@ -32,11 +32,12 @@ final class LoopsTest extends FunSuite {
   private def worksAfterObs[A](howManyTries: Int, returning: A): () => Observable[Try[A]] = {
     val fn = worksAfter(howManyTries, returning)
     
-    () => Observable.just(fn())
+    () => Observable(fn())
   }
   
   private def waitForFirst[A](obs: Observable[A]): A = {
     import Observables.Implicits._
+    import Scheduler.Implicits.global
     
     TestHelpers.waitFor(obs.firstAsFuture)
   }
@@ -77,7 +78,7 @@ final class LoopsTest extends FunSuite {
     import TestHelpers.waitFor
     import scala.concurrent.ExecutionContext.Implicits.global
     
-    val scheduler = IOScheduler()
+    val scheduler = Scheduler.io()
     
     test("retryUntilSuccessWithBackoffAsync - 0 times") {
       assert(waitForFirst(

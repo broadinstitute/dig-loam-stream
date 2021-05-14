@@ -1,16 +1,6 @@
 package loamstream.model.jobs
 
-import loamstream.util.ValueBox
-import rx.lang.scala.Subject
-import rx.lang.scala.subjects.ReplaySubject
-import rx.lang.scala.Observable
 import loamstream.util.Loggable
-import loamstream.util.Observables
-import rx.lang.scala.observables.ConnectableObservable
-import rx.lang.scala.subjects.BehaviorSubject
-import rx.lang.scala.subjects.SerializedSubject
-import loamstream.model.jobs.log.JobLog
-import rx.lang.scala.subjects.PublishSubject
 
 /**
  * @author oliverr

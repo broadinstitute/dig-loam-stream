@@ -7,7 +7,10 @@ import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.MockJob
 import loamstream.util.Futures
 import loamstream.util.Observables
-import rx.lang.scala.Observable
+import monix.reactive.Observable
+import loamstream.TestHelpers
+import monix.execution.Scheduler
+
 
 /**
  * @author clint
@@ -29,9 +32,9 @@ final class ExecutableTest extends FunSuite {
     val namesObservable = executable.multiplex(names(3))
     
     import Observables.Implicits._
-    import loamstream.TestHelpers.waitFor
+    import Scheduler.Implicits.global
     
-    val actualNames: Seq[String] = waitFor(namesObservable.to[Seq].firstAsFuture).sorted
+    val actualNames: Seq[String] = namesObservable.toListL.runSyncUnsafe(TestHelpers.defaultWaitTime).sorted
     
     assert(actualNames === Seq("A", "A", "A", "B", "B", "B"))
   }

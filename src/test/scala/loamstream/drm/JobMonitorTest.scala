@@ -11,7 +11,8 @@ import loamstream.util.Observables
 import loamstream.util.RxSchedulers
 import loamstream.util.Tries
 
-import rx.lang.scala.Scheduler
+import loamstream.TestHelpers
+import monix.execution.Scheduler
 import loamstream.TestHelpers.DummyDrmJobOracle
 
 
@@ -42,19 +43,24 @@ final class JobMonitorTest extends FunSuite {
     import Observables.Implicits._
     
     withThreadPoolScheduler(3) { scheduler =>
-      val statuses = (new JobMonitor(scheduler, poller, 9.99)).monitor(DummyDrmJobOracle)(jobIds)
-    
-      def futureStatuses(taskId: DrmTaskId): Future[Seq[DrmStatus]] = {
-        statuses.collect { case (tid, status) if tid == taskId => status }.to[Seq].firstAsFuture
+      def futureStatuses(taskId: DrmTaskId): Seq[DrmStatus] = {
+        import Scheduler.Implicits.global
+        
+        val statuses = (new JobMonitor(scheduler, poller, 9.99)).monitor(DummyDrmJobOracle)(jobIds)
+        
+        statuses
+          .collect { case (tid, status) if tid == taskId => status }
+          .toListL
+          .runSyncUnsafe(TestHelpers.defaultWaitTime)
       }
     
       val fut1 = futureStatuses(taskId1)
       val fut2 = futureStatuses(taskId2)
       val fut3 = futureStatuses(taskId3)
 
-      assert(waitFor(fut1) == Seq(Queued, Running, Running, Done))
-      assert(waitFor(fut2) == Seq(Running, Done))
-      assert(waitFor(fut3) == Seq(Running, Running, Done))
+      assert(fut1 == Seq(Queued, Running, Running, Done))
+      assert(fut2 == Seq(Running, Done))
+      assert(fut3 == Seq(Running, Running, Done))
     }
   }
   
@@ -62,7 +68,7 @@ final class JobMonitorTest extends FunSuite {
     val poller = MockPoller(Map.empty)
     
     //Doesn't matter which one, we won't run anything on it.
-    val scheduler = rx.lang.scala.schedulers.ComputationScheduler()
+    val scheduler = Scheduler.computation()
     
     val jobMonitor = new JobMonitor(scheduler, poller, 9.99)
 

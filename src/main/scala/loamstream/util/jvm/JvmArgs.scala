@@ -5,6 +5,7 @@ import java.lang.management.ManagementFactory
 import java.nio.file.Paths
 import java.nio.file.Path
 import loamstream.cli.Conf
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -23,7 +24,7 @@ final case class JvmArgs(jvmArgs: Seq[String], classpath: String) {
   }
   
   def rerunCommandTokens(conf: Conf.Values, systemProperties: Map[String, String]): Seq[String] = {
-    val sysprops = systemProperties.toSeq.sortBy { case (k, _) => k }.map { case (k, v) => s"-D${k}=${v}" }
+    val sysprops = systemProperties.to(Seq).sortBy { case (k, _) => k }.map { case (k, v) => s"-D${k}=${v}" }
     
     Seq(javaBinary.toString) ++
     jvmArgs ++ 

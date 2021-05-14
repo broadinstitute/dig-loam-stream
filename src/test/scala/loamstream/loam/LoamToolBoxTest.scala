@@ -18,7 +18,7 @@ import loamstream.util.DirOracle
 import loamstream.util.jvm.JvmArgs
 import loamstream.util.jvm.SysPropNames
 import loamstream.model.jobs.DataHandle
-
+import scala.collection.compat._
 
 
 /**
@@ -366,7 +366,7 @@ final class LoamToolBoxTest extends FunSuite {
   }
     
   test("makeWorkerJobCommandLineTokens - happy path") {
-    val args = "--backend uger --loams foo.loam".split("\\s+").toList
+    val args = "--backend uger --loams foo.loam".split("\\s+").to(List)
     
     val jobName = "some-job"
     

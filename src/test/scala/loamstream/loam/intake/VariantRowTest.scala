@@ -2,6 +2,7 @@ package loamstream.loam.intake
 
 import org.scalatest.FunSuite
 import loamstream.loam.intake.flip.Disposition
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -28,7 +29,7 @@ final class VariantRowTest extends FunSuite with CsvRowTest.RowHelpers {
       
       assert(tagged.size === delegate.size)
       
-      assert(tagged.values.toList === delegate.values.toList)
+      assert(tagged.values.to(List) === delegate.values.to(List))
       
       assert(tagged.recordNumber === delegate.recordNumber)
       
@@ -43,7 +44,7 @@ final class VariantRowTest extends FunSuite with CsvRowTest.RowHelpers {
       assert(skipped.isSkipped === true)
       assert(skipped.notSkipped === false)
       
-      assert(skipped.values.toList === tagged.values.toList)
+      assert(skipped.values.to(List) === tagged.values.to(List))
     }
     
     doTest(Disposition.FlippedComplementStrand)

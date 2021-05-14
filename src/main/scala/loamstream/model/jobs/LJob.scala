@@ -2,17 +2,8 @@ package loamstream.model.jobs
 
 import java.nio.file.Path
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
-
-import loamstream.util.Loggable
-import loamstream.util.Observables
-import loamstream.util.ValueBox
-import rx.lang.scala.Observable
-import rx.lang.scala.Subject
-import rx.lang.scala.subjects.ReplaySubject
-import loamstream.util.Sequence
 import loamstream.model.execute.Settings
+import loamstream.util.Sequence
 
 /**
  * @author oliverr

@@ -22,6 +22,7 @@ import loamstream.model.quantities.Memory
 import loamstream.util.RunResults
 import loamstream.drm.DrmTaskId
 import loamstream.util.Observables
+import monix.execution.Scheduler
 
 /**
  * @author clint
@@ -31,6 +32,7 @@ final class BsubJobSubmitterTest extends FunSuite {
   import loamstream.TestHelpers.path
   import loamstream.TestHelpers.waitFor
   import Observables.Implicits.ObservableOps
+  import Scheduler.Implicits.global
   
   test("submitJobs - happy path") {
     def submissionFn(drmSettings: DrmSettings, taskArray: DrmTaskArray): Try[RunResults] = {

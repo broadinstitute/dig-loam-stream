@@ -14,9 +14,10 @@ import loamstream.util.Maps
 import loamstream.util.Options
 import loamstream.util.Tries
 import loamstream.drm.DrmTaskId
-import rx.lang.scala.Observable
 import loamstream.util.Observables
+import monix.reactive.Observable
 import loamstream.model.jobs.DrmJobOracle
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -38,7 +39,7 @@ final class BjobsPoller private[lsf] (pollingFn: InvocationFn[Set[DrmTaskId]]) e
     
     import loamstream.util.Maps.Implicits._
     
-    val indicesByBaseId: Map[String, Set[DrmTaskId]] = allLsfJobIds.toSet.groupBy(_.jobId)
+    val indicesByBaseId: Map[String, Set[DrmTaskId]] = allLsfJobIds.to(Set).groupBy(_.jobId)
     
     val jobIdsToStatusAttempts = Observables.merge(indicesByBaseId.values.map(runChunk))
     
@@ -155,13 +156,13 @@ object BjobsPoller extends InvokesBjobs.Companion(new BjobsPoller(_)) {
   private[lsf] override def makeTokens(actualExecutable: String, lsfJobIds: Set[DrmTaskId]): Seq[String] = {
     require(lsfJobIds.nonEmpty, s"Can't build '${actualExecutable}' command-line from empty set of job ids")
     
-    val baseJobIds = lsfJobIds.map(_.jobId).toSet
+    val baseJobIds = lsfJobIds.map(_.jobId).to(Set)
     
     require(baseJobIds.size == 1, s"All LSF job ids in this chunk should have the same base, but got $lsfJobIds")
     
     val indices = lsfJobIds.map(_.taskIndex)
     
-    val Seq(baseJobId) = baseJobIds.toSeq
+    val Seq(baseJobId) = baseJobIds.to(Seq)
         
     val toQueryFor = s"${baseJobId}[${indices.mkString(",")}]"
     

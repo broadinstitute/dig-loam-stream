@@ -15,6 +15,7 @@ import org.broadinstitute.dig.aws.Implicits
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException
 import loamstream.util.AwsClient
 import scala.util.Try
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -235,6 +236,6 @@ final case class AwsRowSink(
   }
   
   private[intake] def toJson(row: RenderableJsonRow): JObject = {
-    JObject(row.jsonValues.toList)
+    JObject(row.jsonValues.to(List))
   }
 }

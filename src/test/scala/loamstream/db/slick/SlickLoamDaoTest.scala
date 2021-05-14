@@ -1,15 +1,15 @@
 package loamstream.db.slick
 
 import java.nio.file.Path
-import java.time.Instant
 
 import org.scalatest.FunSuite
 
 import loamstream.TestHelpers
+import loamstream.drm.ContainerParams
 import loamstream.drm.Queue
 import loamstream.drm.lsf.LsfDefaults
 import loamstream.drm.uger.UgerDefaults
-import loamstream.model.execute.EnvironmentType
+import loamstream.googlecloud.ClusterConfig
 import loamstream.model.execute.GoogleSettings
 import loamstream.model.execute.LocalSettings
 import loamstream.model.execute.LsfDrmSettings
@@ -19,24 +19,22 @@ import loamstream.model.execute.Resources.GoogleResources
 import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.execute.Resources.LsfResources
 import loamstream.model.execute.Resources.UgerResources
+import loamstream.model.execute.Run
+import loamstream.model.execute.Settings
 import loamstream.model.execute.UgerDrmSettings
+import loamstream.model.jobs.DataHandle.PathHandle
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.JobResult.CommandResult
-import loamstream.model.jobs.DataHandle.PathHandle
 import loamstream.model.jobs.StoreRecord
+import loamstream.model.jobs.TerminationReason
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
 import loamstream.util.BashScript.Implicits.BashPath
-import loamstream.util.Hash
 import loamstream.util.Hashes
-import loamstream.drm.ContainerParams
-import loamstream.model.jobs.TerminationReason
-import loamstream.model.execute.Settings
-import loamstream.googlecloud.ClusterConfig
-import java.time.LocalDateTime
-import loamstream.model.execute.Run
+
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -87,7 +85,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           result = Option(result),
           resources = Option(TestHelpers.lsfResources),
           jobDir = Option(dummyJobDir),
-          outputs = outputs.toSet,
+          outputs = outputs.to(Set),
           terminationReason = None)
     }
 
@@ -123,7 +121,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
         result = Option(result), 
         resources = Option(TestHelpers.ugerResources), 
         jobDir = Option(dummyJobDir), 
-        outputs = outputs.toSet,
+        outputs = outputs.to(Set),
         terminationReason = Some(TerminationReason.CpuTime))
 
     dao.insertExecutions(execution)
@@ -179,7 +177,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
       val Seq(retrieved) = executions
 
-      assert(dao.allStoreRecords.toSet === stored.outputs)
+      assert(dao.allStoreRecords.to(Set) === stored.outputs)
 
       assert(stored === retrieved)
     }
@@ -207,7 +205,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       val expected = Set(cachedOutput(path0, hash0), cachedOutput(path1, hash1), cachedOutput(path2, hash2))
 
       //Use Sets to ignore order
-      assert(dao.allStoreRecords.toSet == expected)
+      assert(dao.allStoreRecords.to(Set) == expected)
     }
   }
 
@@ -221,7 +219,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       val expected = Set(StoreRecord(path0), StoreRecord(path1), StoreRecord(path2))
 
       //Use Sets to ignore order
-      assert(dao.allStoreRecords.toSet == expected)
+      assert(dao.allStoreRecords.to(Set) == expected)
       assert(dao.allStoreRecords.forall(dao.findLastStatus(_).get.isFailure))
     }
   }
@@ -240,7 +238,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       val all: Set[StoreRecord] = failedOutputs ++ hashedOutputs
 
       //Use Sets to ignore order
-      assert(dao.allStoreRecords.toSet == all)
+      assert(dao.allStoreRecords.to(Set) == all)
       assert(dao.allStoreRecords.count(dao.findLastStatus(_).get.isFailure) == failedOutputs.size)
     }
   }
@@ -442,12 +440,12 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
             terminationReason = None)
       }
 
-      assertEqualFieldsFor(executions.toSet, Set(expected0))
+      assertEqualFieldsFor(executions.to(Set), Set(expected0))
 
       dao.insertExecutions(succeeded, failed1)
       val expected1 = failed1
       val expected2 = succeeded
-      assertEqualFieldsFor(executions.toSet, Set(expected0, expected1, expected2))
+      assertEqualFieldsFor(executions.to(Set), Set(expected0, expected1, expected2))
     }
   }
 
@@ -477,7 +475,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
             failed.jobDir.get,
             failedOutput(output0.path))
   
-        assertEqualFieldsFor(executions.toSet, Set(expected0))
+        assertEqualFieldsFor(executions.to(Set), Set(expected0))
       }
     }
     
@@ -554,7 +552,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   
         val expected0 = Execution(ugerSettings, mockCmd, CommandResult(42), ex0.jobDir.get, failedOutput(path0))
   
-        assertEqualFieldsFor(executions.toSet, Set(expected0))
+        assertEqualFieldsFor(executions.to(Set), Set(expected0))
         assertEqualFieldsFor(findExecution(output0), Some(expected0))
   
         assert(findExecution(output1) === None)
@@ -565,7 +563,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
         val expected1 = ex1
         val expected2 = ex2
   
-        assertEqualFieldsFor(executions.toSet, Set(expected0, expected1, expected2))
+        assertEqualFieldsFor(executions.to(Set), Set(expected0, expected1, expected2))
   
         assertEqualFieldsFor(findExecution(output0), Some(expected0))
         assertEqualFieldsFor(findExecution(output1), Some(expected1))

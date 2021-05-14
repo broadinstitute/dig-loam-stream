@@ -4,6 +4,7 @@ import loamstream.loam.LoamCmdTool
 import loamstream.loam.LoamScriptContext
 import loamstream.loam.LanguageSupport
 import loamstream.loam.LoamCmdSyntax
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -86,7 +87,7 @@ trait HailLoamSyntax {
           
       //NB: Combine prefix part with first user-provided part, if the latter exists.  This matches what
       //the compiler would provide.
-      val newParts: Seq[String] = stringContext.parts.toSeq match {
+      val newParts: Seq[String] = stringContext.parts.to(Seq) match {
         case Nil => Seq(hailctlPrefixPart)
         case firstPart +: otherParts => s"${hailctlPrefixPart}${firstPart}" +: otherParts
       }

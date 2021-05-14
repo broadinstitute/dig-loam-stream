@@ -23,6 +23,7 @@ import loamstream.model.jobs.RunData
 import loamstream.util.ValueBox
 
 import scala.collection.compat._
+import loamstream.util.Maps
 
 
 /**
@@ -422,7 +423,9 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       
       assert(jobRuns.size === 4)
       
-      assert(jobRuns.mapValues(_.settings) === Map(
+      import Maps.Implicits.MapOps
+      
+      assert(jobRuns.strictMapValues(_.settings) === Map(
           job1 -> settings12, job2 -> settings12, job3 -> settings3, job4 -> settings4))
     }
   }

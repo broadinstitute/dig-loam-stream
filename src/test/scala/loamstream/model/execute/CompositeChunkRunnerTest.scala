@@ -15,6 +15,7 @@ import loamstream.model.jobs.JobOracle
 import monix.execution.Scheduler
 import monix.reactive.Observable
 import scala.collection.compat._
+import loamstream.util.Maps
 
 /**
  * @author clint
@@ -69,7 +70,9 @@ final class CompositeChunkRunnerTest extends FunSuite {
     
     val expected = Map(job1 -> JobStatus.Succeeded, job2 -> JobStatus.Failed)
     
-    assert(results.mapValues(_.jobStatus) === expected)
+    import Maps.Implicits.MapOps
+    
+    assert(results.strictMapValues(_.jobStatus) === expected)
   }
 }
 

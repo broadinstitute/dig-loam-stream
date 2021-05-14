@@ -18,7 +18,7 @@ object DataRow {
     override def headers: Seq[String] = {
       import scala.collection.JavaConverters._
       
-      delegate.getParser.getHeaderNames.asScala
+      delegate.getParser.getHeaderNames.iterator.asScala.toList
     }
     
     override def hasField(name: String): Boolean = delegate.isSet(name)

@@ -6,6 +6,7 @@ import loamstream.loam.intake.flip.Disposition
 import scala.util.Failure
 import scala.util.Try
 import org.json4s.JsonAST._
+import scala.collection.mutable.ListBuffer
 
 
 /**
@@ -172,7 +173,7 @@ final case class VariantCountRow(
   //We expect this method to be called a lot - once per row being output.
   override def values: Seq[Option[String]] = {
     
-    val buffer = new ArrayBuffer[Option[String]](BaseVariantRow.fieldCount) 
+    val buffer = new ListBuffer[Option[String]] 
     
     def add(d: Double): Unit = buffer += Some(d.toString)
     
@@ -190,7 +191,7 @@ final case class VariantCountRow(
     addOpt(homozygousCases) 
     addOpt(homozygousControls) 
 
-    buffer 
+    buffer.toList
   }
 }
 
@@ -242,7 +243,7 @@ final case class PValueVariantRow(
   //We expect this method to be called a lot - once per row being output.
   override def values: Seq[Option[String]] = {
     
-    val buffer = new ArrayBuffer[Option[String]](BaseVariantRow.fieldCount) 
+    val buffer = new ListBuffer[Option[String]] 
     
     def add(d: Double): Unit = buffer += Some(d.toString)
     
@@ -261,7 +262,7 @@ final case class PValueVariantRow(
     addOpt(maf)
     add(n)
 
-    buffer 
+    buffer.toList
   }
 }
 

@@ -1,10 +1,11 @@
 package loamstream.util.jvm
 
 import java.lang.management.ManagementFactory
-
-import java.nio.file.Paths
 import java.nio.file.Path
+import java.nio.file.Paths
+
 import loamstream.cli.Conf
+
 import scala.collection.compat._
 
 /**
@@ -54,7 +55,9 @@ object JvmArgs {
    * 
    * etc.
    */
-  private[jvm] def jvmArgsForThisRun: Seq[String] = ManagementFactory.getRuntimeMXBean.getInputArguments.asScala
+  private[jvm] def jvmArgsForThisRun: Seq[String] = {
+    ManagementFactory.getRuntimeMXBean.getInputArguments.asScala.to(Seq)
+  }
   
   private[jvm] def classpathForThisRun: String = ManagementFactory.getRuntimeMXBean.getClassPath
 }

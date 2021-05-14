@@ -148,7 +148,7 @@ object ColumnExpr {
     final def /(rhs: A)(implicit ev: Fractional[A]): ColumnExpr[A] = this / LiteralColumnExpr(rhs)
     
     final def unary_-(implicit ev: Numeric[A]): ColumnExpr[A] = {
-      this.map(a => implicitly[Numeric[A]].mkNumericOps(a).unary_-())
+      this.map(a => implicitly[Numeric[A]].mkNumericOps(a).unary_-)
     }
     
     final def negate(implicit ev: Numeric[A]): ColumnExpr[A] = this.unary_-

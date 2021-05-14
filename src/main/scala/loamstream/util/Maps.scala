@@ -21,6 +21,8 @@ object Maps {
         m.collect { case (a, b) if pf.isDefinedAt(a) => (pf(a), b) }
       }
       
+      def strictFilterKeys(p: A => Boolean): Map[A, B] = m.filter { case (a, _) => p(a) }
+      
       def filterValues(p: B => Boolean): Map[A, B] = m.filter { case (_, b) => p(b) }
     }
   }

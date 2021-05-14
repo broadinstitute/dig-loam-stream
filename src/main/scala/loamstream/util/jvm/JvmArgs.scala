@@ -5,6 +5,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 
 import loamstream.cli.Conf
+import scala.collection.compat._
 
 import scala.collection.compat._
 

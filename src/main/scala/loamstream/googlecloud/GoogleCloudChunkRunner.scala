@@ -27,6 +27,10 @@ import monix.execution.Scheduler
 import monix.reactive.Observable
 
 import scala.collection.compat._
+import monix.eval.Task
+import loamstream.util.Observables
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 
 
 /**
@@ -66,12 +70,12 @@ final case class GoogleCloudChunkRunner(
     deleteClusterIfNecessary()
   }
   
-  private[googlecloud] def deleteClusterIfNecessary(): Unit = {
+  private[googlecloud] def deleteClusterIfNecessary(): Unit = currentClusterConfig.foreach { _ =>
     //NB: If anything goes wrong determining whether or not the cluster is up, try to shut it down
     //anyway, to be safe.
     determineClusterStatus() match {
+      case ClusterStatus.NotRunning => debug("Cluster not running, not attempting to shut it down")  
       case ClusterStatus.Running => client.stopCluster()
-      case ClusterStatus.NotRunning => debug("Cluster not running, not attempting to shut it down")
       case ClusterStatus.Undetermined(e) => {
         warn(s"Error determining cluster status, attempting to shut down cluster anyway", e)
         
@@ -80,7 +84,7 @@ final case class GoogleCloudChunkRunner(
     }
   }
   
-  private[googlecloud] def startClusterIfNecessary(clusterConfig: ClusterConfig): Unit = {
+  private[googlecloud] def startClusterIfNecessary(clusterConfig: ClusterConfig): Unit = currentClusterConfig.foreach { _ =>
     def start(): Unit = {
       client.startCluster(clusterConfig)
       
@@ -118,10 +122,15 @@ final case class GoogleCloudChunkRunner(
           jobResult = None, 
           terminationReasonOpt = None)
       
-      j.initialSettings match {
+      /* j.initialSettings match {
         case GoogleSettings(_, clusterConfig) => withCluster(clusterConfig) {
           runSingle(delegate, jobOracle)(j)
         }
+        case settings => Observable(j -> runDataForNonGoogleJob)
+      } */
+
+      j.initialSettings match {
+        case GoogleSettings(_, clusterConfig) => runSingle(delegate, jobOracle)(j)
         case settings => Observable(j -> runDataForNonGoogleJob)
       }
     }
@@ -137,28 +146,41 @@ final case class GoogleCloudChunkRunner(
       delegate: ChunkRunner, 
       jobOracle: JobOracle)(job: LJob): Observable[(LJob, RunData)] = {
     
-    import GoogleCloudChunkRunner.addCluster
-
-    val googleSettings = job.initialSettings match {
+    val googleSettings @ GoogleSettings(clusterId, clusterConfig) = job.initialSettings match {
       case gs: GoogleSettings => gs
       case _ => sys.error(s"Only jobs with Google settings are supported, but got ${job.initialSettings}")
     }
 
-    delegate.run(Set(job), jobOracle).map(addCluster(googleSettings.clusterId))
-  }
-  
-  private[googlecloud] def withCluster[A](clusterConfig: ClusterConfig)(f: => A): A = {
-    def differentCurrentClusterDefined(currentClusterConfigOpt: Option[ClusterConfig]): Boolean = {
-      currentClusterConfigOpt.isDefined && (currentClusterConfigOpt != Option(clusterConfig))
+    def runSynchronously(): (LJob, RunData) = {
+      import Observables.Implicits._
+      import Scheduler.Implicits.global
+      import GoogleCloudChunkRunner.addCluster
+      
+      Await.result(delegate.run(Set(job), jobOracle).map(addCluster(clusterId)).firstAsFuture, Duration.Inf)
     }
     
+    Observable.evalOnce {
+      withCluster(clusterConfig) {
+        runSynchronously()
+      }
+    }.share(singleThreadedScheduler).executeOn(singleThreadedScheduler)
+  }
+
+  private[googlecloud] def withCluster[A](clusterConfig: ClusterConfig)(f: => A): A = { 
+    def differentCurrentClusterDefined(currentClusterConfigOpt: Option[ClusterConfig]): Boolean = {
+      currentClusterConfigOpt match {
+        case Some(cc) => cc != clusterConfig
+        case None => false
+      }
+    }
+
     currentClusterConfig.get { currentClusterConfigOpt =>
       if(differentCurrentClusterDefined(currentClusterConfigOpt)) {
         deleteClusterIfNecessary()
       }
     
       startClusterIfNecessary(clusterConfig)
-      
+
       f
     }
   }

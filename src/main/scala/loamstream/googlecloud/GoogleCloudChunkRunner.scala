@@ -158,11 +158,16 @@ final case class GoogleCloudChunkRunner(
       
       Await.result(delegate.run(Set(job), jobOracle).map(addCluster(clusterId)).firstAsFuture, Duration.Inf)
     }
-    
+
+    //NB: Run each job synchronously to guarantee that we only ever have one job and one cluster running at a time.
+    //There's a good argument for not having this restriction, but the current behavior is intentional and driven by
+    //requests from users.
     Observable.evalOnce {
       withCluster(clusterConfig) {
         runSynchronously()
       }
+    //NB: share() and executeOn() are needed to make sure we only ever use the single-threaded Scheduler, helping to 
+    //guarantee that only one job and cluster are running at any time.
     }.share(singleThreadedScheduler).executeOn(singleThreadedScheduler)
   }
 

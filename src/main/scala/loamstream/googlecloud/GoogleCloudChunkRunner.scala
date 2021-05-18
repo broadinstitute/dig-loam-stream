@@ -122,15 +122,8 @@ final case class GoogleCloudChunkRunner(
           jobResult = None, 
           terminationReasonOpt = None)
       
-      /* j.initialSettings match {
-        case GoogleSettings(_, clusterConfig) => withCluster(clusterConfig) {
-          runSingle(delegate, jobOracle)(j)
-        }
-        case settings => Observable(j -> runDataForNonGoogleJob)
-      } */
-
       j.initialSettings match {
-        case GoogleSettings(_, clusterConfig) => runSingle(delegate, jobOracle)(j)
+        case _: GoogleSettings => runSingle(delegate, jobOracle)(j)
         case settings => Observable(j -> runDataForNonGoogleJob)
       }
     }

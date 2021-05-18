@@ -86,7 +86,7 @@ final class QstatPoller private[uger] (qstatInvoker: CommandInvoker.Async[Unit])
       val exitCodeStatuesObs = Observables.merge(exitCodeStatusObses)
 
       //Concatentate results from qstat with those from looking up exit codes, wrapping in Trys as needed.
-      Observable.from(byTaskId) ++ {
+      Observable.fromIterable(byTaskId) ++ {
         exitCodeStatuesObs.map { case (tid, status) => (tid, Success(status)) }
       }.asyncBoundary(Observables.defaultOverflowStrategy)
     }

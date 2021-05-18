@@ -6,7 +6,7 @@ import scala.util.Try
 
 import loamstream.loam.intake.AwsRowSink
 import loamstream.loam.intake.Source
-import loamstream.util.AwsClient
+import loamstream.util.S3Client
 import loamstream.util.Fold
 import loamstream.util.HttpClient
 import loamstream.util.HttpClient.Auth
@@ -41,7 +41,7 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
     private final class UploadOps(
         annotation: Annotation,
         auth: Auth,
-        awsClient: AwsClient,
+        awsClient: S3Client,
         logCtx: ToFileLogContext, 
         yes: Boolean = false) {
       
@@ -58,7 +58,7 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
           dataset = datasetName,
           techType = None,
           phenotype = None,
-          awsClient = awsClient,
+          s3Client = awsClient,
           yes = yes)
       
       val countAndUpload: Fold[BedRow, _, (Int, Unit)] = {
@@ -110,7 +110,7 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
      */
     def uploadAnnotatedDataset(
         auth: Auth,
-        awsClient: AwsClient,
+        awsClient: S3Client,
         logTo: Store, 
         append: Boolean,
         yes: Boolean = false)(annotation: Annotation): Unit = {
@@ -123,7 +123,7 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
      */
     def uploadAnnotatedDataset(
         auth: Auth,
-        awsClient: AwsClient,
+        awsClient: S3Client,
         logCtx: ToFileLogContext,
         yes: Boolean)(annotation: Annotation): Unit = {
       

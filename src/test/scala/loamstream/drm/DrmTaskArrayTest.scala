@@ -2,7 +2,7 @@ package loamstream.drm
 
 import java.nio.file.Path
 
-import scala.collection.Seq
+import scala.collection.immutable.Seq
 
 import org.scalatest.FunSuite
 

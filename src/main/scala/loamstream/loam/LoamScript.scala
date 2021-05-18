@@ -87,7 +87,7 @@ object LoamScript {
   val scriptsPackage: PackageId = RootPackageId
 
   /** Sequence of indices for auto-generated Loam script names */
-  val generatedNameIndices: Sequence[Int] = new Sequence(0, 1)
+  val generatedNameIndices: Sequence[Int] = Sequence()
 
   /** Base name for auto-generated Loam script names */
   val generatedNameBase: String = "loamScript"

@@ -1,5 +1,7 @@
 package loamstream.util
 
+import scala.collection.compat._
+
 /**
  * @author clint
  * Nov 9, 2018
@@ -17,7 +19,7 @@ object Sets {
     
     def toHashSet(s: Set[A]): HashSet[A] = s match {
       case hs: HashSet[A] => hs 
-      case _ => s.to[HashSet]
+      case _ => s.to(HashSet)
     }
     
     if(lhs.isEmpty || rhs.isEmpty) { lhs }

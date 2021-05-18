@@ -136,7 +136,7 @@ final case class LoamGraph(
       tools = tools.map(replace),
       toolInputs = toolInputs.mapKeys(replace),
       toolOutputs = toolOutputs.mapKeys(replace),
-      storeProducers = storeProducers.mapValues(replace),
+      storeProducers = storeProducers.strictMapValues(replace),
       storeConsumers = storeConsumers.strictMapValues(_.map(replace)),
       workDirs = workDirs.mapKeys(replace),
       toolSettings = toolSettings.mapKeys(replace),
@@ -292,12 +292,12 @@ final case class LoamGraph(
       
       import loamstream.util.Maps.Implicits._
       
-      val retainedStoreProducers = storeProducers.filterKeys(retainedStores).filterValues(toolsToKeep)
+      val retainedStoreProducers = storeProducers.strictFilterKeys(retainedStores).filterValues(toolsToKeep)
       val retainedStoreConsumers = {
-        storeConsumers.filterKeys(retainedStores).strictMapValues(_.filter(toolsToKeep)).filterValues(_.nonEmpty)
+        storeConsumers.strictFilterKeys(retainedStores).strictMapValues(_.filter(toolsToKeep)).filterValues(_.nonEmpty)
       }
-      val retainedWorkDirs = workDirs.filterKeys(toolsToKeep)
-      val retainedExecutionEnvironments = toolSettings.filterKeys(toolsToKeep)
+      val retainedWorkDirs = workDirs.strictFilterKeys(toolsToKeep)
+      val retainedExecutionEnvironments = toolSettings.strictFilterKeys(toolsToKeep)
   
       val retainedNamedTools = namedTools.filterKeys(toolsToKeep)
       

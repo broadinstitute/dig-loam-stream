@@ -1,13 +1,15 @@
 package loamstream.loam.intake
 
-import org.scalatest.FunSuite
-import loamstream.util.AwsClient
-import loamstream.util.AwsClient.ContentType
-import loamstream.util.Maps
-import AwsRowSinkTest.MockAwsClient
 import java.util.UUID
+
 import org.json4s.JsonAST.JValue
+import org.scalatest.FunSuite
+
+import AwsRowSinkTest.MockS3Client
 import loamstream.loam.intake.dga.Json
+import loamstream.util.S3Client
+import loamstream.util.S3Client.ContentType
+
 import scala.collection.compat._
 
 /**
@@ -22,7 +24,7 @@ final class AwsRowSinkTest extends FunSuite {
         techType = None,
         phenotype = None,
         batchSize = 42,
-        awsClient = MockAwsClient.apply("some-bucket"))
+        s3Client = MockS3Client.apply("some-bucket"))
         
     assert(sink.toKey("lalala.json") === "some-topic/some-name/lalala.json")
     assert(sink.toKey("") === "some-topic/some-name/")
@@ -37,7 +39,7 @@ final class AwsRowSinkTest extends FunSuite {
           techType = Some(techType),
           phenotype = Some(phenotype),
           batchSize = 42,
-          awsClient = MockAwsClient.apply("some-bucket"))
+          s3Client = MockS3Client.apply("some-bucket"))
           
       assert(sink.toKey("lalala.json") === s"some-topic/${techType.name}/some-name/${phenotype}/lalala.json")
       assert(sink.toKey("") === s"some-topic/${techType.name}/some-name/${phenotype}/")
@@ -65,7 +67,7 @@ final class AwsRowSinkTest extends FunSuite {
         batchSize = 42,
         techType = None,
         phenotype = None,
-        awsClient = MockAwsClient.apply("some-bucket"),
+        s3Client = MockS3Client.apply("some-bucket"),
         fileIds = Iterator(1,2,3,4,5),
         uuid = uuid)
         
@@ -94,7 +96,7 @@ final class AwsRowSinkTest extends FunSuite {
         LiteralRow(headers = headers, values = Seq("q", "w", "e")),
         LiteralRow(headers = headers, values = Seq("f", "o", "o"))).map(toJsonRow)
         
-    val client = MockAwsClient.apply("some-bucket")
+    val client = MockS3Client.apply("some-bucket")
         
     val uuid = randomUUID 
     
@@ -104,7 +106,7 @@ final class AwsRowSinkTest extends FunSuite {
         batchSize = 2,
         techType = None,
         phenotype = None,
-        awsClient = client,
+        s3Client = client,
         yes = true,
         fileIds = Iterator(2, 4, 6, 8),
         uuid = uuid)
@@ -127,7 +129,7 @@ final class AwsRowSinkTest extends FunSuite {
       s"some-bucket/some-topic/some-name/part-00002-${uuid}.json" ->
         AwsRowSinkTest.MockValue(
             s"""{"X":"4","Y":"3","Z":"2"}${newline}{"X":"z","Y":"x","Z":"c"}""", 
-            Some(AwsClient.ContentType.ApplicationJson)))
+            Some(S3Client.ContentType.ApplicationJson)))
       
     
     assert(client.data === expected0)
@@ -146,7 +148,7 @@ final class AwsRowSinkTest extends FunSuite {
       s"some-bucket/some-topic/some-name/part-00004-${uuid}.json" -> 
         AwsRowSinkTest.MockValue(
             s"""{"X":"q","Y":"w","Z":"e"}${newline}{"X":"f","Y":"o","Z":"o"}""", 
-            Some(AwsClient.ContentType.ApplicationJson)))
+            Some(S3Client.ContentType.ApplicationJson)))
         
     assert(client.data === expected1)
     assert(sink.uploadedSoFar === 4)
@@ -162,7 +164,7 @@ final class AwsRowSinkTest extends FunSuite {
         LiteralRow(headers = headers, values = Seq("q", "w", "e")),
         LiteralRow(headers = headers, values = Seq("f", "o", "o"))).map(toJsonRow)
         
-    val client = MockAwsClient.apply("some-bucket")
+    val client = MockS3Client.apply("some-bucket")
         
     val uuid = randomUUID 
     
@@ -172,7 +174,7 @@ final class AwsRowSinkTest extends FunSuite {
         techType = None,
         phenotype = None,
         batchSize = 2,
-        awsClient = client,
+        s3Client = client,
         yes = true,
         fileIds = Iterator(2, 4, 6, 8),
         uuid = uuid)
@@ -185,7 +187,7 @@ final class AwsRowSinkTest extends FunSuite {
     
     sink.flush()
     
-    val json = Some(AwsClient.ContentType.ApplicationJson)
+    val json = Some(S3Client.ContentType.ApplicationJson)
     
     val expected0 = Map(
       s"some-bucket/some-topic/some-name/part-00002-${uuid}.json" -> 
@@ -198,12 +200,12 @@ final class AwsRowSinkTest extends FunSuite {
 object AwsRowSinkTest {
   final case class MockValue(value: String, contentType: Option[ContentType])
   
-  object MockAwsClient {
-    def empty(bucket: String): MockAwsClient = new MockAwsClient(bucket)
+  object MockS3Client {
+    def empty(bucket: String): MockS3Client = new MockS3Client(bucket)
   }
   
-  final case class MockAwsClient(bucket: String, initialData: Map[String, String] = Map.empty) extends AwsClient {
-    import Maps.Implicits._
+  final case class MockS3Client(bucket: String, initialData: Map[String, String] = Map.empty) extends S3Client {
+    import loamstream.util.Maps.Implicits._
     
     var data: Map[String, MockValue] = initialData.strictMapValues(MockValue(_, None))
     
@@ -215,7 +217,7 @@ object AwsRowSinkTest {
     }
   
     override def deleteDir(key: String): Unit = {
-      data = data.filterKeys(!_.startsWith(key))
+      data = data.strictFilterKeys(!_.startsWith(key))
     }
   
     override def put(key: String, body: String, contentType: Option[ContentType] = None): Unit = {

@@ -31,7 +31,9 @@ package object jobs {
       from(JobOracle.fromExecutable(executionConfig, executable), mapping)
     }
     
-    def from(jobOracle: JobOracle, mapping: Map[DrmTaskId, LJob]): DrmJobOracle = from(jobOracle.via(mapping))
+    def from(jobOracle: JobOracle, mappings: Iterable[(DrmTaskId, LJob)]): DrmJobOracle = {
+      from(jobOracle.via(mappings.toMap))
+    }
     
     private def from(delegate: DirOracle[DrmTaskId]): DrmJobOracle = new DelegatingDrmJobOracle(delegate) 
   }

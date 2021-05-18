@@ -1,10 +1,12 @@
 package loamstream.util
 
 import java.nio.file.Path
+
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.Buffer
 import scala.sys.process.ProcessLogger
 
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -36,8 +38,8 @@ object ProcessLoggers {
       stdOutBuffer: Buffer[String] = new ArrayBuffer,
       stdErrBuffer: Buffer[String] = new ArrayBuffer) extends ProcessLogger with WithDefaultBuffer {
     
-    def stdOut: Seq[String] = stdOutBuffer.to[Array]
-    def stdErr: Seq[String] = stdErrBuffer.to[Array]
+    def stdOut: Seq[String] = stdOutBuffer.to(Seq)
+    def stdErr: Seq[String] = stdErrBuffer.to(Seq)
     
     //Methods from ProcessLogger 
     override def out(s: => String): Unit = stdOutBuffer += s

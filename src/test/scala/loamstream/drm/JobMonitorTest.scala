@@ -1,19 +1,17 @@
 package loamstream.drm
 
-import scala.collection.Seq
-import scala.concurrent.Future
 import scala.util.Success
-import scala.util.Try
+
+import scala.collection.immutable.Seq
 
 import org.scalatest.FunSuite
 
-import loamstream.util.Observables
-import loamstream.util.RxSchedulers
-import loamstream.util.Tries
+import monix.execution.Scheduler
 
 import loamstream.TestHelpers
-import monix.execution.Scheduler
 import loamstream.TestHelpers.DummyDrmJobOracle
+import loamstream.util.RxSchedulers
+import loamstream.util.Observables
 
 
 /**
@@ -21,8 +19,7 @@ import loamstream.TestHelpers.DummyDrmJobOracle
  * date: Jul 6, 2016
  */
 final class JobMonitorTest extends FunSuite {
-  import loamstream.TestHelpers.waitFor 
-  import Observables.Implicits._ 
+ 
 
   test("monitor() - happy path") {
     import DrmStatus._
@@ -44,7 +41,7 @@ final class JobMonitorTest extends FunSuite {
     
     withThreadPoolScheduler(3) { scheduler =>
       def futureStatuses(taskId: DrmTaskId): Seq[DrmStatus] = {
-        import Scheduler.Implicits.global
+        import monix.execution.Scheduler.Implicits.global
         
         val statuses = (new JobMonitor(scheduler, poller, 9.99)).monitor(DummyDrmJobOracle)(jobIds)
         

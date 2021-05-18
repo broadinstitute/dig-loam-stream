@@ -9,11 +9,9 @@ import loamstream.util.Sequence
 import java.util.UUID
 import loamstream.util.ValueBox
 import scala.util.control.NonFatal
-import org.broadinstitute.dig.aws.AWS
-import org.broadinstitute.dig.aws.config.AWSConfig
 import org.broadinstitute.dig.aws.Implicits
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException
-import loamstream.util.AwsClient
+import loamstream.util.S3Client
 import scala.util.Try
 import scala.collection.compat._
 
@@ -62,7 +60,7 @@ final case class AwsRowSink(
     dataset: String,
     techType: Option[TechType],
     phenotype: Option[String],
-    awsClient: AwsClient,
+    s3Client: S3Client,
     batchSize: Int = AwsRowSink.Defaults.batchSize,
     baseDir: Option[String] = AwsRowSink.Defaults.baseDir,
     // :(
@@ -134,7 +132,7 @@ final case class AwsRowSink(
     info(s"Deleting '${path}'...")
     
     if(yes) {
-      awsClient.deleteDir(prefix)
+      s3Client.deleteDir(prefix)
     }
   }
   
@@ -145,7 +143,7 @@ final case class AwsRowSink(
   def existingMetadata: Option[JObject] = {
     import Implicits._
     
-    val metadataStringOpt: Option[String] = Try(awsClient.getAsString(toKey("metadata"))).getOrElse(None)
+    val metadataStringOpt: Option[String] = Try(s3Client.getAsString(toKey("metadata"))).getOrElse(None)
     
     metadataStringOpt.map(parse(_)).map(_ \ "Body").flatMap {
       case JString(body) => (Option(parse(body)).collect { case jobj: JObject => jobj })
@@ -166,7 +164,7 @@ final case class AwsRowSink(
     info(s"Writing ${metadataKey}")
 
     if(yes) {
-      awsClient.put(metadataKey, body, contentType = Some(AwsClient.ContentType.ApplicationJson))
+      s3Client.put(metadataKey, body, contentType = Some(S3Client.ContentType.ApplicationJson))
     }
   }
   
@@ -202,7 +200,7 @@ final case class AwsRowSink(
 
       //write the batched records to the bucket
       if(yes) {
-        awsClient.put(key, body, contentType = Some(AwsClient.ContentType.ApplicationJson))
+        s3Client.put(key, body, contentType = Some(S3Client.ContentType.ApplicationJson))
       }
 
       info(s"Wrote ${key}")

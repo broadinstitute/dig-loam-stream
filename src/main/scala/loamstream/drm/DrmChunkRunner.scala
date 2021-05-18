@@ -32,6 +32,7 @@ import loamstream.util.ExitCodes
 import cats.kernel.Eq
 import loamstream.model.jobs.commandline.HasCommandLine
 import scala.collection.compat._
+import loamstream.util.Maps
 
 /**
  * @author clint
@@ -162,7 +163,7 @@ final case class DrmChunkRunner(
     jobsById: Map[DrmTaskId, DrmJobWrapper],
     jobOracle: JobOracle)(implicit ec: ExecutionContext): Observable[(LJob, RunData)] = {
 
-    val drmJobOracle = DrmJobOracle.from(jobOracle, jobsById.mapValues(_.commandLineJob))
+    val drmJobOracle = DrmJobOracle.from(jobOracle, jobsById.mapValues(_.commandLineJob: LJob))
     
     import jobMonitor.monitor
 

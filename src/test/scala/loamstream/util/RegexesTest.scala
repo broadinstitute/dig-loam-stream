@@ -14,36 +14,36 @@ final class RegexesTest extends FunSuite {
   val lettersOrNumbers = "[a-z0-9]+".r 
   
   test("matches") {
-    assert(letters.matches("asdf") === true)
-    assert(letters.matches("123") === false)
-    assert(letters.matches("asdf123") === true)
-    assert(letters.matches("123asdf") === true)
+    assert(letters.foundIn("asdf") === true)
+    assert(letters.foundIn("123") === false)
+    assert(letters.foundIn("asdf123") === true)
+    assert(letters.foundIn("123asdf") === true)
     
-    assert(numbers.matches("asdf") === false)
-    assert(numbers.matches("123") === true)
-    assert(numbers.matches("asdf123") === true)
-    assert(numbers.matches("123asdf") === true)
+    assert(numbers.foundIn("asdf") === false)
+    assert(numbers.foundIn("123") === true)
+    assert(numbers.foundIn("asdf123") === true)
+    assert(numbers.foundIn("123asdf") === true)
     
-    assert(lettersOrNumbers.matches("asdf") === true)
-    assert(lettersOrNumbers.matches("123") === true)
-    assert(lettersOrNumbers.matches("asdf123") === true)
-    assert(lettersOrNumbers.matches("123asdf") === true)
+    assert(lettersOrNumbers.foundIn("asdf") === true)
+    assert(lettersOrNumbers.foundIn("123") === true)
+    assert(lettersOrNumbers.foundIn("asdf123") === true)
+    assert(lettersOrNumbers.foundIn("123asdf") === true)
   }
   
   test("doesntMatch") {
-    assert(letters.doesntMatch("asdf") === false)
-    assert(letters.doesntMatch("123") === true)
-    assert(letters.doesntMatch("asdf123") === false)
-    assert(letters.doesntMatch("123asdf") === false)
+    assert(letters.notFoundIn("asdf") === false)
+    assert(letters.notFoundIn("123") === true)
+    assert(letters.notFoundIn("asdf123") === false)
+    assert(letters.notFoundIn("123asdf") === false)
     
-    assert(numbers.doesntMatch("asdf") === true)
-    assert(numbers.doesntMatch("123") === false)
-    assert(numbers.doesntMatch("asdf123") === false)
-    assert(numbers.doesntMatch("123asdf") === false)
+    assert(numbers.notFoundIn("asdf") === true)
+    assert(numbers.notFoundIn("123") === false)
+    assert(numbers.notFoundIn("asdf123") === false)
+    assert(numbers.notFoundIn("123asdf") === false)
     
-    assert(lettersOrNumbers.doesntMatch("asdf") === false)
-    assert(lettersOrNumbers.doesntMatch("123") === false)
-    assert(lettersOrNumbers.doesntMatch("asdf123") === false)
-    assert(lettersOrNumbers.doesntMatch("123asdf") === false)
+    assert(lettersOrNumbers.notFoundIn("asdf") === false)
+    assert(lettersOrNumbers.notFoundIn("123") === false)
+    assert(lettersOrNumbers.notFoundIn("asdf123") === false)
+    assert(lettersOrNumbers.notFoundIn("123asdf") === false)
   }
 }

@@ -12,8 +12,8 @@ import java.nio.file.Path
 import loamstream.util.Paths
 import loamstream.util.{Files => LFiles}
 import loamstream.model.execute.Resources.AwsResources
-import org.broadinstitute.dig.aws.emr.Cluster
 import loamstream.googlecloud.ClusterConfig
+import org.broadinstitute.dig.aws.emr.ClusterDef
 
 
 /**
@@ -168,12 +168,12 @@ object FileSystemExecutionRecorder extends ExecutionRecorder {
       Keys.maxClusterIdleTime -> maxClusterIdleTime)
   }
   
-  private def awsClusterConfigToTuples(clusterConfig: Cluster): Seq[(String, Any)] = {
+  private def awsClusterConfigToTuples(clusterConfig: ClusterDef): Seq[(String, Any)] = {
     import clusterConfig._
         
     def toString[A](as: Iterable[A]): String = as.mkString("[", ",", "]")
     
-    Seq(
+    /*Seq(
       typeTuple(EnvironmentType.Aws.name),
       Keys.cluster -> name,
       Keys.amiId -> amiId.map(_.value).getOrElse(""),
@@ -187,6 +187,8 @@ object FileSystemExecutionRecorder extends ExecutionRecorder {
       Keys.bootstrapScripts -> toString(bootstrapScripts.map(_.config.scriptBootstrapAction.path)),
       Keys.bootstrapSteps -> toString(bootstrapSteps),
       Keys.keepAliveWhenNoSteps -> keepAliveWhenNoSteps,
-      Keys.visibleToAllUsers -> visibleToAllUsers)
+      Keys.visibleToAllUsers -> visibleToAllUsers)*/
+    
+    ???
   }
 }

@@ -1,13 +1,9 @@
 package loamstream.model.jobs
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
-
 import org.scalatest.FunSuite
 
-import loamstream.TestHelpers
-import loamstream.conf.ExecutionConfig
-import loamstream.model.execute.AsyncLocalChunkRunner
+import scala.collection.immutable.Seq
+import loamstream.util.Maps
 
 /**
  * @author clint
@@ -15,11 +11,11 @@ import loamstream.model.execute.AsyncLocalChunkRunner
  */
 final class JobTest extends FunSuite with TestJobs {
   
-  import JobStatus._
-  import loamstream.TestHelpers.waitFor
-  import loamstream.util.Observables.Implicits._
-
-  private def count[A](as: Seq[A]): Map[A, Int] = as.groupBy(identity).mapValues(_.size)
+  private def count[A](as: Seq[A]): Map[A, Int] = {
+    import Maps.Implicits.MapOps
+    
+    as.groupBy(identity).strictMapValues(_.size)
+  }
   
   //TODO: Lame :(
   private def toLJob(lj: LocalJob): LJob = lj

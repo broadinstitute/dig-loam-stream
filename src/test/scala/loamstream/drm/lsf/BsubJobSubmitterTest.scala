@@ -23,6 +23,7 @@ import loamstream.util.RunResults
 import loamstream.drm.DrmTaskId
 import loamstream.util.Observables
 import monix.execution.Scheduler
+import loamstream.util.CommandInvoker
 
 /**
  * @author clint
@@ -35,11 +36,11 @@ final class BsubJobSubmitterTest extends FunSuite {
   import Scheduler.Implicits.global
   
   test("submitJobs - happy path") {
-    def submissionFn(drmSettings: DrmSettings, taskArray: DrmTaskArray): Try[RunResults] = {
+    val submissionFn: ((DrmSettings, DrmTaskArray)) => Try[RunResults] = { case (drmSettings, taskArray) =>
       Success(RunResults("mock", 0, makeBsubOutput("1234"), Seq.empty))
     }
     
-    val submitter = new BsubJobSubmitter(submissionFn)
+    val submitter = new BsubJobSubmitter(new CommandInvoker.Sync.JustOnce("bsub", submissionFn))
     
     val result = waitFor(submitter.submitJobs(settings, taskArray).firstAsFuture)
     
@@ -55,11 +56,11 @@ final class BsubJobSubmitterTest extends FunSuite {
   }
   
   test("submitJobs - submission failure") {
-    def submissionFn(drmSettings: DrmSettings, taskArray: DrmTaskArray): Try[RunResults] = {
+    val submissionFn: ((DrmSettings, DrmTaskArray)) => Try[RunResults] = { case (drmSettings, taskArray) =>
       Success(RunResults("mock", 42, Seq.empty, Seq.empty))
     }
     
-    val submitter = new BsubJobSubmitter(submissionFn)
+    val submitter = new BsubJobSubmitter(new CommandInvoker.Sync.JustOnce("bsub", submissionFn))
     
     val result = waitFor(submitter.submitJobs(settings, taskArray).firstAsFuture)
     
@@ -67,11 +68,11 @@ final class BsubJobSubmitterTest extends FunSuite {
   }
   
   test("submitJobs - something threw") {
-    def submissionFn(drmSettings: DrmSettings, taskArray: DrmTaskArray): Try[RunResults] = {
+    val submissionFn: ((DrmSettings, DrmTaskArray)) => Try[RunResults] = { case (drmSettings, taskArray) =>
       Failure(new Exception)
     }
     
-    val submitter = new BsubJobSubmitter(submissionFn)
+    val submitter = new BsubJobSubmitter(new CommandInvoker.Sync.JustOnce("bsub", submissionFn))
     
     val result = waitFor(submitter.submitJobs(settings, taskArray).firstAsFuture)
     

@@ -12,6 +12,7 @@ import CommandInvoker.AsyncInvocationFn
 import monix.reactive.Observable
 import monix.execution.Scheduler
 import scala.concurrent.duration.FiniteDuration
+import monix.eval.Task
 
 /**
  * @author clint
@@ -28,7 +29,7 @@ object CommandInvoker {
   
   type SuccessfulInvocationFn[A] = A => Try[RunResults.Successful]
 
-  type AsyncInvocationFn[A] = A => Future[RunResults.Successful]
+  type AsyncInvocationFn[A] = A => Task[RunResults.Successful]
 
   trait Sync[A] extends (SuccessfulInvocationFn[A])
 
@@ -110,10 +111,10 @@ object CommandInvoker {
       val binaryName: String,
       delegateFn: InvocationFn[A])(implicit scheduler: Scheduler, logCtx: LogContext) extends CommandInvoker.Async[A] {
 
-      override def apply(param: A): Future[RunResults.Successful] = {
+      override def apply(param: A): Task[RunResults.Successful] = {
         import Observables.Implicits._
 
-        invokeBinary(param).firstAsFuture.flatMap(Future.fromTry)
+        invokeBinary(param).firstL.flatMap(Task.fromTry)
       }
 
       private[CommandInvoker] def invokeBinary(param: A): Observable[Try[RunResults.Successful]] = Observable {
@@ -128,7 +129,7 @@ object CommandInvoker {
       delayCap: FiniteDuration = Retrying.defaultDelayCap,
       scheduler: Scheduler)(implicit logCtx: LogContext) extends CommandInvoker.Async[A] {
 
-      override def apply(param: A): Future[RunResults.Successful] = runCommand(param)
+      override def apply(param: A): Task[RunResults.Successful] = runCommand(param)
 
       private val runCommand: AsyncInvocationFn[A] = {
         doRetries(
@@ -156,14 +157,14 @@ object CommandInvoker {
 
         implicit val sch = scheduler
         
-        val result: Future[RunResults.Successful] = resultOptObs.firstAsFuture.flatMap {
-          case Some(a) => Future.successful(a)
+        val result: Task[RunResults.Successful] = resultOptObs.firstL.flatMap {
+          case Some(a) => Task(a)
           case _ => {
             val msg = s"Invoking '$binaryName' with param '$param' failed after $maxRuns runs"
 
             logCtx.debug(msg)
 
-            Future.failed(new Exception(msg))
+            Task.raiseError(new Exception(msg))
           }
         }
 

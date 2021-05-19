@@ -33,6 +33,7 @@ import cats.kernel.Eq
 import loamstream.model.jobs.commandline.HasCommandLine
 import scala.collection.compat._
 import loamstream.util.Maps
+import monix.eval.Task
 
 /**
  * @author clint
@@ -206,17 +207,14 @@ object DrmChunkRunner extends Loggable {
   }
   
   private[drm] def getAccountingInfoFor(accountingClient: AccountingClient)(taskId: DrmTaskId)
-                                       (implicit ec: ExecutionContext): Future[Option[AccountingInfo]] = {
+                                       (implicit ec: ExecutionContext): Task[Option[AccountingInfo]] = {
     
-    val infoAttempt = accountingClient.getAccountingInfo(taskId)
+    val infoAttempt = accountingClient.getAccountingInfo(taskId).map(Option(_))
         
-    //For side effect only
-    infoAttempt.recover {
-      case e => warn(s"Error invoking accounting client for job with DRM id '$taskId': ${e.getMessage}", e)
-    }
+    infoAttempt.onErrorRecover[Option[AccountingInfo]] { case e => 
+      warn(s"Error invoking accounting client for job with DRM id '$taskId': ${e.getMessage}", e)
     
-    infoAttempt.transformWith { 
-      case attempt => Future.successful(attempt.toOption)
+      None
     }
   }
   
@@ -225,7 +223,7 @@ object DrmChunkRunner extends Loggable {
       wrapper: DrmJobWrapper, 
       taskId: DrmTaskId)(s: DrmStatus)(implicit ec: ExecutionContext): Observable[RunData] = {
     
-    val infoOptFuture: Future[Option[AccountingInfo]] = {
+    val infoOptT: Task[Option[AccountingInfo]] = {
       val statusDescription = s"${simpleNameOf[DrmStatus]} ${s}"
       
       if(s.isFinished && notSuccess(s)) {
@@ -235,12 +233,12 @@ object DrmChunkRunner extends Loggable {
       } else {
         debug(s"${statusDescription} is NOT finished or is a success, NOT determining execution node and queue: $s")
         
-        Future.successful(None)
+        Task.now(None)
       }
     }
     
-    val resultFuture = for {
-      infoOpt <- infoOptFuture
+    val resultT = for {
+      infoOpt <- infoOptT
     } yield {
       RunData(
         job = wrapper.commandLineJob,
@@ -252,7 +250,7 @@ object DrmChunkRunner extends Loggable {
         terminationReasonOpt = infoOpt.flatMap(_.terminationReasonOpt))
     }
     
-    Observable.from(resultFuture)
+    Observable.from(resultT)
   }
   
   private[drm] def toRunDatas(

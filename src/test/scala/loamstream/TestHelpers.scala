@@ -61,6 +61,7 @@ import java.time.ZoneId
 import loamstream.conf.LsSettings
 import scala.concurrent.duration.FiniteDuration
 import loamstream.drm.DrmTaskId
+import monix.eval.Task
 
 /**
   * @author clint
@@ -310,6 +311,15 @@ object TestHelpers {
 
     //NB: Hard-coded timeout. :(  But at least it's no longer infinite! :)
     Await.result(f, defaultWaitTime)
+  }
+  
+  def waitFor[A](t: Task[A]): A = {
+    import scala.concurrent.duration._
+
+    import monix.execution.Scheduler.Implicits.global
+    
+    //NB: Hard-coded timeout. :(  But at least it's no longer infinite! :)
+    t.runSyncUnsafe(defaultWaitTime)
   }
   
   //foobar => FoObAr, etc

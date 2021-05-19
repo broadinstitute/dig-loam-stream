@@ -19,7 +19,7 @@ object AccountingCommandInvoker {
     def useActualBinary(
         maxRetries: Int, 
         binaryName: String,
-        scheduler: Scheduler)(implicit ec: ExecutionContext): CommandInvoker.Async[P] = {
+        scheduler: Scheduler): CommandInvoker.Async[P] = {
       
       def invokeBinaryFor(param: P) = {
         val tokens = makeTokens(binaryName, param)

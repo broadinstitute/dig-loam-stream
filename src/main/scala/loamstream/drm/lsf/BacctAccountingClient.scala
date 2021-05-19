@@ -26,6 +26,7 @@ import loamstream.util.Loggable
 import loamstream.util.Options
 import loamstream.util.Tries
 import monix.execution.Scheduler
+import monix.eval.Task
 
 
 /**
@@ -38,15 +39,15 @@ final class BacctAccountingClient(
 
   import BacctAccountingClient._
 
-  override def getResourceUsage(taskId: DrmTaskId): Future[LsfResources] = {
-    getBacctOutputFor(taskId).flatMap(output => Future.fromTry(toResources(output)))
+  override def getResourceUsage(taskId: DrmTaskId): Task[LsfResources] = {
+    getBacctOutputFor(taskId).flatMap(output => Task.fromTry(toResources(output)))
   }
   
-  override def getTerminationReason(taskId: DrmTaskId): Future[Option[TerminationReason]] = {
+  override def getTerminationReason(taskId: DrmTaskId): Task[Option[TerminationReason]] = {
     getBacctOutputFor(taskId).map(toTerminationReason)
   }
   
-  private def getBacctOutputFor(taskId: DrmTaskId): Future[Seq[String]] = {
+  private def getBacctOutputFor(taskId: DrmTaskId): Task[Seq[String]] = {
     bacctInvoker(taskId).map(_.stdout.map(_.trim))
   }
     

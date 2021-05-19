@@ -23,13 +23,14 @@ import loamstream.util.Processes
 import loamstream.drm.DrmTaskId
 import monix.reactive.Observable
 import scala.collection.compat._
+import loamstream.util.CommandInvoker
 
 /**
  * @author clint
  * May 15, 2018
  */
 final class BsubJobSubmitter private[lsf] (
-    submissionFn: BsubJobSubmitter.SubmissionFn) extends JobSubmitter with Loggable {
+    submissionFn: CommandInvoker.Sync[BsubJobSubmitter.Params]) extends JobSubmitter with Loggable {
     
   import BsubJobSubmitter._
   
@@ -39,8 +40,7 @@ final class BsubJobSubmitter private[lsf] (
     runAttemptObs.map { attempt =>
       attempt.map(toDrmSubmissionResult(taskArray)) match {
         case Success(submissionResult) => submissionResult
-        case Failure(e: Exception) => DrmSubmissionResult.SubmissionFailure(e)
-        case Failure(e) => DrmSubmissionResult.SubmissionFailure(new Exception(e))
+        case Failure(e) => DrmSubmissionResult.SubmissionFailure(e)
       }
     }
   }
@@ -103,15 +103,21 @@ final class BsubJobSubmitter private[lsf] (
 }
 
 object BsubJobSubmitter extends Loggable {
-  type SubmissionFn = (DrmSettings, DrmTaskArray) => Try[RunResults]
+  type Params = (DrmSettings, DrmTaskArray)
+  
+  type SubmissionFn = CommandInvoker.InvocationFn[Params]
   
   def fromExecutable(lsfConfig: LsfConfig, actualExecutable: String = "bsub"): BsubJobSubmitter = {
-    new BsubJobSubmitter(invokeBinaryToSubmitJobs(lsfConfig, actualExecutable))
+    val invoker = new CommandInvoker.Sync.JustOnce[Params](
+        binaryName = actualExecutable, 
+        delegateFn = invokeBinaryToSubmitJobs(lsfConfig, actualExecutable))
+    
+    new BsubJobSubmitter(invoker)
   }
   
   private[lsf] def invokeBinaryToSubmitJobs(
       lsfConfig: LsfConfig, 
-      actualExecutable: String): SubmissionFn = { (drmSettings, taskArray) =>
+      actualExecutable: String): SubmissionFn = { case (drmSettings, taskArray) =>
         
     val tokens = makeTokens(actualExecutable, lsfConfig, taskArray, drmSettings)
     

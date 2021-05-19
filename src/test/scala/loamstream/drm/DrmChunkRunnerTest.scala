@@ -53,6 +53,7 @@ import monix.execution.Scheduler
 import loamstream.model.jobs.DrmJobOracle
 
 import scala.collection.compat._
+import monix.eval.Task
 
 
 /**
@@ -675,11 +676,11 @@ object DrmChunkRunnerTest {
   }
   
   final class MockAccountingClient(toReturn: Map[DrmTaskId, AccountingInfo]) extends AccountingClient {
-    override def getResourceUsage(taskId: DrmTaskId): Future[DrmResources] = Future.successful {
+    override def getResourceUsage(taskId: DrmTaskId): Task[DrmResources] = Task {
       toReturn(taskId).resources
     }
   
-    override def getTerminationReason(taskId: DrmTaskId): Future[Option[TerminationReason]] = Future.successful {
+    override def getTerminationReason(taskId: DrmTaskId): Task[Option[TerminationReason]] = Task {
       toReturn.get(taskId).flatMap(_.terminationReasonOpt)
     }
   }

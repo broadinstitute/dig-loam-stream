@@ -15,6 +15,7 @@ import loamstream.util.ValueBox
 import loamstream.util.LogContext
 import scala.concurrent.duration.FiniteDuration
 import monix.execution.Scheduler
+import monix.eval.Task
 
 /**
  * @author clint
@@ -64,13 +65,13 @@ final class MockQacctAccountingClient(
     new QacctAccountingClient(invoker)
   }
 
-  override def getResourceUsage(taskId: DrmTaskId): Future[DrmResources] = {
+  override def getResourceUsage(taskId: DrmTaskId): Task[DrmResources] = {
     timesGetResourceUsageInvokedBox.mutate(_ + 1)
     
     actualDelegate.getResourceUsage(taskId)
   }
   
-  override def getTerminationReason(taskId: DrmTaskId): Future[Option[TerminationReason]] = {
+  override def getTerminationReason(taskId: DrmTaskId): Task[Option[TerminationReason]] = {
     timesGetTerminationReasonInvokedBox.mutate(_ + 1)
     
     actualDelegate.getTerminationReason(taskId)

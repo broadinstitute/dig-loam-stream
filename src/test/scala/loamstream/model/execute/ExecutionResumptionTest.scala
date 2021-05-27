@@ -3,9 +3,6 @@ package loamstream.model.execute
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
-
 import org.scalatest.FunSuite
 
 import loamstream.TestHelpers
@@ -21,6 +18,7 @@ import loamstream.model.jobs.DataHandle
 import loamstream.model.jobs.RunData
 import loamstream.util.Hashes
 import loamstream.util.Paths
+import monix.eval.Task
 
 /**
   * @author clint
@@ -130,7 +128,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
         outputs = outputs, 
         delay = 0) {
       
-      override def execute(implicit context: ExecutionContext): Future[RunData] = {
+      override def execute: Task[RunData] = {
         body
         
         super.execute

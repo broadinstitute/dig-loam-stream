@@ -2,7 +2,6 @@ package loamstream.drm.uger
 
 import java.nio.file.Path
 
-import scala.concurrent.ExecutionContext
 import scala.util.Try
 
 import loamstream.conf.UgerConfig

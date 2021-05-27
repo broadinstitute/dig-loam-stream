@@ -318,7 +318,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
   private def makeWorkDir(): Path = TestHelpers.getWorkDir(getClass.getSimpleName)
 
   private def makeLoggingExecuter: (RxExecuter, MockChunkRunner) = {
-    val asyncChunkRunner = AsyncLocalChunkRunner(ExecutionConfig.default)(ExecutionContext.global)
+    val asyncChunkRunner = AsyncLocalChunkRunner(ExecutionConfig.default)
 
     val mockRunner = MockChunkRunner(asyncChunkRunner)
 
@@ -329,7 +329,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
     }
     
     val resultExecuter = {
-      delegateExecuter.copy(runner = mockRunner, maxRunsPerJob = 1)(delegateExecuter.executionContext)
+      delegateExecuter.copy(runner = mockRunner, maxRunsPerJob = 1)
     }
     
     (resultExecuter, mockRunner)

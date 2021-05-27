@@ -16,19 +16,19 @@ final class OneTimeLatchTest extends FunSuite {
     
     assert(count === 0)
     
-    latch.doOnce(inc())
+    assert(latch.doOnce(inc()) === false)
     
     assert(count === 1)
     
-    latch.doOnce(inc())
+    assert(latch.doOnce(inc()))
     
     assert(count === 1)
     
-    latch.doOnce(inc())
+    assert(latch.doOnce(inc()))
     
     assert(count === 1)
     
-    latch.doOnce(inc())
+    assert(latch.doOnce(inc()))
     
     assert(count === 1)
   }

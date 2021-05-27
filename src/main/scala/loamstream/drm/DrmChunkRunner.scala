@@ -1,8 +1,5 @@
 package loamstream.drm
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
-
 import DrmStatus.toJobResult
 import DrmStatus.toJobStatus
 import loamstream.conf.DrmConfig
@@ -51,7 +48,7 @@ final case class DrmChunkRunner(
     accountingClient: AccountingClient,
     jobKiller: JobKiller,
     private val sessionTracker: SessionTracker
-  )(implicit ec: ExecutionContext) extends ChunkRunnerFor(environmentType) with 
+  ) extends ChunkRunnerFor(environmentType) with 
         Terminable.StopsComponents with Loggable {
 
   require(environmentType.isUger || environmentType.isLsf, "Only UGER and LSF environments are supported")
@@ -148,7 +145,7 @@ final case class DrmChunkRunner(
   private def toRunDataStream
     (jobOracle: JobOracle,
      drmJobs: Seq[DrmJobWrapper])(
-    submissionResult: DrmSubmissionResult)(implicit ec: ExecutionContext): Observable[(LJob, RunData)] = {
+    submissionResult: DrmSubmissionResult): Observable[(LJob, RunData)] = {
     
     val commandLineJobs = drmJobs.map(_.commandLineJob)
     
@@ -162,7 +159,7 @@ final case class DrmChunkRunner(
   
   private[drm] def jobsToRunDatas(
     jobsById: Map[DrmTaskId, DrmJobWrapper],
-    jobOracle: JobOracle)(implicit ec: ExecutionContext): Observable[(LJob, RunData)] = {
+    jobOracle: JobOracle): Observable[(LJob, RunData)] = {
 
     val drmJobOracle = DrmJobOracle.from(jobOracle, jobsById.mapValues(_.commandLineJob: LJob))
     
@@ -206,8 +203,8 @@ object DrmChunkRunner extends Loggable {
     case _ => true
   }
   
-  private[drm] def getAccountingInfoFor(accountingClient: AccountingClient)(taskId: DrmTaskId)
-                                       (implicit ec: ExecutionContext): Task[Option[AccountingInfo]] = {
+  private[drm] def getAccountingInfoFor(
+      accountingClient: AccountingClient)(taskId: DrmTaskId): Task[Option[AccountingInfo]] = {
     
     val infoAttempt = accountingClient.getAccountingInfo(taskId).map(Option(_))
         
@@ -221,7 +218,7 @@ object DrmChunkRunner extends Loggable {
   private[drm] def toRunData(
       accountingClient: AccountingClient, 
       wrapper: DrmJobWrapper, 
-      taskId: DrmTaskId)(s: DrmStatus)(implicit ec: ExecutionContext): Observable[RunData] = {
+      taskId: DrmTaskId)(s: DrmStatus): Observable[RunData] = {
     
     val infoOptT: Task[Option[AccountingInfo]] = {
       val statusDescription = s"${simpleNameOf[DrmStatus]} ${s}"
@@ -256,8 +253,7 @@ object DrmChunkRunner extends Loggable {
   private[drm] def toRunDatas(
     accountingClient: AccountingClient, 
     //jobsAndDrmStatusesById: Map[DrmTaskId, JobAndStatuses])
-    jobsAndDrmStatusesById: Observable[(DrmTaskId, DrmJobWrapper, DrmStatus)])
-    (implicit ec: ExecutionContext): Observable[(LJob, RunData)] = {
+    jobsAndDrmStatusesById: Observable[(DrmTaskId, DrmJobWrapper, DrmStatus)]): Observable[(LJob, RunData)] = {
 
     val drmJobsToExecutionObservables: Observable[(DrmJobWrapper, RunData)] = for {
       (taskId, wrapper, status) <- jobsAndDrmStatusesById

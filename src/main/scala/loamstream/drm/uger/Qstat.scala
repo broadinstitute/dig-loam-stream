@@ -1,6 +1,5 @@
 package loamstream.drm.uger
 
-import scala.concurrent.ExecutionContext
 import scala.util.Try
 
 import loamstream.util.CommandInvoker

@@ -1,7 +1,5 @@
 package loamstream.drm
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
 import scala.util.Try
 
 import org.scalatest.FunSuite
@@ -94,7 +92,7 @@ final class DrmChunkRunnerTest extends FunSuite {
   
   private val executionConfig: ExecutionConfig = ExecutionConfig(42) 
   
-  import loamstream.TestHelpers.waitFor
+  import loamstream.TestHelpers.waitForT
   import loamstream.util.Observables.Implicits._
   
   private object JustFailsMockPoller extends Poller {
@@ -265,9 +263,7 @@ final class DrmChunkRunnerTest extends FunSuite {
       
       val jobsAndDrmStatusesById = toTupleObs(failed).map { case (wrapper, status) => (id, wrapper, status) }
       
-      val result = waitFor(toRunDatas(accountingClient, jobsAndDrmStatusesById).firstAsFuture)
-      
-      val (actualJob, runData) = result
+      val (actualJob, runData) = waitForT(toRunDatas(accountingClient, jobsAndDrmStatusesById).firstL)
       
       assert(actualJob === job)    
       assert(runData.jobStatus === JobStatus.Failed)
@@ -307,7 +303,7 @@ final class DrmChunkRunnerTest extends FunSuite {
       
       val jobsAndDrmStatusesById = toTupleObs(worked).map { case (wrapper, status) => (id, wrapper, status) }
       
-      val result = waitFor(toRunDatas(accountingClient, jobsAndDrmStatusesById).firstAsFuture)
+      val result = waitForT(toRunDatas(accountingClient, jobsAndDrmStatusesById).firstL)
       
       val (actualJob, runData) = result
       
@@ -661,7 +657,7 @@ object DrmChunkRunnerTest {
     
     override def outputs: Set[DataHandle] = Set.empty
     
-    override def execute(implicit context: ExecutionContext): Future[RunData] = {
+    override def execute: Task[RunData] = {
       val runData = RunData(
           job = this, 
           settings = LocalSettings,
@@ -671,7 +667,7 @@ object DrmChunkRunnerTest {
           jobDirOpt = None,
           terminationReasonOpt = None)
           
-      Future.successful(runData)
+      Task.now(runData)
     }
   }
   

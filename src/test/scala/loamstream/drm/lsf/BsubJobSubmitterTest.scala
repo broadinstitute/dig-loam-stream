@@ -31,7 +31,7 @@ import loamstream.util.CommandInvoker
  */
 final class BsubJobSubmitterTest extends FunSuite {
   import loamstream.TestHelpers.path
-  import loamstream.TestHelpers.waitFor
+  import loamstream.TestHelpers.waitForT
   import Observables.Implicits.ObservableOps
   import Scheduler.Implicits.global
   
@@ -42,7 +42,7 @@ final class BsubJobSubmitterTest extends FunSuite {
     
     val submitter = new BsubJobSubmitter(new CommandInvoker.Sync.JustOnce("bsub", submissionFn))
     
-    val result = waitFor(submitter.submitJobs(settings, taskArray).firstAsFuture)
+    val result = waitForT(submitter.submitJobs(settings, taskArray).firstL)
     
     assert(result.isSuccess)
     
@@ -62,7 +62,7 @@ final class BsubJobSubmitterTest extends FunSuite {
     
     val submitter = new BsubJobSubmitter(new CommandInvoker.Sync.JustOnce("bsub", submissionFn))
     
-    val result = waitFor(submitter.submitJobs(settings, taskArray).firstAsFuture)
+    val result = waitForT(submitter.submitJobs(settings, taskArray).firstL)
     
     assert(result.isFailure)
   }
@@ -74,7 +74,7 @@ final class BsubJobSubmitterTest extends FunSuite {
     
     val submitter = new BsubJobSubmitter(new CommandInvoker.Sync.JustOnce("bsub", submissionFn))
     
-    val result = waitFor(submitter.submitJobs(settings, taskArray).firstAsFuture)
+    val result = waitForT(submitter.submitJobs(settings, taskArray).firstL)
     
     assert(result.isFailure)
   }

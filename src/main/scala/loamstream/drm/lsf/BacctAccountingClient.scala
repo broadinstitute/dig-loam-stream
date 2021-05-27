@@ -7,8 +7,6 @@ import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeFormatterBuilder
 import java.time.temporal.ChronoField
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
 import scala.util.Success
 import scala.util.Try
 import scala.util.matching.Regex
@@ -34,8 +32,7 @@ import monix.eval.Task
  * Apr 18, 2019
  */
 final class BacctAccountingClient(
-    bacctInvoker: CommandInvoker.Async[DrmTaskId])
-    (implicit ec: ExecutionContext) extends AccountingClient with Loggable {
+    bacctInvoker: CommandInvoker.Async[DrmTaskId]) extends AccountingClient with Loggable {
 
   import BacctAccountingClient._
 
@@ -111,7 +108,7 @@ object BacctAccountingClient {
   def useActualBinary(
       lsfConfig: LsfConfig, 
       scheduler: Scheduler,
-      binaryName: String = "bacct")(implicit ec: ExecutionContext): BacctAccountingClient = {
+      binaryName: String = "bacct"): BacctAccountingClient = {
     new BacctAccountingClient(BacctInvoker.useActualBinary(lsfConfig.maxBacctRetries, binaryName, scheduler))
   }
   

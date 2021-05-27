@@ -1,6 +1,5 @@
 package loamstream.util
 
-import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import scala.concurrent.Promise
 import scala.util.Failure
@@ -22,7 +21,6 @@ import monix.reactive.observers.SafeSubscriber
  * An object to hold utility methods operating on Observables
  */
 object Observables extends Loggable {
-  //def defaultOverflowStrategy[A]: OverflowStrategy[A] = OverflowStrategy.Unbounded
   def defaultOverflowStrategy[A]: OverflowStrategy[A] = OverflowStrategy.DropNew(2)
   
   /**
@@ -31,8 +29,9 @@ object Observables extends Loggable {
    * 
    * @param a the chunk of code to run
    */
-  def observeAsync[A](a: => A)(implicit context: ExecutionContext): Observable[A] = {
-    Observable.from(Futures.runBlocking(a))
+  @deprecated("Prefer Observable.apply or Observable.eval", "")
+  def observeAsync[A](a: => A): Observable[A] = {
+    Observable.eval(a)
   }
   
   /**

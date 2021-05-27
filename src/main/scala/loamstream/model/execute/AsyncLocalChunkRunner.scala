@@ -1,21 +1,19 @@
 package loamstream.model.execute
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
-
 import AsyncLocalChunkRunner.defaultMaxNumJobs
 import loamstream.conf.ExecutionConfig
 import loamstream.model.jobs.JobOracle
-import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.RunData
-import loamstream.util.ProcessLoggers
 import loamstream.util.Loggable
 import loamstream.util.Observables
-import loamstream.util.Throwables
+import loamstream.util.ProcessLoggers
 import loamstream.util.ThisMachine
+import loamstream.util.Throwables
+import monix.eval.Task
 import monix.reactive.Observable
 import scala.collection.compat._
+
 
 /**
  * @author clint
@@ -23,8 +21,7 @@ import scala.collection.compat._
  */
 final case class AsyncLocalChunkRunner(
     executionConfig: ExecutionConfig,
-    maxNumJobs: Int = defaultMaxNumJobs)
-    (implicit context: ExecutionContext) extends ChunkRunnerFor(EnvironmentType.Local) {
+    maxNumJobs: Int = defaultMaxNumJobs) extends ChunkRunnerFor(EnvironmentType.Local) {
 
   import AsyncLocalChunkRunner._
   
@@ -57,7 +54,7 @@ object AsyncLocalChunkRunner extends Loggable {
   def executeSingle(
       executionConfig: ExecutionConfig,
       jobOracle: JobOracle,
-      job: LJob)(implicit executor: ExecutionContext): Future[RunData] = {
+      job: LJob): Task[RunData] = {
     
     val jobDir = jobOracle.dirFor(job)
     
@@ -65,12 +62,14 @@ object AsyncLocalChunkRunner extends Loggable {
     
     val result = LocalJobStrategy.execute(job, jobDir, processLogger)
 
-    import loamstream.util.Futures.Implicits._
   
-    def closeProcessLogger(ignored: RunData): Unit = {
+    def closeProcessLogger: Task[Unit] = Task {
       Throwables.quietly("Closing process logger failed")(processLogger.close())
     }
     
-    result.withSideEffect(closeProcessLogger)
+    for {
+      r <- result 
+      _ <- closeProcessLogger
+    } yield r
   }
 }

@@ -2,11 +2,11 @@ package loamstream.model.jobs
 
 import loamstream.model.execute.Settings
 import loamstream.model.LId
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
 import scala.util.Success
 import scala.util.Failure
 import loamstream.util.Loggable
+import monix.eval.Task
+import scala.util.control.NonFatal
 
 /**
  * @author clint
@@ -35,7 +35,7 @@ final case class NativeJob(
     s"inputs: ${inputs.size} outputs: ${outputs.size}, $initialSettings)"
   }
   
-  override def execute(implicit context: ExecutionContext): Future[RunData] = {
+  override def execute: Task[RunData] = {
     def onSuccess = RunData(
         job = this,
         settings = initialSettings,
@@ -58,9 +58,8 @@ final case class NativeJob(
         terminationReasonOpt = None)
     }
         
-    Future(body()).transform {
-      case Success(_) => Success(onSuccess)
-      case Failure(e) => Success(onFailure(e))
+    Task(body()).map(_ => onSuccess).onErrorRecover {
+      case NonFatal(e) => onFailure(e)
     }
   }
 }

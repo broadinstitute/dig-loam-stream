@@ -1,8 +1,5 @@
 package loamstream.model.execute
 
-import scala.concurrent.Await
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration.DurationDouble
 
@@ -14,7 +11,6 @@ import loamstream.model.jobs.LJob
 import loamstream.model.jobs.RunData
 import loamstream.util.ExecutionContexts
 import loamstream.util.FileMonitor
-import loamstream.util.Futures
 import loamstream.util.Loggable
 import loamstream.util.Observables
 import loamstream.util.Terminable
@@ -27,6 +23,7 @@ import monix.reactive.OverflowStrategy
 import monix.reactive.observers.Subscriber
 
 import scala.collection.compat._
+import monix.eval.Task
 
 
 /**
@@ -44,8 +41,8 @@ final case class RxExecuter(
     executionRecorder: ExecutionRecorder,
     maxRunsPerJob: Int,
     scheduler: Scheduler,
-    private val additionalTerminableComponents: Iterable[Terminable] = Nil)
-   (implicit val executionContext: ExecutionContext) extends Executer with Terminable.StopsComponents with Loggable {
+    private val additionalTerminableComponents: Iterable[Terminable] = Nil) extends 
+  Executer with Terminable.StopsComponents with Loggable {
   
   require(maxRunsPerJob >= 1, s"The maximum number of times to run each job must not be negative; got $maxRunsPerJob")
 
@@ -99,9 +96,11 @@ final case class RxExecuter(
       
       def toMap[A, B](tuples: Observable[(A, B)]): Observable[Map[A, B]] = tuples.foldLeft(Map.empty[A, B])(_ + _)
       
-      val futureMergedResults = toMap(jobResultTuples).firstAsFuture(scheduler)
+      {
+        implicit val sch = scheduler
         
-      Await.result(futureMergedResults, timeout)
+        toMap(jobResultTuples).firstL.runSyncUnsafe(timeout)
+      }
     }
   }
   
@@ -293,7 +292,7 @@ object RxExecuter extends Loggable {
     }
     
     private[RxExecuter] def chunkRunner: ChunkRunner = {
-      AsyncLocalChunkRunner(Defaults.executionConfig, Defaults.maxNumConcurrentJobs)(Defaults.executionContext)
+      AsyncLocalChunkRunner(Defaults.executionConfig, Defaults.maxNumConcurrentJobs)
     }
   }
   
@@ -307,8 +306,7 @@ object RxExecuter extends Loggable {
     executionRecorder: ExecutionRecorder = Defaults.executionRecorder,
     maxRunsPerJob: Int = Defaults.maxRunsPerJob,
     scheduler: Scheduler = Defaults.scheduler,
-    terminableComponents: Iterable[Terminable] = Nil)
-    (implicit executionContext: ExecutionContext = Defaults.executionContext): RxExecuter = {
+    terminableComponents: Iterable[Terminable] = Nil): RxExecuter = {
       
     new RxExecuter(
       executionConfig,
@@ -320,7 +318,7 @@ object RxExecuter extends Loggable {
       executionRecorder,
       maxRunsPerJob, 
       scheduler,
-      terminableComponents)(executionContext)
+      terminableComponents)
   }
 
   def default: RxExecuter = apply()
@@ -338,21 +336,18 @@ object RxExecuter extends Loggable {
    */
   private[execute] def toExecutionMap(
       fileMonitor: FileMonitor)
-      (runDataTuple: (LJob, RunData))
-      (implicit context: ExecutionContext): Observable[(LJob, Execution)] = {
+      (runDataTuple: (LJob, RunData)): Observable[(LJob, Execution)] = {
   
-    def waitForOutputs(runData: RunData): Future[Execution] = {
+    def waitForOutputs(runData: RunData): Task[Execution] = {
       ExecuterHelpers.waitForOutputsAndMakeExecution(runData, fileMonitor)
     }
     
-    val jobToExecutionFuture = {
+    val jobToExecutionT = {
       val (job, runData) = runDataTuple
     
-      import Futures.Implicits._
-      
       waitForOutputs(runData).map(execution => job -> execution)
     }
     
-    Observable.from(jobToExecutionFuture)
+    Observable.from(jobToExecutionT)
   }
 }

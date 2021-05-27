@@ -10,7 +10,7 @@ import monix.execution.Scheduler
 
 import loamstream.TestHelpers
 import loamstream.TestHelpers.DummyDrmJobOracle
-import loamstream.util.RxSchedulers
+import loamstream.util.Schedulers
 import loamstream.util.Observables
 
 
@@ -77,7 +77,7 @@ final class JobMonitorTest extends FunSuite {
   }
   
   private def withThreadPoolScheduler[A](numThreads: Int)(f: Scheduler => A): A = {
-    val (scheduler, handle) = RxSchedulers.backedByThreadPool(numThreads)
+    val (scheduler, handle) = Schedulers.backedByThreadPool(numThreads)
     
     try { f(scheduler) }
     finally { handle.stop() }

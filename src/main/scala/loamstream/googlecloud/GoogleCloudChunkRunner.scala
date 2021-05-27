@@ -3,7 +3,6 @@ package loamstream.googlecloud
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-import scala.concurrent.ExecutionContext
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
@@ -43,12 +42,8 @@ final case class GoogleCloudChunkRunner(
     delegate: ChunkRunner) extends ChunkRunnerFor(EnvironmentType.Google) with Terminable with Loggable {
   
   private[googlecloud] lazy val singleThreadedExecutor: ExecutorService = Executors.newSingleThreadExecutor
-  
-  private implicit lazy val singleThreadedExecutionContext: ExecutionContext = {
-    ExecutionContext.fromExecutorService(singleThreadedExecutor)
-  }
-  
-  private lazy val singleThreadedScheduler: Scheduler = Scheduler(singleThreadedExecutionContext)
+    
+  private lazy val singleThreadedScheduler: Scheduler = Scheduler(singleThreadedExecutor)
   
   private val currentClusterConfig: ValueBox[Option[ClusterConfig]] = ValueBox(None)
   
@@ -145,11 +140,10 @@ final case class GoogleCloudChunkRunner(
     }
 
     def runSynchronously(): (LJob, RunData) = {
-      import Observables.Implicits._
       import Scheduler.Implicits.global
       import GoogleCloudChunkRunner.addCluster
       
-      Await.result(delegate.run(Set(job), jobOracle).map(addCluster(clusterId)).firstAsFuture, Duration.Inf)
+      delegate.run(Set(job), jobOracle).map(addCluster(clusterId)).firstL.runSyncUnsafe(Duration.Inf)
     }
 
     //NB: Run each job synchronously to guarantee that we only ever have one job and one cluster running at a time.

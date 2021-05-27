@@ -1,8 +1,6 @@
 package loamstream.model.execute
 
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
 import scala.concurrent.duration.Duration
 
 import loamstream.model.jobs.Execution
@@ -21,6 +19,7 @@ import scala.util.Try
 import loamstream.util.FileMonitor
 import scala.util.control.NonFatal
 import scala.collection.compat._
+import monix.eval.Task
 
 /**
  * @author clint
@@ -52,16 +51,15 @@ object ExecuterHelpers extends Loggable {
   }
   
   /**
-   * Given a job, return a Future that completes when all of the job's outputs are available.
-   * If the job's outputs are all initially available, return an already-completed Future.
+   * Given a job, return a Task that completes when all of the job's outputs are available.
+   * If the job's outputs are all initially available, return an eagerly-evaluated Task.
    * If any of the job's outputs are missing, wait for them via FileWatchers.waitForCreationOf.
-   * If `howlLong` elapses without the outputs appearing, a failed Future is returned. 
+   * If `howlLong` elapses without the outputs appearing, a failed Task is returned. 
    * NOTE: UriOutputs are implicitly ignored (!) :\
    */
   def waitForOutputsOnly(
        job: LJob, 
-       fileMonitor: FileMonitor)
-      (implicit context: ExecutionContext): Future[_] = {
+       fileMonitor: FileMonitor): Task[_] = {
     
     val anyMissingOutputs = job.outputs.exists(_.isMissing)
     
@@ -73,27 +71,27 @@ object ExecuterHelpers extends Loggable {
       //TODO: Support UriOutputs!!
       val missingPaths = missingOutputs.collect { case o: DataHandle.PathHandle => o.path }
     
-      val fileExistenceFutures = missingPaths.map(fileMonitor.waitForCreationOf)
+      val fileExistenceTasks = missingPaths.map(fileMonitor.waitForCreationOf).map(Task.fromFuture)
     
-      Future.sequence(fileExistenceFutures)
+      Task.parSequence(fileExistenceTasks)
     } else {
       trace(s"NO missing outputs for job ${job.id}")
       
-      Future.successful(())
+      Task.now(())
     }
   }
   
   /**
-   * After the Future `doWait` completes, make an Execution by evaluating `execution`.  
+   * After the Task `doWait` completes, make an Execution by evaluating `execution`.  
    * If an exception is thrown while evaluating `execution`, evaluate `executionInCaseOfFailure` to make
    * an Execution.
-   * If an exception is thrown while waiting (ie, doWait is a failed Future), update the produced Execution
+   * If an exception is thrown while waiting (ie, doWait is a failed Task), update the produced Execution
    * with a JobStatus and JobResult to indicate the failure.
    */
   private[execute] def doWaiting(
-      doWait: Future[_], 
+      doWait: Task[_], 
       execution: => Execution,
-      executionInCaseOfFailure: => Execution)(implicit context: ExecutionContext): Future[Execution] = {
+      executionInCaseOfFailure: => Execution): Task[Execution] = {
     
     lazy val executionToUse = try {
       trace("Making Execution from RunData...")
@@ -115,7 +113,7 @@ object ExecuterHelpers extends Loggable {
       }
     }
     
-    doWait.map { _ => executionToUse }.recover { 
+    doWait.map { _ => executionToUse }.onErrorRecover { 
       case e => {
         error(s"Error waiting for outputs and making Execution: ", e)
         
@@ -125,15 +123,15 @@ object ExecuterHelpers extends Loggable {
   }
   
   /**
-   * Take a RunData and a timeout, and return a Future[Execution] 
+   * Take a RunData and a timeout, and return a Task[Execution] 
    * If the RunData represents a successful job run, wait for any missing outputs, and turn the RunData into an 
    * Execution.
    * If the RunData represents a failed job run, turn the RunData into an Execution immediately and return it in a 
-   * completed Future.
+   * Task.
    */
   def waitForOutputsAndMakeExecution(
       runData: RunData, 
-      fileMonitor: FileMonitor)(implicit context: ExecutionContext): Future[Execution] = {
+      fileMonitor: FileMonitor): Task[Execution] = {
     
     //TODO: Revisit this: should we should wait in all cases?
     if(runData.jobStatus.isSuccess) {
@@ -142,7 +140,7 @@ object ExecuterHelpers extends Loggable {
           runData.toExecution,
           Execution.from(runData.job, JobStatus.Failed, terminationReason = None))
     } else {
-      Future.successful(runData.toExecution)
+      Task(runData.toExecution)
     }
   }
 }

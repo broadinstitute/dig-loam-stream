@@ -7,35 +7,23 @@ import scala.tools.nsc.{ Settings => ScalaCompilerSettings }
 import scala.tools.nsc.io.VirtualDirectory
 import scala.tools.nsc.reporters.Reporter
 import scala.tools.reflect.ReflectGlobal
+
 import loamstream.compiler.Issue.Severity
 import loamstream.compiler.LoamCompiler.CompilerReporter
+import loamstream.conf.CompilationConfig
 import loamstream.conf.LoamConfig
+import loamstream.conf.LsSettings
 import loamstream.loam.LoamGraph
 import loamstream.loam.LoamGraphValidation
 import loamstream.loam.LoamProjectContext
 import loamstream.loam.LoamScript
-import loamstream.loam.LoamScript.LoamScriptBox
+import loamstream.util.LogContext
 import loamstream.util.Loggable
 import loamstream.util.StringUtils
+import loamstream.util.TimeUtils
 import loamstream.util.Validation.IssueBase
 import loamstream.util.code.ReflectionUtil
-import java.io.FileOutputStream
-import java.io.PrintStream
-import loamstream.util.TimeUtils
-import loamstream.conf.CompilationConfig
-import loamstream.loam.LoamLoamScript
-import loamstream.loam.ScalaLoamScript
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.ThreadPoolExecutor
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.SynchronousQueue
-import scala.concurrent.Future
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
-import scala.concurrent.Promise
-import scala.util.Try
-import loamstream.conf.LsSettings
-import loamstream.util.LogContext
+
 import scala.collection.compat._
 
 
@@ -95,7 +83,7 @@ object LoamCompiler extends Loggable {
       FailureDueToException(reporter.errors, reporter.warnings, reporter.infos, throwable)
     }
 
-    import StringUtils.soMany
+    import loamstream.util.StringUtils.soMany
 
     final case class Success(
       warnings: Seq[Issue],

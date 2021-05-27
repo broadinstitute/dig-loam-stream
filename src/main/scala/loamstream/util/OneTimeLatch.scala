@@ -7,13 +7,13 @@ package loamstream.util
 final class OneTimeLatch {
   private[this] val hasRunFlag: ValueBox[Boolean] = ValueBox(false)
   
-  def doOnce(block: => Any): Unit = {
-    hasRunFlag.mutate { hasRun =>
+  def doOnce(block: => Any): Boolean = {
+    hasRunFlag.getAndUpdate { hasRun =>
       if(!hasRun) {
         block
       }
       
-      true
+      (true, hasRun)
     }
   }
 }

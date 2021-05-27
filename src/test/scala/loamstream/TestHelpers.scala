@@ -306,20 +306,20 @@ object TestHelpers {
     10.minutes
   }
   
-  def waitFor[A](f: Future[A]): A = {
+  def waitFor[A](f: Future[A], timeout: Duration = defaultWaitTime): A = {
     import scala.concurrent.duration._
 
     //NB: Hard-coded timeout. :(  But at least it's no longer infinite! :)
-    Await.result(f, defaultWaitTime)
+    Await.result(f, timeout)
   }
   
-  def waitFor[A](t: Task[A]): A = {
+  def waitForT[A](t: Task[A], timeout: Duration = defaultWaitTime)(implicit disc: DummyImplicit): A = {
     import scala.concurrent.duration._
 
     import monix.execution.Scheduler.Implicits.global
     
     //NB: Hard-coded timeout. :(  But at least it's no longer infinite! :)
-    t.runSyncUnsafe(defaultWaitTime)
+    t.runSyncUnsafe(timeout)
   }
   
   //foobar => FoObAr, etc

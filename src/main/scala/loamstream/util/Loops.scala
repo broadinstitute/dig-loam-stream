@@ -1,23 +1,23 @@
 package loamstream.util
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
-import scala.concurrent.duration.Duration
 import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.FiniteDuration
+import scala.language.higherKinds
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-import scala.language.higherKinds
-import monix.reactive.Observable
 import monix.execution.Scheduler
-import scala.concurrent.duration.FiniteDuration
+import monix.reactive.Observable
+import monix.eval.Task
 
 /**
  * @author clint
  * Apr 24, 2019
  */
 object Loops {
+  
+  //TODO: Investigate replacing with Task.onErrorRetryLoop
   
   private[util] object Backoff {
     def delaySequence(start: FiniteDuration, cap: FiniteDuration): Iterator[FiniteDuration] = {

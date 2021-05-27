@@ -1,15 +1,14 @@
 package loamstream.drm.uger
 
 import scala.concurrent.duration.Duration
-import loamstream.util.RateLimitedCache
+import scala.util.Try
+
+import loamstream.util.CommandInvoker
+import loamstream.util.Loggable
+import loamstream.util.Processes
 import loamstream.util.RateLimiter
 import loamstream.util.RunResults
 import loamstream.util.ValueBox
-import loamstream.util.Processes
-import loamstream.util.CommandInvoker
-import loamstream.util.Loggable
-import scala.concurrent.ExecutionContext
-import scala.util.Try
 import monix.execution.Scheduler
 
 /**

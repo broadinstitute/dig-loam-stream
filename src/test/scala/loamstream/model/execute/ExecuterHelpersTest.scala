@@ -18,6 +18,7 @@ import loamstream.model.jobs.TestJobs
 import loamstream.util.FileMonitor
 import loamstream.util.Files
 import loamstream.util.Paths
+import monix.eval.Task
 
 
 /**
@@ -124,7 +125,7 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
           Files.writeTo(initiallyMissingOutput1.path)("1")
         }
         
-        Await.result(f, 3.seconds)
+        TestHelpers.waitForT(f, 3.seconds)
         
         assert(exists(initiallyMissingOutput0.path))
         assert(exists(initiallyMissingOutput1.path))
@@ -174,7 +175,7 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
       withFileMonitor(new FileMonitor(10.0, 0.seconds)) { fileMonitor => 
         val f = waitForOutputsOnly(mockJob, fileMonitor)
         
-        assert(f.isCompleted)
+        TestHelpers.waitForT(f)
         
         assert(exists(output0.path))
         assert(exists(output1.path))
@@ -229,7 +230,7 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
       withFileMonitor(new FileMonitor(10.0, 0.seconds)) { fileMonitor => 
         val f = waitForOutputsAndMakeExecution(runData, fileMonitor)
         
-        val execution = Await.result(f, 10.seconds)
+        val execution = TestHelpers.waitForT(f, 10.seconds)
         
         assert(execution === runData.toExecution)
       }
@@ -288,7 +289,7 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
           Files.writeTo(output1.path)("1")
         }
         
-        val execution = Await.result(f, 10.seconds)
+        val execution = TestHelpers.waitForT(f, 10.seconds)
         
         assert(exists(output0.path))
         assert(exists(output1.path))
@@ -352,7 +353,7 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
           Files.writeTo(output1.path)("1")
         }
         
-        val execution = Await.result(f, 10.seconds)
+        val execution = TestHelpers.waitForT(f, 10.seconds)
         
         assert(execution.status === JobStatus.FailedWithException)
       }
@@ -385,9 +386,7 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
       
       //NB: Outputs aren't considered at all, an already-completed future should be returned
       
-      assert(f.isCompleted)
-      
-      val execution = Await.result(f, 10.seconds)
+      val execution = TestHelpers.waitForT(f, 10.seconds)
       
       assert(execution === runData.toExecution)
     }
@@ -398,7 +397,7 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
     
     val mockJob = MockJob(JobStatus.Succeeded)
     
-    val alreadyComplete = Future.successful(())
+    val alreadyComplete = Task.now(())
     
     def expected = mockJob.toReturn.toExecution
     
@@ -407,7 +406,7 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
     
     val f = doWaiting(alreadyComplete, mockJob.toReturn.toExecution, throw new Exception)
     
-    val execution = Await.result(f, 5.seconds)
+    val execution = TestHelpers.waitForT(f, 5.seconds)
     
     assert(execution === expected)
   }
@@ -417,7 +416,7 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
     
     val mockJob = MockJob(JobStatus.Succeeded)
     
-    val alreadyComplete = Future.successful(())
+    val alreadyComplete = Task.now(())
     
     def fallbackExecution = Execution.from(mockJob, JobStatus.FailedPermanently, terminationReason = None)
     
@@ -426,7 +425,7 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
     
     val f = doWaiting(alreadyComplete, throw new Exception("blerg"), fallbackExecution)
     
-    val execution = Await.result(f, 5.seconds)
+    val execution = TestHelpers.waitForT(f, 5.seconds)
     
     assert(execution === fallbackExecution)
   }
@@ -440,7 +439,7 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
     
     import scala.concurrent.ExecutionContext.Implicits.global
     
-    val waitFuture = Future.failed(exception)
+    val waitFuture = Task.raiseError(exception)
     
     def fallbackExecution = Execution.from(mockJob, JobStatus.FailedPermanently, terminationReason = None)
     
@@ -448,7 +447,7 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
     
     val f = doWaiting(waitFuture, mockJob.toReturn.toExecution, fallbackExecution)
     
-    val execution = Await.result(f, 5.seconds)
+    val execution = TestHelpers.waitForT(f, 5.seconds)
     
     assert(execution.status === JobStatus.FailedWithException)
     assert(execution.result === Some(JobResult.CommandInvocationFailure(exception)))

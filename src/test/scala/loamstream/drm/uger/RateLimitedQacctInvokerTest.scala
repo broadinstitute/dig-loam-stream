@@ -6,7 +6,7 @@ import loamstream.util.RunResults
 import scala.util.Success
 import scala.util.Failure
 import scala.concurrent.duration._
-import loamstream.TestHelpers.waitFor
+import loamstream.TestHelpers.waitForT
 import loamstream.util.Sequence
 import monix.execution.Scheduler
 
@@ -55,30 +55,30 @@ final class RateLimitedQacctInvokerTest extends FunSuite {
     
     def assertThrows(f: => Any): Unit = intercept[Exception] { f }
     
-    assert(waitFor(invoker.apply(taskArrayId0)).stdout.head === "0-0")
+    assert(waitForT(invoker.apply(taskArrayId0)).stdout.head === "0-0")
     
-    assertThrows(waitFor(invoker.apply(taskArrayId0)))
-    
-    Thread.sleep(1000)
-    
-    assert(waitFor(invoker.apply(taskArrayId0)).stdout.head === "0-1")
-    
-    assert(waitFor(invoker.apply(taskArrayId1)).stdout.head === "1-0")
-    assert(waitFor(invoker.apply(taskArrayId2)).stdout.head === "2-0")
-    
-    assertThrows(waitFor(invoker.apply(taskArrayId1)))
-    assertThrows(waitFor(invoker.apply(taskArrayId2)))
+    assertThrows(waitForT(invoker.apply(taskArrayId0)))
     
     Thread.sleep(1000)
     
-    assert(waitFor(invoker.apply(taskArrayId0)).stdout.head === "0-2")
+    assert(waitForT(invoker.apply(taskArrayId0)).stdout.head === "0-1")
     
-    assert(waitFor(invoker.apply(taskArrayId1)).stdout.head === "1-1")
-    assert(waitFor(invoker.apply(taskArrayId2)).stdout.head === "2-1")
+    assert(waitForT(invoker.apply(taskArrayId1)).stdout.head === "1-0")
+    assert(waitForT(invoker.apply(taskArrayId2)).stdout.head === "2-0")
+    
+    assertThrows(waitForT(invoker.apply(taskArrayId1)))
+    assertThrows(waitForT(invoker.apply(taskArrayId2)))
+    
+    Thread.sleep(1000)
+    
+    assert(waitForT(invoker.apply(taskArrayId0)).stdout.head === "0-2")
+    
+    assert(waitForT(invoker.apply(taskArrayId1)).stdout.head === "1-1")
+    assert(waitForT(invoker.apply(taskArrayId2)).stdout.head === "2-1")
     
     assert(caches.currentLimiterMap.keySet === Set(taskArrayId0, taskArrayId1, taskArrayId2))
     
-    assert(waitFor(invoker.apply(taskArrayId3)).stdout.head === "3-0")
+    assert(waitForT(invoker.apply(taskArrayId3)).stdout.head === "3-0")
     
     assert(caches.currentLimiterMap.keySet === Set(taskArrayId0, taskArrayId1, taskArrayId2, taskArrayId3))
   }

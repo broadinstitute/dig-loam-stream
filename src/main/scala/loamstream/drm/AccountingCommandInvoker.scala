@@ -1,7 +1,5 @@
 package loamstream.drm
 
-import scala.concurrent.ExecutionContext
-
 import loamstream.util.CommandInvoker
 import loamstream.util.Loggable
 import loamstream.util.Processes

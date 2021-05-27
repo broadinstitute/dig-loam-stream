@@ -18,6 +18,8 @@ import monix.execution.Scheduler
 import loamstream.TestHelpers.DummyDrmJobOracle
 import loamstream.util.Files
 import scala.collection.compat._
+import loamstream.conf.ExecutionConfig
+import loamstream.util.FileMonitor
 
 /**
  * @author clint
@@ -54,7 +56,11 @@ final class QstatPollerTest extends FunSuite {
       new CommandInvoker.Async.JustOnce("MOCK_QSTAT", qstatInvocationFn)
     }
     
-    val poller = new QstatPoller(qstatInvoker)
+    import ExecutionConfig.default.{executionPollingFrequencyInHz, maxWaitTimeForOutputs}
+    
+    val fileMonitor = new FileMonitor(executionPollingFrequencyInHz, maxWaitTimeForOutputs) 
+    
+    val poller = new QstatPoller(qstatInvoker, fileMonitor)
     
     import Observables.Implicits._
     

@@ -251,9 +251,9 @@ object Main extends Loggable {
   private[this] val shutdownLatch: OneTimeLatch = new OneTimeLatch
   
   private[apps] def shutdown(wiring: AppWiring): Unit = {
-    shutdownLatch.doOnce {
-      info("LoamStream shutting down...")
-      
+    info("LoamStream shutting down...")
+    
+    val alreadyShutDown = shutdownLatch.doOnce {
       wiring.shutdown() match {
         case Nil => info("LoamStream shut down successfully")
         case exceptions => {
@@ -264,6 +264,10 @@ object Main extends Loggable {
           }
         }
       }
+    }
+    
+    if(alreadyShutDown) {
+      info(s"LoamStream already shut down")
     }
   }
 }

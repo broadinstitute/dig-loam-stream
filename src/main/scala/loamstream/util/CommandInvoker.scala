@@ -154,8 +154,8 @@ object CommandInvoker {
         }
 
         import Observables.Implicits._
-
-        implicit val sch = scheduler
+        //TODO: revisit use of global scheduler
+        import Scheduler.Implicits.global
         
         val result: Task[RunResults.Successful] = resultOptObs.firstL.flatMap {
           case Some(a) => Task(a)

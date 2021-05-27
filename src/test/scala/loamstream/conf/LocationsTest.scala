@@ -21,6 +21,7 @@ final class LocationsTest extends FunSuite {
     assert(locs.workerDir === path(".loamstream/workers"))
     assert(locs.lsfDir === path(".loamstream/lsf"))
     assert(locs.ugerDir === path(".loamstream/uger"))
+    assert(locs.slurmDir === path(".loamstream/slurm"))
   }
   
   test("DefaultsIn - arbitrary .loamstream dir") {
@@ -38,5 +39,6 @@ final class LocationsTest extends FunSuite {
     assert(locs.workerDir === workDir.resolve("workers"))
     assert(locs.lsfDir === workDir.resolve("lsf"))
     assert(locs.ugerDir === workDir.resolve("uger"))
+    assert(locs.slurmDir === workDir.resolve("slurm"))
   }
 }

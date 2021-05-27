@@ -15,6 +15,7 @@ import loamstream.drm.uger.UgerDefaults
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
+import loamstream.conf.SlurmConfig
 
 /**
  * @author clint
@@ -70,12 +71,37 @@ final class DrmSettingsTest extends FunSuite {
     assert(settings.containerParams === None)
   }
   
+  test("fromSlurmConfig") {
+    val elevenJobs = 11
+    val lotsOfCpus = Cpus(42)
+    val seventeenGigs = Memory.inGb(17)
+    val fiveHours = CpuTime.inHours(5)
+    
+    val config = SlurmConfig(
+        maxNumJobsPerTaskArray = elevenJobs, 
+        defaultCores = lotsOfCpus, 
+        defaultMemoryPerCore = seventeenGigs,
+        defaultMaxRunTime = fiveHours) 
+      
+    val settings = DrmSettings.fromSlurmConfig(config)
+    
+    assert(settings.cores === lotsOfCpus)
+    assert(settings.memoryPerCore === seventeenGigs)
+    assert(settings.maxRunTime === fiveHours)
+    assert(settings.queue === None)
+    assert(settings.containerParams === None)
+  }
+  
   test("fromUgerConfig - parsed conf file") {
     doFromParsedConfFileTest("uger", UgerConfig, DrmSettings.fromUgerConfig, Some(UgerDefaults.queue))
   }
   
   test("fromLsfConfig - parsed conf file") {
     doFromParsedConfFileTest("lsf", LsfConfig, DrmSettings.fromLsfConfig, None)
+  }
+  
+  test("fromSlurmConfig - parsed conf file") {
+    doFromParsedConfFileTest("slurm", SlurmConfig, DrmSettings.fromSlurmConfig, None)
   }
   
   private def doFromParsedConfFileTest[C <: DrmConfig](

@@ -18,6 +18,7 @@ import loamstream.drm.ContainerParams
 import loamstream.model.jobs.commandline.HasCommandLine
 import loamstream.googlecloud.ClusterConfig
 import org.broadinstitute.dig.aws.emr.ClusterDef
+import loamstream.conf.SlurmConfig
 
 /**
  * @author kyuksel
@@ -63,6 +64,13 @@ final case class LsfDrmSettings(
     maxRunTime: CpuTime,
     queue: Option[Queue],
     containerParams: Option[ContainerParams]) extends DrmSettings(EnvironmentType.Lsf)
+
+final case class SlurmDrmSettings(
+    cores: Cpus,
+    memoryPerCore: Memory,
+    maxRunTime: CpuTime,
+    queue: Option[Queue],
+    containerParams: Option[ContainerParams]) extends DrmSettings(EnvironmentType.Slurm)
     
 object DrmSettings {
   type SettingsMaker = (Cpus, Memory, CpuTime, Option[Queue], Option[ContainerParams]) => DrmSettings
@@ -86,6 +94,10 @@ object DrmSettings {
   
   def fromLsfConfig(config: LsfConfig): LsfDrmSettings = {
     LsfDrmSettings(config.defaultCores, config.defaultMemoryPerCore, config.defaultMaxRunTime, None, None)
+  }
+  
+  def fromSlurmConfig(config: SlurmConfig): SlurmDrmSettings = {
+    SlurmDrmSettings(config.defaultCores, config.defaultMemoryPerCore, config.defaultMaxRunTime, None, None)
   }
 }
 

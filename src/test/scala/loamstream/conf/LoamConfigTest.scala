@@ -13,6 +13,7 @@ final class LoamConfigTest extends FunSuite {
     val expected = LoamConfig(
       ugerConfig = Some(UgerConfig()),
       lsfConfig = Some(LsfConfig()),
+      slurmConfig = Some(SlurmConfig()),
       googleConfig = None,
       hailConfig = None,
       pythonConfig = None,

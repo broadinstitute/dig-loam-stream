@@ -62,6 +62,7 @@ import loamstream.conf.LsSettings
 import scala.concurrent.duration.FiniteDuration
 import loamstream.drm.DrmTaskId
 import monix.eval.Task
+import loamstream.conf.SlurmConfig
 
 /**
   * @author clint
@@ -95,6 +96,7 @@ object TestHelpers {
     
     val ugerConfig = UgerConfig.fromConfig(config)
     val lsfConfig = LsfConfig.fromConfig(config)
+    val slurmConfig = SlurmConfig.fromConfig(config)
     val googleConfig = GoogleCloudConfig.fromConfig(config)
     val hailConfig = HailConfig.fromConfig(config)
     val pythonConfig = PythonConfig.fromConfig(config)
@@ -105,6 +107,7 @@ object TestHelpers {
     LoamConfig( 
       ugerConfig.toOption,
       lsfConfig.toOption,
+      slurmConfig.toOption,
       googleConfig.toOption,
       hailConfig.toOption,
       pythonConfig.toOption,

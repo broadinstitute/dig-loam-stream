@@ -14,6 +14,7 @@ import loamstream.model.execute.LocalSettings
 import loamstream.model.execute.Settings
 import loamstream.util.ValueBox
 import loamstream.conf.LsSettings
+import loamstream.conf.SlurmConfig
 
 /** Container for compile time and run time context for a script */
 final class LoamScriptContext(val projectContext: LoamProjectContext) {
@@ -49,6 +50,10 @@ final class LoamScriptContext(val projectContext: LoamProjectContext) {
   
   def lsfConfig: LsfConfig = {
     getOpt(config.lsfConfig, s"LSF support requires a valid 'loamstream.lsf' section in the config file")
+  }
+  
+  def slurmConfig: SlurmConfig = {
+    getOpt(config.slurmConfig, s"SLURM support requires a valid 'loamstream.slurm' section in the config file")
   }
   
   def rConfig: RConfig = {

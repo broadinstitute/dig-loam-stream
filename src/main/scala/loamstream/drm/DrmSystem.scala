@@ -8,6 +8,8 @@ import loamstream.loam.LoamScriptContext
 import loamstream.model.execute.DrmSettings
 import loamstream.model.execute.UgerDrmSettings
 import loamstream.model.execute.LsfDrmSettings
+import loamstream.conf.SlurmConfig
+import loamstream.model.execute.SlurmDrmSettings
 
 /**
  * @author clint
@@ -27,6 +29,8 @@ sealed trait DrmSystem {
   def settingsFromConfig(scriptContext: LoamScriptContext): Settings
   
   def settingsMaker: DrmSettings.SettingsMaker
+  
+  private[DrmSystem] final def unapply(s: String): Boolean = s == name
 }
 
 object DrmSystem {
@@ -63,30 +67,27 @@ object DrmSystem {
   }
   
   final case object Slurm extends DrmSystem {
-    override type Config = Nothing //TODO: SlurmConfig
+    override type Config = SlurmConfig
   
-    override type Settings = Nothing //TODO: SlurmDrmSettings
+    override type Settings = SlurmDrmSettings
     
     override def defaultQueue: Option[Queue] = None
     
-    override def config(scriptContext: LoamScriptContext): /*SlurmConfig*/ Nothing= ???//TODO scriptContext.slurmConfig
+    override def config(scriptContext: LoamScriptContext): SlurmConfig = scriptContext.slurmConfig
     
     override def settingsFromConfig(scriptContext: LoamScriptContext): Settings = {
-      ???
-      //TODO:
-      //DrmSettings.fromSlurmConfig(config(scriptContext))
+      DrmSettings.fromSlurmConfig(config(scriptContext))
     }
     
-    override val settingsMaker: DrmSettings.SettingsMaker = ???//TODO SlurmDrmSettings.apply
+    override val settingsMaker: DrmSettings.SettingsMaker = SlurmDrmSettings.apply
   }
   
-  def fromName(name: String): Option[DrmSystem] = {
-    val mungedName = name.toLowerCase.capitalize
-    
-    if(mungedName == Uger.name) { Some(Uger) }
-    else if(mungedName == Lsf.name) { Some(Lsf) }
-    else { None }
+  def fromName(name: String): Option[DrmSystem] = name.trim.toLowerCase.capitalize match {
+    case Uger() => Some(Uger)
+    case Lsf() => Some(Lsf)
+    case Slurm() => Some(Slurm)
+    case _ => None
   }
   
-  lazy val values: Iterable[DrmSystem] = Seq(Uger, Lsf)
+  lazy val values: Iterable[DrmSystem] = Seq(Uger, Lsf, Slurm)
 }

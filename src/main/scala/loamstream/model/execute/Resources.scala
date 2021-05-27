@@ -110,4 +110,18 @@ object Resources {
     
     override def withQueue(newQueueOpt: Option[Queue]): DrmResources = copy(queue = newQueueOpt)
   }
+  
+  final case class SlurmResources(
+      memory: Memory,
+      cpuTime: CpuTime,
+      node: Option[String],
+      queue: Option[Queue],
+      startTime: LocalDateTime,
+      endTime: LocalDateTime,
+      override val raw: Option[String] = None) extends DrmResources {
+    
+    override def withNode(newNodeOpt: Option[String]): DrmResources = copy(node = newNodeOpt)
+    
+    override def withQueue(newQueueOpt: Option[Queue]): DrmResources = copy(queue = newQueueOpt)
+  }
 }

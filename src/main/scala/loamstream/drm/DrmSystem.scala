@@ -18,7 +18,7 @@ sealed trait DrmSystem {
   
   type Settings <: DrmSettings
   
-  def name: String
+  def name: String = toString
   
   def defaultQueue: Option[Queue]
   
@@ -34,8 +34,6 @@ object DrmSystem {
     override type Config = UgerConfig
   
     override type Settings = UgerDrmSettings
-    
-    override def name: String = toString
     
     override def defaultQueue: Option[Queue] = Option(UgerDefaults.queue)
     
@@ -53,8 +51,6 @@ object DrmSystem {
   
     override type Settings = LsfDrmSettings
     
-    override def name: String = toString
-    
     override def defaultQueue: Option[Queue] = None
     
     override def config(scriptContext: LoamScriptContext): LsfConfig = scriptContext.lsfConfig
@@ -64,6 +60,24 @@ object DrmSystem {
     }
     
     override val settingsMaker: DrmSettings.SettingsMaker = LsfDrmSettings.apply
+  }
+  
+  final case object Slurm extends DrmSystem {
+    override type Config = Nothing //TODO: SlurmConfig
+  
+    override type Settings = Nothing //TODO: SlurmDrmSettings
+    
+    override def defaultQueue: Option[Queue] = None
+    
+    override def config(scriptContext: LoamScriptContext): /*SlurmConfig*/ Nothing= ???//TODO scriptContext.slurmConfig
+    
+    override def settingsFromConfig(scriptContext: LoamScriptContext): Settings = {
+      ???
+      //TODO:
+      //DrmSettings.fromSlurmConfig(config(scriptContext))
+    }
+    
+    override val settingsMaker: DrmSettings.SettingsMaker = ???//TODO SlurmDrmSettings.apply
   }
   
   def fromName(name: String): Option[DrmSystem] = {

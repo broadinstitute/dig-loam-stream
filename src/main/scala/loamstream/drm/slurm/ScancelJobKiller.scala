@@ -1,11 +1,11 @@
 package loamstream.drm.slurm
 
+
+
+import loamstream.drm.DrmSystem
 import loamstream.drm.JobKiller
-import loamstream.util.CommandInvoker
-import scala.util.Failure
-import loamstream.util.Loggable
-import scala.util.Success
 import loamstream.drm.SessionTracker
+import loamstream.util.CommandInvoker
 
 /**
  * @author clint
@@ -13,21 +13,7 @@ import loamstream.drm.SessionTracker
  */
 final class ScancelJobKiller(
     commandInvoker: CommandInvoker.Sync[Unit], 
-    sessionTracker: SessionTracker) extends JobKiller with Loggable {
-  
-  //TODO: Lots of shared code with QdelJobKiller
-  
-  override def killAllJobs(): Unit = {
-    if(sessionTracker.nonEmpty) {
-      commandInvoker.apply(()) match {
-        case Success(runResults) => debug("Killed SLURM jobs")
-        case Failure(e) => warn(s"Error killing all SLURM jobs: ${e.getMessage}", e)
-      }
-    } else {
-      debug(s"No Slurm session initialized; not killing jobs")
-    }
-  }
-}
+    sessionTracker: SessionTracker) extends JobKiller.ForCommand(DrmSystem.Slurm, commandInvoker, sessionTracker)
 
 object ScancelJobKiller extends JobKiller.Companion[ScancelJobKiller]("scancel", new ScancelJobKiller(_, _)) {
   override protected[drm] def makeTokens(

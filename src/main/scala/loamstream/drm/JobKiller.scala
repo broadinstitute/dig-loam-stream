@@ -1,13 +1,15 @@
 package loamstream.drm
 
-import scala.util.Try
-import loamstream.util.RunResults
-import loamstream.util.Processes
-import loamstream.util.Users
-import loamstream.util.Loggable
-import loamstream.util.CommandInvoker
-import loamstream.conf.DrmConfig
+import scala.util.Failure
 import scala.util.Success
+import scala.util.Try
+
+import loamstream.conf.DrmConfig
+import loamstream.util.CommandInvoker
+import loamstream.util.Loggable
+import loamstream.util.Processes
+import loamstream.util.RunResults
+import loamstream.util.Users
 
 /**
  * @author clint
@@ -18,6 +20,23 @@ trait JobKiller {
 }
 
 object JobKiller extends Loggable {
+  abstract class ForCommand(
+      drmSystem: DrmSystem,
+      commandInvoker: CommandInvoker.Sync[Unit], 
+      sessionTracker: SessionTracker) extends JobKiller with Loggable {
+
+    override def killAllJobs(): Unit = {
+      if(sessionTracker.nonEmpty) {
+        commandInvoker.apply(()) match {
+          case Success(runResults) => debug(s"Killed ${drmSystem.name} jobs")
+          case Failure(e) => warn(s"Error killing all ${drmSystem.name} jobs: ${e.getMessage}", e)
+        }
+      } else {
+        debug(s"No ${drmSystem.name} session initialized; not killing jobs")
+      }
+    }
+  }
+  
   abstract class Companion[A](
       defaultExecutable: String,
       constructor: (CommandInvoker.Sync[Unit], SessionTracker) => A) {

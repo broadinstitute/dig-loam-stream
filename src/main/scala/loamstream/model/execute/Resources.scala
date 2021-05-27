@@ -115,6 +115,7 @@ object Resources {
       memory: Memory,
       cpuTime: CpuTime,
       node: Option[String],
+      //TODO: Does SLURM have a notion of queues?
       queue: Option[Queue],
       startTime: LocalDateTime,
       endTime: LocalDateTime,

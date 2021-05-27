@@ -13,6 +13,8 @@ sealed abstract class EnvironmentType private (val name: String) {
   
   final def isLsf: Boolean = this == EnvironmentType.Lsf
   
+  final def isSlurm: Boolean = this == EnvironmentType.Slurm
+  
   final def isAws: Boolean = this == EnvironmentType.Aws
 }
 
@@ -22,6 +24,7 @@ object EnvironmentType {
     val Google = "google"
     val Uger = "uger"
     val Lsf = "lsf"
+    val Slurm = "slurm"
     val Aws = "aws"
   }
 
@@ -30,6 +33,8 @@ object EnvironmentType {
   final case object Uger extends EnvironmentType(Names.Uger)
   
   final case object Lsf extends EnvironmentType(Names.Lsf)
+  
+  final case object Slurm extends EnvironmentType(Names.Slurm)
 
   final case object Google extends EnvironmentType(Names.Google)
   
@@ -40,6 +45,7 @@ object EnvironmentType {
     case Names.Google => Some(Google)
     case Names.Uger => Some(Uger)
     case Names.Lsf => Some(Lsf)
+    case Names.Slurm => Some(Slurm)
     case Names.Aws => Some(Aws)
     case _ => None
   }

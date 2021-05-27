@@ -29,8 +29,6 @@ sealed trait DrmSystem {
   def settingsFromConfig(scriptContext: LoamScriptContext): Settings
   
   def settingsMaker: DrmSettings.SettingsMaker
-  
-  private[DrmSystem] final def unapply(s: String): Boolean = s == name
 }
 
 object DrmSystem {
@@ -82,10 +80,10 @@ object DrmSystem {
     override val settingsMaker: DrmSettings.SettingsMaker = SlurmDrmSettings.apply
   }
   
-  def fromName(name: String): Option[DrmSystem] = name.trim.toLowerCase.capitalize match {
-    case Uger() => Some(Uger)
-    case Lsf() => Some(Lsf)
-    case Slurm() => Some(Slurm)
+  def fromName(name: String): Option[DrmSystem] = name.trim.toLowerCase match {
+    case "uger" => Some(Uger)
+    case "lsf" => Some(Lsf)
+    case "slurm" => Some(Slurm)
     case _ => None
   }
   

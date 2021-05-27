@@ -1,16 +1,16 @@
-package loamstream.drm.lsf
+package loamstream.drm.slurm
+
+import java.nio.file.Path
 
 import loamstream.drm.PathBuilder
 import loamstream.drm.ScriptBuilderParams
 import java.nio.file.Paths
-import java.nio.file.Path
 
 /**
  * @author clint
- * May 11, 2018
+ * May 18, 2021
  */
-object LsfPathBuilder extends PathBuilder {
-  
+object SlurmPathBuilder extends PathBuilder {
   override def reifyPathTemplate(template: String, drmIndex: Int): Path = {
     //NB: Replace task-array-index placeholder
     val pathString = template.replace(scriptBuilderParams.drmIndexVarExpr, drmIndex.toString)
@@ -21,5 +21,5 @@ object LsfPathBuilder extends PathBuilder {
   //NB: Need to build this differently by environment (':' for Uger, '' for LSF and Slurm)
   override def pathTemplatePrefix: String = ""
   
-  override def scriptBuilderParams: ScriptBuilderParams = LsfScriptBuilderParams
+  override def scriptBuilderParams: ScriptBuilderParams = SlurmScriptBuilderParams
 }

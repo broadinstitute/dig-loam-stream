@@ -8,7 +8,6 @@ import loamstream.drm.DrmSubmissionResult
 import loamstream.util.CommandInvoker
 import loamstream.util.Traversables
 import loamstream.drm.DrmJobWrapper
-import loamstream.conf.LsfConfig
 import loamstream.drm.DrmTaskId
 import loamstream.util.RunResults
 import loamstream.util.Loggable
@@ -17,6 +16,7 @@ import scala.util.Success
 import monix.execution.Scheduler
 import loamstream.util.Processes
 import scala.collection.compat._
+import loamstream.conf.SlurmConfig
 
 /**
  * @author clint
@@ -27,6 +27,7 @@ final class SbatchJobSubmitter private[slurm] (
     
   import SbatchJobSubmitter._
   
+  //TODO: Factor out
   override def submitJobs(drmSettings: DrmSettings, taskArray: DrmTaskArray): Observable[DrmSubmissionResult] = {
     val runAttemptObs = Observable.fromTask(submissionFn(drmSettings, taskArray)).map(toDrmSubmissionResult(taskArray))
     
@@ -35,6 +36,7 @@ final class SbatchJobSubmitter private[slurm] (
   
   override def stop(): Unit = ()
   
+  //TODO: Factor out
   private[slurm] def toDrmSubmissionResult(taskArray: DrmTaskArray)(runResults: RunResults): DrmSubmissionResult = {
     runResults match {
       case r: RunResults.Successful => {
@@ -42,19 +44,19 @@ final class SbatchJobSubmitter private[slurm] (
           case Some(jobId) =>  makeSuccess(jobId, taskArray)
           case None => {
             logAndMakeFailure(r) { r =>
-              s"LSF Job submission failure: couldn't determine job ID from output of `${r.commandLine}`: ${r.stdout}"
+              s"SLURM Job submission failure: couldn't determine job ID from output of `${r.commandLine}`: ${r.stdout}"
             }
           }
         }
       } 
       case r: RunResults.Unsuccessful => {
         logAndMakeFailure(r) { r =>
-          s"LSF Job submission failure: `${r.commandLine}` failed with status code ${r.exitCode}"
+          s"SLURM Job submission failure: `${r.commandLine}` failed with status code ${r.exitCode}"
         }
       }
       case r: RunResults.CouldNotStart => {
         logAndMakeFailure(r) { r =>
-          val msg = s"LSF Job submission failure: `${r.commandLine}` couldn't start: ${r.cause.getMessage}"
+          val msg = s"SLURM Job submission failure: `${r.commandLine}` couldn't start: ${r.cause.getMessage}"
           
           error(msg, r.cause)
           
@@ -64,6 +66,7 @@ final class SbatchJobSubmitter private[slurm] (
     }
   }
   
+  //TODO: Factor out
   private def makeSuccess(jobId: String, taskArray: DrmTaskArray): DrmSubmissionResult.SubmissionSuccess = {
     import Traversables.Implicits._
           
@@ -75,7 +78,7 @@ final class SbatchJobSubmitter private[slurm] (
       val numJobs = taskArray.size
       val allJobIds = drmTaskIdsToJobs.keys
       
-      s"Successfully submitted ${numJobs} LSF jobs with base job id '${jobId}'; individual job ids: ${allJobIds}"
+      s"Successfully submitted ${numJobs} SLURM jobs with base job id '${jobId}'; individual job ids: ${allJobIds}"
     }
     
     DrmSubmissionResult.SubmissionSuccess(drmTaskIdsToJobs)
@@ -96,8 +99,8 @@ object SbatchJobSubmitter extends Loggable {
   type SubmissionFn = CommandInvoker.InvocationFn[Params]
   
   def fromExecutable(
-      lsfConfig: LsfConfig, 
-      actualExecutable: String = "bsub")(implicit scheduler: Scheduler): SbatchJobSubmitter = {
+      lsfConfig: SlurmConfig, 
+      actualExecutable: String = "sbatch")(implicit scheduler: Scheduler): SbatchJobSubmitter = {
     
     val invoker = new CommandInvoker.Async.JustOnce[Params](
         binaryName = actualExecutable, 
@@ -107,7 +110,7 @@ object SbatchJobSubmitter extends Loggable {
   }
   
   private[slurm] def invokeBinaryToSubmitJobs(
-      lsfConfig: LsfConfig, 
+      lsfConfig: SlurmConfig, 
       actualExecutable: String): SubmissionFn = { case (drmSettings, taskArray) =>
         
     val tokens = makeTokens(actualExecutable, lsfConfig, taskArray, drmSettings)
@@ -116,14 +119,9 @@ object SbatchJobSubmitter extends Loggable {
     
     import scala.sys.process._
     
-    val scriptFile = taskArray.drmScriptFile.toFile
+    val processBuilder: ProcessBuilder = tokens
     
-    //NB: script contents are piped to bsub
-    val processBuilder: ProcessBuilder = tokens #< scriptFile
-    
-    val tokensForLogging = tokens ++ Seq("<", scriptFile.toString)
-    
-    Processes.runSync(tokensForLogging)(processBuilder = processBuilder)
+    Processes.runSync(tokens)(processBuilder = processBuilder)
   }
   
   import DrmSubmissionResult.SubmissionFailure
@@ -132,36 +130,38 @@ object SbatchJobSubmitter extends Loggable {
   
   private[slurm] def makeTokens(
       actualExecutable: String, 
-      lsfConfig: LsfConfig, 
+      lsfConfig: SlurmConfig, 
       taskArray: DrmTaskArray,
       drmSettings: DrmSettings): Seq[String] = {
     
-    //NB: See https://www.ibm.com/support/knowledgecenter/en/SSETD4_9.1.2/lsf_command_ref/bsub.1.html
+    //See https://slurm.schedmd.com/sbatch.html
+    //    https://slurm.schedmd.com/heterogeneous_jobs.html
+
+    val drmScriptFile = taskArray.drmScriptFile
     
     val runTimeInHours: Int = drmSettings.maxRunTime.hours.toInt
-    val maxRunTimePart = Seq("-W", s"${runTimeInHours}:0")
+    val maxRunTimePart = Seq("-t", s"${runTimeInHours}:0:0")
     
-    val memoryPerCoreInMegs = drmSettings.memoryPerCore.mb.toLong
+    val memoryPerCoreInGigs = drmSettings.memoryPerCore.gb.toLong
     
-    //Per the LSF docs, memory specified with -R needs to be in megs, with -M it needs to be in kb,
-    //but at EBI, it needs to be in megs for both.
-    val memoryRusagePart = Seq("-R", s"rusage[mem=${memoryPerCoreInMegs}]")
-    val memoryDashMPart = Seq("-M", memoryPerCoreInMegs.toString)
+    val memoryPart = Seq(s"--mem-per-cpu=${memoryPerCoreInGigs}G")
     
     val numCores = drmSettings.cores.value
     
-    val coresPart = Seq("-n", numCores.toString, "-R", s"span[hosts=1]")
+    val arrayIndicesPart: Seq[String] = Seq(s"--array=0-${taskArray.size}") 
     
-    val queuePart: Seq[String] = drmSettings.queue.to(Seq).flatMap(q => Seq("-q", q.name))
+    val coresPart = Seq(s"--cpus-per-task=${numCores}")
+    
+    val queuePart: Seq[String] = Nil //TODO does Slurm have the notion of a queue
     
     val jobNamePart = Seq("-J", s"${taskArray.drmJobName}[1-${taskArray.size}]")
     
-    val stdoutPart = Seq("-oo", s"${taskArray.stdOutPathTemplate}")
+    val stdoutPart = Seq("-o", s"${taskArray.stdOutPathTemplate}")
     
-    val stderrPart = Seq("-eo", s"${taskArray.stdErrPathTemplate}")
+    val stderrPart = Seq("-e", s"${taskArray.stdErrPathTemplate}")
     
     val tokens = actualExecutable +: 
-      (queuePart ++ maxRunTimePart ++ memoryDashMPart ++ memoryRusagePart ++ 
+      (arrayIndicesPart ++ queuePart ++ maxRunTimePart ++ memoryPart ++ 
        coresPart ++ jobNamePart ++ stdoutPart ++ stderrPart)
       
     tokens

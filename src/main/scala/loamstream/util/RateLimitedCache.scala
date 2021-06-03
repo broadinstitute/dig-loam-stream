@@ -13,21 +13,21 @@ import scala.util.Try
  * the wrapped function is called only if it's never been called, or if more than `maxAge` has elapsed
  * since it was last invoked.  Otherwise, the cached value is returned.    
  */
-final class RateLimitedCache[A](delegate: () => Try[A], maxAge: Duration) extends (() => Try[A]) {
+final class RateLimitedCache[P, A](delegate: P => Try[A], maxAge: Duration) extends (P => Try[A]) {
   private val stateBox: ValueBox[State[A]] = ValueBox(State.Initial)
   
   def lastAccessed: Long = stateBox.get(_.lastAccessed)
   
   def lastModified: Long = stateBox.get(_.lastModified)
   
-  override def apply(): Try[A] = stateBox.getAndUpdate { state =>
+  override def apply(params: P): Try[A] = stateBox.getAndUpdate { state =>
     val shouldRun: Boolean = state match {
       case State.Initial => true
       case s @ State.WithValue(_, _, _) => s.hasBeenLongerThan(maxAge)
     }
     
     if(shouldRun) {
-      val valueAttempt: Try[A] = delegate()
+      val valueAttempt: Try[A] = delegate(params)
       
       (State(valueAttempt), valueAttempt)
     } else {
@@ -37,7 +37,9 @@ final class RateLimitedCache[A](delegate: () => Try[A], maxAge: Duration) extend
 }
 
 object RateLimitedCache {
-  def withMaxAge[A](maxAge: Duration)(op: => Try[A]): RateLimitedCache[A] = new RateLimitedCache(() => op, maxAge)
+  def withMaxAge[P, A](maxAge: Duration)(op: => Try[A]): RateLimitedCache[P, A] = new RateLimitedCache(_ => op, maxAge)
+  
+  def withMaxAge[P, A](maxAge: Duration)(op: P => Try[A]): RateLimitedCache[P, A] = new RateLimitedCache(op(_), maxAge)
   
   sealed trait State[+A] {
     def lastModified: Long

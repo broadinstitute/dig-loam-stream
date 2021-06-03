@@ -434,7 +434,7 @@ object AppWiring extends Loggable {
       //TODO: Make configurable?
       val pollingFrequencyInHz = 0.1
       
-      val poller = QstatPoller.fromExecutables(pollingFrequencyInHz, loamConfig.executionConfig, scheduler = scheduler)
+      val poller = QstatPoller.fromExecutable(pollingFrequencyInHz, loamConfig.executionConfig, scheduler = scheduler)
       
       val jobMonitor = new JobMonitor(scheduler, poller, pollingFrequencyInHz)
 

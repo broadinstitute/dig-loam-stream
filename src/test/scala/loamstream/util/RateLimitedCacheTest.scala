@@ -13,11 +13,11 @@ final class RateLimitedCacheTest extends FunSuite {
   test("Happy path") {
     @volatile var timesInvoked = 0
     
-    def countInvocationAfter[A](body: () => A): () => A = { () => 
+    def countInvocationAfter[P, A](body: () => A): P => A = { _ => 
       try { body() } finally { timesInvoked += 1 }
     }
     
-    val cache = new RateLimitedCache(countInvocationAfter(() => Success(42)), 1.second)
+    val cache = new RateLimitedCache[Unit, Int](countInvocationAfter(() => Success(42)), 1.second)
     
     assert(timesInvoked === 0)
     
@@ -40,7 +40,7 @@ final class RateLimitedCacheTest extends FunSuite {
   test("Happy path - operation fails") {
     @volatile var timesInvoked = 0
     
-    def countInvocationAfter[A](body: () => A): () => A = { () => 
+    def countInvocationAfter[P, A](body: () => A): P => A = { _ => 
       try { body() } finally { timesInvoked += 1 }
     }
     

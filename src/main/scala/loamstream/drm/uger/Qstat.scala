@@ -20,15 +20,15 @@ object Qstat {
     Seq(actualExecutable)
   }
     
-  final def commandInvoker(
+  /*final def commandInvoker(
       pollingFrequencyInHz: Double,
       actualExecutable: String = "qstat")
      (implicit scheduler: Scheduler, logCtx: LogContext): CommandInvoker.Async[Unit] = {
     
+    val tokens = makeTokens(actualExecutable)
+    
     //Unit and ignored args are obviously a smell, but a more principled refactoring will have to wait.
     def invocationFn(ignored: Unit): Try[RunResults] = {
-      val tokens = makeTokens(actualExecutable)
-      
       logCtx.trace(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
       
       Processes.runSync(tokens)()
@@ -43,5 +43,5 @@ object Qstat {
     def cachedInvocationFn(ignored: Unit): Try[RunResults] = cache()
     
     new CommandInvoker.Async.JustOnce[Unit](actualExecutable, cachedInvocationFn)
-  }
+  }*/
 }

@@ -60,7 +60,7 @@ final class QstatPollerTest extends FunSuite {
     
     val fileMonitor = new FileMonitor(executionPollingFrequencyInHz, maxWaitTimeForOutputs) 
     
-    val poller = new QstatPoller(qstatInvoker, fileMonitor)
+    val poller = new QstatPoller("MOCK_QSTAT", qstatInvoker, fileMonitor)
     
     import Observables.Implicits._
     

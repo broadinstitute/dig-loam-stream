@@ -8,6 +8,7 @@ import org.scalatest.Matchers
 import java.net.URI
 import loamstream.TestHelpers
 import scala.collection.compat._
+import loamstream.drm.DrmSystem
 
 
 /**
@@ -98,7 +99,7 @@ final class ConfTest extends FunSuite with Matchers {
       assert(conf.compileOnly.isSupplied === false)
       assert(conf.conf.isSupplied === false)
       assert(conf.version.isSupplied === false)
-      assert(conf.backend() == "lsf")
+      assert(conf.backend() == DrmSystem.Lsf)
       assert(conf.loams() === Seq(path("src/examples/loam/cp.loam")))
       assert(conf.clean.isSupplied === false)
       assert(conf.cleanDb.isSupplied === false)
@@ -115,7 +116,7 @@ final class ConfTest extends FunSuite with Matchers {
       assert(conf.compileOnly.isSupplied === false)
       assert(conf.conf.isSupplied === false)
       assert(conf.version.isSupplied === false)
-      assert(conf.backend() === "uger")
+      assert(conf.backend() === DrmSystem.Uger)
       assert(conf.loams() === Seq(path("src/examples/loam/cp.loam")))
       assert(conf.clean.isSupplied === false)
       assert(conf.cleanDb.isSupplied === false)
@@ -347,7 +348,7 @@ final class ConfTest extends FunSuite with Matchers {
     
     val values = conf.toValues
     
-    assert(values.backend.get === "uger")
+    assert(values.backend.get === DrmSystem.Uger)
     assert(values.disableHashingSupplied === true)
     assert(values.protectedOutputsFile.get === path("protected_files.txt"))
     assert(values.run === Some(Conf.RunStrategies.IfAnyMissingOutputs -> Nil))

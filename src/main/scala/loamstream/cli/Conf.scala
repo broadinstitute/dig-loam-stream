@@ -16,6 +16,8 @@ import loamstream.util.Loggable
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Buffer
 import scala.collection.compat._
+import loamstream.util.Options
+import org.rogach.scallop.ArgType
 
 /**
  * Provides a command line interface for LoamStream apps
@@ -145,8 +147,12 @@ final case class Conf private (arguments: Seq[String]) extends ScallopConf(argum
   /**
    * The DRM backend to use, wither 'lsf' or 'uger'
    */
-  val backend: ScallopOption[String] = {
-    opt(descr = s"The backend to run jobs on. Options are: ${DrmSystem.values.map(_.name).mkString(",")}")
+  val backend: ScallopOption[DrmSystem] = {
+    import Conf.Implicits.drmSystemValueConverter
+    
+    def drmSystemNames = DrmSystem.values.map(_.name.toLowerCase).mkString(",")
+    
+    opt(descr = s"The backend to run jobs on. Options are: ${drmSystemNames}")
   }
   
   //NB: Makes Scallop behave
@@ -186,6 +192,28 @@ object Conf {
   
   def apply(args: Iterable[String]): Conf = new Conf(args.toVector)
   
+  object Implicits {
+    implicit val drmSystemValueConverter: ValueConverter[DrmSystem] = new ValueConverter[DrmSystem] {
+      /*
+       * parse is a method, that takes a list of arguments to all option invokations:
+       * for example, "-a 1 2 -a 3 4 5" would produce List(List(1,2),List(3,4,5)).
+       * parse returns Left with error message, if there was an error while parsing
+       * if no option was found, it returns Right(None)
+       * and if option was found, it returns Right(...)
+       */
+      override def parse(s:List[(String, List[String])]):Either[String, Option[DrmSystem]] = {
+        def errorMessage = s"DrmSystem name must be one of ${DrmSystem.values.map(_.name).mkString(",")}"
+        
+        s.lastOption match  {
+          case Some((_, argValue :: Nil)) => DrmSystem.fromName(argValue).toRight(errorMessage).map(Option(_))
+          case _ => Right(None)
+        }
+      }
+
+      override val argType: ArgType.V = org.rogach.scallop.ArgType.LIST
+    }
+  }
+  
   object RunStrategies {
     val Everything = "everything"
     val IfAnyMissingOutputs = "ifAnyMissingOutputs"
@@ -206,7 +234,7 @@ object Conf {
       compileOnlySupplied: Boolean,
       dryRunSupplied: Boolean,
       disableHashingSupplied: Boolean,
-      backend: Option[String],
+      backend: Option[DrmSystem],
       run: Option[(String, Seq[String])],
       workerSupplied: Boolean,
       workDir: Option[Path],
@@ -217,7 +245,7 @@ object Conf {
     
     def onlyRun(jobName: String): Values = copy(run = Some((RunStrategies.AllOf, Seq(jobName))))
     
-    def withBackend(drmSystem: DrmSystem): Values = copy(backend = Some(drmSystem.name.toLowerCase))
+    def withBackend(drmSystem: DrmSystem): Values = copy(backend = Some(drmSystem))
     
     def withWorkDir(workDir: Path): Values = copy(workDir = Option(workDir)) 
     
@@ -261,7 +289,7 @@ object Conf {
       val disableHashingPart: Seq[String] = Seq(asStringIfSupplied(disableHashingSupplied, conf.disableHashing)) 
       
       val backendPart: Seq[String] = {
-        conf.backend.toOption.to(Seq).flatMap(backend => Seq(asArgName(conf.backend), backend.toLowerCase))
+        conf.backend.toOption.to(Seq).flatMap(backend => Seq(asArgName(conf.backend), backend.name.toLowerCase))
       } 
       
       val runPart: Seq[String] = run.to(Seq).flatMap { case (what, hows) => asArgName(conf.run) +: what +: hows }

@@ -120,7 +120,7 @@ object Intent extends Loggable {
       Some(CompileOnly(
           values.conf, 
           !values.noValidationSupplied, 
-          getDrmSystem(values), 
+          values.backend, 
           values.loams, 
           Option(values.derivedFrom)))
     } else {
@@ -142,7 +142,7 @@ object Intent extends Loggable {
       shouldValidate = !values.noValidationSupplied, 
       hashingStrategy = determineHashingStrategy(values),
       jobFilterIntent = determineJobFilterIntent(values),
-      drmSystemOpt = getDrmSystem(values),
+      drmSystemOpt = values.backend,
       loams = values.loams,
       cliConfig = Option(values.derivedFrom))
   }
@@ -153,16 +153,11 @@ object Intent extends Loggable {
       shouldValidate = !values.noValidationSupplied,
       hashingStrategy = determineHashingStrategy(values),
       jobFilterIntent = determineJobFilterIntent(values),
-      drmSystemOpt = getDrmSystem(values),
+      drmSystemOpt = values.backend,
       loams = values.loams,
       cliConfig = Option(values.derivedFrom))
   }
 
-  private def getDrmSystem(values: Conf.Values): Option[DrmSystem] = for {
-    backend <- values.backend
-    drmSystem <- DrmSystem.fromName(backend)
-  } yield drmSystem
-  
   private def dryRun(values: Conf.Values) = values.dryRunSupplied && allLoamsExist(values)
 
   private def compileOnly(values: Conf.Values) = values.compileOnlySupplied && allLoamsExist(values)

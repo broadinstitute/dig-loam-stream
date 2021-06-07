@@ -40,7 +40,7 @@ abstract class RateLimitedPoller[P](
   protected def getExitCodes(
       oracle: DrmJobOracle)
      (runResults: RunResults.Successful, 
-      idsToLookFor: Set[DrmTaskId]): Observable[PollResult] = Observable.empty
+      idsToLookFor: Set[DrmTaskId]): Observable[PollResult]
   
   final override def poll(oracle: DrmJobOracle)(drmTaskIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, Try[DrmStatus])] = {
     //Invoke qstat, to get the status of all submitted-but-not-finished jobs in this session

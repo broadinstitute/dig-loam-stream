@@ -90,9 +90,11 @@ object DrmTaskArray extends Loggable {
 
     debug(s"Making DRM task array with ${jobs.size} jobs") 
     
+    val taskIndexingStrategy = TaskIndexingStrategy.forDrmSystem(drmConfig.drmSystem)
+    
     val drmJobs = jobs.zipWithIndex.map { case (commandLineJob, i) =>
-      //Uger task array indices start from 1
-      val indexInTaskArray = i + 1
+      //Uger and LSF task array indices start from 1, SLURM ones from 0
+      val indexInTaskArray = taskIndexingStrategy(i)
 
       val jobDir = jobOracle.dirFor(commandLineJob)
       
@@ -105,5 +107,26 @@ object DrmTaskArray extends Loggable {
     val stdErrPathTemplate = pathBuilder.stdErrPathTemplate(drmConfig, jobName)
 
     DrmTaskArray(drmConfig, drmJobs, jobName, stdOutPathTemplate, stdErrPathTemplate)
+  }
+  
+  sealed abstract class TaskIndexingStrategy(f: Int => Int) extends (Int => Int) {
+    override def apply(i: Int): Int = f(i)
+    
+    final def toIndex(i: Int): Int = apply(i)
+  }
+  
+  object TaskIndexingStrategy {
+    case object Unchanged extends TaskIndexingStrategy(identity)
+    case object PlusOne extends TaskIndexingStrategy(_ + 1)
+    
+    lazy val Uger: TaskIndexingStrategy = PlusOne
+    lazy val Lsf: TaskIndexingStrategy = PlusOne
+    lazy val Slurm: TaskIndexingStrategy = Unchanged
+    
+    def forDrmSystem(drmSystem: DrmSystem): TaskIndexingStrategy = drmSystem match {
+      case DrmSystem.Uger => Uger
+      case DrmSystem.Lsf => Lsf
+      case DrmSystem.Slurm => Slurm
+    }
   }
 }

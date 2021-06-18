@@ -20,6 +20,8 @@ import java.time.format.DateTimeFormatter
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Memory
 import scala.util.Failure
+import loamstream.conf.SlurmConfig
+import monix.execution.Scheduler
 
 /**
  * @author clint
@@ -65,16 +67,26 @@ final class SacctAccountingClient(
 }
 
 object SacctAccountingClient {
+  /**
+   * Make a SacctAccountingClient that will retrieve job metadata by running some executable, by default, `sacct`.
+   */
+  def useActualBinary(
+      slurmConfig: SlurmConfig, 
+      scheduler: Scheduler,
+      binaryName: String = "bacct"): SacctAccountingClient = {
+    new SacctAccountingClient(SacctInvoker.useActualBinary(slurmConfig.maxSacctRetries, binaryName, scheduler))
+  }
+  
   //"Data lines" look like this:
-  //    MaxRSS    CPUTime               Start                 End NodeList
-  //---------- ---------- ------------------- ------------------- --------------- 
-  //          00:00:00 2021-05-26T22:12:38 2021-05-26T22:12:43    some-machine
+  //MaxRSS|CPUTime|Start|End|NodeList
+  //------------------------------------  
+  //|00:00:00|2021-06-03T21:16:57|2021-06-03T21:17:02|some-machine
   //Everything above, and including, the `-----...` line is added for clarity, but is omitted by sacct when
   // -n/--noheader is used.
   def parseDataLine(
       rawBacctOutput: Seq[String])(line: String): Try[SlurmResources] = {
     
-    val parts = line.trim.split("\\s+")
+    val parts = line.trim.split("|")
       
     def tryToGet(i: Int, message: => String): Try[String] = {
       if(parts.isDefinedAt(i)) Success(parts(i)) else Tries.failure(message)

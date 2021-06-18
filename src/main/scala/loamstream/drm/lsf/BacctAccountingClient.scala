@@ -103,7 +103,7 @@ final class BacctAccountingClient(
 
 object BacctAccountingClient {
   /**
-   * Make a QacctAccountingClient that will retrieve job metadata by running some executable, by default, `qacct`.
+   * Make a BacctAccountingClient that will retrieve job metadata by running some executable, by default, `bacct`.
    */
   def useActualBinary(
       lsfConfig: LsfConfig, 

@@ -75,9 +75,17 @@ object SlurmStatus {
 
   private lazy val byShortName: Map[String, SlurmStatus] = values.iterator.map(s => s.shortName -> s).toMap
   
+  private lazy val byFullName: Map[String, SlurmStatus] = values.iterator.map(s => s.fullName -> s).toMap
+  
   def fromShortName(shortName: String): Option[SlurmStatus] = byShortName.get(shortName.trim.toUpperCase)
   
   def tryFromShortName(shortName: String): Try[SlurmStatus] = {
     Options.toTry(fromShortName(shortName))(s"Couldn't find SLURM status for short name '$shortName'")
+  }
+  
+  def fromFullName(fullName: String): Option[SlurmStatus] = byFullName.get(fullName.trim.toUpperCase)
+  
+  def tryFromFullName(fullName: String): Try[SlurmStatus] = {
+    Options.toTry(fromFullName(fullName))(s"Couldn't find SLURM status for full name '$fullName'")
   }
 }

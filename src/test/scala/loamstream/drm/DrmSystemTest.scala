@@ -70,4 +70,18 @@ final class DrmSystemTest extends FunSuite {
   test("values") {
     assert(DrmSystem.values.to(Set) === Set(Uger, Lsf, Slurm))
   }
+  
+  test("configKey") {
+    assert(Uger.configKey === "loamstream.uger")
+    assert(Lsf.configKey === "loamstream.lsf")
+    assert(Slurm.configKey === "loamstream.slurm")
+  }
+  
+  test("format") {
+    val tid = DrmTaskId("xyz", 42)
+    
+    assert(Uger.format(tid) === "xyz.42")
+    assert(Lsf.format(tid) === "xyz.42")
+    assert(Slurm.format(tid) === "xyz+42")
+  }
 }

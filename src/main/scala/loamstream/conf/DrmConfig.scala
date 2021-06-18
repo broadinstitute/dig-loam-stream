@@ -17,6 +17,8 @@ import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
 import loamstream.util.Loggable
+import loamstream.drm.DrmStatus
+import loamstream.drm.DrmSystem
 
 /**
  * @author clint
@@ -40,6 +42,8 @@ sealed trait DrmConfig {
   def scriptBuilderParams: ScriptBuilderParams
   
   def maxRetries: Int
+  
+  def drmSystem: DrmSystem
 }
 
 /**
@@ -60,6 +64,8 @@ final case class UgerConfig(
     maxQacctCacheSize: Int = UgerDefaults.maxQacctCacheSize) extends DrmConfig {
   
   override def scriptBuilderParams: ScriptBuilderParams = new UgerScriptBuilderParams(extraPathDir, condaEnvName)
+  
+  override def drmSystem: DrmSystem = DrmSystem.Uger
 }
 
 object UgerConfig extends ConfigParser[UgerConfig] with Loggable {
@@ -90,7 +96,7 @@ object UgerConfig extends ConfigParser[UgerConfig] with Loggable {
   override def fromConfig(config: Config): Try[UgerConfig] = {
     import net.ceedubs.ficus.Ficus._
     import net.ceedubs.ficus.readers.ArbitraryTypeReader._
-  import net.ceedubs.ficus.Ficus._
+    import net.ceedubs.ficus.Ficus._
     import net.ceedubs.ficus.readers.ArbitraryTypeReader._
     import ValueReaders.PathReader
     import ValueReaders.MemoryReader
@@ -102,7 +108,7 @@ object UgerConfig extends ConfigParser[UgerConfig] with Loggable {
     //NB: Ficus marshals the contents of loamstream.uger into a UgerConfig instance.
     //Names of fields in UgerConfig and keys under loamstream.uger must match.
     
-    Try(config.as[Parsed]("loamstream.uger").toUgerConfig)
+    Try(config.as[Parsed](DrmSystem.Uger.configKey).toUgerConfig)
   }
 }
 
@@ -122,6 +128,8 @@ final case class LsfConfig(
     maxRetries: Int = LsfDefaults.maxRetries) extends DrmConfig {
   
   override def scriptBuilderParams: ScriptBuilderParams = LsfScriptBuilderParams
+  
+  override def drmSystem: DrmSystem = DrmSystem.Lsf
 }
 
 object LsfConfig extends ConfigParser[LsfConfig] with Loggable {
@@ -160,7 +168,7 @@ object LsfConfig extends ConfigParser[LsfConfig] with Loggable {
     //NB: Ficus marshals the contents of loamstream.lsf into a LsfConfig instance.
     //Names of fields in LsfConfig and keys under loamstream.lsf must match.
     
-    Try(config.as[Parsed]("loamstream.lsf").toLsfConfig)
+    Try(config.as[Parsed](DrmSystem.Lsf.configKey).toLsfConfig)
   }
 }
 
@@ -179,6 +187,8 @@ final case class SlurmConfig(
     maxRetries: Int = SlurmDefaults.maxRetries) extends DrmConfig {
   
   override def scriptBuilderParams: ScriptBuilderParams = SlurmScriptBuilderParams
+  
+  override def drmSystem: DrmSystem = DrmSystem.Slurm
 }
 
 object SlurmConfig extends ConfigParser[SlurmConfig] with Loggable {
@@ -215,6 +225,6 @@ object SlurmConfig extends ConfigParser[SlurmConfig] with Loggable {
     //NB: Ficus marshals the contents of loamstream.slurm into a SlurmDefaults instance.
     //Names of fields in SlurmDefaults and keys under loamstream.slurm must match.
     
-    Try(config.as[Parsed]("loamstream.slurm").toSlurmConfig)
+    Try(config.as[Parsed](DrmSystem.Slurm.configKey).toSlurmConfig)
   }
 }

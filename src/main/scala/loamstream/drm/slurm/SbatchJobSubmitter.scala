@@ -70,6 +70,7 @@ final class SbatchJobSubmitter private[slurm] (
   private def makeSuccess(jobId: String, taskArray: DrmTaskArray): DrmSubmissionResult.SubmissionSuccess = {
     import Traversables.Implicits._
           
+    //NB: SLURM indexes from 0
     def drmTaskId(drmJob: DrmJobWrapper): DrmTaskId = DrmTaskId(jobId, drmJob.drmIndex)
     
     val drmTaskIdsToJobs: Map[DrmTaskId, DrmJobWrapper] = taskArray.drmJobs.mapBy(drmTaskId)
@@ -160,14 +161,14 @@ object SbatchJobSubmitter extends Loggable {
     
     val stderrPart = Seq("-e", s"${taskArray.stdErrPathTemplate}")
     
-    val tokens = actualExecutable +: 
+    val tokens = actualExecutable +: drmScriptFile.toString +:
       (arrayIndicesPart ++ queuePart ++ maxRunTimePart ++ memoryPart ++ 
        coresPart ++ jobNamePart ++ stdoutPart ++ stderrPart)
       
     tokens
   }
   
-  private val submittedJobIdRegex = """^Job\s+<(\d+)>.+$""".r
+  private val submittedJobIdRegex = """^Submitted\s+batch\s+job\s+(\d+).*$""".r
   
   private[slurm] def extractJobId(stdOutLines: Seq[String]): Option[String] = {
     trace(s"Parsing job-submission output: $stdOutLines")

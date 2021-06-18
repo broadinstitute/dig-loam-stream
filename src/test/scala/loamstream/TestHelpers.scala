@@ -118,6 +118,7 @@ object TestHelpers {
   
   lazy val configWithUger = config.copy(drmSystem = Option(DrmSystem.Uger))
   lazy val configWithLsf = config.copy(drmSystem = Option(DrmSystem.Lsf))
+  lazy val configWithSlurm = config.copy(drmSystem = Option(DrmSystem.Slurm))
   
   lazy val localResources: LocalResources = { 
     val now = LocalDateTime.now

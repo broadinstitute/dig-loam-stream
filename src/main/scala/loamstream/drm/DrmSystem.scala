@@ -29,6 +29,14 @@ sealed trait DrmSystem {
   def settingsFromConfig(scriptContext: LoamScriptContext): Settings
   
   def settingsMaker: DrmSettings.SettingsMaker
+  
+  def configKey: String = s"loamstream.${name.toLowerCase}"
+  
+  def format(drmTaskId: DrmTaskId): String = formatWithSeparator('.', drmTaskId) 
+  
+  final protected def formatWithSeparator(sep: Char, drmTaskId: DrmTaskId): String = {
+    s"${drmTaskId.jobId}${sep}${drmTaskId.taskIndex}"
+  }
 }
 
 object DrmSystem {
@@ -78,14 +86,17 @@ object DrmSystem {
     }
     
     override val settingsMaker: DrmSettings.SettingsMaker = SlurmDrmSettings.apply
+    
+    override def format(drmTaskId: DrmTaskId): String = formatWithSeparator('+', drmTaskId)
+    
+    //TODO: WtF
+    @deprecated("", "")
+    def formatForScancel(drmTaskId: DrmTaskId): String = formatWithSeparator('_', drmTaskId)
   }
   
-  def fromName(name: String): Option[DrmSystem] = name.trim.toLowerCase match {
-    case "uger" => Some(Uger)
-    case "lsf" => Some(Lsf)
-    case "slurm" => Some(Slurm)
-    case _ => None
-  }
+  def fromName(name: String): Option[DrmSystem] = byName.get(name.trim.toLowerCase)
   
   lazy val values: Iterable[DrmSystem] = Seq(Uger, Lsf, Slurm)
+  
+  private lazy val byName: Map[String, DrmSystem] = values.iterator.map(d => d.name.toLowerCase -> d).toMap
 }

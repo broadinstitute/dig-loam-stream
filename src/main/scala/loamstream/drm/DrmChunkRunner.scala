@@ -51,7 +51,9 @@ final case class DrmChunkRunner(
   ) extends ChunkRunnerFor(environmentType) with 
         Terminable.StopsComponents with Loggable {
 
-  require(environmentType.isUger || environmentType.isLsf, "Only UGER and LSF environments are supported")
+  require(
+      environmentType.isDrm, 
+      s"Only DRM environments are supported. Must be one of ${DrmSystem.values.mkString(",")}")
   
   import DrmChunkRunner._
 
@@ -96,7 +98,13 @@ final case class DrmChunkRunner(
         rawJobChunk <- rawJobs.sliding(maxJobsPerTaskArray, maxJobsPerTaskArray)
       } yield {
         val drmTaskArray = TimeUtils.time(s"Making DrmTaskArray with ${rawJobChunk.size} jobs", debug(_)) {
-          fromCommandLineJobs(executionConfig, jobOracle, settings, drmConfig, pathBuilder, rawJobChunk)
+          fromCommandLineJobs(
+              executionConfig, 
+              jobOracle, 
+              settings, 
+              drmConfig, 
+              pathBuilder, 
+              rawJobChunk)
         }
         
         runJobs(settings, drmTaskArray, jobOracle)

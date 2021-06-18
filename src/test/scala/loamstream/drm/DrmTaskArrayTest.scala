@@ -236,4 +236,27 @@ final class DrmTaskArrayTest extends FunSuite {
       doTest(LsfConfig(workDir = workDir, maxNumJobsPerTaskArray = 99))
     }
   }
+  
+  test("TaskIndexingStrategy") {
+    import DrmTaskArray.TaskIndexingStrategy
+    
+    assert(TaskIndexingStrategy.Uger.toIndex(1) === 2)
+    assert(TaskIndexingStrategy.Uger(1) === 2)
+    
+    assert(TaskIndexingStrategy.Lsf.toIndex(1) === 2)
+    assert(TaskIndexingStrategy.Lsf(1) === 2)
+    
+    assert(TaskIndexingStrategy.Slurm.toIndex(1) === 1)
+    assert(TaskIndexingStrategy.Slurm(1) === 1)
+  }
+  
+  test("TaskIndexingStrategy.forDrmSystem") {
+    import DrmTaskArray.TaskIndexingStrategy
+    import TaskIndexingStrategy.forDrmSystem
+    import DrmSystem._
+    
+    assert(forDrmSystem(DrmSystem.Uger) === TaskIndexingStrategy.Uger)
+    assert(forDrmSystem(DrmSystem.Lsf) === TaskIndexingStrategy.Lsf)
+    assert(forDrmSystem(DrmSystem.Slurm) === TaskIndexingStrategy.Slurm)
+  }
 }

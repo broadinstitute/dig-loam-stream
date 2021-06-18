@@ -25,6 +25,7 @@ final class EnvironmentTypeTest extends FunSuite {
     assert(Local.isLsf === false)
     assert(Local.isSlurm === false)
     assert(Local.isAws === false)
+    assert(Local.isDrm === false)
     
     assert(Google.isLocal === false)
     assert(Google.isGoogle === true)
@@ -32,6 +33,7 @@ final class EnvironmentTypeTest extends FunSuite {
     assert(Google.isLsf === false)
     assert(Google.isSlurm === false)
     assert(Google.isAws === false)
+    assert(Google.isDrm === false)
     
     assert(Uger.isLocal === false)
     assert(Uger.isGoogle === false)
@@ -39,6 +41,7 @@ final class EnvironmentTypeTest extends FunSuite {
     assert(Uger.isLsf === false)
     assert(Uger.isSlurm === false)
     assert(Uger.isAws === false)
+    assert(Uger.isDrm === true)
     
     assert(Lsf.isLocal === false)
     assert(Lsf.isGoogle === false)
@@ -46,6 +49,7 @@ final class EnvironmentTypeTest extends FunSuite {
     assert(Lsf.isLsf === true)
     assert(Lsf.isSlurm === false)
     assert(Lsf.isAws === false)
+    assert(Lsf.isDrm === true)
     
     assert(Slurm.isLocal === false)
     assert(Slurm.isGoogle === false)
@@ -53,6 +57,7 @@ final class EnvironmentTypeTest extends FunSuite {
     assert(Slurm.isLsf === false)
     assert(Slurm.isSlurm === true)
     assert(Slurm.isAws === false)
+    assert(Slurm.isDrm === true)
     
     assert(Aws.isLocal === false)
     assert(Aws.isGoogle === false)
@@ -60,6 +65,7 @@ final class EnvironmentTypeTest extends FunSuite {
     assert(Aws.isLsf === false)
     assert(Aws.isSlurm === false)
     assert(Aws.isAws === true)
+    assert(Aws.isDrm === false)
   }
   
   test("fromString") {

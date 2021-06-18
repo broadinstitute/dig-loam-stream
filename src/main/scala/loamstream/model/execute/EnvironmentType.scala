@@ -14,6 +14,8 @@ sealed abstract class EnvironmentType private (val name: String) {
   final def isLsf: Boolean = this == EnvironmentType.Lsf
   
   final def isSlurm: Boolean = this == EnvironmentType.Slurm
+
+  final def isDrm: Boolean = isUger || isLsf || isSlurm 
   
   final def isAws: Boolean = this == EnvironmentType.Aws
 }

@@ -23,7 +23,7 @@ object ScancelJobKiller extends JobKiller.Companion[ScancelJobKiller]("scancel",
     
     val preamble = Seq(actualExecutable, "-u", username)
     
-    def jobIdsPart = sessionTracker.taskArrayIdsSoFar
+    def jobIdsPart = sessionTracker.drmTaskIdsSoFar.map(DrmSystem.Slurm.formatForScancel)
     
     if(sessionTracker.isEmpty) { preamble } 
     else { preamble ++ jobIdsPart } 

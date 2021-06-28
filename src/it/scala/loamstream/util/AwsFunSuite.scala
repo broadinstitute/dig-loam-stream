@@ -1,11 +1,7 @@
 package loamstream.util
 
-import org.broadinstitute.dig.aws.AWS
-import org.broadinstitute.dig.aws.config.AWSConfig
 import org.scalatest.FunSuite
-import org.broadinstitute.dig.aws.config.S3Config
-import org.broadinstitute.dig.aws.config.emr.EmrConfig
-import org.broadinstitute.dig.aws.config.emr.SubnetId
+import org.broadinstitute.dig.aws.S3
 
 /**
  * @author clint
@@ -14,14 +10,9 @@ import org.broadinstitute.dig.aws.config.emr.SubnetId
 trait AwsFunSuite extends FunSuite with Loggable {
   protected val bucketName: String = "dig-integration-tests"
 
-  protected val awsConfig: AWSConfig = {
-    //dummy values, except fot the bucket name
-    AWSConfig(
-        S3Config(bucketName), 
-        EmrConfig("some-ssh-key-name", SubnetId("subnet-foo"))) 
-  }
-  
-  protected val aws: AWS = new AWS(awsConfig)
+  protected def newS3Client: S3Client = new S3Client.Default(bucketName)
+
+  protected val s3Client: S3Client = newS3Client
 
   def testWithPseudoDir(
       name: String, 
@@ -32,7 +23,7 @@ trait AwsFunSuite extends FunSuite with Loggable {
 
       val pseudoDirKey = s"integrationTests/${mungedName}"
 
-      def nukeTestDir(): Unit = aws.rmdir(s"${pseudoDirKey}/").unsafeRunSync()
+      def nukeTestDir(): Unit = s3Client.deleteDir(s"${pseudoDirKey}/")
 
       nukeTestDir()
 

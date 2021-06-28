@@ -17,13 +17,13 @@ final class DgaTissueUploadTest extends AwsFunSuite with IntakeSyntax with DgaSy
     
     val uuid = java.util.UUID.randomUUID.toString
     
-    val awsClient = new AwsClient.Default(aws)
-    
     val sink = new AwsRowSink(
         topic = "some-topic",
-        name = "some-name",
+        dataset = "some-name",
+        techType = None,
+        phenotype = None,
         batchSize = 10000, //10k
-        awsClient = awsClient,
+        s3Client = s3Client,
         baseDir = Some(testDir),
         // :(
         yes = true,
@@ -44,7 +44,7 @@ final class DgaTissueUploadTest extends AwsFunSuite with IntakeSyntax with DgaSy
       info(s"Uploaded $n valid tissues")
     }
     
-    val uploaded = awsClient.list(s"${testDir}")
+    val uploaded = s3Client.list(s"${testDir}")
     
     val expectedKeys = Set(
         s"${testDir}/some-topic/some-name/part-00000-${uuid}.json",

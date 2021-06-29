@@ -18,7 +18,7 @@ final class ScriptBuilder(params: ScriptBuilderParams) {
   private val scriptHeader: String = {
     s"""|#!/bin/bash
         |${params.preamble.mkString}
-        | 
+        |
         |i=$$${params.indexEnvVarName}
         |jobId=$$${params.jobIdEnvVarName}
         |      """.stripMargin

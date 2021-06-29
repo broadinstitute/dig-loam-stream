@@ -237,11 +237,18 @@ final class ScriptBuilderTest extends FunSuite {
     s"""#!/bin/bash
 ${header}
 ${sixSpaces}
-if [ $$i -eq ${toIndex(0)} ]
+if [ "$$i" = "${toIndex(0)}" ]
 then
-${singularityPrefix}/some/shapeit/executable -V /some/vcf/file.$discriminator0 -M /some/map/file.$discriminator0 -O /some/haplotype/file.$discriminator0 /some/sample/file -L /some/log/file --thread 2
+jobDir="$finalOutputDir0"
+mkdir -p $$jobDir
+
+START="$$(date +%Y-%m-%dT%H:%M:%S)"
+
+`which time` -o $finalOutputDir0/stats --format="ExitCode: %x\\nMemory: %Mk\\nSystem: %Ss\\nUser: %Us" ${singularityPrefix}/some/shapeit/executable -V /some/vcf/file.$discriminator0 -M /some/map/file.$discriminator0 -O /some/haplotype/file.$discriminator0 /some/sample/file -L /some/log/file --thread 2
 
 LOAMSTREAM_JOB_EXIT_CODE=$$?
+
+echo "Start: $$START\\nEnd: $$(date +%Y-%m-%dT%H:%M:%S)" >> $finalOutputDir0/stats
 
 origStdoutPath="${drmOutputDir}/${jobName}.${toIndex(0)}.stdout"
 origStderrPath="${drmOutputDir}/${jobName}.${toIndex(0)}.stderr"
@@ -250,20 +257,25 @@ stdoutDestPath="$finalOutputDir0/stdout"
 stderrDestPath="$finalOutputDir0/stderr"
 exitcodeDestPath="$finalOutputDir0/exitcode"
 
-jobDir="$finalOutputDir0"
+echo $$LOAMSTREAM_JOB_EXIT_CODE > $$exitcodeDestPath
 
-mkdir -p $$jobDir
 mv $$origStdoutPath $$stdoutDestPath || echo "Couldn't move DRM std out log $$origStdoutPath; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
 mv $$origStderrPath $$stderrDestPath || echo "Couldn't move DRM std err log $$origStderrPath; it's likely the job wasn't submitted successfully" > $$stderrDestPath
-echo $$LOAMSTREAM_JOB_EXIT_CODE > $$exitcodeDestPath
 
 exit $$LOAMSTREAM_JOB_EXIT_CODE
 
-elif [ $$i -eq ${toIndex(1)} ]
+elif [ "$$i" = "${toIndex(1)}" ]
 then
-${singularityPrefix}/some/shapeit/executable -V /some/vcf/file.$discriminator1 -M /some/map/file.$discriminator1 -O /some/haplotype/file.$discriminator1 /some/sample/file -L /some/log/file --thread 2
+jobDir="$finalOutputDir1"
+mkdir -p $$jobDir
+
+START="$$(date +%Y-%m-%dT%H:%M:%S)"
+
+`which time` -o $finalOutputDir1/stats --format="ExitCode: %x\\nMemory: %Mk\\nSystem: %Ss\\nUser: %Us" ${singularityPrefix}/some/shapeit/executable -V /some/vcf/file.$discriminator1 -M /some/map/file.$discriminator1 -O /some/haplotype/file.$discriminator1 /some/sample/file -L /some/log/file --thread 2
 
 LOAMSTREAM_JOB_EXIT_CODE=$$?
+
+echo "Start: $$START\\nEnd: $$(date +%Y-%m-%dT%H:%M:%S)" >> $finalOutputDir1/stats
 
 origStdoutPath="${drmOutputDir}/${jobName}.${toIndex(1)}.stdout"
 origStderrPath="${drmOutputDir}/${jobName}.${toIndex(1)}.stderr"
@@ -272,20 +284,25 @@ stdoutDestPath="$finalOutputDir1/stdout"
 stderrDestPath="$finalOutputDir1/stderr"
 exitcodeDestPath="$finalOutputDir1/exitcode"
 
-jobDir="$finalOutputDir1"
+echo $$LOAMSTREAM_JOB_EXIT_CODE > $$exitcodeDestPath
 
-mkdir -p $$jobDir
 mv $$origStdoutPath $$stdoutDestPath || echo "Couldn't move DRM std out log $$origStdoutPath; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
 mv $$origStderrPath $$stderrDestPath || echo "Couldn't move DRM std err log $$origStderrPath; it's likely the job wasn't submitted successfully" > $$stderrDestPath
-echo $$LOAMSTREAM_JOB_EXIT_CODE > $$exitcodeDestPath
 
 exit $$LOAMSTREAM_JOB_EXIT_CODE
 
-elif [ $$i -eq ${toIndex(2)} ]
+elif [ "$$i" = "${toIndex(2)}" ]
 then
-${singularityPrefix}/some/shapeit/executable -V /some/vcf/file.$discriminator2 -M /some/map/file.$discriminator2 -O /some/haplotype/file.$discriminator2 /some/sample/file -L /some/log/file --thread 2
+jobDir="$finalOutputDir2"
+mkdir -p $$jobDir
+
+START="$$(date +%Y-%m-%dT%H:%M:%S)"
+
+`which time` -o $finalOutputDir2/stats --format="ExitCode: %x\\nMemory: %Mk\\nSystem: %Ss\\nUser: %Us" ${singularityPrefix}/some/shapeit/executable -V /some/vcf/file.$discriminator2 -M /some/map/file.$discriminator2 -O /some/haplotype/file.$discriminator2 /some/sample/file -L /some/log/file --thread 2
 
 LOAMSTREAM_JOB_EXIT_CODE=$$?
+
+echo "Start: $$START\\nEnd: $$(date +%Y-%m-%dT%H:%M:%S)" >> $finalOutputDir2/stats
 
 origStdoutPath="${drmOutputDir}/${jobName}.${toIndex(2)}.stdout"
 origStderrPath="${drmOutputDir}/${jobName}.${toIndex(2)}.stderr"
@@ -294,12 +311,10 @@ stdoutDestPath="$finalOutputDir2/stdout"
 stderrDestPath="$finalOutputDir2/stderr"
 exitcodeDestPath="$finalOutputDir2/exitcode"
 
-jobDir="$finalOutputDir2"
+echo $$LOAMSTREAM_JOB_EXIT_CODE > $$exitcodeDestPath
 
-mkdir -p $$jobDir
 mv $$origStdoutPath $$stdoutDestPath || echo "Couldn't move DRM std out log $$origStdoutPath; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
 mv $$origStderrPath $$stderrDestPath || echo "Couldn't move DRM std err log $$origStderrPath; it's likely the job wasn't submitted successfully" > $$stderrDestPath
-echo $$LOAMSTREAM_JOB_EXIT_CODE > $$exitcodeDestPath
 
 exit $$LOAMSTREAM_JOB_EXIT_CODE
 

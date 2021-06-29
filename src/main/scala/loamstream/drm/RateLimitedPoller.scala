@@ -20,6 +20,13 @@ import scala.util.Success
 import loamstream.util.LogContext
 import loamstream.util.Processes
 import loamstream.util.RateLimitedCache
+import loamstream.util.CanBeClosed
+import loamstream.util.Iterators
+import scala.io.Source
+import java.nio.file.Path
+import loamstream.util.LogFileNames
+import loamstream.util.Tries
+import loamstream.util.FileMonitor
 
 /**
  * @author clint
@@ -27,7 +34,8 @@ import loamstream.util.RateLimitedCache
  */
 abstract class RateLimitedPoller[P](
     name: String,
-    protected val commandInvoker: CommandInvoker.Async[P]) extends Poller with Loggable {
+    protected val commandInvoker: CommandInvoker.Async[P],
+    fileMonitor: FileMonitor) extends Poller with Loggable {
 
   import RateLimitedPoller.{PollResult, PollResultsForInvocation}
   
@@ -40,7 +48,44 @@ abstract class RateLimitedPoller[P](
   protected def getExitCodes(
       oracle: DrmJobOracle)
      (runResults: RunResults.Successful, 
-      idsToLookFor: Set[DrmTaskId]): Observable[PollResult]
+      idsToLookFor: Set[DrmTaskId]): Observable[PollResult] = {
+    
+    def readExitCodeFrom(file: Path): Option[DrmStatus] = {
+      CanBeClosed.using(Source.fromFile(file.toFile)) { source =>
+        val lines: Iterator[String] = source.getLines.map(_.trim).filter(_.nonEmpty)
+        
+        val statuses: Iterator[DrmStatus] = {
+          lines.flatMap(line => Try(line.toInt).toOption).map(DrmStatus.CommandResult(_))
+        }
+
+        import Iterators.Implicits.IteratorOps
+        
+        statuses.nextOption()
+      }
+    }
+    
+    def exitCodeFor(taskId: DrmTaskId): Observable[PollResult] = {
+      def toPollResult(status: DrmStatus): PollResult = taskId -> status
+      
+      import java.nio.file.Files.exists
+
+      val exitCodeFileObs = Observable.eval(oracle.dirOptFor(taskId).map(LogFileNames.exitCode))
+
+      val existingExitCodeFileObs = exitCodeFileObs.flatMap {
+        case Some(p) => Observable.from(fileMonitor.waitForCreationOf(p)).map(_ => p)
+        case None => Observable.fromTry(Tries.failure(s"Couldn't find job dir for DRM job with id: $taskId"))
+      }
+      
+      existingExitCodeFileObs.flatMap { file =>
+        Observable.fromIterable(readExitCodeFrom(file).map(toPollResult))
+      }
+    }
+
+    Observable.from(idsToLookFor)
+      .subscribeOn(Schedulers.oneThreadPerCpu)
+      .executeOn(Schedulers.oneThreadPerCpu)
+      .flatMap(exitCodeFor)
+  }
   
   final override def poll(oracle: DrmJobOracle)(drmTaskIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, Try[DrmStatus])] = {
     //Invoke qstat, to get the status of all submitted-but-not-finished jobs in this session
@@ -83,6 +128,8 @@ abstract class RateLimitedPoller[P](
       
       val exitCodeStatusObses = {
         notFoundByTaskArrayId.values.iterator.take(ThisMachine.numCpus).map { drmTaskIdsInTaskArray =>  
+          debug(s"Getting exit codes for ${drmTaskIdsInTaskArray}")
+
           getExitCodes(oracle)(runResults, drmTaskIdsInTaskArray)
         }.to(Seq)
       }
@@ -158,7 +205,7 @@ object RateLimitedPoller {
       def invocationFn(params: P): Try[RunResults] = {
         val tokens = makeTokens(params)
         
-        logCtx.trace(s"Invoking '${tokens.mkString(" ")}'")
+        logCtx.debug(s"Invoking '${tokens.mkString(" ")}'")
         
         Processes.runSync(tokens)()
       }

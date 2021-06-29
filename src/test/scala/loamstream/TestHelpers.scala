@@ -63,6 +63,7 @@ import scala.concurrent.duration.FiniteDuration
 import loamstream.drm.DrmTaskId
 import monix.eval.Task
 import loamstream.conf.SlurmConfig
+import loamstream.model.execute.SlurmDrmSettings
 
 /**
   * @author clint
@@ -294,6 +295,17 @@ object TestHelpers {
       lsfConfig.defaultCores,
       lsfConfig.defaultMemoryPerCore,
       lsfConfig.defaultMaxRunTime,
+      None,
+      None)
+  }
+
+  val defaultSlurmSettings: SlurmDrmSettings = {
+    val slurmConfig = config.slurmConfig.get 
+
+    SlurmDrmSettings(
+      slurmConfig.defaultCores,
+      slurmConfig.defaultMemoryPerCore,
+      slurmConfig.defaultMaxRunTime,
       None,
       None)
   }

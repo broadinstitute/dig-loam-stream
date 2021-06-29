@@ -98,6 +98,7 @@ final class AppWiringTest extends FunSuite with Matchers {
   private def toFlag(drmSystem: DrmSystem): String = drmSystem match {
     case DrmSystem.Uger => "--backend uger"
     case DrmSystem.Lsf => "--backend lsf"
+    case DrmSystem.Slurm => "--backend slurm"
   }
   
   test("DRM execution, db-backed") {

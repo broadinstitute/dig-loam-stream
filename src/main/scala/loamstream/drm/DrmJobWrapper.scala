@@ -37,6 +37,8 @@ final case class DrmJobWrapper(
   
   private lazy val exitCodeDestPath: Path = LogFileNames.exitCode(jobDir)
 
+  private[drm] lazy val statsFileDestPath: Path = LogFileNames.stats(jobDir)
+
   def outputStreams: OutputStreams = OutputStreams(stdOutDestPath, stdErrDestPath)
 
   private[drm] def commandLineInTaskArray: String = {
@@ -57,7 +59,9 @@ final case class DrmJobWrapper(
       case _ => ""
     }
 
-    val result = s"${singularityPart}${commandLineJob.commandLineString}"
+    val timePrefixPart = DrmJobWrapper.timePrefix(statsFileDestPath)
+
+    val result = s"${timePrefixPart} ${singularityPart}${commandLineJob.commandLineString}"
 
     trace(s"Raw command in DRM shell script: '${result}'")
 
@@ -67,10 +71,19 @@ final case class DrmJobWrapper(
   def commandChunk(taskArray: DrmTaskArray): String = {
     val outputDir = jobDir.toAbsolutePath
 
+    import DrmJobWrapper.timestampCommand
+
     // scalastyle:off line.size.limit
-    s"""|${commandLineInTaskArray}
+    s"""|jobDir="${outputDir.render}"
+        |mkdir -p $$jobDir
+        |
+        |START="$$(${timestampCommand})"
+        |
+        |${commandLineInTaskArray}
         |
         |LOAMSTREAM_JOB_EXIT_CODE=$$?
+        |
+        |echo "Start: $$START\\nEnd: $$(${timestampCommand})" >> ${statsFileDestPath}
         |
         |origStdoutPath="${drmStdOutPath(taskArray).render}"
         |origStderrPath="${drmStdErrPath(taskArray).render}"
@@ -79,15 +92,27 @@ final case class DrmJobWrapper(
         |stderrDestPath="${stdErrDestPath.render}"
         |exitcodeDestPath="${exitCodeDestPath.render}"
         |
-        |jobDir="${outputDir.render}"
+        |echo $$LOAMSTREAM_JOB_EXIT_CODE > $$exitcodeDestPath
         |
-        |mkdir -p $$jobDir
         |mv $$origStdoutPath $$stdoutDestPath || echo "Couldn't move DRM std out log $$origStdoutPath; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
         |mv $$origStderrPath $$stderrDestPath || echo "Couldn't move DRM std err log $$origStderrPath; it's likely the job wasn't submitted successfully" > $$stderrDestPath
-        |echo $$LOAMSTREAM_JOB_EXIT_CODE > $$exitcodeDestPath
         |
         |exit $$LOAMSTREAM_JOB_EXIT_CODE
         |""".stripMargin
     // scalastyle:on line.size.limit
   }
+}
+
+object DrmJobWrapper {
+  private[drm] def timePrefix(statsFile: Path): String = {
+    //NB: Memory will be max-rss, in kilobytes.
+    //System is time spent in kernel code, user is time spent in user code.
+    val formatSpec = "ExitCode: %x\\nMemory: %Mk\\nSystem: %Ss\\nUser: %Us"
+
+    //Use `which time` to find the 'time' binary on the path (we do NOT want the Bash builtin 'time').
+    //-o makes output specified by $formatSpec go to $statsFile.
+    s"""`which time` -o ${statsFile} --format="${formatSpec}""""
+  }
+
+  private[drm] val timestampCommand: String = """date +%Y-%m-%dT%H:%M:%S"""
 }

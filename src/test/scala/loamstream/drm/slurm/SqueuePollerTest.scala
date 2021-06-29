@@ -5,13 +5,13 @@ import scala.util.Success
 import loamstream.drm.DrmTaskId
 import loamstream.drm.DrmStatus
 
-final class SacctPollerTest extends FunSuite {
+final class SqueuePollerTest extends FunSuite {
   test("parseDataLine - good input") {
-    val line = "71|COMPLETED|0:0"
+    val line = "71_2|COMPLETED"
     
-    val actual = SacctPoller.parseDataLine(line)
+    val actual = SqueuePoller.parseDataLine(line)
     
-    val expected = Success(DrmTaskId("71", 0) -> DrmStatus.CommandResult(0))
+    val expected = Success(DrmTaskId("71", 2) -> DrmStatus.CommandResult(0))
     
     assert(actual === expected)
   }

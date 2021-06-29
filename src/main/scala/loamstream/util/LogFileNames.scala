@@ -18,6 +18,8 @@ object LogFileNames {
   def stderr(outputDir: Path): Path = makePath(outputDir, "stderr")
   
   def exitCode(outputDir: Path): Path = makePath(outputDir, "exitcode")
+
+  def stats(outputDir: Path): Path = makePath(outputDir, "stats")
   
   private def makePath(outputDir: Path, fileName: String): Path = {
     import Paths.Implicits._

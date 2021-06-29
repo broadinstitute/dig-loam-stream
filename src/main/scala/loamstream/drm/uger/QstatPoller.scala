@@ -30,7 +30,7 @@ import loamstream.util.Tries
 final class QstatPoller private[uger] (
     commandName: String,
     pollingFn: CommandInvoker.Async[Unit],
-    fileMonitor: FileMonitor) extends RateLimitedPoller[Unit](commandName, pollingFn) {
+    fileMonitor: FileMonitor) extends RateLimitedPoller[Unit](commandName, pollingFn, fileMonitor) {
 
   override protected def toParams(oracle: DrmJobOracle)(drmTaskIds: Iterable[DrmTaskId]): Params = ()
   
@@ -45,49 +45,7 @@ final class QstatPoller private[uger] (
     
     PollResultsForInvocation(runResults, attemptsByTaskId)
   }
-  
-  override protected def getExitCodes(
-      oracle: DrmJobOracle)
-     (runResults: RunResults.Successful, 
-      idsToLookFor: Set[DrmTaskId]): Observable[PollResult] = {
-    
-    def readExitCodeFrom(file: Path): Option[DrmStatus] = {
-      CanBeClosed.using(Source.fromFile(file.toFile)) { source =>
-        val lines: Iterator[String] = source.getLines.map(_.trim).filter(_.nonEmpty)
-        
-        val statuses: Iterator[DrmStatus] = {
-          lines.flatMap(line => Try(line.toInt).toOption).map(DrmStatus.CommandResult(_))
-        }
-
-        import Iterators.Implicits.IteratorOps
-        
-        statuses.nextOption()
-      }
-    }
-    
-    def exitCodeFor(taskId: DrmTaskId): Observable[PollResult] = {
-      def toPollResult(status: DrmStatus): PollResult = taskId -> status
-      
-      import java.nio.file.Files.exists
-
-      val exitCodeFileObs = Observable.eval(oracle.dirOptFor(taskId).map(LogFileNames.exitCode))
-      
-      val existingExitCodeFileObs = exitCodeFileObs.flatMap {
-        case Some(p) => Observable.from(fileMonitor.waitForCreationOf(p)).map(_ => p)
-        case None => Observable.fromTry(Tries.failure(s"Couldn't find job dir for DRM job with id: $taskId"))
-      }
-      
-      existingExitCodeFileObs.flatMap { file =>
-        Observable.fromIterable(readExitCodeFrom(file).map(toPollResult))
-      }
-    }
-    
-    Observable.from(idsToLookFor)
-      .subscribeOn(Schedulers.oneThreadPerCpu)
-      .executeOn(Schedulers.oneThreadPerCpu)
-      .flatMap(exitCodeFor)
-  }
-}
+}  
 
 object QstatPoller extends RateLimitedPoller.Companion[Unit, QstatPoller] with Loggable {
   def fromExecutable(

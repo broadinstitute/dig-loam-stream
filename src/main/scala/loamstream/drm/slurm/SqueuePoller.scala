@@ -13,7 +13,7 @@ import scala.collection.compat._
 import loamstream.util.Observables
 import loamstream.drm.RateLimitedPoller
 import loamstream.drm.RateLimitedPoller.PollResultsForInvocation
-import SacctPoller.Params
+import SqueuePoller.Params
 import loamstream.conf.ExecutionConfig
 import monix.execution.Scheduler
 import loamstream.util.RunResults
@@ -21,28 +21,25 @@ import loamstream.util.Tries
 import loamstream.util.Options
 import scala.util.Success
 import loamstream.drm.DrmSystem
+import loamstream.util.FileMonitor
 
 /**
  * @author clint
  * May 18, 2021
  *
- * Asynchronously inquire about the status of one or more jobs by invoking `sacct`/
+ * Asynchronously inquire about the status of one or more jobs by invoking `squeue`/
  *
  * @param taskIds the ids of the tasks to inquire about
  * @return a map of task ids to attempts at that task's status
  */
-final class SacctPoller private[slurm] (
+final class SqueuePoller private[slurm] (
     pollingFn: CommandInvoker.Async[Params],
-    commandName: String = "sacct") extends RateLimitedPoller[Params](commandName, pollingFn) {
+    commandName: String = "squeue",
+    fileMonitor: FileMonitor) extends RateLimitedPoller[Params](commandName, pollingFn, fileMonitor) {
 
   protected override def toParams(oracle: DrmJobOracle)(drmTaskIds: Iterable[DrmTaskId]): Params = drmTaskIds
   
-  import SacctPoller.PollResult
-  
-  override protected def getExitCodes(
-      oracle: DrmJobOracle)
-     (runResults: RunResults.Successful, 
-      idsToLookFor: Set[DrmTaskId]): Observable[PollResult] = Observable.empty
+  import SqueuePoller.PollResult
   
   override protected def getStatusesByTaskId(
       idsWereLookingFor: Iterable[DrmTaskId])
@@ -50,10 +47,7 @@ final class SacctPoller private[slurm] (
     
     val outputLines = runResults.stdout
     
-    println(s"%%%%%%%%%%% ${runResults.stdout}")
-    println(s"%%%%%%%%%%% ${runResults.stderr}")
-    
-    val statusAttemptsById = outputLines.iterator.map(SacctPoller.parseDataLine).map { //TODO 
+    val statusAttemptsById = outputLines.iterator.map(SqueuePoller.parseDataLine).map { //TODO 
       case Success((drmTaskId, drmStatus)) => (drmTaskId, Success(drmStatus))
     }.toMap
     
@@ -61,19 +55,23 @@ final class SacctPoller private[slurm] (
   }
 }
 
-object SacctPoller extends RateLimitedPoller.Companion[Iterable[DrmTaskId], SacctPoller] with Loggable {
+object SqueuePoller extends RateLimitedPoller.Companion[Iterable[DrmTaskId], SqueuePoller] with Loggable {
   def fromExecutable(
       actualExecutable: String,
       pollingFrequencyInHz: Double,
       executionConfig: ExecutionConfig,
-      scheduler: Scheduler): SacctPoller = {
+      scheduler: Scheduler): SqueuePoller = {
     
     val invoker = commandInvoker(
         pollingFrequencyInHz, 
         actualExecutable, 
         makeTokens(actualExecutable)(_))(scheduler, this) 
     
-    new SacctPoller(invoker, actualExecutable)
+    import executionConfig.{ executionPollingFrequencyInHz, maxWaitTimeForOutputs }
+    
+    val fileMonitor = new FileMonitor(executionPollingFrequencyInHz, maxWaitTimeForOutputs)
+
+    new SqueuePoller(invoker, actualExecutable, fileMonitor)
   }
       
   private[slurm] def makeTokens(actualExecutable: String)(drmTaskIds: Iterable[DrmTaskId]): Seq[String] = {
@@ -81,10 +79,13 @@ object SacctPoller extends RateLimitedPoller.Companion[Iterable[DrmTaskId], Sacc
     
     Seq(
       actualExecutable,
-      "-b", //brief output: job/task id, state, exit code
-      "-n", //no header, just data lines
-      "-P", //output will be '|' delimited without a '|' at the end
-      "-j", //specify job/task ids we're looking for, comma-separated
+      //no header, just data lines
+      "-h", 
+      //ask for <job_id>_<index> and abbreviated status; 
+      //output will be '|' delimited without a '|' at the end
+      "-o", "%i|%t", 
+      //specify job/task ids we're looking for, comma-separated, in <job_id>_<index> format
+      "-j", 
       
       drmTaskIds.iterator.map(taskIdToString).mkString(","))
   }
@@ -93,7 +94,7 @@ object SacctPoller extends RateLimitedPoller.Companion[Iterable[DrmTaskId], Sacc
     val parts = line.trim.split("\\|").filter(_.nonEmpty)
     
     parts match {
-      case Array(jobIdPart, statusPart, _) => {
+      case Array(jobIdPart, statusPart, _ @ _*) => {
         import SlurmStatus._
         
         for {
@@ -106,13 +107,13 @@ object SacctPoller extends RateLimitedPoller.Companion[Iterable[DrmTaskId], Sacc
   }
   
   private object Regexes {
-    val jobAndTaskIndex = "^(\\d+)\\.(\\d+)$".r
+    val jobAndTaskIndex = "^(\\d+)_(\\d+)$".r
     val jobId = "^(\\d+)$".r
   }
   
   private[slurm] def parseDrmTaskId(s: String): Try[DrmTaskId] = s.trim match {
     case Regexes.jobAndTaskIndex(jobId, taskIndex) => Success(DrmTaskId(jobId, taskIndex.toInt))
-    case Regexes.jobId(jobId) => Success(DrmTaskId(jobId, 0)) //TODO
+    //case Regexes.jobId(jobId) => Success(DrmTaskId(jobId, 0)) //TODO
     case _ => Tries.failure(s"Couldn't parse DrmTaskId from '$s'")
   }
 }

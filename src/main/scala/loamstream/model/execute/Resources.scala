@@ -76,9 +76,11 @@ object Resources {
     
     type FieldsTuple = (Memory, CpuTime, Option[String], Option[Queue], LocalDateTime, LocalDateTime, Option[String])
     
+    //TODO: This is a smell
     def unapply(r: Resources): Option[FieldsTuple] = r match {
       case u: UgerResources => UgerResources.unapply(u)
       case l: LsfResources => LsfResources.unapply(l)
+      case s: SlurmResources => SlurmResources.unapply(s)
       case _ => None
     }
   }

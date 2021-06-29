@@ -20,7 +20,7 @@ import loamstream.drm.uger.QstatPoller
 import loamstream.drm.SessionTracker
 import loamstream.util.ExitCodes
 import loamstream.util.Loggable
-import loamstream.drm.slurm.SacctPoller
+import loamstream.drm.slurm.SqueuePoller
 import loamstream.drm.slurm.SbatchJobSubmitter
 import loamstream.drm.slurm.SacctAccountingClient
 import loamstream.drm.slurm.ScancelJobKiller
@@ -126,8 +126,8 @@ object DrmChunkRunnerWiring extends Loggable {
       //TODO: Make configurable?
       val pollingFrequencyInHz = Defaults.pollingFrequencyInHz
 
-      val poller = SacctPoller.fromExecutable(
-          "sacct",
+      val poller = SqueuePoller.fromExecutable(
+          "squeue",
           pollingFrequencyInHz,
           loamConfig.executionConfig,
           scheduler)

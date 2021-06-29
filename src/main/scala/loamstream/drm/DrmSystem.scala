@@ -10,6 +10,7 @@ import loamstream.model.execute.UgerDrmSettings
 import loamstream.model.execute.LsfDrmSettings
 import loamstream.conf.SlurmConfig
 import loamstream.model.execute.SlurmDrmSettings
+import loamstream.model.execute.Resources
 
 /**
  * @author clint
@@ -19,6 +20,8 @@ sealed trait DrmSystem {
   type Config <: DrmConfig
   
   type Settings <: DrmSettings
+
+  type Resources <: Resources.DrmResources
   
   def name: String = toString
   
@@ -29,6 +32,8 @@ sealed trait DrmSystem {
   def settingsFromConfig(scriptContext: LoamScriptContext): Settings
   
   def settingsMaker: DrmSettings.SettingsMaker
+
+  def resourcesMaker: Resources.DrmResources.ResourcesMaker[Resources]
   
   def configKey: String = s"loamstream.${name.toLowerCase}"
   
@@ -44,6 +49,8 @@ object DrmSystem {
     override type Config = UgerConfig
   
     override type Settings = UgerDrmSettings
+
+    override type Resources = Resources.UgerResources
     
     override def defaultQueue: Option[Queue] = Option(UgerDefaults.queue)
     
@@ -54,12 +61,16 @@ object DrmSystem {
     }
     
     override val settingsMaker: DrmSettings.SettingsMaker = UgerDrmSettings.apply
+
+    override val resourcesMaker: Resources.DrmResources.ResourcesMaker[Resources] = Resources.UgerResources.apply
   }
   
   final case object Lsf extends DrmSystem {
     override type Config = LsfConfig
   
     override type Settings = LsfDrmSettings
+
+    override type Resources = Resources.LsfResources
     
     override def defaultQueue: Option[Queue] = None
     
@@ -70,12 +81,16 @@ object DrmSystem {
     }
     
     override val settingsMaker: DrmSettings.SettingsMaker = LsfDrmSettings.apply
+
+    override val resourcesMaker: Resources.DrmResources.ResourcesMaker[Resources] = Resources.LsfResources.apply
   }
   
   final case object Slurm extends DrmSystem {
     override type Config = SlurmConfig
   
     override type Settings = SlurmDrmSettings
+
+    override type Resources = Resources.SlurmResources
     
     override def defaultQueue: Option[Queue] = None
     
@@ -86,12 +101,10 @@ object DrmSystem {
     }
     
     override val settingsMaker: DrmSettings.SettingsMaker = SlurmDrmSettings.apply
+
+    override val resourcesMaker: Resources.DrmResources.ResourcesMaker[Resources] = Resources.SlurmResources.apply
     
-    override def format(drmTaskId: DrmTaskId): String = formatWithSeparator('+', drmTaskId)
-    
-    //TODO: WtF
-    @deprecated("", "")
-    def formatForScancel(drmTaskId: DrmTaskId): String = formatWithSeparator('_', drmTaskId)
+    override def format(drmTaskId: DrmTaskId): String = formatWithSeparator('_', drmTaskId)
   }
   
   def fromName(name: String): Option[DrmSystem] = byName.get(name.trim.toLowerCase)

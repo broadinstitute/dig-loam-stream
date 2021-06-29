@@ -1,5 +1,7 @@
 package loamstream.drm
 
+import java.nio.file.Path
+
 /**
   * @author Kaan
   *         clint
@@ -16,7 +18,7 @@ final class ScriptBuilder(params: ScriptBuilderParams) {
   private val scriptHeader: String = {
     s"""|#!/bin/bash
         |${params.preamble.mkString}
-        |
+        | 
         |i=$$${params.indexEnvVarName}
         |jobId=$$${params.jobIdEnvVarName}
         |      """.stripMargin
@@ -54,7 +56,7 @@ final class ScriptBuilder(params: ScriptBuilderParams) {
     s"${newLine}${commandChunk}"
   }
 
-  private def getIfHeader(index: Int): String = s"if [ $$i -eq $index ]${newLine}then"
+  private def getIfHeader(index: Int): String = s"""if [ "$$i" = "$index" ]${newLine}then"""
 
-  private def getElseIfHeader(index: Int): String = s"elif [ $$i -eq $index ]${newLine}then"
+  private def getElseIfHeader(index: Int): String = s"""elif [ "$$i" = "$index" ]${newLine}then"""
 }

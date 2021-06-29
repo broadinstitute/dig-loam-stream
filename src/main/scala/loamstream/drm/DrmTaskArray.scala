@@ -121,7 +121,7 @@ object DrmTaskArray extends Loggable {
     
     lazy val Uger: TaskIndexingStrategy = PlusOne
     lazy val Lsf: TaskIndexingStrategy = PlusOne
-    lazy val Slurm: TaskIndexingStrategy = Unchanged
+    lazy val Slurm: TaskIndexingStrategy = PlusOne
     
     def forDrmSystem(drmSystem: DrmSystem): TaskIndexingStrategy = drmSystem match {
       case DrmSystem.Uger => Uger

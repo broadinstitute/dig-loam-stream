@@ -17,7 +17,7 @@ plink.log
 /out
 /project/project
 /project/target
-
+project/metals.sbt
 /target
 /src/target
 tmp/
@@ -51,3 +51,4 @@ job-outputs
 prof
 profile-sbt.sh
 .bsp
+.vscode

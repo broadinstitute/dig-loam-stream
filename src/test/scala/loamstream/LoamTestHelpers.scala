@@ -5,7 +5,7 @@ import java.nio.file.Paths
 
 import loamstream.compiler.LoamCompiler
 import loamstream.compiler.LoamProject
-import loamstream.loam.LoamProjectContext
+import loamstream.conf.LsSettings
 import loamstream.loam.LoamScript
 import loamstream.loam.LoamToolBox
 import loamstream.model.execute.Executable
@@ -13,7 +13,8 @@ import loamstream.model.execute.RxExecuter
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.LJob
 import loamstream.util.Loggable
-import loamstream.conf.LsSettings
+
+import scala.collection.compat._
 
 
 /**
@@ -27,7 +28,7 @@ trait LoamTestHelpers extends Loggable {
   def compile(path: Path, rest: Path*): LoamCompiler.Result = {
     def toScript(p: Path): LoamScript = LoamScript.read(p).get
     
-    val paths: Set[Path] = (path +: rest).toSet
+    val paths: Set[Path] = (path +: rest).to(Set)
     
     compile(LoamProject(TestHelpers.config, LsSettings.noCliConfig, paths.map(toScript)), throwOnError = false)
   }

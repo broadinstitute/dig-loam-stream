@@ -15,6 +15,7 @@ import loamstream.util.CanBeClosed
 import loamstream.util.Loggable
 import loamstream.util.{Paths => LPaths}
 import java.nio.file.Paths
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -33,7 +34,7 @@ final class ProtectsFilesJobCanceler private (
     debug(s"Made ${ProtectsFilesJobCanceler.getClass.getSimpleName} that will protect ${size} locations:")
     
     if(isDebugEnabled) {
-      locationsToProtect.toSeq.sorted.foreach(debug(_))
+      locationsToProtect.to(Seq).sorted.foreach(debug(_))
     }
   }
   
@@ -48,7 +49,7 @@ final class ProtectsFilesJobCanceler private (
     case _ => false
   }
   
-  private[execute] def locationsToProtect: Set[String] = _locationsToProtect.asScala.toSet
+  private[execute] def locationsToProtect: Set[String] = _locationsToProtect.asScala.to(Set)
   
   override def shouldCancel(job: LJob): Boolean = {
     def isProtected(output: DataHandle): Boolean = _locationsToProtect.contains(output.location)
@@ -120,6 +121,6 @@ object ProtectsFilesJobCanceler {
     
     val locs = lines.map(_.trim).filterNot(shouldSkip).map(parse)
     
-    fromEithers(locs.toList)
+    fromEithers(locs.to(List))
   }
 }

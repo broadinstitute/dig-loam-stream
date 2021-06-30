@@ -6,6 +6,7 @@ import loamstream.db.LoamDao
 import loamstream.model.jobs.StoreRecord
 import loamstream.util.Paths
 import slick.jdbc.JdbcProfile
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -75,7 +76,7 @@ trait OutputDaoOps extends LoamDao { self: CommonDaoOps =>
     }
 
     def outputsByPaths(locs: Iterable[String]): Query[tables.Outputs, OutputRow, Seq] = {
-      val rawPaths = locs.toSet
+      val rawPaths = locs.to(Set)
 
       outputsByRawPaths(rawPaths)
     }

@@ -27,14 +27,14 @@ object ByNameJobFilter {
   def noneOf(regexes: Seq[Regex]): ByNameJobFilter = new NoneOf(regexes)
   
   final case class AllOf(regexes: Seq[Regex]) extends ByNameJobFilter {
-    override def shouldRun(job: LJob): Boolean = regexes.forall(_.matches(job.name))
+    override def shouldRun(job: LJob): Boolean = regexes.forall(_.foundIn(job.name))
   }
   
   final case class AnyOf(regexes: Seq[Regex]) extends ByNameJobFilter {
-    override def shouldRun(job: LJob): Boolean = regexes.exists(_.matches(job.name))
+    override def shouldRun(job: LJob): Boolean = regexes.exists(_.foundIn(job.name))
   }
   
   final case class NoneOf(regexes: Seq[Regex]) extends ByNameJobFilter {
-    override def shouldRun(job: LJob): Boolean = regexes.forall(_.doesntMatch(job.name))
+    override def shouldRun(job: LJob): Boolean = regexes.forall(_.notFoundIn(job.name))
   }
 }

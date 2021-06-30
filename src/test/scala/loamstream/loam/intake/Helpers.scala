@@ -8,6 +8,8 @@ import loamstream.model.Store
 import loamstream.loam.intake.flip.FlipDetector
 import loamstream.loam.intake.flip.Disposition
 import loamstream.loam.intake.metrics.BioIndexClient
+import scala.collection.compat._
+
 
 /**
  * @author clint
@@ -73,7 +75,7 @@ object Helpers {
   def linesFrom(path: Path): Seq[String] = {
     import scala.collection.JavaConverters._
     
-    java.nio.file.Files.readAllLines(path).asScala.toSeq
+    java.nio.file.Files.readAllLines(path).asScala.to(Seq)
   }
   
   object Implicits {

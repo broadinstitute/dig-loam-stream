@@ -1,8 +1,8 @@
 package loamstream.util
 
-import org.broadinstitute.dig.aws.AWS
+import org.broadinstitute.dig.aws.S3
 
-import AwsClient.ContentType
+import S3Client.ContentType
 import software.amazon.awssdk.core.sync.RequestBody
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException
 import software.amazon.awssdk.services.s3.model.PutObjectRequest
@@ -11,7 +11,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest
  * @author clint
  * Dec 7, 2020
  */
-trait AwsClient {
+trait S3Client {
   def bucket: String
   
   def list(prefix: String, delimiter: String = "/"): Seq[String]
@@ -23,22 +23,24 @@ trait AwsClient {
   def getAsString(key: String): Option[String]
 }
 
-object AwsClient {
+object S3Client {
   sealed abstract class ContentType(val value: String)
   
   object ContentType {
     case object ApplicationJson extends ContentType("application/json") 
   }
   
-  final class Default(aws: AWS) extends AwsClient {
-    override def bucket: String = aws.bucket
+  final class Default private (bucketApi: S3.Bucket) extends S3Client {
+    def this(bucketName: String) = this(new S3.Bucket(bucketName))
+    
+    override def bucket: String = bucketApi.bucket
     
     override def list(prefix: String, delimiter: String = "/"): Seq[String] = {
-      aws.ls(prefix).unsafeRunSync()
+      bucketApi.ls(prefix).map(_ => ???)
     }
   
     override def deleteDir(key: String): Unit = {
-      aws.rmdir(key).unsafeRunSync()
+      bucketApi.rm(key)
     }
   
     override def put(key: String, data: String, contentType: Option[ContentType] = None): Unit = {
@@ -53,14 +55,17 @@ object AwsClient {
       
       val req = reqBuilder.build
       
-      aws.s3.putObject(req, requestBody)
+      //TODO: update dig-aws to allow specifying content-type
+      ???
+      
+      bucketApi.put(key, data)
     }
     
     override def getAsString(key: String): Option[String] = {
       import org.broadinstitute.dig.aws.Implicits._
       
       try {
-        Some(aws.get(key).map(_.readAsString()).unsafeRunSync())
+        Some(bucketApi.get(key).mkString())
       } catch {
         case _: NoSuchKeyException => None
       }

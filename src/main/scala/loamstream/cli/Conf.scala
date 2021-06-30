@@ -15,6 +15,7 @@ import loamstream.util.IoUtils
 import loamstream.util.Loggable
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Buffer
+import scala.collection.compat._
 
 /**
  * Provides a command line interface for LoamStream apps
@@ -51,7 +52,7 @@ final case class Conf private (arguments: Seq[String]) extends ScallopConf(argum
     }
   }
 
-  private val listPathConverter: ValueConverter[Seq[Path]] = listArgConverter[Path](Paths.get(_)).map(_.toSeq)
+  private val listPathConverter: ValueConverter[Seq[Path]] = listArgConverter[Path](Paths.get(_)).map(_.to(Seq))
   
   // TODO: Add version info (ideally from build.sbt)?
   banner("""LoamStream is a genomic analysis stack featuring a high-level language, compiler and runtime engine.
@@ -161,7 +162,7 @@ final case class Conf private (arguments: Seq[String]) extends ScallopConf(argum
     }
       
     Conf.Values(
-      loams = loams.toOption.toSeq.flatten,
+      loams = loams.toOption.to(Seq).flatten,
       cleanDbSupplied = cleanDb.isSupplied || clean.isSupplied,
       cleanLogsSupplied = cleanLogs.isSupplied || clean.isSupplied,
       cleanScriptsSupplied = cleanScripts.isSupplied || clean.isSupplied,
@@ -251,7 +252,7 @@ object Conf {
       }
       
       val confPart: Seq[String] = {
-        conf.conf.toOption.toSeq.flatMap(confFilePath => Seq(asArgName(conf.conf), confFilePath.toString))
+        conf.conf.toOption.to(Seq).flatMap(confFilePath => Seq(asArgName(conf.conf), confFilePath.toString))
       }
       
       val noValidationPart: Seq[String] = Seq(asStringIfSupplied(noValidationSupplied, conf.noValidation))
@@ -260,10 +261,10 @@ object Conf {
       val disableHashingPart: Seq[String] = Seq(asStringIfSupplied(disableHashingSupplied, conf.disableHashing)) 
       
       val backendPart: Seq[String] = {
-        conf.backend.toOption.toSeq.flatMap(backend => Seq(asArgName(conf.backend), backend.toLowerCase))
+        conf.backend.toOption.to(Seq).flatMap(backend => Seq(asArgName(conf.backend), backend.toLowerCase))
       } 
       
-      val runPart: Seq[String] = run.toSeq.flatMap { case (what, hows) => asArgName(conf.run) +: what +: hows }
+      val runPart: Seq[String] = run.to(Seq).flatMap { case (what, hows) => asArgName(conf.run) +: what +: hows }
       
       val workerPart: Seq[String] = Seq(asStringIfSupplied(workerSupplied, conf.worker))
       
@@ -277,7 +278,7 @@ object Conf {
       result ++= workerPart ++= cleanParts ++= confPart ++= noValidationPart ++= compileOnlyPart ++= dryRunPart ++= 
       disableHashingPart ++= backendPart ++= runPart ++= loamsPart
       
-      result.toList.filter(_.nonEmpty)
+      result.to(List).filter(_.nonEmpty)
     }
   }
   

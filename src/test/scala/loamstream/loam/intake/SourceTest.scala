@@ -9,6 +9,8 @@ import loamstream.loam.intake.metrics.MetricTest.MockFlipDetector
 import loamstream.loam.intake.flip.FlipDetector
 import loamstream.loam.intake.flip.Disposition
 
+import scala.collection.compat._
+
 /**
  * @author clint
  * Feb 27, 2020
@@ -50,7 +52,7 @@ final class SourceTest extends FunSuite {
     
     val expected = Seq(2, 4, 4, 6, 6, 6)
     
-    assert(is.records.toList === expected)
+    assert(is.records.to(List) === expected)
   }
   
   test("Reading zipped input as unzipped should fail") {

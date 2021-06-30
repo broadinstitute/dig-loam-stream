@@ -3,14 +3,15 @@ package loamstream.db.slick
 import scala.util.Try
 
 import loamstream.TestHelpers
-import loamstream.model.jobs.Execution
-import loamstream.model.jobs.StoreRecord
-import loamstream.model.jobs.JobResult.CommandResult
-import java.nio.file.Paths
 import loamstream.model.execute.EnvironmentType
-import loamstream.model.jobs.TerminationReason
-import loamstream.model.jobs.PseudoExecution
 import loamstream.model.execute.Run
+import loamstream.model.jobs.Execution
+import loamstream.model.jobs.JobResult.CommandResult
+import loamstream.model.jobs.PseudoExecution
+import loamstream.model.jobs.StoreRecord
+import loamstream.model.jobs.TerminationReason
+
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -50,7 +51,7 @@ trait TestDbOps {
     
     val commandResult = CommandResult(exitCode)
 
-    import Paths.{get => toPath}
+    import java.nio.file.Paths.{ get => toPath }
     
     val termReason = terminationReason.flatMap(TerminationReason.fromName)
     
@@ -63,7 +64,7 @@ trait TestDbOps {
         cmd = cmd,
         status = status,
         result = Option(commandResult),
-        outputs = dao.outputsFor(executionRow).toSet,
+        outputs = dao.outputsFor(executionRow).to(Set),
         jobDir = jobDir.map(toPath(_)),
         terminationReason = termReason)
   }

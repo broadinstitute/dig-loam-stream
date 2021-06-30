@@ -8,6 +8,7 @@ import loamstream.util.LogContext
 import loamstream.util.Processes
 import loamstream.util.RateLimitedCache
 import loamstream.util.RunResults
+import monix.execution.Scheduler
 
 /**
  * @author clint
@@ -23,7 +24,7 @@ object Qstat {
   final def commandInvoker(
       pollingFrequencyInHz: Double,
       actualExecutable: String = "qstat")
-     (implicit ec: ExecutionContext, logCtx: LogContext): CommandInvoker.Async[Unit] = {
+     (implicit scheduler: Scheduler, logCtx: LogContext): CommandInvoker.Async[Unit] = {
     
     //Unit and ignored args are obviously a smell, but a more principled refactoring will have to wait.
     def invocationFn(ignored: Unit): Try[RunResults] = {

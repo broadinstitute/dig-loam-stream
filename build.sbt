@@ -5,20 +5,21 @@ lazy val Versions = new {
   val GoogleCloudStorage = "1.77.0"
   val GoogleAuth = "0.16.1"
   val LogBack = "1.2.3"
-  val Scala = "2.12.12"
-  val ScalaMajor = "2.12"
-  val ScalaFmt = "1.5.1"
+  val Scala212 = "2.12.13"
+  val Scala213 = "2.13.6"
+  lazy val supportedScalaVersions = Seq(Scala212, Scala213)
+  val ScalaFmt = "2.7.5"
   val ScalaTest = "3.0.8"
   val Scallop = "3.3.0"
   val TypesafeConfig = "1.3.4"
   val Slick = "3.3.2"
   val RxScala = "0.26.5"
   val Ficus = "1.4.7"
-  val Squants = "1.4.0"
+  val Squants = "1.7.4"
   val LogbackColorizer = "1.0.1"
   val Janino = "3.0.12"
   val CommonsCsv = "1.7"
-  val DigAws = "0.1-SNAPSHOT"
+  val DigAws = "0.3.1-SNAPSHOT"
   val HsqlDb = "2.5.0"
   val TestContainersScala = "0.35.2"
   val MysqlConnector = "8.0.19"
@@ -27,6 +28,8 @@ lazy val Versions = new {
   val Breeze = "1.1"
   val RequestsScala = "0.6.7"
   val OkHttp = "4.9.1"
+  val Monix = "3.3.0"
+  val ScalaCollectionCompat = "2.2.0"
 }
 
 lazy val Orgs = new {
@@ -45,14 +48,10 @@ lazy val Resolvers = new {
 }
 
 lazy val mainDeps = Seq(
-  "org.scala-lang" % "scala-library" % Versions.Scala,
-  "org.scala-lang" % "scala-compiler" % Versions.Scala,
-  "org.scala-lang" % "scala-reflect" % Versions.Scala,
-  "com.geirsson" %% "scalafmt-core" % Versions.ScalaFmt,
+  "org.scalameta" %% "scalafmt-core" % Versions.ScalaFmt,
   "commons-io" % "commons-io" % Versions.ApacheCommonsIO,
   "ch.qos.logback" % "logback-classic" % Versions.LogBack,
   "com.typesafe" % "config" % Versions.TypesafeConfig,
-  "io.reactivex" %% "rxscala" % Versions.RxScala,
   "com.typesafe.slick" %% "slick" % Versions.Slick,
   "org.rogach" %% "scallop" % Versions.Scallop,
   "com.google.cloud" % "google-cloud-storage" % Versions.GoogleCloudStorage,
@@ -68,7 +67,9 @@ lazy val mainDeps = Seq(
   "org.apache.commons" % "commons-compress" % Versions.CommonsCompress,
   "org.scalanlp" %% "breeze" % Versions.Breeze,
   "com.lihaoyi" %% "requests" % Versions.RequestsScala,
-  "com.squareup.okhttp3" % "okhttp" % Versions.OkHttp
+  "com.squareup.okhttp3" % "okhttp" % Versions.OkHttp,
+  "io.monix" %% "monix" % Versions.Monix,
+  "org.scala-lang.modules" %% "scala-collection-compat" % Versions.ScalaCollectionCompat
 )
 
 lazy val testDeps = Seq(
@@ -85,11 +86,16 @@ lazy val root = (project in file("."))
     name := "loamstream",
     organization := Orgs.DIG,
     //NB: version set in version.sbt
-    scalaVersion := Versions.Scala,
-    scalacOptions ++= Seq("-feature", "-deprecation", "-unchecked", "-Ypartial-unification"),
+    crossScalaVersions := Versions.supportedScalaVersions,
+    scalacOptions ++= Seq("-feature", "-deprecation", "-unchecked"),
     resolvers ++= Seq(Resolvers.SonatypeReleases, Resolvers.SonatypeSnapshots),
     publishTo := Some(Resolvers.LocalRepo),
-    libraryDependencies ++= (mainDeps ++ testDeps),
+    libraryDependencies ++= (mainDeps ++ {
+      Seq(
+        "org.scala-lang" % "scala-library" % scalaVersion.value,
+        "org.scala-lang" % "scala-compiler" % scalaVersion.value,
+        "org.scala-lang" % "scala-reflect" % scalaVersion.value)
+    } ++ testDeps),
     scalastyleFailOnError := true,
     packageSummary in Linux := "LoamStream - Language for Omics Analysis Management",
     packageSummary in Windows := "LoamStream - Language for Omics Analysis Management",
@@ -101,28 +107,21 @@ lazy val root = (project in file("."))
   ).enablePlugins(JavaAppPackaging)
 
 //Skip tests when running assembly (and publishing).  Comment this line to re-enable tests when publishing.
-test in assembly := {}
+assembly / test := {}
 
 //Make integration tests run serially; this is needed since some integration tests use Uger, and we can only have
 //one Uger/DRMAA session active at once.
 //TODO: See if this is still necessary, now that DRMAA is gone.
-parallelExecution in IntegrationTest := false
+IntegrationTest / parallelExecution := false
 
 //Show full stack traces from unit and integration tests (F); display test run times (D)
-testOptions in IntegrationTest += Tests.Argument("-oFD")
-testOptions in Test += Tests.Argument("-oFD")
+IntegrationTest / testOptions += Tests.Argument("-oFD")
+Test / testOptions += Tests.Argument("-oFD")
 
-assemblyMergeStrategy in assembly := {
-  def hasTakeFirstExtension(s: String): Boolean = {
-    s.endsWith(".json") || s.endsWith(".config") || s.endsWith(".properties")
-  }
-
+assembly / assemblyMergeStrategy := {
   {
-    case PathList(ps @ _*) if hasTakeFirstExtension(ps.last) => MergeStrategy.first
-    case x => {
-      val oldStrategy = (assemblyMergeStrategy in assembly).value
-      oldStrategy(x)
-    }
+    case PathList("META-INF", xs @ _*) => MergeStrategy.discard
+    case _ => MergeStrategy.first
   }
 }
 
@@ -136,7 +135,7 @@ artifact in (Compile, assembly) := {
 addArtifact(artifact in (Compile, assembly), assembly)
 
 //Use slightly different style rules for tests.
-scalastyleConfig in Test := file("scalastyle-config-for-tests.xml")
+Test / scalastyleConfig := file("scalastyle-config-for-tests.xml")
 
 //Enables `buildInfoTask`, which bakes git version info into the LS jar.
 enablePlugins(GitVersioning)
@@ -144,7 +143,7 @@ enablePlugins(GitVersioning)
 val buildInfoTask = taskKey[Seq[File]]("buildInfo")
 
 buildInfoTask := {
-  val dir = (resourceManaged in Compile).value
+  val dir = (Compile / resourceManaged).value
   val n = name.value
   val v = version.value
   val branch = git.gitCurrentBranch.value
@@ -163,24 +162,4 @@ buildInfoTask := {
   Seq(file)
 }
 
-(resourceGenerators in Compile) += buildInfoTask.taskValue
-
-/*
- * Command line to run: sbt convertLoams
- *
- * Cross-compiles all the .loam files in pipeline/loam/ to .scala files in target/scala-2.12/src_managed/main/ .
- * The output dir is the default value for the SBT setting 'sourceManaged', which is treated specially by SBT and IDEs
- * with SBT support. This makes it easier to load the generated .scala files in an IDE and see red squiggles for any
- * compile errors. In Eclipse, I refresh the project, and target/scala-2.11/src_managed/main/ is automatically picked
- * up as a source of .scala files to be compiled. IntelliJ can likely do the same.
- * 
- * NOTE: This won't run automatically as part of any SBT build steps.  'convertLoams' needs to be
- *       run explicitly.
- */
-val convertLoams = taskKey[Unit]("convertLoams")
-
-//TODO: Add this to sourceGenerators somehow
-//TODO: Don't hard-code output dir; unfortunately, (sourceManaged in Compile) doesn't work :(
-convertLoams := (runMain in Compile).toTask(s" loamstream.util.LoamToScalaConverter pipeline/loam/ target/scala-${Versions.ScalaMajor}/src_managed/main/").value
-
-
+(Compile / resourceGenerators) += buildInfoTask.taskValue

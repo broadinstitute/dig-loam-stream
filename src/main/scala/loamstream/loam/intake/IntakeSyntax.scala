@@ -3,12 +3,6 @@ package loamstream.loam.intake
 import java.io.Closeable
 import java.nio.file.Path
 
-import org.broadinstitute.dig.aws.AWS
-import org.broadinstitute.dig.aws.config.AWSConfig
-import org.broadinstitute.dig.aws.config.S3Config
-import org.broadinstitute.dig.aws.config.emr.EmrConfig
-import org.broadinstitute.dig.aws.config.emr.SubnetId
-
 import loamstream.compiler.LoamPredef
 import loamstream.loam.GraphFunctions
 import loamstream.loam.InvokesLsTool
@@ -20,7 +14,7 @@ import loamstream.loam.intake.metrics.Metrics
 import loamstream.model.Store
 import loamstream.model.Tool
 import loamstream.model.execute.DrmSettings
-import loamstream.util.AwsClient
+import loamstream.util.S3Client
 import loamstream.util.CanBeClosed
 import loamstream.util.CompositeException
 import loamstream.util.Files
@@ -29,6 +23,7 @@ import loamstream.util.Loggable
 import loamstream.util.Terminable
 import loamstream.util.Throwables
 import loamstream.util.TimeUtils
+import scala.collection.compat._
 
 
 /**
@@ -186,7 +181,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     def using(flipDetector: => FlipDetector): ViaTarget[R] = new ViaTarget(destParams, rows, flipDetector)
   }
   
-  private[intake] def asCloseable[A](a: AnyRef): Set[Closeable] = Option(a).collect { case c: Closeable => c }.toSet
+  private[intake] def asCloseable[A](a: AnyRef): Seq[Closeable] = Option(a).collect { case c: Closeable => c }.to(Seq)
   
   final class ViaTarget[R <: RenderableJsonRow](
       destParams: DestinationParams[R], 
@@ -205,7 +200,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     }
     
     def filter(p: DataRowPredicate): ViaTarget[R] = {
-      copy(rows = rows.map(toFilterTransform(p)), toBeClosed = asCloseable(p) ++ toBeClosed)
+      copy(rows = rows.map(toFilterTransform(p)), toBeClosed = toBeClosed ++ asCloseable(p))
     }
     
     def filter(pOpt: Option[DataRowPredicate]): ViaTarget[R] = pOpt match {
@@ -213,10 +208,16 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       case None => this
     }
    
-    def via[VR <: R with BaseVariantRow](expr: VariantRowExpr[VR]): MapFilterAndWriteTarget[VR, Unit] = {
+    private def commitAndClose(metadata: AggregatorMetadata): Unit = {
+      import org.json4s._
+      
+      destParams.close()
+    }
+    
+    def via[R <: BaseVariantRow](expr: VariantRowExpr[R]): MapFilterAndWriteTarget[R, Unit] = {
       val dataRows = rows.tagFlips(expr.markerDef, flipDetector).map(expr)
       
-      val pseudoMetric: Metric[VR, Unit] = Fold.foreach(_ => ()) // TODO :(
+      val pseudoMetric: Metric[R, Unit] = Fold.foreach(_ => ()) // TODO :(
       
       val metadata = expr.metadataWithUploadType
       
@@ -264,14 +265,14 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
         case r @ VariantRow.Skipped(_, _, _, _) => r
       }
       
-      copy(rows = rows.map(filterTransform), toBeClosed = asCloseable(predicate) ++ toBeClosed)
+      copy(rows = rows.map(filterTransform), toBeClosed = toBeClosed ++ asCloseable(predicate))
     }
     
     def map(transform: Transform[R]): MapFilterAndWriteTarget[R, A] = {
       //NB: row.transform() is a no-op for skipped rows
       def dataRowTransform(row: VariantRow.Parsed[R]): VariantRow.Parsed[R] = row.transform(transform)
       
-      copy(rows = rows.map(dataRowTransform), toBeClosed = asCloseable(transform) ++ toBeClosed)
+      copy(rows = rows.map(dataRowTransform), toBeClosed = toBeClosed ++ asCloseable(transform))
     }
     
     private def toolBody[A](
@@ -322,6 +323,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
         }
       }
       
+      import scala.language.existentials
       val (m: Metric[R, (A, Unit)], rowSink: RowSink[R]) = {
         val (writeMetric, rowSink) = doWrite
         
@@ -418,14 +420,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       override def withMetadata(newMetadata: AggregatorMetadata): AwsUploadParams[R] = copy(metadata = newMetadata)
       
       override lazy val rowSink: RowSink[RenderableJsonRow] = {
-        val awsConfig: AWSConfig = {
-          //dummy values, except for the bucket name
-          AWSConfig(
-              S3Config(bucketName), 
-              EmrConfig("some-ssh-key-name", SubnetId("subnet-foo")))
-        }
-      
-        val awsClient: AwsClient = new AwsClient.Default(new AWS(awsConfig))
+        val s3Client: S3Client = new S3Client.Default(bucketName)
         
         new AwsRowSink(
             topic = uploadType.s3Dir,
@@ -433,7 +428,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
             techType = Option(metadata.tech),
             phenotype = Option(metadata.phenotype),
             metadata = metadata.asJObject,
-            awsClient = awsClient)
+            s3Client = s3Client)
       }
     }
     

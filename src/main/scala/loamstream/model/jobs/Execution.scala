@@ -18,6 +18,7 @@ import loamstream.model.execute.GoogleSettings
 import loamstream.model.execute.UgerDrmSettings
 import loamstream.model.execute.LsfDrmSettings
 import loamstream.model.execute.AwsSettings
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -68,7 +69,7 @@ final case class Execution(
   def withStoreRecords(newOutputs: Set[StoreRecord]): Execution = copy(outputs = newOutputs)
   
   def withStoreRecords(newOutput: StoreRecord, others: StoreRecord*): Execution = {
-    withStoreRecords((newOutput +: others).toSet)
+    withStoreRecords((newOutput +: others).to(Set))
   }
 
   def withResources(rs: Resources): Execution = copy(resources = Some(rs))
@@ -174,10 +175,10 @@ object Execution extends Loggable {
   }
   
   private def toStoreRecords(dataHandles: Iterable[DataHandle]): Iterable[StoreRecord] = {
-    //Note .toSeq here.  This prevents building a set of StoreRecords (as long as job.outputs is a Set),
+    //Note .to(Seq) here.  This prevents building a set of StoreRecords (as long as job.outputs is a Set),
     //which would invoke StoreRecord.equals for each StoreRecord produced, forcing the evaluation of thos
     //StoreRecords' hash fields.  We want to prevent forcing the evaluation of those fields and leave the
     //the decision to hash or not to ExecutionRecorders. (Ie, don't eval hashes if they won't be used.) 
-    dataHandles.toSeq.map(_.toStoreRecord)
+    dataHandles.to(Seq).map(_.toStoreRecord)
   }
 }

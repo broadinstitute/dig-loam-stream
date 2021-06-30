@@ -1,14 +1,14 @@
 package loamstream.conf
 
+import scala.util.Success
+import scala.util.Try
+
+import com.typesafe.config.Config
+
+import loamstream.drm.DrmSystem
 import loamstream.googlecloud.GoogleCloudConfig
 import loamstream.googlecloud.HailConfig
-import scala.util.Try
-import com.typesafe.config.Config
-import scala.util.Success
 import loamstream.util.Loggable
-import loamstream.util.Tries
-import loamstream.drm.DrmSystem
-import scala.collection.SortedMap.Default
 
 /**
  * @author clint

@@ -14,13 +14,17 @@ import loamstream.util.Traversables
 import scala.util.Try
 import scala.util.Failure
 import loamstream.util.LogContext
+import monix.execution.Scheduler
+import loamstream.TestHelpers.DummyDrmJobOracle
+import loamstream.util.Files
+import scala.collection.compat._
 
 /**
  * @author clint
  * Jul 24, 2020
  */
-final class QstatQacctPollerTest extends FunSuite {
-  import QstatQacctPoller._
+final class QstatPollerTest extends FunSuite {
+  import QstatPoller._
   
   // scalastyle:off line.size.limit
   private val headerLines = Seq(
@@ -38,111 +42,19 @@ final class QstatQacctPollerTest extends FunSuite {
   
   private val qstatLines = headerLines ++ dataLines
     
-  test("parseMultiTaskQacctResults") {
-    val jobNumber = "2314325"
-    
-    val lines = {
-      Seq("=================") ++
-      QacctTestHelpers.actualQacctOutput(
-          None, 
-          None, 
-          LocalDateTime.now, 
-          LocalDateTime.now, 
-          jobNumber = jobNumber,
-          taskIndex = 3,
-          exitCode = 42) ++
-      Seq("=================") ++
-      QacctTestHelpers.actualQacctOutput(
-          None, 
-          None, 
-          LocalDateTime.now, 
-          LocalDateTime.now, 
-          jobNumber = jobNumber,
-          taskIndex = 99)  ++
-      Seq("=================") ++
-      QacctTestHelpers.actualQacctOutput(
-          None, 
-          None, 
-          LocalDateTime.now, 
-          LocalDateTime.now, 
-          jobNumber = jobNumber,
-          taskIndex = 4,
-          exitCode = 0)
-    }
-    
-    val tid3 = DrmTaskId(jobNumber, 3)
-    val tid4 = DrmTaskId(jobNumber, 4)
-    
-    val idsToLookFor = Set(tid3, tid4)
-    
-    val actual = QstatQacctPoller.QacctSupport.parseMultiTaskQacctResults(idsToLookFor)(jobNumber -> lines)
-    
-    val expected = Map(tid3 -> CommandResult(42), tid4 -> CommandResult(0))
-    
-    assert(actual.toMap === expected)
-  }
-  
-  test("parseMultiTaskQacctResults - problematic qacct output") {
-    val jobNumber = "19290502"
-    
-    val lines = problematicQacctOutput.trim.split("[\\r\\n]+")
-    
-    val tid = DrmTaskId(jobNumber, 1)
-    
-    val idsToLookFor = Set(tid)
-    
-    val actual = QstatQacctPoller.QacctSupport.parseMultiTaskQacctResults(idsToLookFor)(jobNumber -> lines)
-    
-    val expected = Map(tid -> CommandResult(0))
-    
-    assert(actual.toMap === expected)
-  }
-  
   test("poll - happy path") {
-    import scala.concurrent.ExecutionContext.Implicits.global
-    
     val qstatInvocationFn: CommandInvoker.InvocationFn[Unit] = { _ => 
       Success(RunResults.Successful("MOCK_QSTAT", qstatLines, Nil))
     }
     
     import LogContext.Implicits.Noop
+    import Scheduler.Implicits.global
     
-    val qstatInvoker: CommandInvoker.Async[Unit] = new CommandInvoker.Async.JustOnce("MOCK_QSTAT", qstatInvocationFn)
-    
-    val qacctInvocationFn: CommandInvoker.InvocationFn[String] = { jobNumber =>
-      val lines = {
-        Seq("=================") ++
-        QacctTestHelpers.actualQacctOutput(
-            None, 
-            None, 
-            LocalDateTime.now, 
-            LocalDateTime.now, 
-            jobNumber = jobNumber,
-            taskIndex = 3) ++
-        Seq("=================") ++
-        QacctTestHelpers.actualQacctOutput(
-            None, 
-            None, 
-            LocalDateTime.now, 
-            LocalDateTime.now, 
-            jobNumber = "82375682365872365",
-            taskIndex = 99) ++
-        Seq("=================") ++
-        QacctTestHelpers.actualQacctOutput(
-            None, 
-            None, 
-            LocalDateTime.now, 
-            LocalDateTime.now, 
-            jobNumber = jobNumber,
-            taskIndex = 99) 
-      }
-      
-      Success(RunResults.Successful("MOCK_QACCT", lines, Nil))
+    val qstatInvoker: CommandInvoker.Async[Unit] = {
+      new CommandInvoker.Async.JustOnce("MOCK_QSTAT", qstatInvocationFn)
     }
     
-    val qacctInvoker: CommandInvoker.Async[String] = new CommandInvoker.Async.JustOnce("MOCK_QACCT", qacctInvocationFn)
-    
-    val poller = new QstatQacctPoller(qstatInvoker, qacctInvoker)
+    val poller = new QstatPoller(qstatInvoker)
     
     import Observables.Implicits._
     
@@ -150,8 +62,26 @@ final class QstatQacctPollerTest extends FunSuite {
     
     val finishedTaskId = DrmTaskId("19115592", 3)
     
+    //NB: Make sure finished job has an exit code recorded where we expect to find it.
     {
-      val results = TestHelpers.waitFor(poller.poll(runningTaskIds).toSeq.firstAsFuture)
+      val jobDir = DummyDrmJobOracle.dirFor(finishedTaskId)
+      
+      val exitcodeFile = jobDir.resolve("exitcode")
+    
+      jobDir.toFile.mkdirs()
+      
+      import java.nio.file.Files.exists
+      
+      assert(exists(jobDir))
+      
+      Files.writeTo(exitcodeFile)("0")
+      
+      assert(exists(exitcodeFile))
+    }
+    
+    {
+
+      val results = poller.poll(DummyDrmJobOracle)(runningTaskIds).toListL.runSyncUnsafe(TestHelpers.defaultWaitTime)
       
       val expected = Seq(
           runningTaskIds(0) -> Success(DrmStatus.Running),
@@ -161,7 +91,9 @@ final class QstatQacctPollerTest extends FunSuite {
     }
     
     {
-      val results = TestHelpers.waitFor(poller.poll(runningTaskIds :+ finishedTaskId).toSeq.firstAsFuture)
+      val results = poller.poll(DummyDrmJobOracle)(runningTaskIds :+ finishedTaskId)
+                          .toListL
+                          .runSyncUnsafe(TestHelpers.defaultWaitTime)
       
       val expected = Seq(
           runningTaskIds(0) -> Success(DrmStatus.Running),
@@ -183,9 +115,9 @@ final class QstatQacctPollerTest extends FunSuite {
       Success(id2 -> DrmStatus.Running),
       Success(id1 -> DrmStatus.Running))
         
-    assert(QstatSupport.parseQstatOutput(ids, qstatLines).toList === expected)
+    assert(QstatSupport.parseQstatOutput(ids, qstatLines).to(List) === expected)
     
-    assert(QstatSupport.parseQstatOutput(ids, dataLines).toList === expected)
+    assert(QstatSupport.parseQstatOutput(ids, dataLines).to(List) === expected)
     
     assert(QstatSupport.parseQstatOutput(ids, headerLines).isEmpty)
     
@@ -231,10 +163,10 @@ final class QstatQacctPollerTest extends FunSuite {
         case Failure(_) => ???
       }
       
-      s.toSeq.sorted(ordering)
+      s.to(Seq).sorted(ordering)
     }
         
-    assert(sort(QstatSupport.parseQstatOutput(ids, lines).toList) === sort(expected))
+    assert(sort(QstatSupport.parseQstatOutput(ids, lines).to(List)) === sort(expected))
   }
   
   test("parseQstatOutput - bad lines should be ignored") {
@@ -252,7 +184,7 @@ final class QstatQacctPollerTest extends FunSuite {
       Success(id2 -> DrmStatus.Running),
       Success(id1 -> DrmStatus.Running))
         
-    assert(QstatSupport.parseQstatOutput(ids, lines).toList === expected)
+    assert(QstatSupport.parseQstatOutput(ids, lines).to(List) === expected)
   }
   
   test("parseQstatOutput - bad statuses should be failures") {
@@ -264,7 +196,7 @@ final class QstatQacctPollerTest extends FunSuite {
     
     val ids = Set(id1, id2, id3)
     
-    val actual = QstatSupport.parseQstatOutput(ids, lines).toList
+    val actual = QstatSupport.parseQstatOutput(ids, lines).to(List)
     
     assert(actual.forall { 
       case Success((drmTaskId, drmStatus)) => drmStatus.isUndetermined
@@ -381,150 +313,4 @@ final class QstatQacctPollerTest extends FunSuite {
     assert(toDrmStatus("asdf") === Undetermined)
     assert(toDrmStatus("12345") === Undetermined)
   }
-  
-  private def outputForTasks(idsToExitCodes: (DrmTaskId, Int)*): Seq[String] = {
-    idsToExitCodes.map { case (tid, ec) =>
-      "============" +: QacctTestHelpers.actualQacctOutput(
-          None, 
-          None, 
-          LocalDateTime.now, 
-          LocalDateTime.now,
-          jobNumber = tid.jobId,
-          taskIndex = tid.taskIndex,
-          exitCode = ec)
-    }.flatten
-  }
-  
-  test("parseQacctResults - happy path") {
-    val jobId = "foo"
-    
-    val tid0 = DrmTaskId(jobId, 99)
-    val tid1 = DrmTaskId(jobId, 0)
-    val tid2 = DrmTaskId(jobId, 42)
-    
-    import QacctSupport.parseMultiTaskQacctResults
-    
-    val output = outputForTasks(tid0 -> 4, tid1 -> 0, tid2 -> 0)
-    
-    val expected = Map(
-        tid0 -> DrmStatus.CommandResult(4),
-        tid1 -> DrmStatus.CommandResult(0),
-        tid2 -> DrmStatus.CommandResult(0))
-    
-    assert(parseMultiTaskQacctResults(Set(tid0, tid1, tid2))(jobId -> output).toMap === expected)
-  }
-  
-  test("parseQacctResults - more results than we're looking for") {
-    val jobId = "foo"
-    
-    val tid0 = DrmTaskId(jobId, 99)
-    val tid1 = DrmTaskId(jobId, 0)
-    val tid2 = DrmTaskId(jobId, 42)
-    
-    import QacctSupport.parseMultiTaskQacctResults
-    
-    val output = outputForTasks(tid0 -> 4, tid1 -> 0, tid2 -> 0)
-    
-    val expected = Map(
-        tid0 -> DrmStatus.CommandResult(4),
-        tid1 -> DrmStatus.CommandResult(0))
-    
-    assert(parseMultiTaskQacctResults(Set(tid0, tid1))(jobId -> output).toMap === expected)
-  }
-
-  test("parseQacctResults - bad input") {
-    val jobId = "foo"
-    
-    val tid0 = DrmTaskId(jobId, 99)
-    val tid1 = DrmTaskId(jobId, 0)
-    val tid2 = DrmTaskId(jobId, 42)
-    
-    import QacctSupport.parseMultiTaskQacctResults
-    
-    val lines = outputForTasks(tid0 -> 4, tid1 -> 0, tid2 -> 0)
-    
-    val missingField = lines.filterNot(_.startsWith("exit_status"))
-    
-    val brokenField = lines.map(_.replaceAll("exit_status", "blerg"))
-    
-    assert(parseMultiTaskQacctResults(Set(tid0, tid1))(jobId -> missingField).toMap === Map.empty) 
-  
-    assert(parseMultiTaskQacctResults(Set(tid0, tid1))(jobId -> brokenField).toMap === Map.empty)
-  }
-  
-  test("parseQacctResults - some good input, some bad") {
-    val jobId = "foo"
-    
-    val tid0 = DrmTaskId(jobId, 99)
-    val tid1 = DrmTaskId(jobId, 0)
-    val tid2 = DrmTaskId(jobId, 42)
-    
-    import QacctSupport.parseMultiTaskQacctResults
-    
-    val goodLines = outputForTasks(tid0 -> 4, tid2 -> 0)
-    
-    val badLines = outputForTasks(tid1 -> 0).map(_.replaceAll("exit_status", "blerg"))
-    
-    val lines = goodLines ++ badLines
-    
-    val expected = Map(tid0 -> DrmStatus.CommandResult(4), tid2 -> DrmStatus.CommandResult(0))
-    
-    assert(parseMultiTaskQacctResults(Set(tid0, tid1, tid2))(jobId -> lines).toMap === expected) 
-  }
-
-  // scalastyle:off line.size.limit
-  private val problematicQacctOutput: String = {
-    """qname        broad               
-hostname     uger-c024.broadinstitute.org
-group        broad               
-owner        diguser             
-project      broad               
-department   defaultdepartment   
-jobname      loamstream1841233964035718821.sh
-jobnumber    19290502            
-taskid       1                   
-account      sge                 
-priority     0                   
-cwd          /humgen/diabetes2/users/dig/loamstream/ci/jenkins/home/workspace/ls-integration-tests-branch
-submit_host  dig-ae-dev-01.broadinstitute.org
-submit_cmd   qsub -cwd -shell y -b n -si 78 -t 1-1 -binding linear:1 -pe smp 1 -q broad -l h_rt=2:0:0,h_vmem=1G -o .loamstream/uger/LoamStream-948ff2b7-bef7-4496-8b7e-0441d60a83e3.$JOB_ID.$TASK_ID.stdout -e .loamstream/uger/LoamStream-948ff2b7-bef7-4496-8b7e-0441d60a83e3.$JOB_ID.$TASK_ID.stderr /humgen/diabetes2/users/dig/loamstream/ci/jenkins/home/workspace/ls-integration-tests-branch/.loamstream/uger/loamstream1841233964035718821.sh
-qsub_time    08/06/2020 20:38:52.994
-start_time   08/06/2020 20:39:06.612
-end_time     08/06/2020 20:39:14.776
-granted_pe   smp                 
-slots        1                   
-failed       0    
-deleted_by   NONE
-exit_status  0                   
-ru_wallclock 8.164        
-ru_utime     1.312        
-ru_stime     0.607        
-ru_maxrss    32524               
-ru_ixrss     0                   
-ru_ismrss    0                   
-ru_idrss     0                   
-ru_isrss     0                   
-ru_minflt    101211              
-ru_majflt    35                  
-ru_nswap     0                   
-ru_inblock   42016               
-ru_oublock   72                  
-ru_msgsnd    0                   
-ru_msgrcv    0                   
-ru_nsignals  0                   
-ru_nvcsw     8221                
-ru_nivcsw    10                  
-wallclock    9.182        
-cpu          1.919        
-mem          0.082             
-io           0.009             
-iow          3.070             
-ioops        4014                
-maxvmem      320.895M
-maxrss       0.000
-maxpss       0.000
-arid         undefined
-jc_name      NONE"""
-  }
-  // scalastyle:on line.size.limit
 }

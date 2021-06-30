@@ -6,7 +6,11 @@ import loamstream.conf.DrmConfig
 import loamstream.model.execute.DrmSettings
 import loamstream.util.ValueBox
 import loamstream.model.execute.Resources.DrmResources
-import rx.lang.scala.Observable
+import monix.reactive.Observable
+
+import loamstream.model.jobs.DrmJobOracle
+
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -27,13 +31,13 @@ final case class MockPoller(private val toReturn: Map[DrmTaskId, Seq[Try[DrmStat
   
   def isStopped: Boolean = isStoppedBox.value
   
-  override def poll(jobIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, Try[DrmStatus])] = {
-    val jobIdsToPoll = jobIds.toSet
+  override def poll(oracle: DrmJobOracle)(jobIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, Try[DrmStatus])] = {
+    val jobIdsToPoll = jobIds.to(Set)
     
     val resultsByTaskId = toReturn.filterKeys(jobIdsToPoll.contains)
     
     val pollingResults = for {
-      (tid, attempts) <- resultsByTaskId.toSeq
+      (tid, attempts) <- resultsByTaskId.to(Seq)
       attempt <- attempts
     } yield (tid, attempt)
     

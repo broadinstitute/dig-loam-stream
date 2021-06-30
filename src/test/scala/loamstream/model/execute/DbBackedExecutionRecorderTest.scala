@@ -1,17 +1,20 @@
 package loamstream.model.execute
 
 import org.scalatest.FunSuite
-import loamstream.db.slick.ProvidesSlickLoamDao
-import loamstream.model.jobs.JobStatus
-import loamstream.model.jobs.JobResult
-import loamstream.model.jobs.Execution
-import loamstream.model.jobs.StoreRecord
-import loamstream.model.jobs.JobResult.CommandResult
+
+import loamstream.TestHelpers
 import loamstream.TestHelpers.dummyJobDir
 import loamstream.TestHelpers.path
+import loamstream.db.slick.ProvidesSlickLoamDao
 import loamstream.model.jobs.DataHandle
+import loamstream.model.jobs.Execution
+import loamstream.model.jobs.JobResult
+import loamstream.model.jobs.JobResult.CommandResult
+import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.MockJob
-import loamstream.TestHelpers
+import loamstream.model.jobs.StoreRecord
+
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -216,7 +219,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
           else { baseStoreRecords.map(noHash) }
         }
         
-        val withHashedOutputs = e.withStoreRecords(storeRecords.toSet)
+        val withHashedOutputs = e.withStoreRecords(storeRecords.to(Set))
   
         recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
   
@@ -254,7 +257,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
           else { baseStoreRecords.map(noHash) }
         }
         
-        val withHashedOutputs = e.withStoreRecords(storeRecords.toSet)
+        val withHashedOutputs = e.withStoreRecords(storeRecords.to(Set))
         
         val expected = withHashedOutputs.copy(result = Some(CommandResult(0)))
         
@@ -328,7 +331,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
           else { baseStoreRecords.map(noHash) }
         }
         
-        val expected = e.withStoreRecords(storeRecords.toSet)
+        val expected = e.withStoreRecords(storeRecords.to(Set))
   
         recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
         

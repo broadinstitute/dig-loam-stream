@@ -8,9 +8,9 @@ import loamstream.util.ValueBox
 import loamstream.util.Processes
 import loamstream.util.CommandInvoker
 import loamstream.util.Loggable
-import rx.lang.scala.Scheduler
 import scala.concurrent.ExecutionContext
 import scala.util.Try
+import monix.execution.Scheduler
 
 /**
  * @author clint
@@ -22,8 +22,11 @@ final class RateLimitedQacctInvoker private[uger] (
     maxSize: Int, 
     maxAge: Duration,
     maxRetries: Int,
-    scheduler: Scheduler)(implicit ec: ExecutionContext) extends Loggable {
+    scheduler: Scheduler) extends Loggable {
 
+  //TODO
+  private implicit val sch = scheduler
+  
   val commandInvoker: CommandInvoker.Async.JustOnce[String] = new CommandInvoker.Async.JustOnce[String](
     binaryName, 
     taskArrayId => getLimiter(taskArrayId).apply())
@@ -71,7 +74,7 @@ object RateLimitedQacctInvoker extends Loggable {
       maxSize: Int, 
       maxAge: Duration,
       maxRetries: Int, 
-      scheduler: Scheduler)(implicit ec: ExecutionContext): RateLimitedQacctInvoker = {
+      scheduler: Scheduler): RateLimitedQacctInvoker = {
     
     def invokeBinary(taskArrayJobId: JobId): Try[RunResults] = {
       val tokens = makeTokens(binaryName, taskArrayJobId)
@@ -87,7 +90,7 @@ object RateLimitedQacctInvoker extends Loggable {
         maxSize = maxSize, 
         maxAge = maxAge,
         maxRetries = maxRetries,
-        scheduler = scheduler)(ec)
+        scheduler = scheduler)
   }
   
   private[uger] def makeTokens(actualBinary: String = "qacct", jobNumber: JobId): Seq[String] = {

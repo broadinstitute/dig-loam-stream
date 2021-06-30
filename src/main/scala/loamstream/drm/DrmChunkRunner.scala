@@ -11,6 +11,7 @@ import loamstream.model.execute.ChunkRunnerFor
 import loamstream.model.execute.DrmSettings
 import loamstream.model.execute.EnvironmentType
 import loamstream.model.execute.ExecuterHelpers
+import loamstream.model.jobs.DrmJobOracle
 import loamstream.model.jobs.JobOracle
 import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.JobStatus
@@ -24,10 +25,14 @@ import loamstream.util.Classes.simpleNameOf
 import loamstream.util.Loggable
 import loamstream.util.Observables
 import loamstream.util.Terminable
-import rx.lang.scala.Observable
+import monix.execution.Scheduler
+import monix.reactive.Observable
 import loamstream.util.TimeUtils
 import loamstream.util.ExitCodes
-
+import cats.kernel.Eq
+import loamstream.model.jobs.commandline.HasCommandLine
+import scala.collection.compat._
+import loamstream.util.Maps
 
 /**
  * @author clint
@@ -68,7 +73,7 @@ final case class DrmChunkRunner(
    * will throw otherwise.
    */
   override def run(
-      jobs: Set[LJob], 
+      jobs: Iterable[LJob], 
       jobOracle: JobOracle): Observable[(LJob, RunData)] = {
 
     debug(s"${getClass.getSimpleName}: Running ${jobs.size} jobs: ")
@@ -79,7 +84,7 @@ final case class DrmChunkRunner(
       s"For now, we only know how to run ${simpleNameOf[CommandLineJob]}s on a DRM system")
 
     // Filter out NoOpJob's
-    val commandLineJobs = jobs.toSeq.collect { case clj: CommandLineJob => clj }
+    val commandLineJobs = jobs.to(Seq).collect { case clj: CommandLineJob => clj }
 
     //Group Jobs by their uger settings, and run each group.  This is necessary because the jobs in a group will
     //be run as 1 Uger task array, and Uger params are per-task-array.
@@ -96,7 +101,7 @@ final case class DrmChunkRunner(
           fromCommandLineJobs(executionConfig, jobOracle, settings, drmConfig, pathBuilder, rawJobChunk)
         }
         
-        runJobs(settings, drmTaskArray)
+        runJobs(settings, drmTaskArray, jobOracle)
       }
     }
 
@@ -130,16 +135,18 @@ final case class DrmChunkRunner(
    */
   private def runJobs(
     drmSettings: DrmSettings,
-    drmTaskArray: DrmTaskArray): Observable[(LJob, RunData)] = {
+    drmTaskArray: DrmTaskArray,
+    jobOracle: JobOracle): Observable[(LJob, RunData)] = {
 
     drmTaskArray.drmJobs match {
       case Nil => Observable.empty
-      case drmJobs => submit(drmSettings, drmTaskArray).flatMap(toRunDataStream(drmJobs, _))
+      case drmJobs => submit(drmSettings, drmTaskArray).flatMap(toRunDataStream(jobOracle, drmJobs))
     }
   }
   
-  private def toRunDataStream(
-    drmJobs: Seq[DrmJobWrapper],
+  private def toRunDataStream
+    (jobOracle: JobOracle,
+     drmJobs: Seq[DrmJobWrapper])(
     submissionResult: DrmSubmissionResult)(implicit ec: ExecutionContext): Observable[(LJob, RunData)] = {
     
     val commandLineJobs = drmJobs.map(_.commandLineJob)
@@ -147,22 +154,25 @@ final case class DrmChunkRunner(
     import loamstream.drm.DrmSubmissionResult._
     
     submissionResult match {
-      case SubmissionSuccess(drmJobsByDrmId) => jobsToRunDatas(drmJobsByDrmId)
+      case SubmissionSuccess(drmJobsByDrmId) => jobsToRunDatas(drmJobsByDrmId, jobOracle)
       case SubmissionFailure(e) => makeAllFailureMap(drmJobs, Some(e))
     }
   }
   
   private[drm] def jobsToRunDatas(
-    jobsById: Map[DrmTaskId, DrmJobWrapper])(implicit ec: ExecutionContext): Observable[(LJob, RunData)] = {
+    jobsById: Map[DrmTaskId, DrmJobWrapper],
+    jobOracle: JobOracle)(implicit ec: ExecutionContext): Observable[(LJob, RunData)] = {
 
+    val drmJobOracle = DrmJobOracle.from(jobOracle, jobsById.mapValues(_.commandLineJob: LJob))
+    
     import jobMonitor.monitor
 
     val jobsAndDrmStatuses: Observable[(DrmTaskId, DrmJobWrapper, DrmStatus)] = {
       val taskIds = jobsById.keys
       
       for {
-        (tid, status) <- monitor(taskIds)
-        wrapper <- jobsById.get(tid).map(Observable.just(_)).getOrElse(Observable.empty)
+        (tid, status) <- monitor(drmJobOracle)(taskIds)
+        wrapper <- jobsById.get(tid).map(Observable(_)).getOrElse(Observable.empty)
       } yield {
         (tid, wrapper, status)
       }
@@ -262,6 +272,8 @@ object DrmChunkRunner extends Loggable {
     val jobsToExecutionObservables = drmJobsToExecutionObservables.map { case (jobWrapper, runData) => 
       (jobWrapper.commandLineJob, runData) 
     }
+    
+    implicit val eqTuple: Eq[(HasCommandLine, RunData)] = Eq.fromUniversalEquals
 
     jobsToExecutionObservables.distinctUntilChanged
   }

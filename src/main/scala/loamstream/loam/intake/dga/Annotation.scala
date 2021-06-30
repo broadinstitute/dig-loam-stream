@@ -9,6 +9,7 @@ import loamstream.util.Tries
 import scala.util.Success
 import loamstream.util.LogContext
 import org.json4s._
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -51,7 +52,7 @@ final case class Annotation private[dga] (
         s"because ${specificPart} ; downloads: ${downloads}"
       }
       
-      if(!anyDownloads) {
+      if(!ingestible) {
         warn(msg("No bed files were available"))
       } 
     }
@@ -85,7 +86,7 @@ object Annotation {
       annotationId: String, 
       json: JValue)(implicit ctx: LogContext): Try[Seq[Download]] = {
     
-    allFileDownloads(json).map(_.filter(isValidDownload(annotationId)).toSeq.sortBy(_.md5Sum))
+    allFileDownloads(json).map(_.filter(isValidDownload(annotationId)).to(Seq).sortBy(_.md5Sum))
   }
   
   def fromJson(
@@ -252,9 +253,9 @@ object Annotation {
       
       val fields: Seq[JField] = Seq(
           "vendor" -> JString(vendor),
-          "version" -> JString(version)) ++
-          annotationMethodPart ++
-          Seq("derivedFrom" -> derivedFrom)
+          "version" -> JString(version),
+          "derivedFrom" -> derivedFrom
+      ) ++ annotationMethodPart
       
       JObject(fields: _*)
     }

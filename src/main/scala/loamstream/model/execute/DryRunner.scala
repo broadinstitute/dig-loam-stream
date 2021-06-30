@@ -9,6 +9,7 @@ import java.io.PrintWriter
 import java.io.FileWriter
 import java.nio.file.Path
 import java.time.Instant
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -41,7 +42,7 @@ object DryRunner extends Loggable {
         seen += job
         
         val pathToLeaf = {
-          val inputsSortedById = jobNode.dependencies.filterNot(alreadySeen).toSeq.sortBy(jobId)
+          val inputsSortedById = jobNode.dependencies.filterNot(alreadySeen).to(Seq).sortBy(jobId)
           
           inputsSortedById.flatMap(gatherJobs)
         }
@@ -66,7 +67,7 @@ object DryRunner extends Loggable {
       }
     }
 
-    executable.jobNodes.toSeq.sortBy(jobId).flatMap(gatherJobs)
+    executable.jobNodes.to(Seq).sortBy(jobId).flatMap(gatherJobs)
   }
   
   private def jobId(jn: JobNode) = jn.job.id

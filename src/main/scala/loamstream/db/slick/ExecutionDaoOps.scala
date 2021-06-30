@@ -16,6 +16,7 @@ import loamstream.model.execute.LsfDrmSettings
 import loamstream.model.execute.UgerDrmSettings
 import loamstream.drm.ContainerParams
 import loamstream.model.jobs.JobStatus
+import scala.collection.compat._
 
 
 /**
@@ -137,7 +138,7 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps wit
 
   private def tieOutputsToExecution(execution: Execution, executionId: Int): Seq[OutputRow] = {
     def toOutputRows(f: StoreRecord => OutputRow): Seq[OutputRow] = {
-      execution.outputs.toSeq.map(f)
+      execution.outputs.to(Seq).map(f)
     }
 
     val outputs = {

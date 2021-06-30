@@ -6,8 +6,14 @@ import scala.concurrent.Promise
 import scala.util.Failure
 import scala.util.Success
 
-import rx.lang.scala.Observable
 import scala.concurrent.duration.Duration
+import monix.reactive.Observable
+import monix.execution.Scheduler
+import monix.execution.Ack
+import monix.reactive.Observer
+import monix.reactive.OverflowStrategy
+import monix.reactive.observers.Subscriber
+import monix.reactive.observers.SafeSubscriber
 
 /**
  * @author clint
@@ -16,25 +22,8 @@ import scala.concurrent.duration.Duration
  * An object to hold utility methods operating on Observables
  */
 object Observables extends Loggable {
-  /**
-   * Turn a Seq of Observables into an Observable that produces Seqs, a la Future.sequence.
-   * 
-   * If the input Seq is empty, return an Observable that will immediately fire Nil to all subscribers.
-   * Otherwise, return the result of Observable.zip(os)
-   * 
-   * @param os: the sequence of observables to transform
-   * @see Observable.zip 
-   * 
-   * Note that this method takes a Seq and returns an Observable[Seq[A]].  Making the return type depend
-   * on the param type, like Future.sequence, is possible but inconvenient due to the signature of 
-   * Observable.zip(), the method this one delegates most of its work to.
-   */
-  def sequence[A](os: Seq[Observable[A]]): Observable[Seq[A]] = {
-    if (os.isEmpty) { Observable.just(Nil) }
-    else {
-      Observable.zip(Observable.from(os))
-    }
-  }
+  //def defaultOverflowStrategy[A]: OverflowStrategy[A] = OverflowStrategy.Unbounded
+  def defaultOverflowStrategy[A]: OverflowStrategy[A] = OverflowStrategy.DropNew(2)
   
   /**
    * Runs a chunk of code asynchronously via the supplied ExecutionContext, and returns an
@@ -79,20 +68,7 @@ object Observables extends Loggable {
    * @see http://reactivex.io/documentation/operators/merge.html
    * @see http://reactivex.io/RxJava/javadoc/rx/Observable.html#merge(java.lang.Iterable)
    */
-  def merge[A](os: Iterable[Observable[A]]): Observable[A] = {
-    import rx.lang.scala.JavaConversions.{ toJavaObservable, toScalaObservable }
-    import scala.collection.JavaConverters._
-
-    //NB: Cast 'should be' safe.  It's needed because toJavaObservable, when given an rx.lang.scala.Observable[A],
-    //returns an rx.Observable[_ <: A].  Combined with converting the scala.Iterable to a java.lang.Iterable, this
-    //means we would have a java.lang.Iterable[rx.Observable[_ <: A]], which rx.Observable.merge won't accept. :(
-    //The cast is safe since the Java Observable made from the Scala one is guaranteed to emit the same values.
-    val javaObservables: Iterable[rx.Observable[A]] = os.map(toJavaObservable).map(_.asInstanceOf[rx.Observable[A]])
-    
-    val javaIterableOfJavaObservables: java.lang.Iterable[rx.Observable[A]] = javaObservables.asJava
-    
-    toScalaObservable(rx.Observable.merge(javaIterableOfJavaObservables))
-  }
+  def merge[A](os: Iterable[Observable[A]]): Observable[A] = Observable.fromIterable(os).merge 
   
   def merge[A](first: Observable[A], rest: Observable[A]*): Observable[A] = merge(first +: rest)
   
@@ -155,18 +131,14 @@ object Observables extends Loggable {
        * NB: Note that this was renamed to 'until' from 'takeUntil'.  The latter would be preferrable, but it conflicts
        * with a method in RxScala proper.
        */
-      def until(p: A => Boolean): Observable[A] = {
-        Observable { subscriber =>
-          def onNext(a: A): Unit = {
-            subscriber.onNext(a)
-  
-            if (p(a)) {
-              subscriber.onCompleted()
-            }
-          }
-  
-          obs.foreach(onNext, subscriber.onError, () => subscriber.onCompleted())
-        }
+      def until(p: A => Boolean): Observable[A] = obs.takeWhileInclusive(!p(_))
+      
+      def firstOption: Observable[Option[A]] = obs.map(Option(_)).firstOrElse(None)
+      
+      def lastOption: Observable[Option[A]] = ifNotEmpty(obs.last.map(Option(_)))
+
+      private def ifNotEmpty(nonEmptyCase: => Observable[Option[A]]): Observable[Option[A]] = {
+        obs.isEmpty.flatMap(isEmpty => if(isEmpty) Observable(None) else nonEmptyCase)
       }
       
       /**
@@ -174,7 +146,7 @@ object Observables extends Loggable {
        *
        * If the wrapped Observable is empty, the returned Future will be completed with a Failure.
        */
-      def firstAsFuture: Future[A] = asFuture(obs.headOption)
+      def firstAsFuture(implicit scheduler: Scheduler): Future[A] = asFuture(firstOption)
   
       /**
        * Returns a Future that will contain the LAST value fired from the wrapped Observable.
@@ -183,21 +155,27 @@ object Observables extends Loggable {
        *
        * If the wrapped Observable is empty, the returned Future will be completed with a Failure.
        */
-      def lastAsFuture: Future[A] = asFuture(obs.lastOption)
+      def lastAsFuture(implicit scheduler: Scheduler): Future[A] = asFuture(lastOption)
   
-      private def asFuture(o: Observable[Option[A]]): Future[A] = {
+      private def asFuture(o: Observable[Option[A]])(implicit scheduler: Scheduler): Future[A] = {
         val p: Promise[A] = Promise()
   
         def completeDueToNoValue(): Unit = p.complete(Tries.failure("Observable emitted no values"))
   
-        def onNext(o: Option[A]): Unit = o match {
-          case Some(a) => p.complete(Success(a))
-          case None    => completeDueToNoValue()
+        def completeWithFirstValue(a: A): Unit = p.complete(Success(a))
+        
+        def onNext(o: Option[A]): Future[Ack] = {
+          o match {
+            case Some(a) => completeWithFirstValue(a)
+            case None => completeDueToNoValue()
+          }
+          
+          Ack.Stop
         }
-  
+        
         def onError(e: Throwable): Unit = p.complete(Failure(e))
-  
-        o.firstOrElse(None).foreach(onNext, onError)
+        
+        o.take(1).subscribe(onNext, onError)
   
         p.future
       }

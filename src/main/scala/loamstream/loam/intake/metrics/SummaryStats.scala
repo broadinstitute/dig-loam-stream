@@ -1,5 +1,7 @@
 package loamstream.loam.intake.metrics
 
+import scala.collection.compat._
+
 final case class SummaryStats(
     validVariants: Int, //valid, ie, not skipped
     skippedVariants: Int,
@@ -30,7 +32,7 @@ final case class SummaryStats(
   def percentComplemented: Double = toPercent(fractionComplemented)
   
   def chromosomesWithNoValidVariants: Set[String] = {
-    validVariantsByChromosome.collect { case (chrom, 0) => chrom }.toSet
+    validVariantsByChromosome.collect { case (chrom, 0) => chrom }.to(Set)
   }
   
   def toFileContents: String = {
@@ -60,8 +62,8 @@ Skipped: ${skippedVariants} (${percentSkipped} %)
 Flipped: ${flippedVariants} (${percentFlipped} %)
 Complemented: ${complementedVariants} (${percentComplemented} %)
 Counts by chromosome: 
-${validVariantsByChromosome.toSeq.sortBy(paddedChromName).map(tupleToString).mkString(System.lineSeparator)}
-Chromosomes with no variants: ${chromosomesWithNoValidVariants.toSeq.sortBy(padChromName).mkString(",")}
+${validVariantsByChromosome.to(Seq).sortBy(paddedChromName).map(tupleToString).mkString(System.lineSeparator)}
+Chromosomes with no variants: ${chromosomesWithNoValidVariants.to(Seq).sortBy(padChromName).mkString(",")}
 """.stripMargin.trim
   }
 }

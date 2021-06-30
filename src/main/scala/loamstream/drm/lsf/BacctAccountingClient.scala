@@ -25,7 +25,8 @@ import loamstream.util.CommandInvoker
 import loamstream.util.Loggable
 import loamstream.util.Options
 import loamstream.util.Tries
-import rx.lang.scala.Scheduler
+import monix.execution.Scheduler
+
 
 /**
  * @author clint

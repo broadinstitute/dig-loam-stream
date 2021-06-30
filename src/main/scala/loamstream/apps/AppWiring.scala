@@ -41,7 +41,7 @@ import loamstream.drm.lsf.LsfPathBuilder
 import loamstream.drm.uger.UgerScriptBuilderParams
 import loamstream.drm.uger.QacctAccountingClient
 import loamstream.drm.uger.QdelJobKiller
-import loamstream.drm.uger.QstatQacctPoller
+import loamstream.drm.uger.QstatPoller
 import loamstream.drm.uger.Qsub
 import loamstream.drm.uger.QsubJobSubmitter
 import loamstream.drm.uger.UgerPathBuilder
@@ -93,12 +93,15 @@ import scala.concurrent.duration.Duration
 import scala.util.Try
 import scala.util.Success
 
-import rx.lang.scala.Scheduler
-import rx.lang.scala.schedulers.ExecutionContextScheduler
 import loamstream.util.DirOracle
 import loamstream.model.execute.ProtectsFilesJobCanceler
 import loamstream.model.execute.SuccessfulOutputsExecutionRecorder
+import loamstream.model.execute.SuccessfulOutputsExecutionRecorder
+import loamstream.model.execute.CompositeChunkRunner
+import loamstream.googlecloud.GcsCloudStorageClient
+import monix.execution.Scheduler
 
+import scala.collection.compat._
 
 
 /**
@@ -239,7 +242,7 @@ object AppWiring extends Loggable {
 
       import loamstream.model.execute.ExecuterHelpers._
       
-      val scheduler: Scheduler = ExecutionContextScheduler(executionContextWithThreadPool)
+      val scheduler: Scheduler = Scheduler(executionContextWithThreadPool)
 
       import scala.concurrent.duration._
       
@@ -278,7 +281,7 @@ object AppWiring extends Loggable {
       
       val googleRunner = googleChunkRunner(intent.confFile, config.googleConfig, config.hailConfig, localRunner)
 
-      val compositeRunner = CompositeChunkRunner(localRunner +: (drmRunner.toSeq ++ googleRunner))
+      val compositeRunner = CompositeChunkRunner(localRunner +: (drmRunner.to(Seq) ++ googleRunner))
       
       val toBeStopped = compositeRunner +: localEcHandle +: (drmRunnerHandles ++ compositeRunner.components)
       
@@ -434,16 +437,16 @@ object AppWiring extends Loggable {
 
       implicit val ec = executionContext
       
-      val scheduler = ExecutionContextScheduler(executionContext)
+      val scheduler = Scheduler(executionContext)
 
       //TODO: Make configurable?
       val pollingFrequencyInHz = 0.1
       
-      val poller = QstatQacctPoller.fromExecutables(pollingFrequencyInHz, ugerConfig, scheduler = scheduler)
+      val poller = QstatPoller.fromExecutables(pollingFrequencyInHz, ugerConfig, scheduler = scheduler)
       
       val jobMonitor = new JobMonitor(scheduler, poller, pollingFrequencyInHz)
 
-      val jobSubmitter = QsubJobSubmitter.fromExecutable(ugerConfig, scheduler = scheduler)
+      val jobSubmitter = QsubJobSubmitter.fromExecutable(ugerConfig)(scheduler = scheduler)
       
       val accountingClient = QacctAccountingClient.useActualBinary(ugerConfig, scheduler)
       
@@ -477,7 +480,7 @@ object AppWiring extends Loggable {
 
       import loamstream.model.execute.ExecuterHelpers._
 
-      val scheduler = ExecutionContextScheduler(executionContext)
+      val scheduler = Scheduler(executionContext)
       
       implicit val ec = executionContext
 

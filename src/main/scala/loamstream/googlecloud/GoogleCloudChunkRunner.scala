@@ -3,9 +3,7 @@ package loamstream.googlecloud
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-import scala.concurrent.Await
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.Duration
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
@@ -25,9 +23,14 @@ import loamstream.util.ExecutorServices
 import loamstream.util.Loggable
 import loamstream.util.Terminable
 import loamstream.util.ValueBox
-import rx.lang.scala.Observable
-import rx.lang.scala.Scheduler
-import rx.lang.scala.schedulers.ExecutionContextScheduler
+import monix.execution.Scheduler
+import monix.reactive.Observable
+
+import scala.collection.compat._
+import monix.eval.Task
+import loamstream.util.Observables
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 
 
 /**
@@ -45,12 +48,12 @@ final case class GoogleCloudChunkRunner(
     ExecutionContext.fromExecutorService(singleThreadedExecutor)
   }
   
-  private lazy val singleThreadedScheduler: Scheduler = ExecutionContextScheduler(singleThreadedExecutionContext)
+  private lazy val singleThreadedScheduler: Scheduler = Scheduler(singleThreadedExecutionContext)
   
   private val currentClusterConfig: ValueBox[Option[ClusterConfig]] = ValueBox(None)
   
   override def run(
-      jobs: Set[LJob], 
+      jobs: Iterable[LJob], 
       jobOracle: JobOracle): Observable[(LJob, RunData)] = {
     
     if(jobs.isEmpty) { Observable.empty }
@@ -67,12 +70,12 @@ final case class GoogleCloudChunkRunner(
     deleteClusterIfNecessary()
   }
   
-  private[googlecloud] def deleteClusterIfNecessary(): Unit = {
+  private[googlecloud] def deleteClusterIfNecessary(): Unit = currentClusterConfig.foreach { _ =>
     //NB: If anything goes wrong determining whether or not the cluster is up, try to shut it down
     //anyway, to be safe.
     determineClusterStatus() match {
+      case ClusterStatus.NotRunning => debug("Cluster not running, not attempting to shut it down")  
       case ClusterStatus.Running => client.stopCluster()
-      case ClusterStatus.NotRunning => debug("Cluster not running, not attempting to shut it down")
       case ClusterStatus.Undetermined(e) => {
         warn(s"Error determining cluster status, attempting to shut down cluster anyway", e)
         
@@ -81,15 +84,13 @@ final case class GoogleCloudChunkRunner(
     }
   }
   
-  private[googlecloud] def startClusterIfNecessary(clusterConfig: ClusterConfig): Unit = {
+  private[googlecloud] def startClusterIfNecessary(clusterConfig: ClusterConfig): Unit = currentClusterConfig.foreach { _ =>
     def start(): Unit = {
       client.startCluster(clusterConfig)
       
       currentClusterConfig := Option(clusterConfig) 
     }
     
-    //NB: If anything goes wrong determining whether or not the cluster is up, try to shut it down
-    //anyway, to be safe.
     determineClusterStatus() match {
       case ClusterStatus.Running => debug("Cluster already running, not attempting to start it")  
       case ClusterStatus.NotRunning => start()
@@ -110,10 +111,10 @@ final case class GoogleCloudChunkRunner(
   }
   
   private[googlecloud] def runJobsSequentially(
-      jobs: Set[LJob], 
+      jobs: Iterable[LJob], 
       jobOracle: JobOracle): Observable[(LJob, RunData)] = {
     
-    def doRunSingle(j: LJob): (LJob, RunData) = {
+    def doRunSingle(j: LJob): Observable[(LJob, RunData)] = {
       def runDataForNonGoogleJob = RunData(
           job = j, 
           settings = j.initialSettings, 
@@ -122,50 +123,62 @@ final case class GoogleCloudChunkRunner(
           terminationReasonOpt = None)
       
       j.initialSettings match {
-        case GoogleSettings(_, clusterConfig) => withCluster(clusterConfig) {
-          runSingle(delegate, jobOracle)(j)
-        }
-        case settings => j -> runDataForNonGoogleJob
+        case _: GoogleSettings => runSingle(delegate, jobOracle)(j)
+        case settings => Observable(j -> runDataForNonGoogleJob)
       }
     }
     
-    Observable.from(jobs).subscribeOn(singleThreadedScheduler).map(doRunSingle)
+    //NB: Enforce single-threaded execution, since we don't want multiple jobs running 
+    //on the same cluster simultaneously
+    //NB: .share() is required, or else jobs will run multiple times :\
+    //NB: Monix flatMap is like Rx concatMap, so that ordering and at-most-once semantics are preserved
+    Observable(jobs.to(Seq): _*).share(singleThreadedScheduler).executeOn(singleThreadedScheduler).flatMap(doRunSingle)
   }
 
   private[googlecloud] def runSingle(
       delegate: ChunkRunner, 
-      jobOracle: JobOracle)(job: LJob): (LJob, RunData) = {
+      jobOracle: JobOracle)(job: LJob): Observable[(LJob, RunData)] = {
     
-    //NB: Enforce single-threaded execution, since we don't want multiple jobs running 
-    import GoogleCloudChunkRunner.addCluster
-    //on the same cluster simultaneously
-    import loamstream.util.Observables.Implicits._
-
-    val googleSettings = job.initialSettings match {
+    val googleSettings @ GoogleSettings(clusterId, clusterConfig) = job.initialSettings match {
       case gs: GoogleSettings => gs
       case _ => sys.error(s"Only jobs with Google settings are supported, but got ${job.initialSettings}")
     }
-    
-    val futureResult = {
-      delegate.run(Set(job), jobOracle).map(addCluster(googleSettings.clusterId)).lastAsFuture
+
+    def runSynchronously(): (LJob, RunData) = {
+      import Observables.Implicits._
+      import Scheduler.Implicits.global
+      import GoogleCloudChunkRunner.addCluster
+      
+      Await.result(delegate.run(Set(job), jobOracle).map(addCluster(clusterId)).firstAsFuture, Duration.Inf)
     }
-    
-    //TODO: add some timeout
-    Await.result(futureResult, Duration.Inf)
+
+    //NB: Run each job synchronously to guarantee that we only ever have one job and one cluster running at a time.
+    //There's a good argument for not having this restriction, but the current behavior is intentional and driven by
+    //requests from users.
+    Observable.evalOnce {
+      withCluster(clusterConfig) {
+        runSynchronously()
+      }
+    //NB: share() and executeOn() are needed to make sure we only ever use the single-threaded Scheduler, helping to 
+    //guarantee that only one job and cluster are running at any time.
+    }.share(singleThreadedScheduler).executeOn(singleThreadedScheduler)
   }
-  
-  private[googlecloud] def withCluster[A](clusterConfig: ClusterConfig)(f: => A): A = {
+
+  private[googlecloud] def withCluster[A](clusterConfig: ClusterConfig)(f: => A): A = { 
     def differentCurrentClusterDefined(currentClusterConfigOpt: Option[ClusterConfig]): Boolean = {
-      currentClusterConfigOpt.isDefined && (currentClusterConfigOpt != Option(clusterConfig))
+      currentClusterConfigOpt match {
+        case Some(cc) => cc != clusterConfig
+        case None => false
+      }
     }
-    
+
     currentClusterConfig.get { currentClusterConfigOpt =>
       if(differentCurrentClusterDefined(currentClusterConfigOpt)) {
         deleteClusterIfNecessary()
       }
     
       startClusterIfNecessary(clusterConfig)
-      
+
       f
     }
   }

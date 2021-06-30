@@ -8,6 +8,9 @@ import java.nio.file.Path
 
 import org.apache.commons.csv.CSVFormat
 
+import scala.collection.compat._
+
+
 /**
  * @author clint
  * Oct 13, 2020
@@ -28,7 +31,7 @@ object RowSink {
       import org.json4s._
       import org.json4s.jackson.JsonMethods._
       
-      val obj = JObject(row.jsonValues.toList)
+      val obj = JObject(row.jsonValues.to(List))
       
       compact(render(obj))
     }

@@ -1,10 +1,13 @@
 package loamstream.util.jvm
 
 import java.lang.management.ManagementFactory
-
-import java.nio.file.Paths
 import java.nio.file.Path
+import java.nio.file.Paths
+
 import loamstream.cli.Conf
+import scala.collection.compat._
+
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -23,7 +26,7 @@ final case class JvmArgs(jvmArgs: Seq[String], classpath: String) {
   }
   
   def rerunCommandTokens(conf: Conf.Values, systemProperties: Map[String, String]): Seq[String] = {
-    val sysprops = systemProperties.toSeq.sortBy { case (k, _) => k }.map { case (k, v) => s"-D${k}=${v}" }
+    val sysprops = systemProperties.to(Seq).sortBy { case (k, _) => k }.map { case (k, v) => s"-D${k}=${v}" }
     
     Seq(javaBinary.toString) ++
     jvmArgs ++ 
@@ -53,7 +56,9 @@ object JvmArgs {
    * 
    * etc.
    */
-  private[jvm] def jvmArgsForThisRun: Seq[String] = ManagementFactory.getRuntimeMXBean.getInputArguments.asScala
+  private[jvm] def jvmArgsForThisRun: Seq[String] = {
+    ManagementFactory.getRuntimeMXBean.getInputArguments.asScala.to(Seq)
+  }
   
   private[jvm] def classpathForThisRun: String = ManagementFactory.getRuntimeMXBean.getClassPath
 }

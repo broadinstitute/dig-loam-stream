@@ -13,8 +13,9 @@ import loamstream.util.ProcessLoggers
 import loamstream.util.Loggable
 import loamstream.util.Observables
 import loamstream.util.Throwables
-import rx.lang.scala.Observable
 import loamstream.util.ThisMachine
+import monix.reactive.Observable
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -28,7 +29,7 @@ final case class AsyncLocalChunkRunner(
   import AsyncLocalChunkRunner._
   
   override def run(
-      jobs: Set[LJob], 
+      jobs: Iterable[LJob], 
       jobOracle: JobOracle): Observable[(LJob, RunData)] = {
     
     if(jobs.isEmpty) { Observable.empty }
@@ -43,7 +44,7 @@ final case class AsyncLocalChunkRunner(
         Observable.from(executeSingle(executionConfig, jobOracle, job))
       }
 
-      val executionObservables: Seq[Observable[RunData]] = jobs.toSeq.map(exec)
+      val executionObservables: Seq[Observable[RunData]] = jobs.to(Seq).map(exec)
         
       Observables.merge(executionObservables).map(runData => (runData.job -> runData))
     }

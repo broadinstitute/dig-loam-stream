@@ -1,7 +1,9 @@
 package loamstream.loam.intake
 
+import scala.collection.immutable.Seq
+
 import org.scalatest.FunSuite
-import scala.collection.Seq
+
 
 /**
  * @author clint

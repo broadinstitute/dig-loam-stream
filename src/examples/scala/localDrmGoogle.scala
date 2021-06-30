@@ -26,3 +26,5 @@ local {
 google {
   cmd"$gcloud dataproc jobs submit spark --cluster cg-test --jar gs://loamstream/hail/hail-all-spark.jar_cloud --class org.broadinstitute.hail.driver.Main --help".in(c).out(d)
 }
+
+}

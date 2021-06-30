@@ -5,6 +5,7 @@ import loamstream.loam.intake.flip.Disposition
 import scala.util.Failure
 import org.json4s._
 import org.json4s.JsonAST.JNumber
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -25,7 +26,7 @@ object DataRow {
     override def headers: Seq[String] = {
       import scala.collection.JavaConverters._
       
-      delegate.getParser.getHeaderNames.asScala
+      delegate.getParser.getHeaderNames.iterator.asScala.toList
     }
     
     override def hasField(name: String): Boolean = delegate.isSet(name)
@@ -42,7 +43,7 @@ object DataRow {
   }
   
   final case class JsonDataRow(json: JObject, recordNumber: Long, isSkipped: Boolean = false) extends DataRow {
-    override def headers: Seq[String] = json.values.keys.toList
+    override def headers: Seq[String] = json.values.keys.to(List)
     
     override def hasField(name: String): Boolean = json.obj.exists { case JField(n, _) => n == name } 
     

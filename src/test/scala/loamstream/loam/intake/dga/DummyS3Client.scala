@@ -1,13 +1,13 @@
 package loamstream.loam.intake.dga
 
-import loamstream.util.AwsClient
-import loamstream.util.AwsClient.ContentType
+import loamstream.util.S3Client
+import loamstream.util.S3Client.ContentType
 
 /**
  * @author clint
  * May 5, 2021
  */
-object DummyAwsClient extends AwsClient {
+object DummyS3Client extends S3Client {
   override def bucket: String = ???
   
   override def list(prefix: String, delimiter: String = "/"): Seq[String] = ???

@@ -6,7 +6,7 @@ import scala.util.Try
 
 import loamstream.loam.intake.AwsRowSink
 import loamstream.loam.intake.Source
-import loamstream.util.AwsClient
+import loamstream.util.S3Client
 import loamstream.util.Fold
 import loamstream.util.HttpClient
 import loamstream.util.HttpClient.Auth
@@ -39,7 +39,7 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
     private[dga] final class UploadOps(
         annotation: Annotation,
         auth: Option[Auth],
-        awsClient: AwsClient,
+        awsClient: S3Client,
         //TODO: Should be just a LogContext
         logCtx: ToFileLogContext) {
       
@@ -59,7 +59,7 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
           techType = None,
           phenotype = None,
           metadata = annotation.toMetadata.toJson,
-          awsClient = awsClient)
+          s3Client = awsClient)
       
       private val countAndUpload: Fold[BedRow, _, (Int, Unit)] = {
         val doCount: Fold[BedRow, Int, Int] = Fold.count
@@ -120,7 +120,7 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
      */
     def uploadAnnotatedDataset(
         auth: Option[Auth],
-        awsClient: AwsClient,
+        awsClient: S3Client,
         logTo: Store, 
         append: Boolean)(annotation: Annotation): Unit = {
       
@@ -132,7 +132,7 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
      */
     def uploadAnnotatedDataset(
         auth: Option[Auth],
-        awsClient: AwsClient,
+        awsClient: S3Client,
         logCtx: ToFileLogContext)(annotation: Annotation): Unit = {
       
       import annotation.annotationId 
@@ -245,13 +245,22 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
           auth: Option[HttpClient.Auth])(implicit logCtx: ToFileLogContext): CloseablePredicate[URI] = {
         
         ConcreteCloseablePredicate[URI](logCtx) { uri =>
-          val result = Try(httpClient.contentLength(uri.toString, auth)) match {
+          val attempt = Try(httpClient.contentLength(uri.toString, auth))
+
+          val result = attempt match {
             case Success(Right(n)) => n > 0
             case _ => false
           }
           
           if(!result) {
             logCtx.warn(s"Could not access '${uri}', skipping it")
+            attempt match {
+              case Failure(e) => {
+                println(s"%%%%%%%%%%%%%%%%%%%% Could not access '${uri}': ${e.getMessage}")
+                e.printStackTrace()
+              } 
+              case Success(Left(message)) => println(s"%%%%%%%%%%%%%%%%%%%% Could not access '${uri}' due to: ${message}")
+            }
           }
            
           result
@@ -273,12 +282,15 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
         
         val p: CloseablePredicate[URI] = bedExists(httpClient, auth)(logCtx)
         
-        ConcreteCloseablePredicate[Annotation](logCtx) { annotation =>
+        ConcreteCloseablePredicate[Annotation](logCtx, p) { annotation =>
           
           val result = annotation.downloads.iterator.map(_.url).exists(p)
           
           if(!result) {
+            println(s"%%%%%%%%%%%%% Annotation '${annotation.annotationId}' has no accessible .beds, skipping it")
             logCtx.warn(s"Annotation '${annotation.annotationId}' has no accessible .beds, skipping it")
+          } else {
+            println(s"%%%%%%%%%%%%% Annotation '${annotation.annotationId}' has accessible .beds, NOT skipping it")
           }
            
           result

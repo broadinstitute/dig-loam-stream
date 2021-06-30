@@ -1,15 +1,19 @@
 package loamstream.loam.intake
 
-import java.nio.file.Path
-import loamstream.util.LogContext
-import loamstream.util.LogContext.Level
 import java.io.Closeable
+import java.io.PrintWriter
 import java.nio.file.Files
+import java.nio.file.OpenOption
+import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 import java.time.LocalDateTime
-import java.io.PrintWriter
-import scala.collection.Seq
+
+import scala.collection.immutable.Seq
+
 import loamstream.util.IoUtils
+import loamstream.util.LogContext
+import loamstream.util.LogContext.Level
+
 
 /**
  * @author clint
@@ -20,7 +24,7 @@ final class ToFileLogContext(
     append: Boolean = false) extends LogContext with LogContext.AllLevelsEnabled with Closeable {
   
   private lazy val writer: PrintWriter = {
-    val opts: Seq[StandardOpenOption] = {
+    val opts: Seq[OpenOption] = {
       StandardOpenOption.CREATE +: (if(append) Seq(StandardOpenOption.APPEND) else Nil)
     }
     
@@ -43,8 +47,5 @@ final class ToFileLogContext(
       
       e.printStackTrace(writer)
     }
-    
-    //TODO: FIXME, it's probably better to call close() once at the end
-    //writer.flush()
   }
 }

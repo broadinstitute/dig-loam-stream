@@ -9,6 +9,8 @@ import org.json4s.jackson.JsonMethods.render
 
 import loamstream.util.Tries
 
+import scala.collection.compat._
+
 /**
  * @author clint
  * Jan 20, 2021
@@ -28,14 +30,14 @@ object Json {
       case b: Boolean => b
       case None => JNull
       case Some(value) => toJValue(value)
-      case as: Seq[_] => JArray(as.map(toJValue(_)).toList)
+      case as: Seq[_] => JArray(as.map(toJValue(_)).to(List))
       case _ => sys.error(s"Unexpected ${a.getClass.getName} value '${a}'")
     }
   }
   
   def toJValue[A](oa: Option[A]): JValue = oa.map(toJValue(_)).getOrElse(JNull)
   
-  def toJValue[A](as: Seq[A])(implicit discriminator: DummyImplicit): JValue = JArray(as.toList.map(toJValue(_)))
+  def toJValue[A](as: Seq[A])(implicit discriminator: DummyImplicit): JValue = JArray(as.to(List).map(toJValue(_)))
   
   implicit final class JsonOps(val jv: JValue) extends AnyVal {
     private def makeFieldMessage(tpe: String, fieldName: String): String = {

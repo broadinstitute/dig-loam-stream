@@ -13,7 +13,8 @@ import loamstream.model.jobs.LJob
 import loamstream.model.jobs.RunData
 import loamstream.model.jobs.RxMockJob
 import loamstream.util.ValueBox
-import rx.lang.scala.Observable
+import monix.reactive.Observable
+import scala.collection.compat._
 
 
 /**
@@ -357,7 +358,7 @@ final class RxExecuterTest extends FunSuite {
       
       assert(result.size === 2)
       
-      val expectedChunks: Seq[Set[RxMockJob]] = Set(job1) +: (0 until expectedRuns2).toSeq.map(_ => Set(job2))
+      val expectedChunks: Seq[Set[RxMockJob]] = Set(job1) +: (0 until expectedRuns2).to(Seq).map(_ => Set(job2))
       
       assert(chunks === expectedChunks)
       
@@ -414,7 +415,7 @@ final class RxExecuterTest extends FunSuite {
       assert(result.size === expectedNumResults)
       
       val expectedChunks = {
-        val expectedChunksForJob2 = (0 until expectedRuns2).toSeq.map(_ => Set(job2))
+        val expectedChunksForJob2 = (0 until expectedRuns2).to(Seq).map(_ => Set(job2))
         val expectedChunksForJobs1And2 = Set(job1) +: expectedChunksForJob2
         
         if(job3ShouldFail) { expectedChunksForJobs1And2 } 
@@ -630,10 +631,10 @@ object RxExecuterTest {
   private final case class MockChunkRunner(delegate: ChunkRunner) extends ChunkRunner {
     override def canRun(job: LJob): Boolean = delegate.canRun(job)
     
-    val chunks: ValueBox[Seq[Set[LJob]]] = ValueBox(Vector.empty)
+    val chunks: ValueBox[Seq[Iterable[LJob]]] = ValueBox(Vector.empty)
 
     override def run(
-        jobs: Set[LJob], 
+        jobs: Iterable[LJob], 
         jobOracle: JobOracle): Observable[(LJob, RunData)] = {
       
       chunks.mutate(_ :+ jobs)

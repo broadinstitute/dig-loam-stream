@@ -4,6 +4,7 @@ import loamstream.model.{Store, Tool}
 import loamstream.util.Validation
 import loamstream.util.Validation.{BulkIssue, BulkValidation, Issue, Severity, SimpleIssue}
 import loamstream.util.Sets
+import scala.collection.compat._
 
 /**
   * LoamStream
@@ -37,23 +38,23 @@ object LoamGraphValidation {
   trait LoamGlobalRule[Details] extends Validation[LoamGraph]
 
   trait LoamStoreRule[Details] extends LoamBulkRule[Store, Details] {
-    override def targets(graph: LoamGraph): Seq[Store] = graph.stores.toSeq
+    override def targets(graph: LoamGraph): Seq[Store] = graph.stores.to(Seq)
   }
 
   trait LoamToolRule[Details] extends LoamBulkRule[Tool, Details] {
-    override def targets(graph: LoamGraph): Seq[Tool] = graph.tools.toSeq
+    override def targets(graph: LoamGraph): Seq[Tool] = graph.tools.to(Seq)
   }
 
   trait LoamProducerRule[Details] extends LoamBulkRule[(Store, Tool), Details] {
     override def targets(graph: LoamGraph): Seq[(Store, Tool)] =
       graph.stores.flatMap(store =>
-        graph.storeProducers.get(store).map(tool => (store, tool))).toSeq
+        graph.storeProducers.get(store).map(tool => (store, tool))).to(Seq)
   }
 
   trait LoamConsumerRule[Details] extends LoamBulkRule[(Store, Tool), Details] {
     override def targets(graph: LoamGraph): Seq[(Store, Tool)] =
       graph.stores.flatMap(store =>
-        graph.storeConsumers.getOrElse(store, Set.empty).map(tool => (store, tool))).toSeq
+        graph.storeConsumers.getOrElse(store, Set.empty).map(tool => (store, tool))).to(Seq)
   }
 
   object eachStoreIsInputOrHasProducer extends LoamStoreRule[Unit] {
@@ -107,7 +108,7 @@ object LoamGraphValidation {
   }
 
   object noToolsPrecedeInitialTool extends LoamToolRule[Set[Tool]] {
-    override def targets(graph: LoamGraph): Seq[Tool] = graph.initialTools.toSeq
+    override def targets(graph: LoamGraph): Seq[Tool] = graph.initialTools.to(Seq)
 
     override def apply(graph: LoamGraph, tool: Tool): Seq[BulkIssue[LoamGraph, Tool, Set[Tool]]] = {
       val precedingTools = graph.toolInputs.getOrElse(tool, Set.empty).flatMap(graph.storeProducers.get)
@@ -119,7 +120,7 @@ object LoamGraphValidation {
   }
 
   object noToolsSucceedFinalTool extends LoamToolRule[Set[Tool]] {
-    override def targets(graph: LoamGraph): Seq[Tool] = graph.finalTools.toSeq
+    override def targets(graph: LoamGraph): Seq[Tool] = graph.finalTools.to(Seq)
 
     override def apply(graph: LoamGraph, tool: Tool): Seq[BulkIssue[LoamGraph, Tool, Set[Tool]]] = {
       val succeedingTools =

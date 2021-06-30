@@ -2,7 +2,7 @@ package loamstream.drm
 
 import java.nio.file.Paths
 
-import scala.collection.Seq
+import scala.collection.immutable.Seq
 
 import org.scalatest.FunSuite
 
@@ -197,7 +197,7 @@ final class DrmJobWrapperTest extends FunSuite {
     doTest(ugerPathBuilder)
     doTest(LsfPathBuilder)
   }
-
+  
   test("outputStreams.stdout") {
     def doTest(pathBuilder: PathBuilder): Unit = {
       val testWorkDir = TestHelpers.getWorkDir(getClass.getSimpleName)
@@ -285,12 +285,14 @@ final class DrmJobWrapperTest extends FunSuite {
                          |
                          |stdoutDestPath="${(jobOracle.dirFor(j0) / "stdout").render}"
                          |stderrDestPath="${(jobOracle.dirFor(j0) / "stderr").render}"
+                         |exitcodeDestPath="${(jobOracle.dirFor(j0) / "exitcode").render}"
                          |
                          |jobDir="${jobOracle.dirFor(j0).render}"
                          |
                          |mkdir -p $$jobDir
                          |mv $$origStdoutPath $$stdoutDestPath || echo "Couldn't move DRM std out log $$origStdoutPath; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
                          |mv $$origStderrPath $$stderrDestPath || echo "Couldn't move DRM std err log $$origStderrPath; it's likely the job wasn't submitted successfully" > $$stderrDestPath
+                         |echo $$LOAMSTREAM_JOB_EXIT_CODE > $$exitcodeDestPath
                          |
                          |exit $$LOAMSTREAM_JOB_EXIT_CODE
                          |""".stripMargin

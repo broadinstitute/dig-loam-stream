@@ -3,15 +3,15 @@ package loamstream.loam
 import java.net.URI
 import java.nio.file.Path
 
-import loamstream.loam.LoamGraph.StoreLocation
 import loamstream.model.Store
 import loamstream.model.Tool
 import loamstream.model.Tool.AllStores
 import loamstream.model.Tool.InputsAndOutputs
-import loamstream.util.Sequence
-import loamstream.util.Traversables
-import loamstream.util.BiMap
 import loamstream.model.execute.Settings
+import loamstream.util.BiMap
+import loamstream.util.Sequence
+
+import scala.collection.compat._
 
 /** The graph of all Loam stores and tools and their relationships */
 object LoamGraph {
@@ -95,10 +95,10 @@ final case class LoamGraph(
           
           (toolInputStores, toolOutputStores)
         }
-        case InputsAndOutputs(inputs, outputs) => (inputs.toSet, outputs.toSet)
+        case InputsAndOutputs(inputs, outputs) => (inputs.to(Set), outputs.to(Set))
       }
 
-      import Traversables.Implicits._
+      import loamstream.util.Traversables.Implicits._
       
       val outputsWithProducer: Map[Store, Tool] = toolOutputStores.mapTo(_ => tool)
       
@@ -136,7 +136,7 @@ final case class LoamGraph(
       tools = tools.map(replace),
       toolInputs = toolInputs.mapKeys(replace),
       toolOutputs = toolOutputs.mapKeys(replace),
-      storeProducers = storeProducers.mapValues(replace),
+      storeProducers = storeProducers.strictMapValues(replace),
       storeConsumers = storeConsumers.strictMapValues(_.map(replace)),
       workDirs = workDirs.mapKeys(replace),
       toolSettings = toolSettings.mapKeys(replace),
@@ -292,12 +292,12 @@ final case class LoamGraph(
       
       import loamstream.util.Maps.Implicits._
       
-      val retainedStoreProducers = storeProducers.filterKeys(retainedStores).filterValues(toolsToKeep)
+      val retainedStoreProducers = storeProducers.strictFilterKeys(retainedStores).filterValues(toolsToKeep)
       val retainedStoreConsumers = {
-        storeConsumers.filterKeys(retainedStores).strictMapValues(_.filter(toolsToKeep)).filterValues(_.nonEmpty)
+        storeConsumers.strictFilterKeys(retainedStores).strictMapValues(_.filter(toolsToKeep)).filterValues(_.nonEmpty)
       }
-      val retainedWorkDirs = workDirs.filterKeys(toolsToKeep)
-      val retainedExecutionEnvironments = toolSettings.filterKeys(toolsToKeep)
+      val retainedWorkDirs = workDirs.strictFilterKeys(toolsToKeep)
+      val retainedExecutionEnvironments = toolSettings.strictFilterKeys(toolsToKeep)
   
       val retainedNamedTools = namedTools.filterKeys(toolsToKeep)
       

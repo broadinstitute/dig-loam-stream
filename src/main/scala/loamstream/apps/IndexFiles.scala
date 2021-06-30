@@ -13,6 +13,7 @@ import loamstream.util.CanBeClosed
 import loamstream.util.Files
 import loamstream.model.jobs.JobStatus
 import java.time.LocalDateTime
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -37,7 +38,7 @@ object IndexFiles {
   }
   
   private def writeRowsTo(file: Path)(rows: Iterable[Row]): Unit = {
-    val sorted = rows.toSeq.sortWith(Orderings.indexFileRowOrdering)
+    val sorted = rows.to(Seq).sortWith(Orderings.indexFileRowOrdering)
     
     CanBeClosed.using(new CSVPrinter(new FileWriter(file.toFile), Row.csvFormat)) { csvPrinter =>
       sorted.iterator.map(_.toJavaIterable).foreach(csvPrinter.printRecord)

@@ -23,6 +23,7 @@ import loamstream.util.Loggable
 import loamstream.util.OneTimeLatch
 import loamstream.util.TimeUtils
 import loamstream.util.Versions
+import scala.collection.compat._
 
 
 /**
@@ -220,7 +221,7 @@ object Main extends Loggable {
     
     private def listResults(jobsToExecutions: Map[LJob, Execution]): Unit = {
       for {
-        (job, execution) <- jobsToExecutions.toSeq.sortWith(Orderings.executionTupleOrdering)
+        (job, execution) <- jobsToExecutions.to(Seq).sortWith(Orderings.executionTupleOrdering)
       } {
         info(s"${execution.status}\t(${execution.result}):\tRan $job got $execution")
       }

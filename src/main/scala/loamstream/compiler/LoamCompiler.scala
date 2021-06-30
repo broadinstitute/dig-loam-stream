@@ -36,6 +36,8 @@ import scala.concurrent.Promise
 import scala.util.Try
 import loamstream.conf.LsSettings
 import loamstream.util.LogContext
+import scala.collection.compat._
+
 
 /** The compiler compiling Loam scripts into execution plans */
 object LoamCompiler extends Loggable {
@@ -324,7 +326,7 @@ final class LoamCompiler(
 
         TimeUtils.time("Compiling .scala files", debug(_)) {
           withRun { run =>
-            run.compileSources(sourceFiles.toList)
+            run.compileSources(sourceFiles.to(List))
           }
         }
 

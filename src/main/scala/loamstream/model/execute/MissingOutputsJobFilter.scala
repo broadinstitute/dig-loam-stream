@@ -2,6 +2,7 @@ package loamstream.model.execute
 
 import loamstream.model.jobs.LJob
 import loamstream.util.Loggable
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -12,7 +13,7 @@ object MissingOutputsJobFilter extends JobFilter with Loggable {
     val jobShouldRun = job.outputs.isEmpty || job.outputs.exists(_.isMissing)
     
     if(jobShouldRun) {
-      def missingOutputs: Seq[String] = job.outputs.filter(_.isMissing).map(_.location).toSeq.map(l => s"'${l}'")
+      def missingOutputs: Seq[String] = job.outputs.filter(_.isMissing).map(_.location).to(Seq).map(l => s"'${l}'")
       
       debug(s"Running job $job because these outputs are missing: ${missingOutputs.mkString(",")}")
     } else {

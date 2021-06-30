@@ -10,6 +10,7 @@ import slick.jdbc.meta.MTable
 import slick.ast.ColumnOption
 import scala.reflect.ClassTag
 import slick.lifted.ForeignKeyQuery
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -145,7 +146,7 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
         MTable.getTables(Some("PUBLIC"), Some("PUBLIC"), Some(tableName), Some(Seq("TABLE"))).headOption
       }
       
-      allTableNames.toSet[String].flatMap { tableName =>
+      allTableNames.to(Set).flatMap { tableName =>
         val queryForTable = for {
           tableMetadataOpt <- queryForTableMetadata(tableName)
         } yield tableMetadataOpt.map(_.name.name)

@@ -40,7 +40,7 @@ final class AnnotationSupportTest extends FunSuite {
         val ops = new Dsl.Annotations.UploadOps(
             annotation = ann,
             auth = None,
-            awsClient = DummyAwsClient,
+            awsClient = DummyS3Client,
             logCtx = new ToFileLogContext(TestHelpers.path("/dev/null"))) // :\
         
         assert(ops.datasetName === expectedDatasetName)
@@ -62,7 +62,7 @@ final class AnnotationSupportTest extends FunSuite {
       val ops = new Dsl.Annotations.UploadOps(
           annotation = ann,
           auth = None,
-          awsClient = DummyAwsClient,
+          awsClient = DummyS3Client,
           logCtx = new ToFileLogContext(TestHelpers.path("/dev/null"))) // :\
       
       assert(ops.topicName === s"annotated_regions/${ann.category.name}")

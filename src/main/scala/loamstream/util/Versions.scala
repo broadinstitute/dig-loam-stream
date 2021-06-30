@@ -5,6 +5,7 @@ import java.util.Properties
 import java.time.Instant
 import java.io.Reader
 import java.io.InputStreamReader
+import scala.collection.compat._
 
 /**
  * @author clint
@@ -71,7 +72,7 @@ object Versions {
       Options.toTry(Option(props.getProperty(key)).map(_.trim).filter(_.nonEmpty)) {
         import scala.collection.JavaConverters._
         
-        val sortedPropKvPairs = props.asScala.toSeq.sortBy { case (k, _) => k }
+        val sortedPropKvPairs = props.asScala.to(Seq).sortBy { case (k, _) => k }
         
         s"property key '$key' not found in $sortedPropKvPairs"
       }

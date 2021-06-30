@@ -1,30 +1,30 @@
 package loamstream.googlecloud
 
+import java.nio.file.Path
+
 import scala.concurrent.ExecutionContext
 
 import org.scalatest.FunSuite
 
 import loamstream.TestHelpers
+import loamstream.conf.ExecutionConfig
 import loamstream.model.execute.AsyncLocalChunkRunner
-import loamstream.model.execute.EnvironmentType
+import loamstream.model.execute.GoogleSettings
 import loamstream.model.execute.MockChunkRunner
 import loamstream.model.execute.ProvidesEnvAndResources
 import loamstream.model.execute.Resources
 import loamstream.model.execute.Resources.GoogleResources
-import loamstream.model.jobs.Execution
+import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.JobResult.CommandResult
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.MockJob
-import loamstream.util.ValueBox
-import loamstream.conf.ExecutionConfig
-import loamstream.model.jobs.OutputStreams
 import loamstream.model.jobs.RunData
+import loamstream.util.ValueBox
+
+import scala.collection.compat._
 import loamstream.util.Maps
-import java.nio.file.Path
-import loamstream.model.execute.GoogleSettings
-import loamstream.model.execute.Resources.LocalResources
-import loamstream.model.execute.Settings
+import loamstream.util.Observables
 
 
 /**
@@ -35,8 +35,9 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
   
   import GoogleCloudChunkRunnerTest.LiteralMockDataProcClient
   import GoogleCloudChunkRunnerTest.MockDataProcClient
-  import loamstream.util.Observables.Implicits._
   import loamstream.TestHelpers.waitFor
+  import loamstream.util.Observables.Implicits._
+  import monix.execution.Scheduler.Implicits.global
 
   private val clusterId = "some-cluster-id"
   
@@ -108,38 +109,36 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
   }
   
   test("withCluster") {
+    import Observables.Implicits._
+    
     withMockRunner { (_, googleRunner, mockClient) =>
       assert(googleRunner.singleThreadedExecutor.isShutdown === false)
-      assert(mockClient.clusterRunning() === false)
-      assert(mockClient.startClusterInvocations() === Nil)
-      assert(mockClient.deleteClusterInvocations() === 0)
+      assert(mockClient.clusterRunning === false)
+      assert(mockClient.startClusterInvocations === Nil)
+      assert(mockClient.deleteClusterInvocations === 0)
 
+      googleRunner.withCluster(clusterConfig0) { 
+        assert(mockClient.clusterRunning === true)
+        assert(mockClient.startClusterInvocations === Seq(clusterConfig0))
+        assert(mockClient.deleteClusterInvocations === 0)
+      }
+      
+      googleRunner.withCluster(clusterConfig1) {
+        assert(mockClient.clusterRunning === true)
+        assert(mockClient.startClusterInvocations === Seq(clusterConfig0, clusterConfig1))
+        assert(mockClient.deleteClusterInvocations === 1)
+      }
+      
       googleRunner.withCluster(clusterConfig0) {
-        assert(mockClient.clusterRunning() === true)
-        assert(mockClient.startClusterInvocations() === Seq(clusterConfig0))
-        assert(mockClient.deleteClusterInvocations() === 0)
+        assert(mockClient.clusterRunning === true)
+        assert(mockClient.startClusterInvocations === Seq(clusterConfig0, clusterConfig1, clusterConfig0))
+        assert(mockClient.deleteClusterInvocations === 2)
       }
-      
-      googleRunner.withCluster(clusterConfig1 ) {
-        assert(mockClient.clusterRunning() === true)
-        assert(mockClient.startClusterInvocations() === Seq(clusterConfig0, clusterConfig1))
-        assert(mockClient.deleteClusterInvocations() === 1)
-      }
-      
-      val result = googleRunner.withCluster(clusterConfig0) {
-        assert(mockClient.clusterRunning() === true)
-        assert(mockClient.startClusterInvocations() === Seq(clusterConfig0, clusterConfig1, clusterConfig0))
-        assert(mockClient.deleteClusterInvocations() === 2)
-        
-        42
-      }
-      
-      assert(result === 42)
       
       assert(googleRunner.singleThreadedExecutor.isShutdown === false)
-      assert(mockClient.clusterRunning() === true)
-      assert(mockClient.startClusterInvocations() === Seq(clusterConfig0, clusterConfig1, clusterConfig0))
-      assert(mockClient.deleteClusterInvocations() === 2)
+      assert(mockClient.clusterRunning === true)
+      assert(mockClient.startClusterInvocations === Seq(clusterConfig0, clusterConfig1, clusterConfig0))
+      assert(mockClient.deleteClusterInvocations === 2)
     } 
   }
   
@@ -151,9 +150,9 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
     val job3 = mockJob(JobResult.CommandResult(0), Some(localResources))
     
     withMockRunner { (mockRunner, actualGoogleRunner, client) =>
-      assert(client.clusterRunning() === false)
-      assert(client.startClusterInvocations() === Nil)
-      assert(client.deleteClusterInvocations() === 0)
+      assert(client.clusterRunning === false)
+      assert(client.startClusterInvocations === Nil)
+      assert(client.deleteClusterInvocations === 0)
       
       val runDataObs = {
         actualGoogleRunner.runJobsSequentially(Set(job1, job2, job3), TestHelpers.DummyJobOracle)
@@ -161,7 +160,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       
       val z: Map[LJob, RunData] = Map.empty 
       
-      val runDatas = waitFor(runDataObs.foldLeft(z)(_ + _).lastAsFuture)
+      val runDatas = waitFor(runDataObs.foldLeft(z)(_ + _).firstAsFuture)
       
       assert(runDatas(job1) === job1.toReturn)
       assert(runDatas(job2) === job2.toReturn)
@@ -184,17 +183,17 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
   test("stop()") {
     withMockRunner { (_, googleRunner, mockClient) =>
       assert(googleRunner.singleThreadedExecutor.isShutdown === false)
-      assert(mockClient.clusterRunning() === false)
+      assert(mockClient.clusterRunning === false)
           
       googleRunner.withCluster(clusterConfig0)(42)
       
       assert(googleRunner.singleThreadedExecutor.isShutdown === false)
-      assert(mockClient.clusterRunning() === true)
+      assert(mockClient.clusterRunning === true)
       
       googleRunner.stop()
       
       assert(googleRunner.singleThreadedExecutor.isShutdown === true)
-      assert(mockClient.clusterRunning() === false)
+      assert(mockClient.clusterRunning === false)
     }
   }
   
@@ -208,12 +207,12 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       val googleRunner = GoogleCloudChunkRunner(client, googleConfig, localRunner)
       
       assert(googleRunner.singleThreadedExecutor.isShutdown === false)
-      assert(client.delegate.clusterRunning() === false)
+      assert(client.delegate.clusterRunning === false)
           
       googleRunner.withCluster(clusterConfig0)(42)
       
       assert(googleRunner.singleThreadedExecutor.isShutdown === false)
-      assert(client.delegate.clusterRunning() === true)
+      assert(client.delegate.clusterRunning === true)
       
       //Make sure the cluster is still shut down, even if the client throws when checking whether the
       //cluster is running.
@@ -221,8 +220,8 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       googleRunner.stop()
       
       assert(googleRunner.singleThreadedExecutor.isShutdown === true)
-      assert(client.delegate.deleteClusterInvocations() == 1)
-      assert(client.delegate.clusterRunning() === false)
+      assert(client.delegate.deleteClusterInvocations == 1)
+      assert(client.delegate.clusterRunning === false)
     }
   }
   
@@ -241,12 +240,12 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       val googleRunner = GoogleCloudChunkRunner(client, googleConfig, localRunner)
       
       assert(googleRunner.singleThreadedExecutor.isShutdown === false)
-      assert(client.delegate.clusterRunning() === false)
+      assert(client.delegate.clusterRunning === false)
           
       googleRunner.withCluster(clusterConfig0)(42)
       
       assert(googleRunner.singleThreadedExecutor.isShutdown === false)
-      assert(client.delegate.clusterRunning() === true)
+      assert(client.delegate.clusterRunning === true)
       
       //Make sure we pass through Exceptions thrown when shutting down the cluster, and always
       //shut down the Runner's Executor
@@ -258,8 +257,8 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       assert(thrown === e)
       
       assert(googleRunner.singleThreadedExecutor.isShutdown === true)
-      assert(client.delegate.deleteClusterInvocations() == 1)
-      assert(client.delegate.clusterRunning() === false)
+      assert(client.delegate.deleteClusterInvocations == 1)
+      assert(client.delegate.clusterRunning === false)
     }
   }
   
@@ -279,12 +278,12 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       val googleRunner = GoogleCloudChunkRunner(client, googleConfig, localRunner)
       
       assert(googleRunner.singleThreadedExecutor.isShutdown === false)
-      assert(client.delegate.clusterRunning() === false)
+      assert(client.delegate.clusterRunning === false)
           
       googleRunner.withCluster(clusterConfig0)(42)
       
       assert(googleRunner.singleThreadedExecutor.isShutdown === false)
-      assert(client.delegate.clusterRunning() === true)
+      assert(client.delegate.clusterRunning === true)
       
       //Make sure we still try to shut the cluster down, even if the client throws when checking whether the
       //cluster is running.
@@ -296,22 +295,24 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       assert(thrown === deleteClusterException)
       
       assert(googleRunner.singleThreadedExecutor.isShutdown === true)
-      assert(client.delegate.deleteClusterInvocations() == 1)
-      assert(client.delegate.clusterRunning() === false)
+      assert(client.delegate.deleteClusterInvocations == 1)
+      assert(client.delegate.clusterRunning === false)
     }
   }
   
   test("run - empty input") {
     withMockRunner { (_, googleRunner, client) =>
-      assert(client.clusterRunning() === false)
-      assert(client.startClusterInvocations() === Nil)
-      assert(client.deleteClusterInvocations() === 0)
+      assert(client.clusterRunning === false)
+      assert(client.startClusterInvocations === Nil)
+      assert(client.deleteClusterInvocations === 0)
       
-      val result = waitFor(googleRunner.run(Set.empty, TestHelpers.DummyJobOracle).to[Seq].firstAsFuture)
+      val result = {
+        googleRunner.run(Set.empty, TestHelpers.DummyJobOracle).toListL.runSyncUnsafe(TestHelpers.defaultWaitTime)
+      }
       
-      assert(client.clusterRunning() === false)
-      assert(client.startClusterInvocations() === Nil)
-      assert(client.deleteClusterInvocations() === 0)
+      assert(client.clusterRunning === false)
+      assert(client.startClusterInvocations === Nil)
+      assert(client.deleteClusterInvocations === 0)
       
       assert(result === Nil)
     }
@@ -325,19 +326,19 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       val job2 = mockJob(JobResult.Failure)
       val job3 = mockJob(JobResult.CommandResult(0), Some(localResources))
       
-      assert(client.clusterRunning() === false)
-      assert(client.startClusterInvocations() === Nil)
-      assert(client.deleteClusterInvocations() === 0)
+      assert(client.clusterRunning === false)
+      assert(client.startClusterInvocations === Nil)
+      assert(client.deleteClusterInvocations === 0)
       
       val z: Map[LJob, RunData] = Map.empty
       
       val runDataObs = googleRunner.run(Set(job1, job2, job3), TestHelpers.DummyJobOracle)
       
-      val jobRuns = waitFor(runDataObs.foldLeft(z)(_ + _).lastAsFuture)
+      val jobRuns = waitFor(runDataObs.foldLeft(z)(_ + _).firstAsFuture)
       
-      assert(client.clusterRunning() === true)
-      assert(client.startClusterInvocations() === Seq(clusterConfigFrom(job1)))
-      assert(client.deleteClusterInvocations() === 0)
+      assert(client.clusterRunning === true)
+      assert(client.startClusterInvocations === Seq(clusterConfigFrom(job1)))
+      assert(client.deleteClusterInvocations === 0)
       
       assert(jobRuns(job1) === job1.toReturn)
       assert(jobRuns(job2) === job2.toReturn)
@@ -382,20 +383,20 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
           resources = Some(localResources4), 
           initialSettings = settings4)
       
-      assert(client.clusterRunning() === false)
-      assert(client.startClusterInvocations() === Nil)
-      assert(client.deleteClusterInvocations() === 0)
+      assert(client.clusterRunning === false)
+      assert(client.startClusterInvocations === Nil)
+      assert(client.deleteClusterInvocations === 0)
       
       val z: Map[LJob, RunData] = Map.empty
       
-      val runDataObs = googleRunner.run(Set(job1, job2, job3, job4), TestHelpers.DummyJobOracle)
+      val runDataObs = googleRunner.run(Seq(job1, job2, job3, job4), TestHelpers.DummyJobOracle)
       
-      val jobRuns = waitFor(runDataObs.foldLeft(z)(_ + _).lastAsFuture)
+      val jobRuns = waitFor(runDataObs.foldLeft(z)(_ + _).firstAsFuture)
       
-      assert(client.clusterRunning() === true)
-      assert(client.startClusterInvocations().toSet === 
+      assert(client.clusterRunning === true)
+      assert(client.startClusterInvocations.to(Set) === 
         Set(settings12.clusterConfig, settings3.clusterConfig, settings4.clusterConfig))
-      assert(client.deleteClusterInvocations() === 2)
+      assert(client.deleteClusterInvocations === 2)
       
       assert(jobRuns(job1) === job1.toReturn)
       assert(jobRuns(job2) === job2.toReturn)
@@ -421,7 +422,9 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       
       assert(jobRuns.size === 4)
       
-      assert(jobRuns.mapValues(_.settings) === Map(
+      import Maps.Implicits.MapOps
+      
+      assert(jobRuns.strictMapValues(_.settings) === Map(
           job1 -> settings12, job2 -> settings12, job3 -> settings3, job4 -> settings4))
     }
   }
@@ -445,49 +448,49 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       val job2 = mockJob(JobResult.Failure)
       val job3 = mockJob(JobResult.CommandResult(0), Some(localResources))
       
-      assert(client.delegate.clusterRunning() === false)
-      assert(client.delegate.startClusterInvocations() === Nil)
-      assert(client.delegate.deleteClusterInvocations() === 0)
+      assert(client.delegate.clusterRunning === false)
+      assert(client.delegate.startClusterInvocations === Nil)
+      assert(client.delegate.deleteClusterInvocations === 0)
       
       val thrown = intercept[Exception] {
-        waitFor(googleRunner.run(Set(job1, job2, job3), TestHelpers.DummyJobOracle).lastAsFuture)
+        waitFor(googleRunner.run(Set(job1, job2, job3), TestHelpers.DummyJobOracle).firstAsFuture)
       }
       
       assert(thrown === e)
       
-      assert(client.delegate.clusterRunning() === true)
-      assert(client.delegate.startClusterInvocations() === Seq(clusterConfigFrom(job1)))
-      assert(client.delegate.deleteClusterInvocations() === 0)
+      assert(client.delegate.clusterRunning === true)
+      assert(client.delegate.startClusterInvocations === Seq(clusterConfigFrom(job1)))
+      assert(client.delegate.deleteClusterInvocations === 0)
     }
   }
   
   test("deleteClusterIfNecessary - no errors") {
     withMockRunner { (_, googleRunner, client) =>
-      assert(client.clusterRunning() === false)
-      assert(client.startClusterInvocations() === Nil)
-      assert(client.deleteClusterInvocations() === 0)
+      assert(client.clusterRunning === false)
+      assert(client.startClusterInvocations === Nil)
+      assert(client.deleteClusterInvocations === 0)
       
       googleRunner.deleteClusterIfNecessary()
       
-      assert(client.clusterRunning() === false)
-      assert(client.startClusterInvocations() === Nil)
-      assert(client.deleteClusterInvocations() === 0)
-      assert(client.isClusterRunningInvocations() === 1)
+      assert(client.clusterRunning === false)
+      assert(client.startClusterInvocations === Nil)
+      assert(client.deleteClusterInvocations === 0)
+      assert(client.isClusterRunningInvocations === 1)
       
       val job1 = mockJob(JobResult.Success)
       
-      waitFor(googleRunner.run(Set(job1), TestHelpers.DummyJobOracle).lastAsFuture)
+      waitFor(googleRunner.run(Set(job1), TestHelpers.DummyJobOracle).firstAsFuture)
       
-      assert(client.isClusterRunningInvocations() === 2)
+      assert(client.isClusterRunningInvocations === 2)
       
-      assert(client.clusterRunning() === true)
+      assert(client.clusterRunning === true)
       
       googleRunner.deleteClusterIfNecessary()
       
-      assert(client.clusterRunning() === false)
-      assert(client.startClusterInvocations() === Seq(clusterConfigFrom(job1)))
-      assert(client.deleteClusterInvocations() === 1)
-      assert(client.isClusterRunningInvocations() === 3)
+      assert(client.clusterRunning === false)
+      assert(client.startClusterInvocations === Seq(clusterConfigFrom(job1)))
+      assert(client.deleteClusterInvocations === 1)
+      assert(client.isClusterRunningInvocations === 3)
     }
   }
   
@@ -499,32 +502,32 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       
       val googleRunner = GoogleCloudChunkRunner(client, googleConfig, localRunner)
       
-      assert(client.delegate.clusterRunning() === false)
-      assert(client.delegate.startClusterInvocations() === Nil)
-      assert(client.delegate.deleteClusterInvocations() === 0)
-      assert(client.delegate.isClusterRunningInvocations() === 0)
+      assert(client.delegate.clusterRunning === false)
+      assert(client.delegate.startClusterInvocations === Nil)
+      assert(client.delegate.deleteClusterInvocations === 0)
+      assert(client.delegate.isClusterRunningInvocations === 0)
       
       googleRunner.deleteClusterIfNecessary()
       
-      assert(client.delegate.clusterRunning() === false)
-      assert(client.delegate.startClusterInvocations() === Nil)
-      assert(client.delegate.deleteClusterInvocations() === 1)
-      assert(client.delegate.isClusterRunningInvocations() === 1)
+      assert(client.delegate.clusterRunning === false)
+      assert(client.delegate.startClusterInvocations === Nil)
+      assert(client.delegate.deleteClusterInvocations === 1)
+      assert(client.delegate.isClusterRunningInvocations === 1)
       
       val job1 = mockJob(JobResult.Success)
       
-      waitFor(googleRunner.run(Set(job1), TestHelpers.DummyJobOracle).lastAsFuture)
+      waitFor(googleRunner.run(Set(job1), TestHelpers.DummyJobOracle).firstAsFuture)
       
-      assert(client.delegate.isClusterRunningInvocations() === 2)
+      assert(client.delegate.isClusterRunningInvocations === 2)
       
-      assert(client.delegate.clusterRunning() === true)
+      assert(client.delegate.clusterRunning === true)
       
       googleRunner.deleteClusterIfNecessary()
       
-      assert(client.delegate.clusterRunning() === false)
-      assert(client.delegate.startClusterInvocations() === Seq(clusterConfigFrom(job1)))
-      assert(client.delegate.deleteClusterInvocations() === 2)
-      assert(client.delegate.isClusterRunningInvocations() === 3)
+      assert(client.delegate.clusterRunning === false)
+      assert(client.delegate.startClusterInvocations === Seq(clusterConfigFrom(job1)))
+      assert(client.delegate.deleteClusterInvocations === 2)
+      assert(client.delegate.isClusterRunningInvocations === 3)
     }
   }
   
@@ -534,7 +537,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
     withMockClient { delegateClient =>
       val client = new LiteralMockDataProcClient(
           delegateClient, 
-          delegateClient.clusterRunning(),
+          delegateClient.clusterRunning,
           (),
           throw new Exception)
       
@@ -542,76 +545,76 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       
       val googleRunner = GoogleCloudChunkRunner(client, googleConfig, localRunner)
       
-      assert(client.delegate.clusterRunning() === false)
-      assert(client.delegate.startClusterInvocations() === Nil)
-      assert(client.delegate.deleteClusterInvocations() === 0)
-      assert(client.delegate.isClusterRunningInvocations() === 0)
+      assert(client.delegate.clusterRunning === false)
+      assert(client.delegate.startClusterInvocations === Nil)
+      assert(client.delegate.deleteClusterInvocations === 0)
+      assert(client.delegate.isClusterRunningInvocations === 0)
       
       googleRunner.deleteClusterIfNecessary()
       
-      assert(client.delegate.clusterRunning() === false)
-      assert(client.delegate.startClusterInvocations() === Nil)
-      assert(client.delegate.deleteClusterInvocations() === 0)
-      assert(client.delegate.isClusterRunningInvocations() === 1)
+      assert(client.delegate.clusterRunning === false)
+      assert(client.delegate.startClusterInvocations === Nil)
+      assert(client.delegate.deleteClusterInvocations === 0)
+      assert(client.delegate.isClusterRunningInvocations === 1)
       
       val job1 = mockJob(JobResult.Success)
       
-      waitFor(googleRunner.run(Set(job1), TestHelpers.DummyJobOracle).lastAsFuture)
+      waitFor(googleRunner.run(Set(job1), TestHelpers.DummyJobOracle).firstAsFuture)
       
-      assert(client.delegate.isClusterRunningInvocations() === 2)
+      assert(client.delegate.isClusterRunningInvocations === 2)
       
-      assert(client.delegate.clusterRunning() === true)
+      assert(client.delegate.clusterRunning === true)
       
       intercept[Exception] {
         googleRunner.deleteClusterIfNecessary()
       }
       
-      assert(client.delegate.clusterRunning() === false)
-      assert(client.delegate.startClusterInvocations() === Seq(clusterConfigFrom(job1)))
-      assert(client.delegate.deleteClusterInvocations() === 1)
-      assert(client.delegate.isClusterRunningInvocations() === 3)
+      assert(client.delegate.clusterRunning === false)
+      assert(client.delegate.startClusterInvocations === Seq(clusterConfigFrom(job1)))
+      assert(client.delegate.deleteClusterInvocations === 1)
+      assert(client.delegate.isClusterRunningInvocations === 3)
     }
   }
   
   test("startClusterIfNecessary - no errors") {
     withMockRunner { (_, googleRunner, client) =>
-      assert(client.clusterRunning() === false)
-      assert(client.startClusterInvocations() === Nil)
-      assert(client.deleteClusterInvocations() === 0)
+      assert(client.clusterRunning === false)
+      assert(client.startClusterInvocations === Nil)
+      assert(client.deleteClusterInvocations === 0)
       
       googleRunner.startClusterIfNecessary(clusterConfig0)
       
-      assert(client.clusterRunning() === true)
-      assert(client.startClusterInvocations() === Seq(clusterConfig0))
-      assert(client.deleteClusterInvocations() === 0)
-      assert(client.isClusterRunningInvocations() === 1)
+      assert(client.clusterRunning === true)
+      assert(client.startClusterInvocations === Seq(clusterConfig0))
+      assert(client.deleteClusterInvocations === 0)
+      assert(client.isClusterRunningInvocations === 1)
       
       val job1 = mockJob(JobResult.Success)
       
-      waitFor(googleRunner.run(Set(job1), TestHelpers.DummyJobOracle).lastAsFuture)
+      waitFor(googleRunner.run(Set(job1), TestHelpers.DummyJobOracle).firstAsFuture)
       
-      assert(client.clusterRunning() === true)
+      assert(client.clusterRunning === true)
       
       googleRunner.startClusterIfNecessary(clusterConfig1)
       
-      assert(client.clusterRunning() === true)
-      assert(client.startClusterInvocations() === Seq(clusterConfigFrom(job1)))
-      assert(client.deleteClusterInvocations() === 0)
-      assert(client.isClusterRunningInvocations() === 3)
+      assert(client.clusterRunning === true)
+      assert(client.startClusterInvocations === Seq(clusterConfigFrom(job1)))
+      assert(client.deleteClusterInvocations === 0)
+      assert(client.isClusterRunningInvocations === 3)
       
       client.stopCluster()
       
-      assert(client.clusterRunning() === false)
-      assert(client.startClusterInvocations() === Seq(clusterConfigFrom(job1)))
-      assert(client.deleteClusterInvocations() === 1)
-      assert(client.isClusterRunningInvocations() === 3)
+      assert(client.clusterRunning === false)
+      assert(client.startClusterInvocations === Seq(clusterConfigFrom(job1)))
+      assert(client.deleteClusterInvocations === 1)
+      assert(client.isClusterRunningInvocations === 3)
       
       googleRunner.startClusterIfNecessary(clusterConfig1)
       
-      assert(client.clusterRunning() === true)
-      assert(client.startClusterInvocations() === Seq(clusterConfig0, clusterConfig1))
-      assert(client.deleteClusterInvocations() === 1)
-      assert(client.isClusterRunningInvocations() === 4)
+      assert(client.clusterRunning === true)
+      assert(client.startClusterInvocations === Seq(clusterConfig0, clusterConfig1))
+      assert(client.deleteClusterInvocations === 1)
+      assert(client.isClusterRunningInvocations === 4)
     }
   }
   
@@ -623,47 +626,47 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       
       val googleRunner = GoogleCloudChunkRunner(client, googleConfig, localRunner)
       
-      assert(client.delegate.clusterRunning() === false)
-      assert(client.delegate.startClusterInvocations() === Nil)
-      assert(client.delegate.deleteClusterInvocations() === 0)
-      assert(client.delegate.isClusterRunningInvocations() === 0)
+      assert(client.delegate.clusterRunning === false)
+      assert(client.delegate.startClusterInvocations === Nil)
+      assert(client.delegate.deleteClusterInvocations === 0)
+      assert(client.delegate.isClusterRunningInvocations === 0)
       
       googleRunner.startClusterIfNecessary(clusterConfig0)
       
-      assert(client.delegate.clusterRunning() === true)
-      assert(client.delegate.startClusterInvocations() === Seq(clusterConfig0))
-      assert(client.delegate.deleteClusterInvocations() === 0)
-      assert(client.delegate.isClusterRunningInvocations() === 1)
+      assert(client.delegate.clusterRunning === true)
+      assert(client.delegate.startClusterInvocations === Seq(clusterConfig0))
+      assert(client.delegate.deleteClusterInvocations === 0)
+      assert(client.delegate.isClusterRunningInvocations === 1)
       
       val job1 = mockJob(JobResult.Success)
       
-      waitFor(googleRunner.run(Set(job1), TestHelpers.DummyJobOracle).lastAsFuture)
+      waitFor(googleRunner.run(Set(job1), TestHelpers.DummyJobOracle).firstAsFuture)
       
-      assert(client.delegate.clusterRunning() === true)
-      assert(client.delegate.startClusterInvocations() === Seq(clusterConfig0, clusterConfig0))
-      assert(client.delegate.deleteClusterInvocations() === 0)
-      assert(client.delegate.isClusterRunningInvocations() === 2)
+      assert(client.delegate.clusterRunning === true)
+      assert(client.delegate.startClusterInvocations === Seq(clusterConfig0, clusterConfig0))
+      assert(client.delegate.deleteClusterInvocations === 0)
+      assert(client.delegate.isClusterRunningInvocations === 2)
       
       googleRunner.startClusterIfNecessary(clusterConfig0)
       
-      assert(client.delegate.clusterRunning() === true)
-      assert(client.delegate.startClusterInvocations() === Seq(clusterConfig0, clusterConfig0, clusterConfig0))
-      assert(client.delegate.deleteClusterInvocations() === 0)
-      assert(client.delegate.isClusterRunningInvocations() === 3)
+      assert(client.delegate.clusterRunning === true)
+      assert(client.delegate.startClusterInvocations === Seq(clusterConfig0, clusterConfig0, clusterConfig0))
+      assert(client.delegate.deleteClusterInvocations === 0)
+      assert(client.delegate.isClusterRunningInvocations === 3)
       
       client.stopCluster()
       
-      assert(client.delegate.clusterRunning() === false)
-      assert(client.delegate.deleteClusterInvocations() === 1)
+      assert(client.delegate.clusterRunning === false)
+      assert(client.delegate.deleteClusterInvocations === 1)
       
       googleRunner.startClusterIfNecessary(clusterConfig1)
       
-      assert(client.delegate.clusterRunning() === true)
-      assert(client.delegate.startClusterInvocations().size === 4)
-      assert(client.delegate.startClusterInvocations() === 
+      assert(client.delegate.clusterRunning === true)
+      assert(client.delegate.startClusterInvocations.size === 4)
+      assert(client.delegate.startClusterInvocations === 
                 Seq(clusterConfig0, clusterConfig0, clusterConfig0, clusterConfig1))
-      assert(client.delegate.deleteClusterInvocations() === 1)
-      assert(client.delegate.isClusterRunningInvocations() === 4)
+      assert(client.delegate.deleteClusterInvocations === 1)
+      assert(client.delegate.isClusterRunningInvocations === 4)
     }
   }
   
@@ -673,7 +676,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
     withMockClient { delegateClient =>
       val client = new LiteralMockDataProcClient(
           delegate = delegateClient, 
-          isClusterRunningBody = delegateClient.clusterRunning(),
+          isClusterRunningBody = delegateClient.clusterRunning,
           startClusterBody = throw new Exception,
           stopClusterBody = ())
       
@@ -681,35 +684,35 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       
       val googleRunner = GoogleCloudChunkRunner(client, googleConfig, localRunner)
       
-      assert(client.delegate.clusterRunning() === false)
-      assert(client.delegate.startClusterInvocations() === Nil)
-      assert(client.delegate.deleteClusterInvocations() === 0)
-      assert(client.delegate.isClusterRunningInvocations() === 0)
+      assert(client.delegate.clusterRunning === false)
+      assert(client.delegate.startClusterInvocations === Nil)
+      assert(client.delegate.deleteClusterInvocations === 0)
+      assert(client.delegate.isClusterRunningInvocations === 0)
       
       intercept[Exception] {
         googleRunner.startClusterIfNecessary(clusterConfig1)
       }
       
-      assert(client.delegate.clusterRunning() === true)
-      assert(client.delegate.startClusterInvocations() === Seq(clusterConfig1))
-      assert(client.delegate.deleteClusterInvocations() === 0)
-      assert(client.delegate.isClusterRunningInvocations() === 1)
+      assert(client.delegate.clusterRunning === true)
+      assert(client.delegate.startClusterInvocations === Seq(clusterConfig1))
+      assert(client.delegate.deleteClusterInvocations === 0)
+      assert(client.delegate.isClusterRunningInvocations === 1)
       
       val job1 = mockJob(JobResult.Success)
       
-      waitFor(googleRunner.run(Set(job1), TestHelpers.DummyJobOracle).lastAsFuture)
+      waitFor(googleRunner.run(Set(job1), TestHelpers.DummyJobOracle).firstAsFuture)
       
-      assert(client.delegate.clusterRunning() === true)
-      assert(client.delegate.startClusterInvocations() === Seq(clusterConfig1))
-      assert(client.delegate.deleteClusterInvocations() === 0)
-      assert(client.delegate.isClusterRunningInvocations() === 2)
+      assert(client.delegate.clusterRunning === true)
+      assert(client.delegate.startClusterInvocations === Seq(clusterConfig1))
+      assert(client.delegate.deleteClusterInvocations === 0)
+      assert(client.delegate.isClusterRunningInvocations === 2)
       
       googleRunner.startClusterIfNecessary(clusterConfig0)
       
-      assert(client.delegate.clusterRunning() === true)
-      assert(client.delegate.startClusterInvocations() === Seq(clusterConfig1))
-      assert(client.delegate.deleteClusterInvocations() === 0)
-      assert(client.delegate.isClusterRunningInvocations() === 3)
+      assert(client.delegate.clusterRunning === true)
+      assert(client.delegate.startClusterInvocations === Seq(clusterConfig1))
+      assert(client.delegate.deleteClusterInvocations === 0)
+      assert(client.delegate.isClusterRunningInvocations === 3)
     }
   }
   
@@ -760,35 +763,41 @@ object GoogleCloudChunkRunnerTest {
   }
   
   final class MockDataProcClient extends DataProcClient {
-    val startClusterInvocations: ValueBox[Seq[ClusterConfig]] = ValueBox(Vector.empty)
-    val deleteClusterInvocations: ValueBox[Int] = ValueBox(0)
-    val isClusterRunningInvocations: ValueBox[Int] = ValueBox(0)
+    private[this] var _startClusterInvocations: Seq[ClusterConfig] = Vector.empty
+    private[this] var _deleteClusterInvocations: Int = 0
+    private[this] var _isClusterRunningInvocations: Int = 0
+    private[this] var _clusterRunning: Boolean = false
     
-    val clusterRunning: ValueBox[Boolean] = ValueBox(false)
+    def startClusterInvocations: Seq[ClusterConfig] = lock.synchronized(_startClusterInvocations)
+    def deleteClusterInvocations: Int = lock.synchronized(_deleteClusterInvocations)
+    def isClusterRunningInvocations: Int = lock.synchronized(_isClusterRunningInvocations)
+    def clusterRunning: Boolean = lock.synchronized(_clusterRunning)
     
-    def reset(): Unit = {
-      startClusterInvocations.update(Nil)
-      deleteClusterInvocations.update(0)
-      isClusterRunningInvocations.update(0)
-      clusterRunning := false
+    private[this] val lock = new AnyRef 
+    
+    def reset(): Unit = lock.synchronized {
+      _startClusterInvocations = Vector.empty
+      _deleteClusterInvocations = 0
+      _isClusterRunningInvocations = 0
+      _clusterRunning = false
     }
     
-    override def stopCluster(): Unit = {
-      deleteClusterInvocations.mutate(_ + 1)
+    override def stopCluster(): Unit = lock.synchronized {
+      _deleteClusterInvocations += 1
       
-      clusterRunning := false
+      _clusterRunning = false
     }
   
-    override def isClusterRunning: Boolean = {
-      isClusterRunningInvocations.mutate(_ + 1)
+    override def isClusterRunning: Boolean = lock.synchronized {
+      _isClusterRunningInvocations += 1
       
-      clusterRunning()
+      _clusterRunning
     }
     
-    override def startCluster(clusterConfig: ClusterConfig): Unit = {
-      startClusterInvocations.mutate(_ :+ clusterConfig)
+    override def startCluster(clusterConfig: ClusterConfig): Unit = lock.synchronized {
+      _startClusterInvocations = _startClusterInvocations :+ clusterConfig
       
-      clusterRunning := true
+      _clusterRunning = true
     }
   }
 }

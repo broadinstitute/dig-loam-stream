@@ -2,8 +2,8 @@ package loamstream.util
 
 import java.io.InputStream
 import scala.util.control.NonFatal
-import requests.RequestAuth
-import requests.Response
+import _root_.requests.RequestAuth
+import _root_.requests.Response
 import java.io.ByteArrayInputStream
 import java.io.Closeable
 
@@ -45,10 +45,13 @@ final class DefaultHttpClient extends HttpClient with Loggable {
     }
   }
   
-  override def getAsInputStream(url: String, auth: Option[HttpClient.Auth] = None): Either[String, (Terminable, InputStream)] = {
+  override def getAsInputStream(
+    url: String, 
+    auth: Option[HttpClient.Auth] = None): Either[Throwable, (Terminable, InputStream)] = {
+      
     trace(s"Invoking GET $url")
     
-    attempt(url) {
+    attemptT(url) {
       val client = (new okhttp3.OkHttpClient.Builder).authenticator(OkHttp.authenticator).build
       
       val baseReqBuilder = (new okhttp3.Request.Builder)
@@ -115,6 +118,14 @@ final class DefaultHttpClient extends HttpClient with Loggable {
       Right(a)
     } catch {
       case NonFatal(e) => Left(s"Couldn't download '${url}': ${e.getMessage}")
+    }
+  }
+
+  private def attemptT[A](url: String)(a: => A): Either[Throwable, A] = {
+    try {
+      Right(a)
+    } catch {
+      case NonFatal(e) => Left(new Exception(s"Couldn't download '${url}': ${e.getMessage}", e))
     }
   }
 }

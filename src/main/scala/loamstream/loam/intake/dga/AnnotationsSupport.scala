@@ -254,13 +254,6 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
           
           if(!result) {
             logCtx.warn(s"Could not access '${uri}', skipping it")
-            attempt match {
-              case Failure(e) => {
-                println(s"%%%%%%%%%%%%%%%%%%%% Could not access '${uri}': ${e.getMessage}")
-                e.printStackTrace()
-              } 
-              case Success(Left(message)) => println(s"%%%%%%%%%%%%%%%%%%%% Could not access '${uri}' due to: ${message}")
-            }
           }
            
           result
@@ -287,10 +280,7 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
           val result = annotation.downloads.iterator.map(_.url).exists(p)
           
           if(!result) {
-            println(s"%%%%%%%%%%%%% Annotation '${annotation.annotationId}' has no accessible .beds, skipping it")
             logCtx.warn(s"Annotation '${annotation.annotationId}' has no accessible .beds, skipping it")
-          } else {
-            println(s"%%%%%%%%%%%%% Annotation '${annotation.annotationId}' has accessible .beds, NOT skipping it")
           }
            
           result

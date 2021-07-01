@@ -193,7 +193,9 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       destParams: DestinationParams[R] = this.destParams, 
       rows: Source[DataRow] = this.rows,
       flipDetector: => FlipDetector = this.flipDetector,
-      toBeClosed: Set[Closeable] = this.toBeClosed): ViaTarget[R] = new ViaTarget(destParams, rows, flipDetector, toBeClosed) 
+      toBeClosed: Set[Closeable] = this.toBeClosed): ViaTarget[R] = {
+        new ViaTarget(destParams, rows, flipDetector, toBeClosed) 
+    }
     
     private def toFilterTransform(p: DataRowPredicate): DataRow => DataRow = { row =>
       if(row.isSkipped || p(row)) { row } else { row.skip }

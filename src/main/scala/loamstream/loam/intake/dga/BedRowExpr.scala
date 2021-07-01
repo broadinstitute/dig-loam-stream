@@ -114,7 +114,9 @@ object BedRowExpr {
     }
     val end = ColumnName("end").or(ColumnName("chromEnd")).asOptionWithNaValues.asLongOption
     
-    private val stateOrNameOpt: ColumnExpr[Option[String]] = ColumnName("state").or(ColumnName("name")).asOptionWithNaValues
+    private val stateOrNameOpt: ColumnExpr[Option[String]] = {
+      ColumnName("state").or(ColumnName("name")).asOptionWithNaValues
+    }
     
     // the annotation name needs to be harmonized (accessible chromatin is special!)
     val state: ColumnExpr[Option[String]] = {

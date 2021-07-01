@@ -13,7 +13,7 @@ trait HttpClient {
   
   def getAsBytes(url: String, auth: Option[HttpClient.Auth] = None): Either[String, Array[Byte]]
   
-  def getAsInputStream(url: String, auth: Option[HttpClient.Auth] = None): Either[String, (Terminable, InputStream)]
+  def getAsInputStream(url: String, auth: Option[HttpClient.Auth] = None): Either[Throwable, (Terminable, InputStream)]
   
   def contentLength(url: String, auth: Option[Auth] = None): Either[String, Long]
   

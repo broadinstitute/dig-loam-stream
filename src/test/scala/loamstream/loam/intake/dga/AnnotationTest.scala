@@ -158,7 +158,11 @@ final class AnnotationTest extends FunSuite with Loggable {
     val invalidExtension = "txt"
     val invalidAssemblyId = "GRCh38"
     
-    val d = Download(AssemblyIds.hg19, URI.create(s"http://example.com/foo.bed"), Annotation.Status.Released, md5Sum = "asdf")
+    val d = Download(
+      AssemblyIds.hg19, 
+      URI.create(s"http://example.com/foo.bed"), 
+      Annotation.Status.Released, 
+      md5Sum = "asdf")
     
     def isValidDownload(d: Download) = Annotation.isValidDownload(someAnnotationId)(d)
     

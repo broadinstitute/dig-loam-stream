@@ -13,6 +13,8 @@ sealed abstract class UploadType(val name: String, val s3Dir: String)
 object UploadType {
   case object Variants extends UploadType("variants", "variants")
   case object VariantCounts extends UploadType("variant_counts", "variant_counts")
+  //TODO: FIXME: totally arbitrary s3 dir
+  case object GeneLevel extends UploadType("gene_level", "genes")
   
   val values: Set[UploadType] = Set(Variants, VariantCounts)
   

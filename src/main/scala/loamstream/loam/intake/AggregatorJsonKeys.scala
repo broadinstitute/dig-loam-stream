@@ -5,6 +5,7 @@ package loamstream.loam.intake
  * 8 Mar, 2021
  */
 object AggregatorJsonKeys {
+  val gene = "gene"
   val varId = "varId"
   val chromosome = "chromosome"
   val position = "position"
@@ -22,6 +23,9 @@ object AggregatorJsonKeys {
   val stdErr = "stdErr"
   val zScore = "zScore"
   val n = "n"
+
+  val cases = "cases" //TODO: ???
+  val controls = "controls" //TODO: ???
 
   val alleleCount = "alleleCount"
   val alleleCountCases = "alleleCountCases"

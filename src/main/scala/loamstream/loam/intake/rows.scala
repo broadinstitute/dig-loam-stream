@@ -82,9 +82,7 @@ trait IndexedRow extends RowWithSize with RenderableRow {
   def values: Seq[Option[String]] = (0 until size).map(getFieldByIndex).map(Option(_))
 }
 
-sealed trait BaseVariantRow extends RenderableJsonRow { 
-  def marker: Variant 
-  
+sealed trait UploadableRow extends RenderableJsonRow {
   def dataset: String
   
   def phenotype: String
@@ -93,7 +91,63 @@ sealed trait BaseVariantRow extends RenderableJsonRow {
   
   def derivedFromRecordNumber: Option[Long]
   
-  protected def commonJson: Seq[(String, JValue)] = BaseVariantRow.commonJson(this)
+  protected def commonJson: Seq[(String, JValue)]
+}
+
+object UploadableRow {
+  def commonJson(row: UploadableRow): Seq[(String, JValue)] = {
+    import row._
+    
+    Seq(
+      AggregatorJsonKeys.dataset -> JString(dataset),
+      AggregatorJsonKeys.phenotype -> JString(phenotype),
+      AggregatorJsonKeys.ancestry -> JString(ancestry.name))
+  }
+}
+
+sealed trait BaseVariantRow extends UploadableRow { 
+  def marker: Variant 
+  
+  override protected def commonJson: Seq[(String, JValue)] = BaseVariantRow.commonJson(this)
+}
+
+final case class GeneLevelRow(
+  gene: Gene,
+  dataset: String,
+  phenotype: String,
+  ancestry: Ancestry,
+  cases: Option[Int],
+  controls: Option[Int],
+  pvalue: Option[Double],
+  oddsRatio: Option[Double],
+  derivedFromRecordNumber: Option[Long] = None) extends UploadableRow { 
+
+  override protected def commonJson: Seq[(String, JValue)] = GeneLevelRow.commonJson(this)
+
+  override def jsonValues: Seq[(String, JValue)] = GeneLevelRow.JsonSerializer(this)
+}
+
+object GeneLevelRow {
+  def commonJson(row: GeneLevelRow): Seq[(String, JValue)] = {
+    import row._
+    
+    (AggregatorJsonKeys.gene -> JString(gene.value)) +: UploadableRow.commonJson(row)
+  }
+
+  implicit object JsonSerializer extends Serializer[GeneLevelRow, Seq[(String, JValue)]] {
+    override def apply(row: GeneLevelRow): Seq[(String, JValue)] = {
+      import row._
+      import BaseVariantRow.toJson
+      
+      GeneLevelRow.commonJson(row) ++ //gene, dataset, phenotype, ancestry
+      Seq(
+        AggregatorJsonKeys.cases -> toJson(cases),
+        AggregatorJsonKeys.controls -> toJson(controls), 
+        AggregatorJsonKeys.pValue -> toJson(pvalue), 
+        AggregatorJsonKeys.oddsRatio -> toJson(oddsRatio), 
+      )
+    }
+  }
 }
 
 object BaseVariantRow {
@@ -115,10 +169,7 @@ object BaseVariantRow {
       AggregatorJsonKeys.position -> JLong(marker.pos),
       AggregatorJsonKeys.reference -> JString(marker.ref),
       AggregatorJsonKeys.alt -> JString(marker.alt),
-      AggregatorJsonKeys.multiAllelic -> JBool(marker.isMultiAllelic),
-      AggregatorJsonKeys.dataset -> JString(dataset),
-      AggregatorJsonKeys.phenotype -> JString(phenotype),
-      AggregatorJsonKeys.ancestry -> JString(ancestry.name))
+      AggregatorJsonKeys.multiAllelic -> JBool(marker.isMultiAllelic)) ++ UploadableRow.commonJson(row)
   }
   
   object Headers {

@@ -264,22 +264,22 @@ object VariantRowExpr extends Loggable {
           _.inferMaf,
           _.inferN)
           
-      inferenceFns.foldLeft(this) { (acc, f) => 
+      val inferred = inferenceFns.foldLeft(this) { (acc, f) => 
         f(acc)
       }
       
       def msg(column: String) = s"Column '${column}' wasn't defined and couldn't be computed from other columns"
       
-      require(nDef.isDefined, msg("n")) 
+      require(inferred.nDef.isDefined, msg("n")) 
     
       PValueRowColumnDefs(
-        zscoreDef = zscoreDef,
-        stderrDef = stderrDef,
-        betaDef = betaDef,
-        oddsRatioDef = oddsRatioDef,
-        eafDef = eafDef,
-        mafDef = mafDef,
-        nDef = nDef.get)
+        zscoreDef = inferred.zscoreDef,
+        stderrDef = inferred.stderrDef,
+        betaDef = inferred.betaDef,
+        oddsRatioDef = inferred.oddsRatioDef,
+        eafDef = inferred.eafDef,
+        mafDef = inferred.mafDef,
+        nDef = inferred.nDef.get)
     }
   }
 }

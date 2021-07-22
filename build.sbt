@@ -114,10 +114,50 @@ IntegrationTest / parallelExecution := false
 IntegrationTest / testOptions += Tests.Argument("-oFD")
 Test / testOptions += Tests.Argument("-oFD")
 
+//Mess with the merge strategy to achieve two things: a fat jar with a proper META-INF such that it can be run with java -jar,
+//and a working AWS SDK, which relies on config files being present under META-INF.
+//Many of the following lines were cribbed directly from Cromwell.  TODO: See which are actually needed and remove the rest.
 assembly / assemblyMergeStrategy := {
   {
-    case PathList("META-INF", xs @ _*) => MergeStrategy.discard
-    case _ => MergeStrategy.first
+    //Don't get tripped up by Monix's embedded scala.collection.compat classes :\
+    case PathList("scala", "collection", "compat", _*)                   => MergeStrategy.first
+    case PathList("scala", "util", _*)                                   => MergeStrategy.first
+    case PathList("scala", "annotation", _*)                                   => MergeStrategy.first
+    case x if x.endsWith("scala-collection-compat.properties")           => MergeStrategy.first
+    // AWS SDK v2 configuration files - can be discarded
+    case PathList(ps@_*) if Set("codegen.config" , "service-2.json" , "waiters-2.json" , "customization.config" , "examples-1.json" , "paginators-1.json").contains(ps.last) =>
+      MergeStrategy.discard
+    case x@PathList("META-INF", path@_*) =>
+      path map {
+        _.toLowerCase
+      } match {
+        case "spring.tooling" :: xs =>
+          MergeStrategy.discard
+        case "io.netty.versions.properties" :: Nil =>
+          MergeStrategy.first
+        case "maven" :: "com.google.guava" :: xs =>
+          MergeStrategy.first
+        case _ =>
+          val oldStrategy = (assembly / assemblyMergeStrategy).value
+          oldStrategy(x)
+      }
+    case x@PathList("OSGI-INF", path@_*) =>
+      path map {
+        _.toLowerCase
+      } match {
+        case "l10n" :: "bundle.properties" :: Nil =>
+          MergeStrategy.concat
+        case _ =>
+          val oldStrategy = (assembly / assemblyMergeStrategy).value
+          oldStrategy(x)
+      }
+    case "asm-license.txt" | "module-info.class" | "overview.html" | "cobertura.properties" =>
+      MergeStrategy.discard
+    case PathList("mime.types") =>
+      MergeStrategy.last
+    case x =>
+      val oldStrategy = (assembly / assemblyMergeStrategy).value
+      oldStrategy(x)
   }
 }
 

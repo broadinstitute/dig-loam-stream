@@ -52,6 +52,47 @@ final class RowFiltersTest extends FunSuite {
   import Helpers.withLogStore
   import Helpers.linesFrom
   
+  test("hasAllowedAlleles") {
+    withLogStore { logStore =>
+      import Filters.DataRowFilters
+      
+      val REF = ColumnName("REF")
+      val ALT = ColumnName("ALT")
+      
+      val rows = Helpers.csvRows(
+          Seq(REF.name, ALT.name, "FOO"),
+          Seq("D", "T", "42"),
+          Seq("G", "C", "42"),
+          Seq("D", "I", "42"),
+          Seq("A", "I", "42"),
+          Seq("A", "T", "42"))
+          
+      val predicate = DataRowFilters.hasAllowedAlleles(refColumn = REF, altColumn = ALT, logStore = logStore, append = true)
+      
+      val filtered = rows.filter(predicate)
+      
+      val actual = filtered.map(_.values.toIndexedSeq)
+      
+      val expected = Seq(
+          Seq("G", "C", "42").map(Option(_)),
+          Seq("A", "T", "42").map(Option(_)))
+     
+      assert(actual === expected)
+      
+      predicate.close()
+      
+      val logLines = linesFrom(logStore.path)
+      
+      assert(logLines.size === 3)
+      
+      //throw new Exception(logLines.toString)
+      
+      assert(logLines.containsOnce(s"(${REF.name},D),(${ALT.name},T),(FOO,42)"))
+      assert(logLines.containsOnce(s"(${REF.name},D),(${ALT.name},I),(FOO,42)"))
+      assert(logLines.containsOnce(s"(${REF.name},A),(${ALT.name},I),(FOO,42)"))
+    }
+  }
+
   test("noDsNorIs") {
     withLogStore { logStore =>
       import Filters.DataRowFilters
@@ -109,7 +150,7 @@ final class RowFiltersTest extends FunSuite {
       val predicate = DataRowFilters.filterRefAndAlt(
                                   refColumn = REF, 
                                   altColumn = ALT,
-                                  disallowed = Set("U", "V"),
+                                  p = !Set("U", "V").contains(_),
                                   logStore = logStore, 
                                   append = true)
       

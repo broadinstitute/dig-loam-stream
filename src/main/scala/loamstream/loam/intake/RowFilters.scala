@@ -14,6 +14,28 @@ trait RowFilters { self: IntakeSyntax =>
   }.mkString(",")
   
   object DataRowFilters {
+    /**
+     * Pass rows with only allowed alleles (BPs, sequences of BPs, optionally comma-seperated)
+     */
+    def hasAllowedAlleles(
+        refColumn: ColumnExpr[String], 
+        altColumn: ColumnExpr[String],
+        logStore: Store,
+        append: Boolean = false): CloseableDataRowPredicate = {
+      
+      hasAllowedAlleles(refColumn, altColumn)(Log.toFile(logStore, append))
+    }
+
+    /**
+     * Pass rows with only allowed alleles (BPs, sequences of BPs, optionally comma-seperated)
+     */
+    def hasAllowedAlleles(
+      refColumn: ColumnExpr[String], 
+      altColumn: ColumnExpr[String])(implicit logCtx: ToFileLogContext): CloseableDataRowPredicate = {
+      
+      filterRefAndAlt(refColumn, altColumn, Alleles.areAllowedAlleles)(logCtx)
+    }
+
     private val di: Set[String] = Set("D", "I")
     
     /**
@@ -24,6 +46,7 @@ trait RowFilters { self: IntakeSyntax =>
         altColumn: ColumnExpr[String],
         logStore: Store,
         append: Boolean = false): CloseableDataRowPredicate = {
+
       noDsNorIs(refColumn, altColumn)(Log.toFile(logStore, append))
     }
     
@@ -34,7 +57,7 @@ trait RowFilters { self: IntakeSyntax =>
         refColumn: ColumnExpr[String], 
         altColumn: ColumnExpr[String])(implicit logCtx: ToFileLogContext): CloseableDataRowPredicate = {
       
-      filterRefAndAlt(refColumn, altColumn, di)(logCtx)
+      filterRefAndAlt(refColumn, altColumn, !di.contains(_))(logCtx)
     }
     
     /**
@@ -43,11 +66,11 @@ trait RowFilters { self: IntakeSyntax =>
     def filterRefAndAlt(
         refColumn: ColumnExpr[String], 
         altColumn: ColumnExpr[String],
-        disallowed: Set[String],
+        p: String => Boolean,
         logStore: Store,
         append: Boolean = false): CloseableDataRowPredicate = {
       
-      filterRefAndAlt(refColumn, altColumn, disallowed)(Log.toFile(logStore, append))
+      filterRefAndAlt(refColumn, altColumn, p)(Log.toFile(logStore, append))
     }
     
     /**
@@ -56,17 +79,14 @@ trait RowFilters { self: IntakeSyntax =>
     def filterRefAndAlt(
         refColumn: ColumnExpr[String], 
         altColumn: ColumnExpr[String],
-        disallowed: Set[String])(implicit logCtx: ToFileLogContext): CloseableDataRowPredicate = {
-      
-      def isAllowed(s: String): Boolean = !disallowed.contains(s)
+        p: String => Boolean)(implicit logCtx: ToFileLogContext): CloseableDataRowPredicate = {
       
       ConcreteCloseablePredicate[DataRow](logCtx) { row => 
-        val valid = isAllowed(refColumn(row)) && isAllowed(altColumn(row))
+        val valid = p(refColumn(row)) && p(altColumn(row))
         
         if(!valid) {
           logCtx.warn {
-            s"Row #${row.recordNumber} ${asString(row)} contains a disallowed value from ${disallowed} " +
-            s"in ${refColumn} or ${altColumn}"
+            s"Row #${row.recordNumber} ${asString(row)} contains a disallowed value in $refColumn or $altColumn "
           }
         }
         

@@ -104,7 +104,7 @@ object UkbbDietaryGwas extends loamstream.LoamFile {
         metadata = ???).
       from(source).
       using(flipDetector).
-      via(toAggregatorRows).
+      via(toAggregatorRows, filterLog, append = true).
       filter(AggregatorVariantRowFilters.validEaf(filterLog, append = true)).
       filter(AggregatorVariantRowFilters.validMaf(filterLog, append = true)).
       map(DataRowTransforms.clampPValues(filterLog, append = true)).

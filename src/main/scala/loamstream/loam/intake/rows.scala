@@ -7,6 +7,7 @@ import scala.util.Failure
 import scala.util.Try
 import org.json4s.JsonAST._
 import scala.collection.mutable.ListBuffer
+import scala.util.Success
 
 
 /**
@@ -294,6 +295,8 @@ object PValueVariantRow {
  * Dec 1, 2020
  */
 object VariantRow {
+  final case class CouldNotBeTagged(delegate: DataRow)
+
   final case class Tagged(
       delegate: DataRow,
       marker: Variant,
@@ -323,7 +326,7 @@ object VariantRow {
   }
   
   sealed trait Parsed[R <: BaseVariantRow] extends DataRow {
-    val derivedFrom: Tagged
+    val derivedFrom: Either[DataRow, Tagged]
     
     def aggRowOpt: Option[R]
     
@@ -331,29 +334,38 @@ object VariantRow {
     
     def transform(f: R => R): Parsed[R]
     
-    final def isFlipped: Boolean = derivedFrom.isFlipped
-    final def notFlipped: Boolean = derivedFrom.notFlipped
+    private def upstreamRow: DataRow = derivedFrom match {
+      case Left(dataRow) => dataRow
+      case Right(tagged) => tagged.delegate
+    }
+
+    override def headers: Seq[String] = upstreamRow.headers
     
-    final def isSameStrand: Boolean = derivedFrom.isSameStrand
-    final def isComplementStrand: Boolean = derivedFrom.isComplementStrand
+    override def hasField(name: String): Boolean = upstreamRow.hasField(name)
     
-    override def headers: Seq[String] = derivedFrom.headers
+    override def getFieldByName(name: String): String = upstreamRow.getFieldByName(name)
     
-    override def hasField(name: String): Boolean = derivedFrom.hasField(name)
+    override def getFieldByIndex(i: Int): String = upstreamRow.getFieldByIndex(i)
     
-    override def getFieldByName(name: String): String = derivedFrom.getFieldByName(name)
+    override def size: Int = upstreamRow.size
     
-    override def getFieldByIndex(i: Int): String = derivedFrom.getFieldByIndex(i)
-    
-    override def size: Int = derivedFrom.size
-    
-    override def recordNumber: Long = derivedFrom.recordNumber
+    override def recordNumber: Long = upstreamRow.recordNumber
   }
   
   final case class Transformed[R <: BaseVariantRow](
-      derivedFrom: Tagged,
+      derivedFrom: Right[DataRow, Tagged],
       aggRow: R) extends Parsed[R] {
     
+    require(tagged.notSkipped)
+
+    def tagged: Tagged = derivedFrom.value
+
+    def isFlipped: Boolean = tagged.isFlipped
+    def notFlipped: Boolean = tagged.notFlipped
+    
+    def isSameStrand: Boolean = tagged.isSameStrand
+    def isComplementStrand: Boolean = tagged.isComplementStrand
+
     override def aggRowOpt: Option[R] = Some(aggRow)
     
     override def isSkipped: Boolean = false
@@ -364,7 +376,7 @@ object VariantRow {
   }
   
   final case class Skipped[R <: BaseVariantRow](
-      derivedFrom: Tagged, 
+      derivedFrom: Either[DataRow, Tagged], 
       aggRowOpt: Option[R],
       message: Option[String] = None,
       cause: Option[Failure[Parsed[R]]] = None) extends Parsed[R] {

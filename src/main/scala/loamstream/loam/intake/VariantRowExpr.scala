@@ -24,23 +24,27 @@ sealed trait VariantRowExpr[R <: BaseVariantRow] extends TaggedRowParser[Variant
   
   protected def makeRow(row: VariantRow.Tagged): R
   
-  override def apply(row: VariantRow.Tagged): VariantRow.Parsed[R] = { 
-    def skipped(cause: Option[Failure[VariantRow.Parsed[R]]]) = VariantRow.Skipped(row, aggRowOpt = None, cause = cause)
+  override def apply(rowAttempt: Either[DataRow, VariantRow.Tagged]): VariantRow.Parsed[R] = { 
+    def skipped(cause: Option[Failure[VariantRow.Parsed[R]]]) = {
+      VariantRow.Skipped(rowAttempt, aggRowOpt = None, cause = cause)
+    }
         
-    def transformed(row: VariantRow.Tagged): VariantRow.Transformed[R] = {
+    def transformed(tagged: VariantRow.Tagged): VariantRow.Transformed[R] = {
+      require(tagged.notSkipped)
+
       VariantRow.Transformed(
-        derivedFrom = row, 
-        aggRow = makeRow(row))
+        derivedFrom = Right(tagged), 
+        aggRow = makeRow(tagged))
     }
     
-    if(row.isSkipped) {
-      skipped(cause = None)
-    } else {
-      val attempt: Try[VariantRow.Parsed[R]] = Try(transformed(row))
-      
-      attempt match {
-        case Success(r) => r
-        case f @ Failure(_) => if(failFast) attempt.get else attempt.getOrElse(skipped(Some(f)))
+    rowAttempt match {
+      case Left(dataRow) => skipped(cause = None)
+      case Right(tagged) if tagged.isSkipped => skipped(cause = None)
+      case Right(tagged) => {
+        Try(transformed(tagged)) match {
+          case Success(transformedRow) => transformedRow
+          case f @ Failure(_) => if(failFast) f.get else skipped(Some(f))
+        }
       }
     }
   }

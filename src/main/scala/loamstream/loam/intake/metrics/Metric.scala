@@ -92,11 +92,11 @@ object Metric {
     def isFlipped(sourceRow: VariantRow.Tagged): Boolean = sourceRow.disposition.isFlipped
     
     val agreesFn: VariantRow.Parsed[R] => Boolean = { 
-      case VariantRow.Transformed(
-          sourceRow, 
+      case tr @ VariantRow.Transformed(
+          _, 
           WithMarkerZSeBeta(marker, Some(z), Some(se), Some(beta))) => {
             
-        if(isFlipped(sourceRow)) {
+        if(isFlipped(tr.tagged)) {
           agrees(z, -(beta / se))
         } else {
           agrees(z, beta / se)
@@ -132,17 +132,24 @@ object Metric {
     type Counts = Map[String, Int]
     
     def doAdd(acc: Counts, elem: VariantRow.Parsed[R]): Counts = {
-      if(elem.notSkipped || countSkipped) {
-        import elem.derivedFrom.marker.chrom
-        
-        val newCount = acc.get(chrom) match {
-          case Some(count) => count + 1
-          case None => 1
+      elem.derivedFrom match {
+        // we can't count this kind of skipped row, since it was skipped before a marker 
+        // was computed from it, so we can't know which chromosome to assign the count to.
+        case Left(_) => acc 
+        case Right(tagged) => {
+          if(tagged.notSkipped || countSkipped) {
+            import tagged.marker.chrom
+            
+            val newCount = acc.get(chrom) match {
+              case Some(count) => count + 1
+              case None => 1
+            }
+            
+            acc + (chrom -> newCount)
+          } else {
+            acc
+          }
         }
-        
-        acc + (chrom -> newCount)
-      } else {
-        acc
       }
     }
     
@@ -151,9 +158,15 @@ object Metric {
     Fold.apply[VariantRow.Parsed[R], Counts, Counts](startingCounts, doAdd, identity)
   }
   
-  def countFlipped[R <: BaseVariantRow]: Metric[R, Int] = Fold.countIf(_.isFlipped)
+  def countFlipped[R <: BaseVariantRow]: Metric[R, Int] = Fold.countIf {
+    case t: VariantRow.Transformed[R] => t.isFlipped
+    case _ => false
+  }
   
-  def countComplemented[R <: BaseVariantRow]: Metric[R, Int] = Fold.countIf(_.isComplementStrand)
+  def countComplemented[R <: BaseVariantRow]: Metric[R, Int] = Fold.countIf {
+    case t: VariantRow.Transformed[R] => t.isComplementStrand
+    case _ => false
+  }
   
   def countSkipped[R <: BaseVariantRow]: Metric[R, Int] = Fold.countIf(_.isSkipped)
   

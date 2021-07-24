@@ -35,13 +35,13 @@ package object intake {
   
   type CloseableDataRowTransform = CloseableTransform[DataRow]
   
-  type TaggedRowParser[A] = VariantRow.Tagged => A
+  type TaggedRowParser[A] = Either[DataRow, VariantRow.Tagged] => A
   
-  type TaggedRowPredicate = Predicate[VariantRow.Tagged]
+  type TaggedRowPredicate = Predicate[Either[DataRow, VariantRow.Tagged]]
   
-  type CloseableTaggedRowPredicate = CloseablePredicate[VariantRow.Tagged]
+  type CloseableTaggedRowPredicate = CloseablePredicate[Either[DataRow, VariantRow.Tagged]]
   
-  type TaggedRowTransform = Transform[VariantRow.Tagged]
+  type TaggedRowTransform = Transform[Either[DataRow, VariantRow.Tagged]]
   
   type CloseableTaggedRowTransform = CloseableTransform[VariantRow.Tagged] 
     

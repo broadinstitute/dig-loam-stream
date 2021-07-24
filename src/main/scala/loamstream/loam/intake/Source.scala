@@ -20,6 +20,7 @@ import loamstream.loam.intake.flip.FlipDetector
 import scala.util.Try
 import org.json4s.JsonAST.JValue
 import org.json4s.JsonAST.JObject
+import loamstream.util.LogContext
 
 /**
  * @author clint
@@ -48,22 +49,38 @@ sealed trait Source[R] {
   
   def tagFlips(
       markerDef: MarkerColumnDef, 
-      flipDetector: => FlipDetector)(implicit ev: R <:< DataRow): Source[VariantRow.Tagged] = {
+      flipDetector: => FlipDetector)
+     (implicit ev: R <:< DataRow, logCtx: LogContext): Source[Either[DataRow, VariantRow.Tagged]] = {
     
     lazy val actualFlipDetector = flipDetector
     
     this.map(ev).map { row =>
-      val originalMarker = markerDef.apply(row)
-    
-      val disposition = actualFlipDetector.isFlipped(originalMarker)
-    
-      val newMarker = originalMarker.flipIf(disposition.isFlipped).complementIf(disposition.isComplementStrand)
-      
-      VariantRow.Tagged(
-          delegate = row, 
-          marker = newMarker,
-          originalMarker = originalMarker, 
-          disposition = disposition)
+      def skipRow: Either[DataRow, VariantRow.Tagged] = {
+        logCtx.warn(s"Couldn't parse variant id from row #${row.recordNumber}: '${RowFilters.asString(row)}'; " +
+                       "check ref and alt columns")
+
+        Left(row)
+      }
+
+      if(row.isSkipped) { skipRow }
+      else {
+        //TODO: fail fast flag?
+        Try {
+          val originalMarker = markerDef.apply(row)
+        
+          val disposition = actualFlipDetector.isFlipped(originalMarker)
+        
+          val newMarker = originalMarker.flipIf(disposition.isFlipped).complementIf(disposition.isComplementStrand)
+          
+          VariantRow.Tagged(
+              delegate = row, 
+              marker = newMarker,
+              originalMarker = originalMarker, 
+              disposition = disposition)
+        }.map(Right(_)).getOrElse {
+          skipRow
+        }
+      }
     }
   }
   

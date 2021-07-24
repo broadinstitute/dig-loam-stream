@@ -193,7 +193,9 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       toBeClosed: Seq[Closeable] = this.toBeClosed): ViaTarget = new ViaTarget(rowSink, rows, flipDetector, toBeClosed) 
     
     private def toFilterTransform(p: DataRowPredicate): DataRow => DataRow = { row =>
-      if(row.isSkipped || p(row)) { row } else { row.skip }
+      println(s"Processing row #${row.recordNumber} skipped? ${row.isSkipped}" )
+
+      if(row.isSkipped || p(row)) { row } else { println(s"Skipping row #${row.recordNumber}" ) ; row.skip }
     }
     
     def filter(p: DataRowPredicate): ViaTarget = {
@@ -214,7 +216,13 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       }
     }
     
-    def via[R <: BaseVariantRow](expr: VariantRowExpr[R]): MapFilterAndWriteTarget[R, Unit] = {
+    def via[R <: BaseVariantRow](
+      expr: VariantRowExpr[R], 
+      logStore: Store, 
+      append: Boolean = false): MapFilterAndWriteTarget[R, Unit] = {
+        
+      implicit val logCtx = Log.toFile(logStore, append)
+
       val dataRows = rows.tagFlips(expr.markerDef, flipDetector).map(expr)
       
       val pseudoMetric: Metric[R, Unit] = Fold.foreach(_ => ()) // TODO :(

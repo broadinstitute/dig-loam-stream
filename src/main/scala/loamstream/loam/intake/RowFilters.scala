@@ -6,12 +6,15 @@ import loamstream.model.Store
  * @author clint
  * Oct 14, 2020
  */
-trait RowFilters { self: IntakeSyntax =>
-  
-  private def asString(r: RenderableRow): String = r.headers.iterator.zip(r.values.iterator).map { 
+object RowFilters {
+  private[intake] def asString(r: RenderableRow): String = r.headers.iterator.zip(r.values.iterator).map { 
     case (h, Some(v)) => s"(${h},${v})"
     case (h, None) => s"(${h},.)"
   }.mkString(",")
+}
+
+trait RowFilters { self: IntakeSyntax =>
+  import RowFilters._
   
   object DataRowFilters {
     /**

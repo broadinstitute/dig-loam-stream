@@ -93,6 +93,24 @@ final class RowFiltersTest extends FunSuite {
     }
   }
 
+  test("hasAllowedAlleles - bad row") {
+    withLogStore { logStore => 
+      val shouldBeFilteredOut = Seq(
+        "chr pos ref alt eaf n beta stderr pvalue",
+        "1 248154501 A <CN0> 0.0559827 56637 0.0216748 0.0299396 0.469495").mkString(System.lineSeparator)
+
+      val source = Source.fromString(shouldBeFilteredOut, Source.Formats.spaceDelimitedWithHeader)
+
+      val filter = IntakeSyntax.DataRowFilters.hasAllowedAlleles(
+        refColumn = ColumnName("ref"),
+        altColumn = ColumnName("alt"),
+        logStore = logStore,
+        append = true)
+
+      assert(source.filter(filter).records.hasNext === false)
+    }
+  }
+
   test("noDsNorIs") {
     withLogStore { logStore =>
       import Filters.DataRowFilters

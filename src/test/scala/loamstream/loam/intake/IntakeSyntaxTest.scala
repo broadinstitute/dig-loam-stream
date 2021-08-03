@@ -159,6 +159,8 @@ final class IntakeSyntaxTest extends FunSuite {
     TestHelpers.withScriptContext { implicit context =>
       import LoamSyntax._
       
+      import loamstream.util.LogContext.Implicits.Noop
+
       val source = mapSource.tagFlips(markerDef, Helpers.FlipDetectors.NoFlipsEver).map(expr)
           
       val target = new MapFilterAndWriteTarget[PValueVariantRow, Unit](
@@ -179,7 +181,8 @@ final class IntakeSyntaxTest extends FunSuite {
   test("MapFilterAndWriteTarget - filter - no rows already skipped") {
     TestHelpers.withScriptContext { implicit context =>
       import LoamSyntax._
-      
+      import loamstream.util.LogContext.Implicits.Noop
+
       val source = mapSource.tagFlips(markerDef, Helpers.FlipDetectors.NoFlipsEver).map(expr)
           
       val target = new MapFilterAndWriteTarget[PValueVariantRow, Unit](
@@ -208,7 +211,8 @@ final class IntakeSyntaxTest extends FunSuite {
   test("MapFilterAndWriteTarget - filter - some rows already skipped") {
     TestHelpers.withScriptContext { implicit context =>
       import LoamSyntax._
-      
+      import loamstream.util.LogContext.Implicits.Noop
+
       //Source with first 2 rows already skipped
       val source = {
         val orig = mapSource.tagFlips(markerDef, Helpers.FlipDetectors.NoFlipsEver).map(expr)
@@ -240,6 +244,7 @@ final class IntakeSyntaxTest extends FunSuite {
   test("MapFilterAndWriteTarget - map") {
     TestHelpers.withScriptContext { implicit context =>
       import LoamSyntax._
+      import loamstream.util.LogContext.Implicits.Noop
       
       //Source with first 2 rows already skipped
       val source = {
@@ -282,6 +287,7 @@ final class IntakeSyntaxTest extends FunSuite {
       
       TestHelpers.withScriptContext { implicit context =>
         import LoamSyntax._
+        import loamstream.util.LogContext.Implicits.Noop
         
         //Source with first 2 rows already skipped
         val source = {
@@ -340,6 +346,7 @@ ${v3.underscoreDelimited}${'\t'}1.4${'\t'}42.0""".trim
       
       TestHelpers.withScriptContext(DrmSystem.Uger) { implicit context =>
         import LoamSyntax._
+        import loamstream.util.LogContext.Implicits.Noop
         
         val source = mapSource.tagFlips(markerDef, Helpers.FlipDetectors.NoFlipsEver).map(expr)
             

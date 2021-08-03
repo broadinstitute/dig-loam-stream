@@ -46,16 +46,17 @@ final class AggregatorRowExprTest extends FunSuite {
     
     val csvRow = Helpers.csvRow()
         
-    val row = VariantRow.Tagged(
-        delegate = csvRow,
+    val row = VariantRow.Analyzed.Tagged(
+        derivedFrom = csvRow,
         marker = v,
         originalMarker = v,
         disposition = Disposition.NotFlippedSameStrand)
         
     val actual = expr(row)
     
-    val expected = VariantRow.Transformed(
-        derivedFrom = row,
+    val expected = VariantRow.Parsed.Transformed(
+        derivedFrom = row.derivedFrom,
+        derivedFromTagged = row,
         aggRow = PValueVariantRow(
           marker = v,
           pvalue = 1.2D,
@@ -105,6 +106,8 @@ final class AggregatorRowExprTest extends FunSuite {
           Seq("1_2_A_T", "42"),
           Seq("1_3_A_T", "42"))
           
+      import loamstream.util.LogContext.Implicits.Noop
+
       val dataRows = Source.
                         fromIterable(inputWithoutBetaColumn).
                         tagFlips(markerDef, Helpers.FlipDetectors.NoFlipsEver).
@@ -153,6 +156,8 @@ final class AggregatorRowExprTest extends FunSuite {
           Seq("1_2_A_T", "42"),
           Seq("1_3_A_T", "42"))
           
+    import loamstream.util.LogContext.Implicits.Noop
+
     val skippedDataRows = Source.
                             fromIterable(input).
                             tagFlips(markerDef, Helpers.FlipDetectors.NoFlipsEver).

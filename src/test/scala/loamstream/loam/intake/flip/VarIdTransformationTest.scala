@@ -60,6 +60,8 @@ final class VarIdTransformationTest extends FunSuite {
     val rows = Source.fromString(s"""|${varIdColumnName.name}
                                      |${v.underscoreDelimited}""".stripMargin)
     
+    import loamstream.util.LogContext.Implicits.Noop
+
     val dataRows = rows.tagFlips(varIdDef, flipDetector).map(toAggregatorRow).records.toIndexedSeq
     
     assert(dataRows.size === 1)
@@ -77,6 +79,8 @@ final class VarIdTransformationTest extends FunSuite {
       }
     }
     
+    import loamstream.util.LogContext.Implicits.Noop
+
     val dataRows = source.tagFlips(varIdDef, flipDetector).map(toAggregatorRow)
     
     val actualVarIds = dataRows.map(_.aggRowOpt.get.asInstanceOf[PValueVariantRow].marker)

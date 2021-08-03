@@ -62,6 +62,8 @@ final class MetricTest extends FunSuite {
   private val markerDef = AnonColumnDef(Marker, Marker)
   private val markerVariantDef = MarkerColumnDef(AggregatorColumnNames.marker, Marker.map(Variant.from))
   
+  import loamstream.util.LogContext.Implicits.Noop
+
   private val defaultRowExpr: PValueVariantRowExpr = PValueVariantRowExpr(
       metadata = metadata,
       markerDef = markerVariantDef,
@@ -74,6 +76,16 @@ final class MetricTest extends FunSuite {
   
   private val zeroedChromosomeCounts: Map[String, Int] = Chromosomes.names.map(_ -> 0).toMap                            
                             
+  private def shouldBeSkipped[R <: BaseVariantRow](
+    skipped: Set[Variant])(row: VariantRow.Parsed[R], field: VariantRow.Analyzed.Tagged => Variant): Boolean = {
+    row.isSkipped || {
+      row.derivedFromAnalyzed match {
+        case Some(tagged: VariantRow.Analyzed.Tagged) => skipped.contains(field(tagged))
+        case _ => false
+      }
+    }
+  }
+
   test("countGreaterThan") {
     val gt2 = Metric.countGreaterThan[PValueVariantRow](_.aggRow.pvalue)(2)
     val gt4 = Metric.countGreaterThan[PValueVariantRow](_.aggRow.pvalue)(4)
@@ -310,7 +322,7 @@ final class MetricTest extends FunSuite {
       val flipDetector = Helpers.FlipDetectors.NoFlipsEver
           
       val rows = source.tagFlips(markerDef, flipDetector).map(toAggregatorFormat).map { row =>
-        if(skipped.contains(row.derivedFrom.marker)) row.skip else row
+        if(shouldBeSkipped(skipped)(row, _.marker)) row.skip else row
       }
       
       val m = Metric.countByChromosome[PValueVariantRow](countSkipped = countSkipped)
@@ -453,7 +465,7 @@ final class MetricTest extends FunSuite {
     val skipped = Set(v1, v4)
         
     val rows = source.tagFlips(markerDef, flipDetector).map(toAggregatorFormat).map { row =>
-      if(skipped.contains(row.derivedFrom.originalMarker)) row.skip else row
+      if(shouldBeSkipped(skipped)(row, _.originalMarker)) row.skip else row
     }
         
     val expected = SummaryStats(
@@ -502,7 +514,7 @@ final class MetricTest extends FunSuite {
     val skipped = Set(v1, v4)
         
     val rows = source.tagFlips(markerDef, flipDetector).map(toAggregatorFormat).map { row =>
-      if(skipped.contains(row.derivedFrom.originalMarker)) row.skip else row
+      if(shouldBeSkipped(skipped)(row, _.originalMarker)) row.skip else row
     }
         
     val expected = SummaryStats(
@@ -548,7 +560,7 @@ final class MetricTest extends FunSuite {
     val skipped = Set(Vars.y, Vars.a).map(Variant.from)
     
     val rows = source.tagFlips(markerDef, flipDetector).map(toAggregatorFormat).map { row =>
-      if(skipped.contains(row.derivedFrom.marker)) row.skip else row
+      if(shouldBeSkipped(skipped)(row, _.marker)) row.skip else row
     }
                       
     def makeRow(variant: Variant, pvalue: Double, derivedFromRecordNumber: Option[Long]) = {

@@ -15,27 +15,27 @@ final class VariantRowTest extends FunSuite with CsvRowTest.RowHelpers {
     def doTest(disp: Disposition): Unit = {
       val marker = Variant.from("1_12345_A_T")
       
-      val tagged = VariantRow.Tagged(delegate, marker, marker, disp)
+      val tagged = VariantRow.Analyzed.Tagged(delegate, marker, marker, disp)
       
       assert(tagged.isSkipped === false)
       assert(tagged.notSkipped === true)
       
-      assert(tagged.delegate eq delegate)
+      assert(tagged.derivedFrom eq delegate)
       
       assert(tagged.isFlipped === disp.isFlipped)
       assert(tagged.notFlipped === disp.notFlipped)
       assert(tagged.isSameStrand === disp.isSameStrand)
       assert(tagged.isComplementStrand === disp.isComplementStrand)
       
-      assert(tagged.size === delegate.size)
+      assert(tagged.derivedFrom.size === delegate.size)
       
-      assert(tagged.values.to(List) === delegate.values.to(List))
+      assert(tagged.derivedFrom.values.to(List) === delegate.values.to(List))
       
-      assert(tagged.recordNumber === delegate.recordNumber)
+      assert(tagged.derivedFrom.recordNumber === delegate.recordNumber)
       
-      assert(tagged.getFieldByIndex(0) === "1")
-      assert(tagged.getFieldByIndex(1) === "hello")
-      assert(tagged.getFieldByIndex(2) === "blah_123")
+      assert(tagged.derivedFrom.getFieldByIndex(0) === "1")
+      assert(tagged.derivedFrom.getFieldByIndex(1) === "hello")
+      assert(tagged.derivedFrom.getFieldByIndex(2) === "blah_123")
       
       val skipped = tagged.skip
       
@@ -44,7 +44,7 @@ final class VariantRowTest extends FunSuite with CsvRowTest.RowHelpers {
       assert(skipped.isSkipped === true)
       assert(skipped.notSkipped === false)
       
-      assert(skipped.values.to(List) === tagged.values.to(List))
+      assert(skipped.derivedFrom.values.to(List) === tagged.derivedFrom.values.to(List))
     }
     
     doTest(Disposition.FlippedComplementStrand)
@@ -60,22 +60,23 @@ final class VariantRowTest extends FunSuite with CsvRowTest.RowHelpers {
       
     val disp = Disposition.FlippedSameStrand
     
-    val tagged = VariantRow.Tagged(delegate, marker, marker, disp)
+    val tagged = VariantRow.Analyzed.Tagged(delegate, marker, marker, disp)
     
     val dataRow = PValueVariantRow(marker, 42.0, dataset = "asd", phenotype = "fdg", ancestry = Ancestry.AA, n = 42)
     
-    val transformed = VariantRow.Transformed(tagged, dataRow)
+    val transformed = VariantRow.Parsed.Transformed(tagged.derivedFrom, tagged, dataRow)
     
     assert(transformed.isSkipped === false)
     
-    assert(transformed.skip === VariantRow.Skipped(tagged, Some(dataRow)))
+    assert(transformed.skip === VariantRow.Parsed.Skipped(tagged.derivedFrom, Some(tagged), Some(dataRow)))
     
     def incPvalue(dr: PValueVariantRow): PValueVariantRow = dr.copy(pvalue = dr.pvalue + 1.0) 
     
     val furtherTransformed = transformed.transform(incPvalue)
     
     {
-      val expected = VariantRow.Transformed(
+      val expected = VariantRow.Parsed.Transformed(
+          tagged.derivedFrom,
           tagged, 
           PValueVariantRow(marker, 43.0, dataset = "asd", phenotype = "fdg", ancestry = Ancestry.AA, n = 42))
 
@@ -90,12 +91,12 @@ final class VariantRowTest extends FunSuite with CsvRowTest.RowHelpers {
       
     val disp = Disposition.FlippedSameStrand
     
-    val tagged = VariantRow.Tagged(delegate, marker, marker, disp)
+    val tagged = VariantRow.Analyzed.Tagged(delegate, marker, marker, disp)
     
     val dataRow = PValueVariantRow(marker, 42.0, dataset = "asd", phenotype = "fdg", ancestry = Ancestry.AA, n = 42)
     
     def doTest(dataRowOpt: Option[PValueVariantRow]): Unit = {
-      val skipped = VariantRow.Skipped(tagged, dataRowOpt)
+      val skipped = VariantRow.Parsed.Skipped(tagged.derivedFrom, Some(tagged), dataRowOpt)
       
       def incPvalue(dr: PValueVariantRow): PValueVariantRow = dr.copy(pvalue = dr.pvalue + 1.0)
       

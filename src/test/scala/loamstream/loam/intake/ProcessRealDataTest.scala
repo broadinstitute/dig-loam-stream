@@ -100,7 +100,7 @@ final class ProcessRealDataTest extends FunSuite with Loggable {
         uploadTo(rowSink).
           from(source).
           using(flipDetector).
-          via(toAggregatorRows).
+          via(toAggregatorRows, logStore = filterLog, append = true).
           filter(AggregatorVariantRowFilters.validEaf(filterLog, append = true)).
           filter(AggregatorVariantRowFilters.validMaf(filterLog, append = true)).
           filter(AggregatorVariantRowFilters.validPValue(filterLog, append = true)).

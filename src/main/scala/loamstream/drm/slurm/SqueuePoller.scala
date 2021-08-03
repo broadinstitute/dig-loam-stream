@@ -22,6 +22,7 @@ import loamstream.util.Options
 import scala.util.Success
 import loamstream.drm.DrmSystem
 import loamstream.util.FileMonitor
+import scala.util.Failure
 
 /**
  * @author clint
@@ -47,8 +48,9 @@ final class SqueuePoller private[slurm] (
     
     val outputLines = runResults.stdout
     
-    val statusAttemptsById = outputLines.iterator.map(SqueuePoller.parseDataLine).map { //TODO 
-      case Success((drmTaskId, drmStatus)) => (drmTaskId, Success(drmStatus))
+    val statusAttemptsById = outputLines.iterator.map(SqueuePoller.parseDataLine).flatMap { //TODO 
+      case Success(pollResults) => pollResults.map { case (drmTaskId, drmStatus) => (drmTaskId, Success(drmStatus)) }
+      case Failure(e) => throw new Exception(s"Error parsing ${commandName} output: looking for ids: ${idsWereLookingFor}; runResults: ${runResults}", e)
     }.toMap
     
     PollResultsForInvocation(runResults, statusAttemptsById)
@@ -90,7 +92,7 @@ object SqueuePoller extends RateLimitedPoller.Companion[Iterable[DrmTaskId], Squ
       drmTaskIds.iterator.map(taskIdToString).mkString(","))
   }
       
-  private[slurm] def parseDataLine(line: String): Try[PollResult] = {
+  private[slurm] def parseDataLine(line: String): Try[Iterable[PollResult]] = {
     val parts = line.trim.split("\\|").filter(_.nonEmpty)
     
     parts match {
@@ -98,22 +100,16 @@ object SqueuePoller extends RateLimitedPoller.Companion[Iterable[DrmTaskId], Squ
         import SlurmStatus._
         
         for {
-          drmTaskId <- parseDrmTaskId(jobIdPart)
+          drmTaskIds <- SlurmDrmTaskId.parseDrmTaskIds(jobIdPart)
           status <- (tryFromShortName(statusPart) orElse tryFromFullName(statusPart))
-        } yield drmTaskId -> status.drmStatus
+        } yield {
+          //TODO: Does Slurm really report multiple jobs with the same status?
+          drmTaskIds.map(_ -> status.drmStatus)
+        }
       }
       case _ => Tries.failure(s"Couldn't parse data line: '${line}' (split into ${parts})")
     }
   }
   
-  private object Regexes {
-    val jobAndTaskIndex = "^(\\d+)_(\\d+)$".r
-    val jobId = "^(\\d+)$".r
-  }
   
-  private[slurm] def parseDrmTaskId(s: String): Try[DrmTaskId] = s.trim match {
-    case Regexes.jobAndTaskIndex(jobId, taskIndex) => Success(DrmTaskId(jobId, taskIndex.toInt))
-    //case Regexes.jobId(jobId) => Success(DrmTaskId(jobId, 0)) //TODO
-    case _ => Tries.failure(s"Couldn't parse DrmTaskId from '$s'")
-  }
 }

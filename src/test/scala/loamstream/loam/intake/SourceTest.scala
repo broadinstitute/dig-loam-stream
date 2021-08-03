@@ -143,6 +143,8 @@ final class SourceTest extends FunSuite {
   private val m2 = Variant.from("2_1_T_C")
   private val m3 = Variant.from("2_2_C_G")
   
+  import loamstream.util.LogContext.Implicits.Noop
+
   test("tagFlips - no flips, no complements") {
     val rowData: Seq[Seq[String]] = Seq(
         /* 0 */ Seq("FOO", "BAR", "BAZ"),
@@ -167,7 +169,7 @@ final class SourceTest extends FunSuite {
     val expectedRows = untaggedExpectedRows.map { r =>
       val marker = Variant.from(r.getFieldByName("FOO"))
       
-      VariantRow.Tagged(r, marker, marker, Disposition.NotFlippedSameStrand)
+      VariantRow.Analyzed.Tagged(r, marker, marker, Disposition.NotFlippedSameStrand)
     }
         
     val actualRows = source.records.toIndexedSeq
@@ -175,9 +177,9 @@ final class SourceTest extends FunSuite {
     expectedRows.forall(r => r.marker === r.originalMarker)
     expectedRows.forall(_.disposition === Disposition.NotFlippedSameStrand)
     
-    val rawActualRows = actualRows.map(_.asInstanceOf[VariantRow.Tagged].delegate)
+    val rawActualRows = actualRows.map(_.asInstanceOf[VariantRow.Analyzed.Tagged].derivedFrom)
     
-    doCsvSourceRecordsTest(rawActualRows, expectedRows)
+    doCsvSourceRecordsTest(rawActualRows, expectedRows.map(_.derivedFrom))
   }
   
   test("tagFlips - some flips, no complements") {
@@ -208,7 +210,7 @@ final class SourceTest extends FunSuite {
     def makeTaggedRow(i: Int, disp: Disposition) = {
       val mrkr = marker(untaggedExpectedRows(1))
       
-      VariantRow.Tagged(untaggedExpectedRows(i), mrkr, mrkr, disp)
+      VariantRow.Analyzed.Tagged(untaggedExpectedRows(i), mrkr, mrkr, disp)
     }
     
     val expectedRows = Seq(
@@ -219,7 +221,7 @@ final class SourceTest extends FunSuite {
         
     val actualRows = source.records.toIndexedSeq
     
-    def shouldBeFlipped(r: VariantRow.Tagged): Boolean = flippedVariants.contains(r.originalMarker)
+    def shouldBeFlipped(r: VariantRow.Analyzed.Tagged): Boolean = flippedVariants.contains(r.originalMarker)
     
     val shouldBeFlippedRows = expectedRows.filter(shouldBeFlipped)
     val shouldNOTBeFlippedRows = expectedRows.filterNot(shouldBeFlipped)
@@ -230,9 +232,9 @@ final class SourceTest extends FunSuite {
     shouldBeFlippedRows.forall(_.disposition === Disposition.FlippedSameStrand)
     shouldNOTBeFlippedRows.forall(_.disposition === Disposition.NotFlippedSameStrand)
     
-    val rawActualRows = actualRows.map(_.asInstanceOf[VariantRow.Tagged].delegate)
+    val rawActualRows = actualRows.map(_.asInstanceOf[VariantRow.Analyzed.Tagged].derivedFrom)
     
-    doCsvSourceRecordsTest(rawActualRows, expectedRows)
+    doCsvSourceRecordsTest(rawActualRows, expectedRows.map(_.derivedFrom))
   }
   
   test("tagFlips - some flips, some complements") {
@@ -266,7 +268,7 @@ final class SourceTest extends FunSuite {
     def makeTaggedRow(i: Int, disp: Disposition) = {
       val mrkr = marker(untaggedExpectedRows(1))
       
-      VariantRow.Tagged(untaggedExpectedRows(i), mrkr, mrkr, disp)
+      VariantRow.Analyzed.Tagged(untaggedExpectedRows(i), mrkr, mrkr, disp)
     }
     
     val expectedRows = Seq(
@@ -277,9 +279,9 @@ final class SourceTest extends FunSuite {
         
     val actualRows = source.records.toIndexedSeq
     
-    def shouldBeComplemented(r: VariantRow.Tagged): Boolean = complementedVariants.contains(r.originalMarker) 
-    def shouldBeFlipped(r: VariantRow.Tagged): Boolean = flippedVariants.contains(r.originalMarker)
-    def shouldBeUntouched(r: VariantRow.Tagged): Boolean = !shouldBeComplemented(r) && !shouldBeFlipped(r)
+    def shouldBeComplemented(r: VariantRow.Analyzed.Tagged): Boolean = complementedVariants.contains(r.originalMarker) 
+    def shouldBeFlipped(r: VariantRow.Analyzed.Tagged): Boolean = flippedVariants.contains(r.originalMarker)
+    def shouldBeUntouched(r: VariantRow.Analyzed.Tagged): Boolean = !shouldBeComplemented(r) && !shouldBeFlipped(r)
     
     val shouldBeComplementedRows = expectedRows.filter(shouldBeComplemented)
     val shouldBeFlippedRows = expectedRows.filter(shouldBeFlipped)
@@ -293,9 +295,9 @@ final class SourceTest extends FunSuite {
     shouldBeFlippedRows.forall(_.disposition === Disposition.FlippedSameStrand)
     shouldBeUntouchedRows.forall(_.disposition === Disposition.NotFlippedSameStrand)
     
-    val rawActualRows = actualRows.map(_.asInstanceOf[VariantRow.Tagged].delegate)
+    val rawActualRows = actualRows.map(_.asInstanceOf[VariantRow.Analyzed.Tagged].derivedFrom)
     
-    doCsvSourceRecordsTest(rawActualRows, expectedRows)
+    doCsvSourceRecordsTest(rawActualRows, expectedRows.map(_.derivedFrom))
   }
   
   test("tagFlips - no flips, some complements") {
@@ -326,7 +328,7 @@ final class SourceTest extends FunSuite {
     def makeTaggedRow(i: Int, disp: Disposition) = {
       val mrkr = marker(untaggedExpectedRows(1))
       
-      VariantRow.Tagged(untaggedExpectedRows(i), mrkr, mrkr, disp)
+      VariantRow.Analyzed.Tagged(untaggedExpectedRows(i), mrkr, mrkr, disp)
     }
     
     val expectedRows = Seq(
@@ -337,7 +339,7 @@ final class SourceTest extends FunSuite {
         
     val actualRows = source.records.toIndexedSeq
     
-    def shouldBeComplemented(r: VariantRow.Tagged): Boolean = complementedVariants.contains(r.originalMarker)
+    def shouldBeComplemented(r: VariantRow.Analyzed.Tagged): Boolean = complementedVariants.contains(r.originalMarker)
     
     val shouldBeComplementedRows = expectedRows.filter(shouldBeComplemented)
     val shouldNOTBeComplementedRows = expectedRows.filterNot(shouldBeComplemented)
@@ -348,9 +350,9 @@ final class SourceTest extends FunSuite {
     shouldBeComplementedRows.forall(_.disposition === Disposition.NotFlippedComplementStrand)
     shouldNOTBeComplementedRows.forall(_.disposition === Disposition.NotFlippedSameStrand)
     
-    val rawActualRows = actualRows.map(_.asInstanceOf[VariantRow.Tagged].delegate)
+    val rawActualRows = actualRows.map(_.asInstanceOf[VariantRow.Analyzed.Tagged].derivedFrom)
     
-    doCsvSourceRecordsTest(rawActualRows, expectedRows)
+    doCsvSourceRecordsTest(rawActualRows, expectedRows.map(_.derivedFrom))
   }
 }
 

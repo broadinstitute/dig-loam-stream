@@ -10,7 +10,7 @@ import loamstream.util.Loggable
  * @author clint
  * 16 Mar, 2021
  */
-sealed trait VariantRowExpr[R <: BaseVariantRow] extends TaggedRowParser[VariantRow.Parsed[R]] {
+sealed trait VariantRowExpr[R <: BaseVariantRow] extends TaggedRowParser[R] {
   def metadata: AggregatorMetadata
   
   //TODO: Revisit this
@@ -22,25 +22,29 @@ sealed trait VariantRowExpr[R <: BaseVariantRow] extends TaggedRowParser[Variant
   
   def failFast: Boolean
   
-  protected def makeRow(row: VariantRow.Tagged): R
+  protected def makeRow(row: VariantRow.Analyzed.Tagged): R
   
-  override def apply(rowAttempt: Either[DataRow, VariantRow.Tagged]): VariantRow.Parsed[R] = { 
+  override def apply(rowAttempt: VariantRow.Analyzed): VariantRow.Parsed[R] = { 
     def skipped(cause: Option[Failure[VariantRow.Parsed[R]]]) = {
-      VariantRow.Skipped(rowAttempt, aggRowOpt = None, cause = cause)
+      VariantRow.Parsed.Skipped(
+        derivedFrom = rowAttempt.derivedFrom, 
+        derivedFromAnalyzed = Some(rowAttempt), 
+        aggRowOpt = None, 
+        cause = cause)
     }
         
-    def transformed(tagged: VariantRow.Tagged): VariantRow.Transformed[R] = {
+    def transformed(tagged: VariantRow.Analyzed.Tagged): VariantRow.Parsed.Transformed[R] = {
       require(tagged.notSkipped)
 
-      VariantRow.Transformed(
-        derivedFrom = Right(tagged), 
+      VariantRow.Parsed.Transformed(
+        derivedFrom = tagged.derivedFrom, 
+        derivedFromTagged = tagged, 
         aggRow = makeRow(tagged))
     }
     
     rowAttempt match {
-      case Left(dataRow) => skipped(cause = None)
-      case Right(tagged) if tagged.isSkipped => skipped(cause = None)
-      case Right(tagged) => {
+      case VariantRow.Analyzed.SkippedNotTagged(_, _) => skipped(cause = None)
+      case tagged: VariantRow.Analyzed.Tagged => {
         Try(transformed(tagged)) match {
           case Success(transformedRow) => transformedRow
           case f @ Failure(_) => if(failFast) f.get else skipped(Some(f))
@@ -71,20 +75,22 @@ object VariantRowExpr extends Loggable {
     
     override def uploadType: UploadType = UploadType.VariantCounts
 
-    override protected def makeRow(row: VariantRow.Tagged): VariantCountRow = {
+    override protected def makeRow(taggedRow: VariantRow.Analyzed.Tagged): VariantCountRow = {
+      import taggedRow.{derivedFrom => dataRow}
+
       VariantCountRow(
-        marker = row.marker,
-        dataset = metadataColumnDefs.dataset(row),
-        phenotype = metadataColumnDefs.phenotype(row),
-        ancestry = metadataColumnDefs.ancestry(row),
-        alleleCount = alleleCountDef.map(_.apply(row)),
-        alleleCountCases = alleleCountCasesDef.map(_.apply(row)), 
-        alleleCountControls = alleleCountControlsDef.map(_.apply(row)),
-        heterozygousCases = heterozygousCasesDef.map(_.apply(row)), 
-        heterozygousControls = heterozygousControlsDef.map(_.apply(row)), 
-        homozygousCases = homozygousCasesDef.map(_.apply(row)), 
-        homozygousControls = homozygousControlsDef.map(_.apply(row)),
-        derivedFromRecordNumber = Some(row.recordNumber))
+        marker = taggedRow.marker,
+        dataset = metadataColumnDefs.dataset(dataRow),
+        phenotype = metadataColumnDefs.phenotype(dataRow),
+        ancestry = metadataColumnDefs.ancestry(dataRow),
+        alleleCount = alleleCountDef.map(_.apply(taggedRow)),
+        alleleCountCases = alleleCountCasesDef.map(_.apply(taggedRow)), 
+        alleleCountControls = alleleCountControlsDef.map(_.apply(taggedRow)),
+        heterozygousCases = heterozygousCasesDef.map(_.apply(taggedRow)), 
+        heterozygousControls = heterozygousControlsDef.map(_.apply(taggedRow)), 
+        homozygousCases = homozygousCasesDef.map(_.apply(taggedRow)), 
+        homozygousControls = homozygousControlsDef.map(_.apply(taggedRow)),
+        derivedFromRecordNumber = Some(dataRow.recordNumber))
     }
   }
   
@@ -103,21 +109,23 @@ object VariantRowExpr extends Loggable {
 
     override def uploadType: UploadType = UploadType.Variants
     
-    override protected def makeRow(row: VariantRow.Tagged):  PValueVariantRow = {
+    override protected def makeRow(taggedRow: VariantRow.Analyzed.Tagged):  PValueVariantRow = {
+      import taggedRow.{derivedFrom => dataRow}
+
       PValueVariantRow(
-        marker = row.marker,
-        pvalue = pvalueDef.apply(row),
-        dataset = metadataColumnDefs.dataset(row),
-        phenotype = metadataColumnDefs.phenotype(row),
-        ancestry = metadataColumnDefs.ancestry(row),
-        zscore = zscoreDef.map(_.apply(row)),
-        stderr = stderrDef.map(_.apply(row)),
-        beta = betaDef.map(_.apply(row)),
-        oddsRatio = oddsRatioDef.map(_.apply(row)),
-        eaf = eafDef.map(_.apply(row)),
-        maf = mafDef.map(_.apply(row)),
-        n = nDef.apply(row),
-        derivedFromRecordNumber = Some(row.recordNumber))
+        marker = taggedRow.marker,
+        pvalue = pvalueDef.apply(taggedRow),
+        dataset = metadataColumnDefs.dataset(dataRow),
+        phenotype = metadataColumnDefs.phenotype(dataRow),
+        ancestry = metadataColumnDefs.ancestry(dataRow),
+        zscore = zscoreDef.map(_.apply(taggedRow)),
+        stderr = stderrDef.map(_.apply(taggedRow)),
+        beta = betaDef.map(_.apply(taggedRow)),
+        oddsRatio = oddsRatioDef.map(_.apply(taggedRow)),
+        eaf = eafDef.map(_.apply(taggedRow)),
+        maf = mafDef.map(_.apply(taggedRow)),
+        n = nDef.apply(taggedRow),
+        derivedFromRecordNumber = Some(dataRow.recordNumber))
     }
   }
   

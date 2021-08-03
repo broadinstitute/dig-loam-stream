@@ -11,7 +11,20 @@ final class SqueuePollerTest extends FunSuite {
     
     val actual = SqueuePoller.parseDataLine(line)
     
-    val expected = Success(DrmTaskId("71", 2) -> DrmStatus.CommandResult(0))
+    val expected = Success(Seq(DrmTaskId("71", 2) -> DrmStatus.CommandResult(0)))
+    
+    assert(actual === expected)
+  }
+
+  test("parseDataLine - good range input") {
+    val line = "42_[1-3]|PD"
+    
+    val actual = SqueuePoller.parseDataLine(line)
+    
+    val expected = Success(Seq(
+      DrmTaskId("42", 1) -> DrmStatus.Queued,
+      DrmTaskId("42", 2) -> DrmStatus.Queued,
+      DrmTaskId("42", 3) -> DrmStatus.Queued))
     
     assert(actual === expected)
   }

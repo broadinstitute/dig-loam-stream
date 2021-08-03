@@ -14,17 +14,17 @@ object SlurmDrmTaskId {
   private object Regexes {
     val jobAndTaskIndex = "^(\\d+)_(\\d+)$".r
     val jobId = "^(\\d+)$".r
-    val byRange = "^(\\d+)_(\\d+)-(\\d+)$".r
+    val byRange = "^(\\d+)_\\[(\\d+)-(\\d+)\\]$".r
     val enumerated = "(\\d+)_([.,]+)$".r
   }
   
   private[slurm] def parseDrmTaskIds(s: String): Try[Iterable[DrmTaskId]] = s.trim match {
     case Regexes.jobAndTaskIndex(jobId, taskIndex) => Success(Seq(DrmTaskId(jobId, taskIndex.toInt)))
-    /*case Regexes.byRange(jobId, start, end) => Try {
+    case Regexes.byRange(jobId, start, end) => Try {
       //TODO: .to vs .until ??
       (start.toInt to end.toInt).map(index => DrmTaskId(jobId, index))
     }
-    case Regexes.enumerated(jobId, indexList) => Try {
+    /*case Regexes.enumerated(jobId, indexList) => Try {
       indexList.split("\\,").map(_.toInt).map(index => DrmTaskId(jobId, index))
     }*/
     //TODO: are combinations of by-range and enumerated ids allowed?

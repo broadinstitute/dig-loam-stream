@@ -43,11 +43,11 @@ abstract class RateLimitedPoller[P](
   
   protected def getStatusesByTaskId(
       idsWereLookingFor: Iterable[DrmTaskId])
-     (runResults: RunResults.Successful): PollResultsForInvocation
+     (runResults: RunResults.Completed): PollResultsForInvocation
   
   protected def getExitCodes(
       oracle: DrmJobOracle)
-     (runResults: RunResults.Successful, 
+     (runResults: RunResults.Completed, 
       idsToLookFor: Set[DrmTaskId]): Observable[PollResult] = {
     
     def readExitCodeFrom(file: Path): Option[DrmStatus] = {
@@ -89,7 +89,7 @@ abstract class RateLimitedPoller[P](
   
   final override def poll(oracle: DrmJobOracle)(drmTaskIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, Try[DrmStatus])] = {
     //Invoke qstat, to get the status of all submitted-but-not-finished jobs in this session
-    val commandResultObs: Observable[RunResults.Successful] = {
+    val commandResultObs: Observable[RunResults.Completed] = {
       import Schedulers.singleThreaded
       
       val params = toParams(oracle)(drmTaskIds)
@@ -187,7 +187,7 @@ abstract class RateLimitedPoller[P](
 }
 
 object RateLimitedPoller {
-  final case class PollResultsForInvocation(runResults: RunResults.Successful, pollingResults: Map[DrmTaskId, Try[DrmStatus]])
+  final case class PollResultsForInvocation(runResults: RunResults.Completed, pollingResults: Map[DrmTaskId, Try[DrmStatus]])
   
   type PollResult = (DrmTaskId, DrmStatus)
   
@@ -202,7 +202,7 @@ object RateLimitedPoller {
       makeTokens: P => Seq[String])
      (implicit scheduler: Scheduler, logCtx: LogContext): CommandInvoker.Async[P] = {
     
-      def invocationFn(params: P): Try[RunResults] = {
+      def invocationFn(params: P): Try[RunResults] = Try {
         val tokens = makeTokens(params)
         
         logCtx.debug(s"Invoking '${tokens.mkString(" ")}'")
@@ -218,7 +218,9 @@ object RateLimitedPoller {
       
       def cachedInvocationFn(params: Params): Try[RunResults] = cache(params)
       
-      new CommandInvoker.Async.JustOnce[P](commandName, cachedInvocationFn)
+      new CommandInvoker.Async.JustOnce[P](
+        commandName, 
+        cachedInvocationFn, isSuccess = RunResults.SuccessPredicate.zeroIsSuccess)
     }
   }
 }

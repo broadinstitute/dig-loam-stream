@@ -22,6 +22,7 @@ import loamstream.model.quantities.Memory
 import scala.util.Failure
 import loamstream.conf.SlurmConfig
 import monix.execution.Scheduler
+import loamstream.util.RunResults
 
 /**
  * @author clint
@@ -74,7 +75,12 @@ object SacctAccountingClient {
       slurmConfig: SlurmConfig, 
       scheduler: Scheduler,
       binaryName: String = "bacct"): SacctAccountingClient = {
-    new SacctAccountingClient(SacctInvoker.useActualBinary(slurmConfig.maxSacctRetries, binaryName, scheduler))
+    new SacctAccountingClient(
+      SacctInvoker.useActualBinary(
+        slurmConfig.maxSacctRetries, 
+        binaryName, 
+        scheduler,
+        isSuccess = RunResults.SuccessPredicate.zeroIsSuccess))
   }
   
   //"Data lines" look like this:

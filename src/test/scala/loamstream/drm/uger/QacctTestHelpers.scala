@@ -24,7 +24,7 @@ object QacctTestHelpers {
       fakeBinaryName: String = "MOCK"): Try[RunResults] = {
     
     Success(
-        RunResults(fakeBinaryName, exitCode = 0, stdout = stdout, stderr = stderr, isSuccess = ExitCodes.isSuccess))
+        RunResults(fakeBinaryName, exitCode = 0, stdout = stdout, stderr = stderr))
   }
   
   def failedRun(
@@ -34,7 +34,7 @@ object QacctTestHelpers {
       fakeBinaryName: String = "MOCK"): Try[RunResults] = {
 
     Success(RunResults(
-        fakeBinaryName, exitCode = exitCode, stdout = stdout, stderr = stderr, isSuccess = ExitCodes.isSuccess))
+        fakeBinaryName, exitCode = exitCode, stdout = stdout, stderr = stderr))
   }
   
   def expectedResources(

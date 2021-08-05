@@ -39,7 +39,7 @@ final class QstatPoller private[uger] (
   
   override protected def getStatusesByTaskId(
       idsWereLookingFor: Iterable[DrmTaskId])
-     (runResults: RunResults.Successful): PollResultsForInvocation = {
+     (runResults: RunResults.Completed): PollResultsForInvocation = {
     
     val attemptsByTaskId = QstatSupport.getByTaskId(idsWereLookingFor, runResults.stdout)
     

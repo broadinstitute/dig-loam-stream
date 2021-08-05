@@ -18,7 +18,7 @@ object InvokesBjobs {
     private[lsf] def makeTokens(actualExecutable: String, params: P): Seq[String]
     
     final def fromExecutable(actualExecutable: String = "bjobs"): A = {
-      def invocationFn(lsfJobIds: P): Try[RunResults] = {
+      def invocationFn(lsfJobIds: P): Try[RunResults] = Try {
         val tokens = makeTokens(actualExecutable, lsfJobIds)
         
         trace(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")

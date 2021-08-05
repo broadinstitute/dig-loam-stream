@@ -27,11 +27,17 @@ sealed trait RunResults {
     stdout.foreach(line => doLog(s"'${commandLine}' <via stdout>: $line"))
   }
   
-  final def tryAsSuccess(implicit ctx: LogContext): Try[RunResults.Successful] = tryAsSuccess("")
+  // final def tryAsSuccess(implicit ctx: LogContext): Try[RunResults.Completed] = {
+  //   tryAsSuccess("", RunResults.SuccessPredicate.zeroIsSuccess)
+  // }
   
-  final def tryAsSuccess(extraMessage: String)(implicit ctx: LogContext): Try[RunResults.Successful] = this match {
+  final def tryAsSuccess(
+    extraMessage: String,
+    isSuccess: RunResults.SuccessPredicate)(implicit ctx: LogContext): Try[RunResults.Completed] = this match {
+
     //Coerce invocations producing non-zero exit codes to Failures
-    case r: RunResults.Unsuccessful => {
+    case r: RunResults.Completed if isSuccess(r) => Success(r) 
+    case r: RunResults.Completed => {
       val msg = s"Error invoking '${r.commandLine}' (exit code ${r.exitCode}): $extraMessage"
 
       r.logStdOutAndStdErr(s"$msg; output streams follow:", LogContext.Level.Warn)
@@ -47,25 +53,30 @@ sealed trait RunResults {
       
       Failure(r.cause)
     }
-    case r: RunResults.Successful => Success(r)
   }
 }
 
 object RunResults {
+  type SuccessPredicate = RunResults => Boolean
+
+  object SuccessPredicate {
+    val zeroIsSuccess: SuccessPredicate = countsAsSuccess(ExitCodes.isSuccess(_))
+
+    def countsAsSuccess(p: Int => Boolean): SuccessPredicate = {
+      case Completed(_, exitCode, _, _) => p(exitCode)
+      case _ => false
+    }
+
+    def countsAsSuccess(exitCode: Int): SuccessPredicate = countsAsSuccess(Set(exitCode))
+  }
+
   def apply(
       executable: String, 
       exitCode: Int, 
       stdout: Seq[String], 
-      stderr: Seq[String],
-      isSuccess: Int => Boolean = ExitCodes.isSuccess): RunResults = {
-    
-    if(isSuccess(exitCode)) { Successful(executable, stdout, stderr) }
-    else { Unsuccessful(executable, exitCode, stdout, stderr) }
-  }
+      stderr: Seq[String]): RunResults = Completed(executable, exitCode, stdout, stderr)
   
-  final case class Successful(commandLine: String, stdout: Seq[String], stderr: Seq[String]) extends RunResults
-  
-  final case class Unsuccessful(
+  final case class Completed(
       commandLine: String, 
       exitCode: Int, 
       stdout: Seq[String], 

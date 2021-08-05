@@ -23,6 +23,7 @@ import loamstream.util.Options
 import loamstream.util.Tries
 import monix.execution.Scheduler
 import monix.eval.Task
+import loamstream.util.RunResults
 
 
 /**
@@ -87,8 +88,9 @@ object QacctAccountingClient extends Loggable {
   def useActualBinary(
       ugerConfig: UgerConfig, 
       scheduler: Scheduler,
-      binaryName: String = "qacct"): QacctAccountingClient = {
-    new QacctAccountingClient(QacctInvoker.useActualBinary(ugerConfig.maxRetries, binaryName, scheduler))
+      binaryName: String = "qacct",
+      isSuccess: RunResults.SuccessPredicate = RunResults.SuccessPredicate.zeroIsSuccess): QacctAccountingClient = {
+    new QacctAccountingClient(QacctInvoker.useActualBinary(ugerConfig.maxRetries, binaryName, scheduler, isSuccess))
   }
   
   private def orElseErrorMessage[A](msg: String)(a: => A): Try[A] = {

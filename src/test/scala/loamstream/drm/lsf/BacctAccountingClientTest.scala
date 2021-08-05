@@ -47,7 +47,8 @@ final class BacctAccountingClientTest extends FunSuite {
           0, 
           "MOCK", 
           _ => runResultsAttempt(stdout = bacctOutput), 
-          scheduler = Scheduler.computation())
+          scheduler = Scheduler.computation(),
+          isSuccess = RunResults.SuccessPredicate.zeroIsSuccess)
 
       val taskId = DrmTaskId("foo", 42)
       
@@ -67,7 +68,8 @@ final class BacctAccountingClientTest extends FunSuite {
         0, 
         "MOCK", 
         _ => runResultsAttempt(stdout = splitOutput),
-        scheduler = Scheduler.computation())
+        scheduler = Scheduler.computation(),
+        isSuccess = RunResults.SuccessPredicate.zeroIsSuccess)
     
     val taskId = DrmTaskId("someJobId", 42)
     
@@ -104,7 +106,8 @@ final class BacctAccountingClientTest extends FunSuite {
           0, 
           "MOCK", 
           _ => runResultsAttempt(stdout = splitOutput),
-          scheduler = Scheduler.computation())
+          scheduler = Scheduler.computation(),
+        isSuccess = RunResults.SuccessPredicate.zeroIsSuccess)
       
       val taskId = DrmTaskId("someJobId", 42)
       
@@ -139,7 +142,8 @@ final class BacctAccountingClientTest extends FunSuite {
         0, 
         "MOCK", 
         _ => runResultsAttempt(stdout = splitOutput),
-        scheduler = Scheduler.computation())
+        scheduler = Scheduler.computation(),
+        isSuccess = RunResults.SuccessPredicate.zeroIsSuccess)
     
     val taskId = DrmTaskId("someJobId", 42)
     

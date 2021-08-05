@@ -33,7 +33,12 @@ final class BkillJobKillerTest extends FunSuite {
   
   private def makeBkillJobKiller(
       sessionTracker: SessionTracker = SessionTracker.Noop)(fn: () => Try[RunResults]): BkillJobKiller = {
-    new BkillJobKiller(new CommandInvoker.Sync.JustOnce[Unit]("bkill", _ => fn()), sessionTracker)
+    new BkillJobKiller(
+      new CommandInvoker.Sync.JustOnce[Unit](
+        "bkill", 
+        _ => fn(),
+        isSuccess = RunResults.SuccessPredicate.zeroIsSuccess), 
+      sessionTracker)
   }
   
   test("killAllJobs - happy path") {

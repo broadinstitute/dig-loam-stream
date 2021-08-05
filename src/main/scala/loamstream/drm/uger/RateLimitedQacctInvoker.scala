@@ -28,7 +28,8 @@ final class RateLimitedQacctInvoker private[uger] (
   
   val commandInvoker: CommandInvoker.Async.JustOnce[String] = new CommandInvoker.Async.JustOnce[String](
     binaryName, 
-    taskArrayId => getLimiter(taskArrayId).apply())
+    taskArrayId => getLimiter(taskArrayId).apply,
+    isSuccess = RunResults.SuccessPredicate.zeroIsSuccess)
   
   import RateLimitedQacctInvoker.JobId
   import RateLimitedQacctInvoker.Limiter
@@ -75,7 +76,7 @@ object RateLimitedQacctInvoker extends Loggable {
       maxRetries: Int, 
       scheduler: Scheduler): RateLimitedQacctInvoker = {
     
-    def invokeBinary(taskArrayJobId: JobId): Try[RunResults] = {
+    def invokeBinary(taskArrayJobId: JobId): Try[RunResults] = Try {
       val tokens = makeTokens(binaryName, taskArrayJobId)
       
       debug(s"Invoking '$binaryName': '${tokens.mkString(" ")}'")

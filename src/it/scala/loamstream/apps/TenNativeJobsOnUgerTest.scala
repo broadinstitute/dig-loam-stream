@@ -21,6 +21,7 @@ import loamstream.cli.Intent
 import loamstream.util.Processes
 import loamstream.util.Loggable
 import java.nio.file.{Files => JFiles}
+import loamstream.util.RunResults
 
 /**
  * @author clint
@@ -79,9 +80,7 @@ final class TenNativeJobsOnUgerTest extends FunSuite with Loggable {
       
       val runResult = Processes.runSync(tokens)()
       
-      assert(runResult.isSuccess)
-      
-      assert(runResult.flatMap(_.tryAsSuccess).isSuccess)
+      assert(runResult.tryAsSuccess("", RunResults.SuccessPredicate.zeroIsSuccess).isSuccess)
     }
     
     withWorkDirUnderTarget() { workDir =>

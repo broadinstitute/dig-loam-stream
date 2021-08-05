@@ -25,6 +25,7 @@ import loamstream.drm.slurm.SbatchJobSubmitter
 import loamstream.drm.slurm.SacctAccountingClient
 import loamstream.drm.slurm.ScancelJobKiller
 import loamstream.drm.slurm.SlurmPathBuilder
+import loamstream.util.RunResults
 
 /**
  * @author clint
@@ -58,7 +59,10 @@ object DrmChunkRunnerWiring extends Loggable {
 
       val sessionTracker: SessionTracker = new SessionTracker.Default
 
-      val jobKiller = QdelJobKiller.fromExecutable(sessionTracker, ugerConfig, isSuccess = Set(0, 1).contains)
+      val jobKiller = QdelJobKiller.fromExecutable(
+        sessionTracker, 
+        ugerConfig, 
+        isSuccess = RunResults.SuccessPredicate.zeroIsSuccess)
 
       val ugerRunner = DrmChunkRunner(
         environmentType = EnvironmentType.Uger,
@@ -97,7 +101,10 @@ object DrmChunkRunnerWiring extends Loggable {
 
       val sessionTracker: SessionTracker = new SessionTracker.Default
 
-      val jobKiller = BkillJobKiller.fromExecutable(sessionTracker, lsfConfig, isSuccess = ExitCodes.isSuccess)
+      val jobKiller = BkillJobKiller.fromExecutable(
+        sessionTracker, 
+        lsfConfig, 
+        isSuccess = RunResults.SuccessPredicate.zeroIsSuccess)
 
       val lsfRunner = DrmChunkRunner(
         environmentType = EnvironmentType.Lsf,
@@ -140,7 +147,10 @@ object DrmChunkRunnerWiring extends Loggable {
 
       val sessionTracker: SessionTracker = new SessionTracker.Default
 
-      val jobKiller = ScancelJobKiller.fromExecutable(sessionTracker, slurmConfig, isSuccess = ExitCodes.isSuccess)
+      val jobKiller = ScancelJobKiller.fromExecutable(
+        sessionTracker, 
+        slurmConfig, 
+        isSuccess = RunResults.SuccessPredicate.countsAsSuccess(Set(0, 1)))
 
       val slurmRunner = DrmChunkRunner(
         environmentType = EnvironmentType.Slurm,

@@ -25,6 +25,7 @@ import loamstream.util.Options
 import loamstream.util.Tries
 import monix.execution.Scheduler
 import monix.eval.Task
+import loamstream.util.RunResults
 
 
 /**
@@ -109,7 +110,12 @@ object BacctAccountingClient {
       lsfConfig: LsfConfig, 
       scheduler: Scheduler,
       binaryName: String = "bacct"): BacctAccountingClient = {
-    new BacctAccountingClient(BacctInvoker.useActualBinary(lsfConfig.maxBacctRetries, binaryName, scheduler))
+    new BacctAccountingClient(
+      BacctInvoker.useActualBinary(
+        lsfConfig.maxBacctRetries, 
+        binaryName, 
+        scheduler,
+        isSuccess = RunResults.SuccessPredicate.zeroIsSuccess))
   }
   
   //"Data lines" look like this:

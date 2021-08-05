@@ -25,20 +25,25 @@ import monix.eval.Task
 object CommandInvoker {
   type InvocationFn[A] = A => Try[RunResults]
   
-  type SuccessfulInvocationFn[A] = A => Try[RunResults.Successful]
+  type SuccessfulInvocationFn[A] = A => Try[RunResults.Completed]
 
-  type AsyncInvocationFn[A] = A => Task[RunResults.Successful]
+  type AsyncInvocationFn[A] = A => Task[RunResults.Completed]
 
   trait Sync[A] extends (SuccessfulInvocationFn[A])
 
   trait Async[A] extends (AsyncInvocationFn[A])
   
+  import RunResults.SuccessPredicate.zeroIsSuccess
+
   object Sync {
     final class JustOnce[A](
       val binaryName: String,
-      delegateFn: InvocationFn[A]) extends CommandInvoker.Sync[A] with Loggable {
+      delegateFn: InvocationFn[A],
+      isSuccess: RunResults.SuccessPredicate/*  = zeroIsSuccess */) extends CommandInvoker.Sync[A] with Loggable {
 
-      override def apply(param: A): Try[RunResults.Successful] = delegateFn(param).flatMap(_.tryAsSuccess)
+      override def apply(param: A): Try[RunResults.Completed] = {
+        delegateFn(param).flatMap(_.tryAsSuccess("", isSuccess))
+      }
     }
 
     final class Retrying[A](
@@ -47,7 +52,7 @@ object CommandInvoker {
       delayStart: FiniteDuration = Retrying.defaultDelayStart,
       delayCap: FiniteDuration = Retrying.defaultDelayCap) extends CommandInvoker.Sync[A] with Loggable {
 
-      override def apply(param: A): Try[RunResults.Successful] = {
+      override def apply(param: A): Try[RunResults.Completed] = {
         doRetries(
           binaryName = delegate.binaryName,
           maxRetries = maxRetries,
@@ -59,7 +64,7 @@ object CommandInvoker {
         binaryName: String,
         maxRetries: Int,
         delayStart: FiniteDuration,
-        delayCap: FiniteDuration): A => Try[RunResults.Successful] = { param =>
+        delayCap: FiniteDuration): A => Try[RunResults.Completed] = { param =>
 
         val maxRuns = maxRetries + 1
 
@@ -88,10 +93,11 @@ object CommandInvoker {
         binaryName: String,
         delegateFn: InvocationFn[A],
         delayStart: FiniteDuration = Retrying.defaultDelayStart,
-        delayCap: FiniteDuration = Retrying.defaultDelayCap): Retrying[A] = {
+        delayCap: FiniteDuration = Retrying.defaultDelayCap,
+        isSuccess: RunResults.SuccessPredicate/*  = zeroIsSuccess */): Retrying[A] = {
 
         new Retrying(
-          new JustOnce[A](binaryName, delegateFn),
+          new JustOnce[A](binaryName, delegateFn, isSuccess = isSuccess),
           maxRetries,
           delayStart,
           delayCap)
@@ -107,16 +113,18 @@ object CommandInvoker {
   object Async {
     final class JustOnce[A](
       val binaryName: String,
-      delegateFn: InvocationFn[A])(implicit scheduler: Scheduler, logCtx: LogContext) extends CommandInvoker.Async[A] {
+      delegateFn: InvocationFn[A],
+      isSuccess: RunResults.SuccessPredicate/*  = zeroIsSuccess */)
+     (implicit scheduler: Scheduler, logCtx: LogContext) extends CommandInvoker.Async[A] {
 
-      override def apply(param: A): Task[RunResults.Successful] = {
+      override def apply(param: A): Task[RunResults.Completed] = {
         import Observables.Implicits._
 
         invokeBinary(param).firstL.flatMap(Task.fromTry)
       }
 
-      private[CommandInvoker] def invokeBinary(param: A): Observable[Try[RunResults.Successful]] = Observable {
-        delegateFn(param).flatMap(_.tryAsSuccess(logCtx))
+      private[CommandInvoker] def invokeBinary(param: A): Observable[Try[RunResults.Completed]] = Observable {
+        delegateFn(param).flatMap(_.tryAsSuccess("", isSuccess)(logCtx))
       }
     }
 
@@ -127,7 +135,7 @@ object CommandInvoker {
       delayCap: FiniteDuration = Retrying.defaultDelayCap,
       scheduler: Scheduler)(implicit logCtx: LogContext) extends CommandInvoker.Async[A] {
 
-      override def apply(param: A): Task[RunResults.Successful] = runCommand(param)
+      override def apply(param: A): Task[RunResults.Completed] = runCommand(param)
 
       private val runCommand: AsyncInvocationFn[A] = {
         doRetries(
@@ -155,7 +163,7 @@ object CommandInvoker {
         //TODO: revisit use of global scheduler
         import Scheduler.Implicits.global
         
-        val result: Task[RunResults.Successful] = resultOptObs.firstL.flatMap {
+        val result: Task[RunResults.Completed] = resultOptObs.firstL.flatMap {
           case Some(a) => Task(a)
           case _ => {
             val msg = s"Invoking '$binaryName' with param '$param' failed after $maxRuns runs"
@@ -177,10 +185,11 @@ object CommandInvoker {
         delegateFn: InvocationFn[A],
         delayStart: FiniteDuration = Retrying.defaultDelayStart,
         delayCap: FiniteDuration = Retrying.defaultDelayCap,
-        scheduler: Scheduler)(implicit logCtx: LogContext): Retrying[A] = {
+        scheduler: Scheduler,
+        isSuccess: RunResults.SuccessPredicate/*  = zeroIsSuccess */)(implicit logCtx: LogContext): Retrying[A] = {
 
         new Retrying(
-          new JustOnce[A](binaryName, delegateFn)(scheduler, logCtx),
+          new JustOnce[A](binaryName, delegateFn, isSuccess)(scheduler, logCtx),
           maxRetries,
           delayStart,
           delayCap,

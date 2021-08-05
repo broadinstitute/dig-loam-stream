@@ -5,6 +5,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.util.Try
 import scala.util.Success
 import scala.util.Failure
+import scala.util.control.NonFatal
 
 /**
  * @author clint
@@ -16,19 +17,20 @@ object Processes extends Loggable {
   def runSync(
       tokens: Seq[String])( 
       //NB: Implicit conversion from Seq[String] => ProcessBuilder :\
-      processBuilder: ProcessBuilder = tokens,
-      isSuccess: Int => Boolean = ExitCodes.isSuccess)(implicit logCtx: LogContext): Try[RunResults] = {
+      processBuilder: ProcessBuilder = tokens)(implicit logCtx: LogContext): RunResults = {
     
     val processLogger = ProcessLoggers.buffering
     
     def commandLine = tokens.mkString(" ")
     
-    Try {
+    try {
       val process = processBuilder.run(processLogger)
       
       val exitCode = try { process.exitValue } finally { process.destroy() }
       
-      RunResults(commandLine, exitCode, processLogger.stdOut, processLogger.stdErr, isSuccess)
+      RunResults(commandLine, exitCode, processLogger.stdOut, processLogger.stdErr)
+    } catch {
+      case NonFatal(e) => RunResults.CouldNotStart(commandLine, e)
     }
   }
 }

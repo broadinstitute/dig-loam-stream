@@ -40,7 +40,11 @@ final class BsubJobSubmitterTest extends FunSuite {
       Success(RunResults("mock", 0, makeBsubOutput("1234"), Seq.empty))
     }
     
-    val submitter = new BsubJobSubmitter(new CommandInvoker.Sync.JustOnce("bsub", submissionFn))
+    val submitter = new BsubJobSubmitter(
+      new CommandInvoker.Sync.JustOnce(
+        "bsub", 
+        submissionFn,
+        isSuccess = RunResults.SuccessPredicate.zeroIsSuccess))
     
     val result = waitForT(submitter.submitJobs(settings, taskArray).firstL)
     
@@ -60,7 +64,11 @@ final class BsubJobSubmitterTest extends FunSuite {
       Success(RunResults("mock", 42, Seq.empty, Seq.empty))
     }
     
-    val submitter = new BsubJobSubmitter(new CommandInvoker.Sync.JustOnce("bsub", submissionFn))
+    val submitter = new BsubJobSubmitter(
+      new CommandInvoker.Sync.JustOnce(
+        "bsub", 
+        submissionFn,
+        isSuccess = RunResults.SuccessPredicate.zeroIsSuccess))
     
     val result = waitForT(submitter.submitJobs(settings, taskArray).firstL)
     
@@ -72,7 +80,11 @@ final class BsubJobSubmitterTest extends FunSuite {
       Failure(new Exception)
     }
     
-    val submitter = new BsubJobSubmitter(new CommandInvoker.Sync.JustOnce("bsub", submissionFn))
+    val submitter = new BsubJobSubmitter(
+      new CommandInvoker.Sync.JustOnce(
+        "bsub", 
+        submissionFn,
+        isSuccess = RunResults.SuccessPredicate.zeroIsSuccess))
     
     val result = waitForT(submitter.submitJobs(settings, taskArray).firstL)
     

@@ -93,7 +93,7 @@ object Qsub {
       actualExecutable: String = "qsub",
       scheduler: Scheduler)(implicit logCtx: LogContext): CommandInvoker.Async[Params] = {
 
-    def invocationFn(params: Params): Try[RunResults] = {
+    def invocationFn(params: Params): Try[RunResults] = Try {
       val tokens = makeTokens(actualExecutable, params)
       
       logCtx.debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
@@ -101,7 +101,10 @@ object Qsub {
       Processes.runSync(tokens)()
     }
     
-    val justOnce = new CommandInvoker.Async.JustOnce[Params](actualExecutable, invocationFn)(scheduler, logCtx)
+    val justOnce = new CommandInvoker.Async.JustOnce[Params](
+      actualExecutable, 
+      invocationFn,
+      isSuccess = RunResults.SuccessPredicate.zeroIsSuccess)(scheduler, logCtx)
     
     new CommandInvoker.Async.Retrying(justOnce, ugerConfig.maxRetries, scheduler = scheduler)
   }

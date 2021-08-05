@@ -48,19 +48,19 @@ object JobKiller extends Loggable {
         config: DrmConfig,
         actualExecutable: String = defaultExecutable,
         username: String = Users.currentUser,
-        isSuccess: Int => Boolean): A = {
+        isSuccess: RunResults.SuccessPredicate = RunResults.SuccessPredicate.zeroIsSuccess): A = {
         
-      val killJobs: Unit => Try[RunResults] = { _ =>
+      val killJobs: Unit => Try[RunResults] = _ => Try {
         val tokens = makeTokens(sessionTracker, actualExecutable, username)
         
         debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
         
         import RunResults._
         
-        Processes.runSync(tokens)(isSuccess = isSuccess)
+        Processes.runSync(tokens)()
       }
       
-      val justOnce = new CommandInvoker.Sync.JustOnce[Unit](actualExecutable, killJobs)
+      val justOnce = new CommandInvoker.Sync.JustOnce[Unit](actualExecutable, killJobs, isSuccess = isSuccess)
       
       val commandInvoker = new CommandInvoker.Sync.Retrying(justOnce, maxRetries = config.maxRetries)
       

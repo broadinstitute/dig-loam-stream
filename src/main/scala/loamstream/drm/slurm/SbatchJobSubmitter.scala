@@ -17,6 +17,8 @@ import monix.execution.Scheduler
 import loamstream.util.Processes
 import scala.collection.compat._
 import loamstream.conf.SlurmConfig
+import loamstream.util.ExitCodes
+import scala.util.Try
 
 /**
  * @author clint
@@ -39,7 +41,7 @@ final class SbatchJobSubmitter private[slurm] (
   //TODO: Factor out
   private[slurm] def toDrmSubmissionResult(taskArray: DrmTaskArray)(runResults: RunResults): DrmSubmissionResult = {
     runResults match {
-      case r: RunResults.Successful => {
+      case r @ RunResults.Completed(_, exitCode, _, _) if ExitCodes.isSuccess(exitCode) => {
         SbatchJobSubmitter.extractJobId(r.stdout) match {
           case Some(jobId) =>  makeSuccess(jobId, taskArray)
           case None => {
@@ -49,7 +51,7 @@ final class SbatchJobSubmitter private[slurm] (
           }
         }
       } 
-      case r: RunResults.Unsuccessful => {
+      case r: RunResults.Completed => {
         logAndMakeFailure(r) { r =>
           s"SLURM Job submission failure: `${r.commandLine}` failed with status code ${r.exitCode}"
         }
@@ -104,24 +106,26 @@ object SbatchJobSubmitter extends Loggable {
     
     val invoker = new CommandInvoker.Async.JustOnce[Params](
         binaryName = actualExecutable, 
-        delegateFn = invokeBinaryToSubmitJobs(lsfConfig, actualExecutable))
+        delegateFn = invokeBinaryToSubmitJobs(lsfConfig, actualExecutable),
+        isSuccess = RunResults.SuccessPredicate.zeroIsSuccess)
     
     new SbatchJobSubmitter(invoker)
   }
   
   private[slurm] def invokeBinaryToSubmitJobs(
       lsfConfig: SlurmConfig, 
-      actualExecutable: String): SubmissionFn = { case (drmSettings, taskArray) =>
-        
-    val tokens = makeTokens(actualExecutable, lsfConfig, taskArray, drmSettings)
-    
-    debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
-    
-    import scala.sys.process._
-    
-    val processBuilder: ProcessBuilder = tokens
-    
-    Processes.runSync(tokens)(processBuilder = processBuilder)
+      actualExecutable: String): SubmissionFn = { 
+        case (drmSettings, taskArray) => Try {
+          val tokens = makeTokens(actualExecutable, lsfConfig, taskArray, drmSettings)
+          
+          debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
+          
+          import scala.sys.process._
+          
+          val processBuilder: ProcessBuilder = tokens
+          
+          Processes.runSync(tokens)(processBuilder = processBuilder)
+     }
   }
   
   import DrmSubmissionResult.SubmissionFailure

@@ -46,14 +46,17 @@ final class QstatPollerTest extends FunSuite {
     
   test("poll - happy path") {
     val qstatInvocationFn: CommandInvoker.InvocationFn[Unit] = { _ => 
-      Success(RunResults.Successful("MOCK_QSTAT", qstatLines, Nil))
+      Success(RunResults.Completed("MOCK_QSTAT", 0, qstatLines, Nil))
     }
     
     import LogContext.Implicits.Noop
     import Scheduler.Implicits.global
     
     val qstatInvoker: CommandInvoker.Async[Unit] = {
-      new CommandInvoker.Async.JustOnce("MOCK_QSTAT", qstatInvocationFn)
+      new CommandInvoker.Async.JustOnce(
+        "MOCK_QSTAT", 
+        qstatInvocationFn,
+        isSuccess = RunResults.SuccessPredicate.zeroIsSuccess)
     }
     
     import ExecutionConfig.default.{executionPollingFrequencyInHz, maxWaitTimeForOutputs}

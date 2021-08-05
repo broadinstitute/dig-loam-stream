@@ -59,7 +59,8 @@ final class MockQacctAccountingClient(
           wrappedDelegateFn, 
           delayStart, 
           delayCap,
-          scheduler = Scheduler.computation())
+          scheduler = Scheduler.computation(),
+          isSuccess = RunResults.SuccessPredicate.zeroIsSuccess)
     }
     
     new QacctAccountingClient(invoker)

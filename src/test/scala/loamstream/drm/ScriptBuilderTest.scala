@@ -225,7 +225,7 @@ final class ScriptBuilderTest extends FunSuite {
                                |i=$LSB_JOBINDEX
                                |jobId=$LSB_JOBID""".stripMargin
                                
-      case DrmSystem.Slurm => """|
+      case DrmSystem.Slurm => """|module load singularity/3.2.1
                                  |
                                  |i=$SLURM_ARRAY_TASK_ID
                                  |jobId=$SLURM_ARRAY_JOB_ID""".stripMargin

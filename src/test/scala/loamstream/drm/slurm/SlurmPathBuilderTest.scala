@@ -28,12 +28,12 @@ final class SlurmPathBuilderTest extends FunSuite {
     assert(SlurmPathBuilder.pathTemplatePrefix === "")
   }
   
-  test("slurmStdOutPathTemplate") {
+  test("stdOutPathTemplate") {
     val expected = workDir.resolve("blarg-blahblah.%a.stdout")
     doPathTemplateTest(SlurmPathBuilder.stdOutPathTemplate, expected.render)
   }
 
-  test("slurmStdErrPathTemplate") {
+  test("stdErrPathTemplate") {
     val expected = workDir.resolve("blarg-blahblah.%a.stderr")
     doPathTemplateTest(SlurmPathBuilder.stdErrPathTemplate, expected.render)
   }

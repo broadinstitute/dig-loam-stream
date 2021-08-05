@@ -28,12 +28,12 @@ final class LsfPathBuilderTest extends FunSuite {
     assert(LsfPathBuilder.pathTemplatePrefix === "")
   }
   
-  test("ugerStdOutPathTemplate") {
+  test("stdOutPathTemplate") {
     val expected = workDir.resolve("blarg-blahblah.%I.stdout")
     doPathTemplateTest(LsfPathBuilder.stdOutPathTemplate, expected.render)
   }
 
-  test("ugerStdErrPathTemplate") {
+  test("stdErrPathTemplate") {
     val expected = workDir.resolve("blarg-blahblah.%I.stderr")
     doPathTemplateTest(LsfPathBuilder.stdErrPathTemplate, expected.render)
   }

@@ -246,8 +246,8 @@ final class DrmTaskArrayTest extends FunSuite {
     assert(TaskIndexingStrategy.Lsf.toIndex(1) === 2)
     assert(TaskIndexingStrategy.Lsf(1) === 2)
     
-    assert(TaskIndexingStrategy.Slurm.toIndex(1) === 1)
-    assert(TaskIndexingStrategy.Slurm(1) === 1)
+    assert(TaskIndexingStrategy.Slurm.toIndex(1) === 2)
+    assert(TaskIndexingStrategy.Slurm(1) === 2)
   }
   
   test("TaskIndexingStrategy.forDrmSystem") {

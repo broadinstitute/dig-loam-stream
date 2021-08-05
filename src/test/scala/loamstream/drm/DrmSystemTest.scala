@@ -82,6 +82,6 @@ final class DrmSystemTest extends FunSuite {
     
     assert(Uger.format(tid) === "xyz.42")
     assert(Lsf.format(tid) === "xyz.42")
-    assert(Slurm.format(tid) === "xyz+42")
+    assert(Slurm.format(tid) === "xyz_42")
   }
 }

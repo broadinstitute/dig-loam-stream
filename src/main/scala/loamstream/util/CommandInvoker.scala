@@ -24,10 +24,10 @@ import monix.eval.Task
  */
 object CommandInvoker {
   type InvocationFn[A] = A => Try[RunResults]
-  
   type SuccessfulInvocationFn[A] = A => Try[RunResults.Completed]
 
-  type AsyncInvocationFn[A] = A => Task[RunResults.Completed]
+  type AsyncInvocationFn[A] = A => Task[RunResults]
+  type SuccessfulAsyncInvocationFn[A] = A => Task[RunResults.Completed]
 
   trait Sync[A] extends (SuccessfulInvocationFn[A])
 
@@ -137,7 +137,7 @@ object CommandInvoker {
 
       override def apply(param: A): Task[RunResults.Completed] = runCommand(param)
 
-      private val runCommand: AsyncInvocationFn[A] = {
+      private val runCommand: SuccessfulAsyncInvocationFn[A] = {
         doRetries(
           binaryName = delegate.binaryName,
           maxRetries = maxRetries,
@@ -151,7 +151,7 @@ object CommandInvoker {
         maxRetries: Int,
         delayStart: FiniteDuration,
         delayCap: FiniteDuration,
-        scheduler: Scheduler): AsyncInvocationFn[A] = { param =>
+        scheduler: Scheduler): SuccessfulAsyncInvocationFn[A] = { param =>
 
         val maxRuns = maxRetries + 1
 

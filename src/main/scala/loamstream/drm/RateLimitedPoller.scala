@@ -94,9 +94,19 @@ abstract class RateLimitedPoller[P](
       
       val params = toParams(oracle)(drmTaskIds)
       
-      Observable.from(commandInvoker(params)).observeOn(singleThreaded).executeOn(singleThreaded).onErrorHandleWith {
-        warnThenComplete(s"Error invoking ${name}, will try again during at next polling time.")
+      def tryAsSuccess(results: RunResults): Observable[RunResults.Completed] = {
+        //TODO: Parameterize on success predicate?
+        Observable.fromTry(results.tryAsSuccess("", RunResults.SuccessPredicate.zeroIsSuccess))
       }
+
+      Observable
+        .from(commandInvoker(params))
+        .flatMap(tryAsSuccess)
+        .observeOn(singleThreaded)
+        .executeOn(singleThreaded)
+        .onErrorHandleWith {
+          warnThenComplete(s"Error invoking ${name}, will try again during at next polling time.")
+        }
     }
 
     //The Set of distinct DrmTaskIds (jobId/task index coords) that we're polling for

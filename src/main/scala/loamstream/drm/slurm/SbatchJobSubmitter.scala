@@ -89,7 +89,7 @@ final class SbatchJobSubmitter private[slurm] (
   private def logAndMakeFailure[R <: RunResults](
       runResults: R)(errorMsg: R => String): DrmSubmissionResult.SubmissionFailure = {
     
-    runResults.logStdOutAndStdErr("LSF Job submission failure, stdout and stderr follow:")
+    runResults.logStdOutAndStdErr("SLURM Job submission failure, stdout and stderr follow:")
       
     failure(errorMsg(runResults))
   }

@@ -22,10 +22,10 @@ import loamstream.util.ExitCodes
 import loamstream.util.Loggable
 import loamstream.drm.slurm.SqueuePoller
 import loamstream.drm.slurm.SbatchJobSubmitter
-import loamstream.drm.slurm.SacctAccountingClient
 import loamstream.drm.slurm.ScancelJobKiller
 import loamstream.drm.slurm.SlurmPathBuilder
 import loamstream.util.RunResults
+import loamstream.drm.AccountingClient
 
 /**
  * @author clint
@@ -143,7 +143,9 @@ object DrmChunkRunnerWiring extends Loggable {
 
       val jobSubmitter = SbatchJobSubmitter.fromExecutable(slurmConfig)(scheduler)
 
-      val accountingClient = SacctAccountingClient.useActualBinary(slurmConfig, scheduler)
+      //TODO Support stats gathered by `time` wrappers in DRM shell scripts, via ExecutionStats
+      //For now, since `sacct` is not available at BCH, don't attempt to collect accounting info.
+      val accountingClient = AccountingClient.AlwaysFailsAccountingClient
 
       val sessionTracker: SessionTracker = new SessionTracker.Default
 

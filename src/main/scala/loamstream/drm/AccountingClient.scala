@@ -3,6 +3,7 @@ package loamstream.drm
 import loamstream.model.execute.Resources.DrmResources
 import loamstream.model.jobs.TerminationReason
 import monix.eval.Task
+import loamstream.util.Tries
 
 
 /**
@@ -21,5 +22,15 @@ trait AccountingClient {
     val trf = getTerminationReason(taskId)
     
     Task.parMap2(rsf, trf)(AccountingInfo(_, _))
+  }
+}
+
+object AccountingClient {
+  object AlwaysFailsAccountingClient extends AccountingClient {
+    override def getResourceUsage(taskId: DrmTaskId): Task[DrmResources] = {
+      Task.fromTry(Tries.failure("getResourceUsage() is disabled"))
+    }
+
+    override def getTerminationReason(taskId: DrmTaskId): Task[Option[TerminationReason]] = Task(None)
   }
 }

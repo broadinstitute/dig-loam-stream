@@ -6,6 +6,7 @@ import loamstream.TestHelpers
 import loamstream.util.Files
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Memory
+import loamstream.model.jobs.TerminationReason
 
 /**
   * @author clint
@@ -43,6 +44,37 @@ final class ExecutionStatsTest extends FunSuite {
   }
 
   test("toDrmResources") {
-    ???
+    val start = LocalDateTime.now
+    val end = LocalDateTime.now
+
+    val stats = ExecutionStats(
+      exitCode = 42,
+      memory = Some(Memory.inKb(1234)),
+      cpu = CpuTime.inSeconds(54.56),
+      startTime = start,
+      endTime = end,
+      terminationReason = Some(TerminationReason.RunTime))
+
+    def doTest(drmSystem: DrmSystem): Unit = {
+      val actual = stats.toDrmResources(drmSystem)(
+        node = Some("some-node"), 
+        queue = Some(Queue("some-queue")),
+        derivedFrom = Some("derived-from"))
+
+      val expected = Some(drmSystem.resourcesMaker(
+        Memory.inKb(1234),
+        CpuTime.inSeconds(54.56),
+        Some("some-node"),
+        Some(Queue("some-queue")),
+        start,
+        end,
+        Some("derived-from")))
+
+      assert(actual === expected)
+    }
+
+    doTest(DrmSystem.Lsf)
+    doTest(DrmSystem.Uger)
+    doTest(DrmSystem.Slurm)
   }
 }

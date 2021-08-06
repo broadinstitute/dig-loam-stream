@@ -101,31 +101,39 @@ object SbatchJobSubmitter extends Loggable {
   type SubmissionFn = CommandInvoker.InvocationFn[Params]
   
   def fromExecutable(
-      lsfConfig: SlurmConfig, 
+      slurmConfig: SlurmConfig, 
       actualExecutable: String = "sbatch")(implicit scheduler: Scheduler): SbatchJobSubmitter = {
     
-    val invoker = new CommandInvoker.Async.JustOnce[Params](
+    val justOnce = new CommandInvoker.Async.JustOnce[Params](
         binaryName = actualExecutable, 
-        delegateFn = invokeBinaryToSubmitJobs(lsfConfig, actualExecutable),
+        delegateFn = invokeBinaryToSubmitJobs(actualExecutable),
         isSuccess = RunResults.SuccessPredicate.zeroIsSuccess)
     
+    val invoker = {
+      if(slurmConfig.maxRetries < 1) { justOnce }
+      else {
+        new CommandInvoker.Async.Retrying(
+          delegate = justOnce, 
+          maxRetries = slurmConfig.maxRetries, 
+          scheduler = scheduler)
+      }
+    }
+
     new SbatchJobSubmitter(invoker)
   }
   
-  private[slurm] def invokeBinaryToSubmitJobs(
-      lsfConfig: SlurmConfig, 
-      actualExecutable: String): SubmissionFn = { 
-        case (drmSettings, taskArray) => Try {
-          val tokens = makeTokens(actualExecutable, lsfConfig, taskArray, drmSettings)
-          
-          debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
-          
-          import scala.sys.process._
-          
-          val processBuilder: ProcessBuilder = tokens
-          
-          Processes.runSync(tokens)(processBuilder = processBuilder)
-     }
+  private[slurm] def invokeBinaryToSubmitJobs(actualExecutable: String): SubmissionFn = { 
+    case (drmSettings, taskArray) => Try {
+      val tokens = makeTokens(actualExecutable, taskArray, drmSettings)
+      
+      debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
+      
+      import scala.sys.process._
+      
+      val processBuilder: ProcessBuilder = tokens
+      
+      Processes.runSync(tokens)(processBuilder = processBuilder)
+    }
   }
   
   import DrmSubmissionResult.SubmissionFailure
@@ -134,7 +142,6 @@ object SbatchJobSubmitter extends Loggable {
   
   private[slurm] def makeTokens(
       actualExecutable: String, 
-      lsfConfig: SlurmConfig, 
       taskArray: DrmTaskArray,
       drmSettings: DrmSettings): Seq[String] = {
     
@@ -156,9 +163,9 @@ object SbatchJobSubmitter extends Loggable {
     
     val coresPart = Seq(s"--cpus-per-task=${numCores}")
     
-    val queuePart: Seq[String] = Nil //TODO does Slurm have the notion of a queue
+    val queuePart: Seq[String] = Nil //TODO does Slurm have the notion of a queue?
     
-    val jobNamePart = Seq("-J", s"${taskArray.drmJobName}[1-${taskArray.size}]")
+    val jobNamePart = Seq("-J", taskArray.drmJobName)
     
     val stdoutPart = Seq("-o", s"${taskArray.stdOutPathTemplate}")
     

@@ -32,11 +32,11 @@ final class IntakeSyntaxTest extends FunSuite {
   test("asCloseable") {
     val yIsEven = Y.asInt.map(_ % 2 == 0)
     
-    assert(asCloseable(yIsEven) === Set.empty)
+    assert(asCloseable(yIsEven) === Nil)
     
     val closeable = MockCloseableRowPredicate(yIsEven)
     
-    assert(asCloseable(closeable) === Set(closeable))
+    assert(asCloseable(closeable) === Seq(closeable))
   }
   
   private def filterSource = Helpers.sourceProducing(

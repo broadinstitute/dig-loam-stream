@@ -6,6 +6,7 @@ import java.net.URI
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 import loamstream.util.Loggable
+import loamstream.loam.intake.dga.Annotation.Download
 
 /**
  * @author clint
@@ -21,19 +22,19 @@ final class AnnotationTest extends FunSuite with Loggable {
         "ca504ff2221f70a3b98802e36205616e"))
     
     val annotation = Annotation(
-      annotationType = AnnotationType.CandidateRegulatoryRegions,
+      annotationType = AnnotationType.CandidateRegulatoryElements,
       annotationId = "DSR249FPB",
-      category = Some("cis-regulatory elements"),
+      category = AnnotationCategory.CisRegulatoryElements,
       tissueId = Some("UBERON:0002048"),
       tissue = Some("some-tissue"),
       source = Some("cCRE definitions"),
       assay = Some(Seq("ChIP-seq", "DNase-seq")),
       collection = None,
-      biosampleId = "EFO:0001196",
-      biosampleType = "some-biosample-type",
+      biosampleId = Some("EFO:0001196"),
+      biosampleType = Some("some-biosample-type"),
       biosample = Some("some-biosample"),
       method = Some("ENCODE-cCREs"), 
-      portalUsage = "facet",
+      portalUsage = Some("facet"),
       harmonizedStates = Some(Map("x" -> "y")),
       downloads = downloads)
       
@@ -45,35 +46,23 @@ final class AnnotationTest extends FunSuite with Loggable {
     assert(noDownloads.isUploadable === false)
     assert(noDownloads.notUploadable === true)
     
-    val noUsage = annotation.copy(portalUsage = "None")
+    {
+      //portalUsage is now ignored
+      val noUsage = annotation.copy(portalUsage = Some("None"))
+      
+      assert(noUsage.isUploadable === true)
+      assert(noUsage.notUploadable === false)
+    }
     
-    assert(noUsage.isUploadable === false)
-    assert(noUsage.notUploadable === true)
+    {
+      //portalUsage is now ignored
+      val missingUsage = annotation.copy(portalUsage = None)
+      
+      assert(missingUsage.isUploadable === true)
+      assert(missingUsage.notUploadable === false)
+    }
   }
 
-  test("portalUsageIsNone") {
-    val a = Annotation(
-      annotationType = AnnotationType.CandidateRegulatoryRegions,
-      annotationId = "DSR249FPB",
-      category = Some("cis-regulatory elements"),
-      tissueId = Some("UBERON:0002048"),
-      tissue = Some("some-tissue"),
-      source = Some("cCRE definitions"),
-      assay = Some(Seq("ChIP-seq", "DNase-seq")),
-      collection = None,
-      biosampleId = "EFO:0001196",
-      biosampleType = "some-biosample-type",
-      biosample = Some("some-biosample"),
-      method = Some("ENCODE-cCREs"), 
-      portalUsage = "facet",
-      harmonizedStates = Some(Map("x" -> "y")),
-      downloads = Nil)
-      
-    assert(a.portalUsageIsNone === false)
-    assert(a.copy(portalUsage = "none").portalUsageIsNone === false)
-    assert(a.copy(portalUsage = "None").portalUsageIsNone === true)
-  }
-  
   test("toMetadata") {
     val downloads = Seq(
       Annotation.Download(
@@ -83,23 +72,24 @@ final class AnnotationTest extends FunSuite with Loggable {
         "ca504ff2221f70a3b98802e36205616e"))
     
     val annotation = Annotation(
-      annotationType = AnnotationType.CandidateRegulatoryRegions,
+      annotationType = AnnotationType.CandidateRegulatoryElements,
       annotationId = "DSR249FPB",
-      category = Some("cis-regulatory elements"),
+      category = AnnotationCategory.CisRegulatoryElements,
       tissueId = Some("UBERON:0002048"),
       tissue = Some("some-tissue"),
       source = Some("cCRE definitions"),
       assay = Some(Seq("ChIP-seq", "DNase-seq")),
       collection = None,
-      biosampleId = "EFO:0001196",
-      biosampleType = "some-biosample-type",
+      biosampleId = Some("EFO:0001196"),
+      biosampleType = Some("some-biosample-type"),
       biosample = Some("some-biosample"),
       method = Some("ENCODE-cCREs"), 
-      portalUsage = "facet",
+      portalUsage = Some("facet"),
       harmonizedStates = Some(Map("x" -> "y")),
-      downloads = downloads)
+      downloads = downloads,
+      derivedFrom = Some(JInt(42)))
       
-    val expected = Annotation.Metadata(downloads, Some("ENCODE-cCREs"))
+    val expected = Annotation.Metadata(annotationMethod = Some("ENCODE-cCREs"), derivedFrom = JInt(42))
     
     assert(annotation.toMetadata === expected)
   }
@@ -107,7 +97,9 @@ final class AnnotationTest extends FunSuite with Loggable {
   test("fromJson - good input") {
     val idsToNames = Map("UBERON:0002048" -> "some-tissue", "EFO:0001196" -> "some-biosample")
     
-    val annotation = Annotation.fromJson(idsToNames)(parse(AnnotationTest.goodJson)).get
+    val goodJson = parse(AnnotationTest.goodJson)
+    
+    val annotation = Annotation.fromJson(idsToNames)(goodJson).get
     
     val expectedDownloads = Seq(
       Annotation.Download(
@@ -117,21 +109,22 @@ final class AnnotationTest extends FunSuite with Loggable {
         "ca504ff2221f70a3b98802e36205616e"))
     
     val expected = Annotation(
-      annotationType = AnnotationType.CandidateRegulatoryRegions,
+      annotationType = AnnotationType.CandidateRegulatoryElements,
       annotationId = "DSR249FPB",
-      category = Some("cis-regulatory elements"),
+      category = AnnotationCategory.CisRegulatoryElements,
       tissueId = Some("UBERON:0002048"),
       tissue = Some("some-tissue"),
       source = Some("cCRE definitions"),
       assay = Some(Seq("ChIP-seq", "DNase-seq")),
       collection = Some(Seq("ENCODE", "FoOoO")),
-      biosampleId = "EFO:0001196",
-      biosampleType = "some-biosample-type",
+      biosampleId = Some("EFO:0001196"),
+      biosampleType = Some("some-biosample-type"),
       biosample = Some("some-biosample"),
       method = Some("ENCODE-cCREs"), 
-      portalUsage = "facet",
+      portalUsage = Some("facet"),
       harmonizedStates = Some(Map("x" -> "y", "abc" -> "xyz")),
-      downloads = expectedDownloads)
+      downloads = expectedDownloads,
+      derivedFrom = Some(goodJson))
     
     assert(annotation === expected)
   }
@@ -144,8 +137,56 @@ final class AnnotationTest extends FunSuite with Loggable {
     assert(fromJson(Map.empty)(parse("""{"lalala":"asdf"}""")).isFailure)
   }
   
-  ignore("isValidDownload") {
-    fail("TODO")
+  test("isValidDownload - happy path") {
+    val someAnnotationId = "asdasdasd"
+    
+    for {
+      status <- Seq(Annotation.Status.Released, Annotation.Status.Uploading)
+      extension <- Seq("bed", "bed.gz")
+      assemblyId <- Seq(AssemblyIds.hg19, "GRCh37")
+    } {
+      val d = Download(assemblyId, URI.create(s"http://example.com/foo.${extension}"), status, md5Sum = "asdf")
+      
+      assert(Annotation.isValidDownload(someAnnotationId)(d) === true)
+    }
+  }
+   
+  test("isValidDownload - invalid cases") {
+    val someAnnotationId = "asdasdasd"
+    
+    val invalidStatus = Annotation.Status.Other
+    val invalidExtension = "txt"
+    val invalidAssemblyId = "GRCh38"
+    
+    val d = Download(
+      AssemblyIds.hg19, 
+      URI.create(s"http://example.com/foo.bed"), 
+      Annotation.Status.Released, 
+      md5Sum = "asdf")
+    
+    def isValidDownload(d: Download) = Annotation.isValidDownload(someAnnotationId)(d)
+    
+    assert(isValidDownload(d) === true)
+      
+    val invalidateAssemblyId: Download => Download = _.copy(assemblyId = invalidAssemblyId)
+    val invalidateExtension: Download => Download = _.copy(
+        url = URI.create(s"http://example.com/foo.${invalidExtension}"),
+        file = TestHelpers.path(s"foo.${invalidExtension}"))
+    val invalidateStatus: Download => Download = _.copy(status = invalidStatus)
+    
+    val transforms: Seq[Download => Download] = Seq(invalidateAssemblyId, invalidateExtension, invalidateStatus)
+    
+    transforms.foreach { t =>
+      assert(isValidDownload(t(d)) === false)
+    }
+    
+    transforms.combinations(2).foreach { case Seq(t0, t1) =>
+      assert(isValidDownload(t1(t0(d))) === false)
+    }
+    
+    transforms.permutations.foreach { case Seq(t0, t1, t2) =>
+      assert(isValidDownload(t2(t1(t0(d)))) === false)
+    }
   }
   
   test("Download.fromJson") {
@@ -197,7 +238,7 @@ final class AnnotationTest extends FunSuite with Loggable {
   }
   
   test("Metadata - static fields") {
-    val m = Annotation.Metadata(Nil, None)
+    val m = Annotation.Metadata(None, JInt(42))
     
     assert(m.vendor === "DGA")
     assert(m.version === "1.0")
@@ -212,26 +253,13 @@ final class AnnotationTest extends FunSuite with Loggable {
         Download("a0", URI.create("http://example.com/0.bed"), Status.Released, "m0"),
         Download("a1", URI.create("http://example.com/1.bed.gz"), Status.Uploading, "m1"))
 
-    val m = Metadata(downloads, Some("foo-method"))
+    val m = Metadata(Some("foo-method"), derivedFrom = JInt(42))
     
     val expected = compact(render(parse("""{
-        "sources": [
-          {
-            "assemblyId": "a0",
-            "url": "http://example.com/0.bed",
-            "file": "/0.bed",
-            "status": "released",
-            "md5Sum": "m0"
-          },
-          {
-            "assemblyId": "a1",
-            "url": "http://example.com/1.bed.gz",
-            "file": "/1.bed.gz",
-            "status": "uploading",
-            "md5Sum": "m1"
-          }
-        ],
-        "method": "foo-method"
+        "vendor": "DGA",
+        "version": "1.0",
+        "method": "foo-method",
+        "derivedFrom": 42
       }""")))
         
     assert(compact(render(m.toJson)) === expected)
@@ -267,7 +295,7 @@ object AnnotationTest {
             "portal_tissue": [
                 "lung"
             ],
-            "annotation_type": "candidate regulatory regions",
+            "annotation_type": "candidate regulatory elements",
             "file_download": {
                 "DFF258PCW": [
                     {

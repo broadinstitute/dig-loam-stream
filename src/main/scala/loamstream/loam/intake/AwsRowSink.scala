@@ -60,11 +60,10 @@ final case class AwsRowSink(
     dataset: String,
     techType: Option[TechType],
     phenotype: Option[String],
+    metadata: JObject,
     s3Client: S3Client,
     batchSize: Int = AwsRowSink.Defaults.batchSize,
     baseDir: Option[String] = AwsRowSink.Defaults.baseDir,
-    // :(
-    yes: Boolean = false,
     private val fileIds: Iterator[Long] = AwsRowSink.Defaults.fileIdSequence,
     private val uuid: String = AwsRowSink.Defaults.randomUUID) extends RowSink[RenderableJsonRow] with Loggable {
   
@@ -80,8 +79,10 @@ final case class AwsRowSink(
   
   override def accept(row: RenderableJsonRow): Unit = write(toJson(row))
   
-  override def close(): Unit = flush()
+  override def close(): Unit = commit(metadata)
 
+  def withMetadata(newMetadata: JObject): AwsRowSink = copy(metadata = newMetadata)
+  
   private[this] val uploadedSoFarBox: ValueBox[Int] = ValueBox(0)
   
   private[intake] def uploadedSoFar = uploadedSoFarBox.value
@@ -131,9 +132,7 @@ final case class AwsRowSink(
     
     info(s"Deleting '${path}'...")
     
-    if(yes) {
-      s3Client.deleteDir(prefix)
-    }
+    s3Client.deleteDir(prefix)
   }
   
   /**
@@ -163,9 +162,7 @@ final case class AwsRowSink(
 
     info(s"Writing ${metadataKey}")
 
-    if(yes) {
-      s3Client.put(metadataKey, body, contentType = Some(S3Client.ContentType.ApplicationJson))
-    }
+    s3Client.put(metadataKey, body, contentType = Some(S3Client.ContentType.ApplicationJson))
   }
   
   /**
@@ -199,9 +196,7 @@ final case class AwsRowSink(
       val body = batch.mkString("\n")
 
       //write the batched records to the bucket
-      if(yes) {
-        s3Client.put(key, body, contentType = Some(S3Client.ContentType.ApplicationJson))
-      }
+      s3Client.put(key, body, contentType = Some(S3Client.ContentType.ApplicationJson))
 
       info(s"Wrote ${key}")
 
@@ -216,7 +211,7 @@ final case class AwsRowSink(
   /**
    * Write the last batch and then write the dataset to the database.
    */
-  def commit(metadata: JObject): Unit = uploadedSoFarBox.foreach { _ =>
+  private def commit(metadata: JObject): Unit = uploadedSoFarBox.foreach { _ =>
     flush()
   
     for {

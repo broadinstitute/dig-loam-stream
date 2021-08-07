@@ -14,7 +14,15 @@ import scala.collection.compat._
 trait DataRow extends SkippableRow[DataRow] with KeyedRow with IndexedRow with RowWithRecordNumber
 
 object DataRow {
-  final case class CommonsCsvDataRow(delegate: CSVRecord, isSkipped: Boolean = false) extends DataRow {
+  final case class CommonsCsvDataRow(delegate: CSVRecord, isSkipped: Boolean = false) extends DataRow { 
+    override def toString: String = {
+      import scala.collection.JavaConverters._
+      
+      val headerNames = delegate.getParser.getHeaderNames.asScala.toList
+      
+      s"${this.getClass.getSimpleName}(delegate=${delegate}, headers=${headerNames}, isSkipped=${isSkipped})"
+    }
+    
     override def headers: Seq[String] = {
       import scala.collection.JavaConverters._
       

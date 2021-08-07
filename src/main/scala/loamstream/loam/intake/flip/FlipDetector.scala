@@ -122,7 +122,6 @@ object FlipDetector extends Loggable {
       variant.refFromReferenceGenome.filter(_ != reference).zip(variant.altFromReferenceGenome) match {
         case Some((_, altFromRefGenome)) if altFromRefGenome == alt => FlippedSameStrand
         case Some((_, altFromRefGenome)) if altFromRefGenome == Complement(alt) => FlippedComplementStrand
-        //case Some((refFromRefGenome, _)) if refFromRefGenome == Complement(reference) => NotFlippedComplementStrand
         case _ => NotFlippedSameStrand
       }
     }

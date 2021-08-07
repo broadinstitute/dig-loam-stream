@@ -84,7 +84,9 @@ final case class GoogleCloudChunkRunner(
     }
   }
   
-  private[googlecloud] def startClusterIfNecessary(clusterConfig: ClusterConfig): Unit = currentClusterConfig.foreach { _ =>
+  private[googlecloud] def startClusterIfNecessary(
+    clusterConfig: ClusterConfig): Unit = currentClusterConfig.foreach { _ =>
+      
     def start(): Unit = {
       client.startCluster(clusterConfig)
       

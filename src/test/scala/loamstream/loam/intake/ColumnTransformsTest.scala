@@ -71,4 +71,42 @@ final class ColumnTransformsTest extends FunSuite {
       expr(row)
     }
   }
+  
+  test("normalizeSpaces") {
+    val expr = ColumnTransforms.normalizeSpaces(ColumnName("A"))
+    
+    def doTest(row: DataRow, expected: String): Unit = assert(expr(row) === expected)
+    
+    def rowOf(a: String): DataRow = Helpers.csvRow("A" -> a, "B" -> "foo bar baz")
+    
+    doTest(rowOf(""), "")
+    doTest(rowOf("asdf"), "asdf")
+    doTest(rowOf(" "), "")
+    doTest(rowOf("    "), "")
+    doTest(rowOf(" asd"), "asd")
+    doTest(rowOf("    asd"), "asd")
+    doTest(rowOf("zxc "), "zxc")
+    doTest(rowOf("zxc   "), "zxc")
+    doTest(rowOf("zxc asd "), "zxc_asd")
+    doTest(rowOf(" zxc     asd     qwer "), "zxc_asd_qwer")
+  }
+  
+  test("normalizeSpacesOpt") {
+    val expr = ColumnTransforms.normalizeSpacesOpt(ColumnName("A").asOption)
+    
+    def doTest(row: DataRow, expected: String): Unit = assert(expr(row) === Some(expected))
+    
+    def rowOf(a: String): DataRow = Helpers.csvRow("A" -> a, "B" -> "foo bar baz")
+    
+    doTest(rowOf(""), "")
+    doTest(rowOf("asdf"), "asdf")
+    doTest(rowOf(" "), "")
+    doTest(rowOf("    "), "")
+    doTest(rowOf(" asd"), "asd")
+    doTest(rowOf("    asd"), "asd")
+    doTest(rowOf("zxc "), "zxc")
+    doTest(rowOf("zxc   "), "zxc")
+    doTest(rowOf("zxc asd "), "zxc_asd")
+    doTest(rowOf(" zxc     asd     qwer "), "zxc_asd_qwer")
+  }
 }

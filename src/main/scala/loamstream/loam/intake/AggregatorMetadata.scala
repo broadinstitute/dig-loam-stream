@@ -9,6 +9,7 @@ import loamstream.conf.ConfigParser
 import loamstream.util.Options
 import org.json4s.JsonAST.JValue
 import org.json4s.JsonAST.JString
+import org.json4s.JsonAST.JObject
 
 /**
  * @author clint
@@ -41,6 +42,8 @@ final case class AggregatorMetadata(
     
     toTuples.map { case (name, value) => (name, JString(value)) }
   }
+  
+  def asJObject: JObject = JObject(asJson: _*)
   
   private def toTuples: Seq[(String, String)] = {
     import AggregatorMetadata.escape

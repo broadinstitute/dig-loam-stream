@@ -176,9 +176,15 @@ object Metric {
   }
   
   def writeValidVariantsTo[R <: BaseVariantRow](
-      sink: RowSink[R]): Metric[R, Unit] = Fold.foreach { row =>
-    if(row.notSkipped) {
-      row.aggRowOpt.foreach(sink.accept)
+      sink: RowSink[R],
+      autoClose: Boolean = true): Metric[R, Unit] = {
+
+    val doWrite: Metric[R, Unit] = Fold.foreach { row =>
+      if(row.notSkipped) {
+        row.aggRowOpt.foreach(sink.accept)
+      }
     }
+    
+    if(autoClose) doWrite.map(_ => sink.close()) else doWrite
   }
 }

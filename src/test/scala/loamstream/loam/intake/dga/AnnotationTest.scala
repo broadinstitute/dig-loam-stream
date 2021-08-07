@@ -255,14 +255,14 @@ final class AnnotationTest extends FunSuite with Loggable {
 
     val m = Metadata(Some("foo-method"), derivedFrom = JInt(42))
     
-    val expected = compact(render(parse("""{
+    val expected = parse("""{
         "vendor": "DGA",
         "version": "1.0",
         "method": "foo-method",
         "derivedFrom": 42
-      }""")))
+      }""")
         
-    assert(compact(render(m.toJson)) === expected)
+    assert(m.toJson === expected)
   }
 }
 

@@ -14,9 +14,9 @@ final class StrandTest extends FunSuite {
   
   test("name") {
     assert(Plus.name === "+")
-    assert(+.name === "+")
+    assert(`+`.name === "+")
     assert(Minus.name === "-")
-    assert(-.name === "-")
+    assert(`-`.name === "-")
   }
   
   test("values") {

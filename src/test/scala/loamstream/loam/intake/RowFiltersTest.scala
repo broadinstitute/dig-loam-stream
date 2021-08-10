@@ -67,7 +67,11 @@ final class RowFiltersTest extends FunSuite {
           Seq("A", "I", "42"),
           Seq("A", "T", "42"))
           
-      val predicate = DataRowFilters.hasAllowedAlleles(refColumn = REF, altColumn = ALT, logStore = logStore, append = true)
+      val predicate = DataRowFilters.hasAllowedAlleles(
+        refColumn = REF, 
+        altColumn = ALT, 
+        logStore = logStore, 
+        append = true)
       
       val filtered = rows.filter(predicate)
       

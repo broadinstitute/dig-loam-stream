@@ -580,15 +580,9 @@ ${v3.underscoreDelimited}${'\t'}${dataset}${'\t'}${phenotype}${'\t'}${ancestry.n
     
     val complementedVariants = Set(m0, m3)
     
-    val flipDetector: FlipDetector = IntakeSyntaxTest.MockFlipDetector(Set.empty, complementedVariants = complementedVariants)
-    
-    /**
-      * private[intake] def tagFlips(
-      markerDef: MarkerColumnDef, 
-      flipDetector: => FlipDetector,
-      failFast: Boolean)
-     (implicit logCtx: LogContext): Source[VariantRow.Analyzed] = {
-      */
+    val flipDetector: FlipDetector = {
+      IntakeSyntaxTest.MockFlipDetector(Set.empty, complementedVariants = complementedVariants)
+    }
 
     val rows = Source.fromReader(reader)
 

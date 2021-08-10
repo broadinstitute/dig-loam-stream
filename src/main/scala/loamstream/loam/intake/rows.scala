@@ -324,8 +324,7 @@ object VariantRow {
       derivedFrom: DataRow,
       marker: Variant,
       originalMarker: Variant,
-      disposition: Disposition,
-      ) extends Analyzed {
+      disposition: Disposition) extends Analyzed {
     
       override def isSkipped: Boolean = false
 

@@ -23,7 +23,8 @@ object DataRow {
       
       val headerNames = delegate.getParser.getHeaderNames.asScala.toList
       
-      s"${this.getClass.getSimpleName}(delegate=${delegate}, headers=${headerNames}, values=${delegate.toMap} isSkipped=${isSkipped})"
+      s"${this.getClass.getSimpleName}(delegate=${delegate}, headers=${headerNames}, " + 
+      s"values=${delegate.toMap} isSkipped=${isSkipped})"
     }
     
     override def headers: Seq[String] = {

@@ -202,9 +202,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     }
     
     private def toFilterTransform(p: DataRowPredicate): DataRow => DataRow = { row =>
-      println(s"Processing row #${row.recordNumber} skipped? ${row.isSkipped}" )
-
-      if(row.isSkipped || p(row)) { row } else { println(s"Skipping row #${row.recordNumber}" ) ; row.skip }
+      if(row.isSkipped || p(row))  row else row.skip
     }
     
     def filter(p: DataRowPredicate): ViaTarget[R] = {

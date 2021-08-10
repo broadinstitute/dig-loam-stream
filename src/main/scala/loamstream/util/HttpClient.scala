@@ -1,5 +1,7 @@
 package loamstream.util
 
+import java.io.InputStream
+
 import HttpClient.Auth
 
 /**
@@ -10,6 +12,8 @@ trait HttpClient {
   def get(url: String, auth: Option[Auth] = None): Either[String, String]
   
   def getAsBytes(url: String, auth: Option[HttpClient.Auth] = None): Either[String, Array[Byte]]
+  
+  def getAsInputStream(url: String, auth: Option[HttpClient.Auth] = None): Either[Throwable, (Terminable, InputStream)]
   
   def contentLength(url: String, auth: Option[Auth] = None): Either[String, Long]
   

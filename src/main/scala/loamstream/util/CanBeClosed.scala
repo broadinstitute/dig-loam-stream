@@ -16,9 +16,7 @@ object CanBeClosed {
 
   implicit def scalaSourcesCanBeClosed[S <: Source]: CanBeClosed[S] = _.close()
   
-  implicit def terminablesCanBeClosed[A <: Terminable]: CanBeClosed[A] = new CanBeClosed[A] {
-    override def close(a: A): Unit = a.stop()
-  }
+  implicit def terminablesCanBeClosed[A <: Terminable]: CanBeClosed[A] = _.stop()
 
   def using[A, C: CanBeClosed](c: C)(f: C => A): A = enclosed(c)(f)
   
@@ -30,5 +28,9 @@ object CanBeClosed {
 
       closer.close(c)
     }
+  }
+  
+  implicit final class Syntax[C: CanBeClosed](c: C) {
+    def close(): Unit = implicitly[CanBeClosed[C]].close(c)
   }
 }

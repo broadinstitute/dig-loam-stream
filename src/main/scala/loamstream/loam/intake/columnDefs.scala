@@ -7,7 +7,7 @@ import scala.reflect.runtime.universe.TypeTag
  * @author clint
  * Oct 15, 2020
  */
-trait ColumnDef[A] extends (VariantRow.Tagged => A) {
+trait ColumnDef[A] extends (VariantRow.Analyzed.Tagged => A) {
   def map[B: TypeTag](f: A => B): ColumnDef[B] = MappedColumnDef(this, f)
 }
 
@@ -25,7 +25,7 @@ trait HandlesFlipsColumnDef[A] extends ColumnDef[A] {
   
   def exprWhenFlipped: Option[ColumnExpr[A]]
   
-  override def apply(row: VariantRow.Tagged): A = {
+  override def apply(row: VariantRow.Analyzed.Tagged): A = {
     val exprToInvoke: ColumnExpr[A] = {
       def whenFlipped: ColumnExpr[A] = exprWhenFlipped match {
         case Some(e) => e
@@ -35,7 +35,7 @@ trait HandlesFlipsColumnDef[A] extends ColumnDef[A] {
       if(row.isFlipped) whenFlipped else expr
     }
     
-    exprToInvoke(row)
+    exprToInvoke(row.derivedFrom)
   }
 }
 
@@ -60,7 +60,7 @@ final case class MappedColumnDef[A, B](
     delegate: ColumnDef[A],
     f: A => B) extends ColumnDef[B] {
   
-  override def apply(row: VariantRow.Tagged): B = f(delegate(row))
+  override def apply(row: VariantRow.Analyzed.Tagged): B = f(delegate(row))
 }
 
 final case class CombinedColumnDef[A, B, C](
@@ -68,5 +68,5 @@ final case class CombinedColumnDef[A, B, C](
     rhsDef: ColumnDef[B],
     op: (A, B) => C) extends ColumnDef[C] {
   
-  override def apply(row: VariantRow.Tagged): C = op(lhsDef(row), rhsDef(row))
+  override def apply(row: VariantRow.Analyzed.Tagged): C = op(lhsDef(row), rhsDef(row))
 }

@@ -28,10 +28,13 @@ sealed abstract class ColumnExpr[A : TypeTag] extends
     }
   }
   
+  def isDefinedFor(row: DataRow): Boolean = true
+  
   protected def newCsvProcessingException(row: DataRow, cause: Throwable) = {
     new CsvProcessingException(
-        s"Error processing record number ${row.recordNumber} with expr ${this} (${getClass.getName}); row is '$row':", 
+        s"Error processing record number ${row.recordNumber}: ${cause.getMessage}", 
         row, 
+        this,
         cause)
   }
   
@@ -248,6 +251,10 @@ final case class ColumnName(name: String) extends ColumnExpr[String] {
     value
   }
   
+  override def isDefinedFor(row: DataRow): Boolean = row.hasField(name) 
+  
+  override def asOption: ColumnExpr[Option[String]] = ColumnName.Optional(this)
+  
   private[intake] val index: Int = ColumnName.nextColumnIndex()
   
   override def asString: ColumnExpr[String] = this
@@ -259,6 +266,12 @@ object ColumnName {
   private[this] val indices: Sequence[Int] = Sequence()
   
   private[intake] def nextColumnIndex(): Int = indices.next()
+  
+  private final case class Optional(derivedFrom: ColumnName) extends ColumnExpr[Option[String]] {
+    override def eval(row: DataRow): Option[String] = {
+      if(derivedFrom.isDefinedFor(row)) Option(derivedFrom(row)) else None
+    }
+  }
 }
 
 final case class MappedColumnExpr[A: TypeTag, B: TypeTag](f: A => B, dependsOn: ColumnExpr[A]) extends ColumnExpr[B] {

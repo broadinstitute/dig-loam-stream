@@ -9,7 +9,7 @@ import org.json4s._
 import loamstream.util.Iterators
 import loamstream.loam.intake.HasName
 import loamstream.util.HttpClient
-import loamstream.util.SttpHttpClient
+import loamstream.util.DefaultHttpClient
 import loamstream.util.Traversables
 import loamstream.util.Maps
 
@@ -39,7 +39,7 @@ object BioIndexClient {
   object Defaults {
     val baseUrl: String = "http://ec2-18-215-38-136.compute-1.amazonaws.com:5000/api"
     
-    def httpClient: HttpClient = new SttpHttpClient
+    def httpClient: HttpClient = new DefaultHttpClient
   }
   
   final class Default(

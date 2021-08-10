@@ -55,9 +55,6 @@ object S3Client {
       
       val req = reqBuilder.build
       
-      //TODO: update dig-aws to allow specifying content-type
-      ???
-      
       bucketApi.put(key, data)
     }
     

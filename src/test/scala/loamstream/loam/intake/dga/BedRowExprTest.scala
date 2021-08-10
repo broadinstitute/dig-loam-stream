@@ -4,6 +4,7 @@ import org.scalatest.FunSuite
 import loamstream.loam.intake.ColumnExpr
 import loamstream.loam.intake.DataRow
 import loamstream.loam.intake.Helpers
+import loamstream.loam.intake.ColumnTransforms
 import scala.collection.compat._
 
 /**
@@ -11,6 +12,8 @@ import scala.collection.compat._
  * Feb 11, 2021
  */
 final class BedRowExprTest extends FunSuite {
+  private def normalized(s: String) = ColumnTransforms.doNormalizeSpaces(false)(s)
+  
   test("Apply - good input") {
     val chromColumnNames = Seq("chromosome", "chr", "chrom")
     val startColumnNames = Seq("start", "chromStart")
@@ -19,27 +22,37 @@ final class BedRowExprTest extends FunSuite {
     
     val annotations = Seq(
         annotation.copy(annotationType = AnnotationType.AccessibleChromatin),
-        annotation.copy(annotationType = AnnotationType.TargetGenePrediction),
+        annotation.copy(annotationType = AnnotationType.TargetGenePredictions),
         annotation)
     
+    //NB: Use something with whitespace that needs to be normalized
+    val stateValue = "asd f g hjkl"
+        
     for {
+      ann <- annotations
+      isTargetGenePredictions = ann.annotationType == AnnotationType.TargetGenePredictions
+      notTargetGenePredictions = !isTargetGenePredictions
       chromColumn <- chromColumnNames
       startColumn <- startColumnNames
       endColumn <- endColumnNames
-      stateColumn <- stateColumnNames
-      ann <- annotations
+      stateColumn <- if(isTargetGenePredictions) Seq("name") else Seq("state", "name")
     } {
-      val row = Helpers.csvRow(
-          "foo" -> "bar", 
-          chromColumn -> "cHr14",
-          startColumn -> "5432",
-          "baz" -> "blerg",
-          endColumn -> "123456",
-          stateColumn -> "asdfghjkl",
-          "zuh" -> "bip",
-          "target_gene" -> "qwerty",
-          "target_gene_start" -> "456",
-          "target_gene_end" -> "789")
+      val nameTuple: Option[(String, String)] = {
+        if(isTargetGenePredictions) Some("name" -> "1:456-789_qwerty") else None
+      }
+          
+      val rowValues = Map(
+        "foo" -> "bar", 
+        chromColumn -> "cHr14",
+        startColumn -> "5432",
+        "baz" -> "blerg",
+        endColumn -> "123456",
+        "zuh" -> "bip",
+        "strand" -> ".",
+        stateColumn -> stateValue) ++ 
+        nameTuple
+        
+      val row = Helpers.csvRow(rowValues.toSeq: _*)
        
       val expr = BedRowExpr(ann)          
           
@@ -50,9 +63,8 @@ final class BedRowExprTest extends FunSuite {
       assert(bedRow.biosampleType === ann.biosampleType)
       assert(bedRow.biosample === ann.biosample)
       assert(bedRow.tissueId === ann.tissueId)
-      assert(bedRow.tissue === ann.tissue)
+      assert(bedRow.tissue === ann.tissue.map(normalized))
       assert(bedRow.annotation === ann.annotationType.name)
-      assert(bedRow.category === ann.category)
       assert(bedRow.method === ann.method)
       assert(bedRow.source === ann.source)
       assert(bedRow.assay === ann.assay)
@@ -62,16 +74,14 @@ final class BedRowExprTest extends FunSuite {
       assert(bedRow.end === 123456L)
       
       val expectedState = {
-        if(ann.annotationType == AnnotationType.AccessibleChromatin) "accessible_chromatin" else "asdfghjkl"
+        if(ann.annotationType == AnnotationType.AccessibleChromatin) "accessible_chromatin" else normalized(stateValue)
       }
       
-      assert(bedRow.state === expectedState)
-        
       val (expectedTargetGene: Option[String], 
            expectedTargetGeneStart: Option[Long], 
            expectedTargetGeneEnd: Option[Long]) = {
         
-        if(ann.annotationType == AnnotationType.TargetGenePrediction) { (Some("qwerty"), Some(456L), Some(789L)) }
+        if(isTargetGenePredictions) { (Some("qwerty"), Some(456L), Some(789L)) }
         else { (None, None, None) }
       }
       
@@ -119,7 +129,6 @@ final class BedRowExprTest extends FunSuite {
     doTest(badChrom = true)
     doTest(badStart = true)
     doTest(badEnd = true)
-    doTest(badState = true)
   }
   
   test("literal columns") {
@@ -128,15 +137,14 @@ final class BedRowExprTest extends FunSuite {
 
       assert(column(columns)(row) === expected(annotation))
     }
-
+    
     doTest(_.dataset, _.annotationId)
     doTest(_.biosampleId, _.biosampleId)
     doTest(_.biosampleType, _.biosampleType)
     doTest(_.biosample, _.biosample)
     doTest(_.tissueId, _.tissueId)
-    doTest(_.tissue, _.tissue)
+    doTest(_.tissue, _.tissue.map(normalized))
     doTest(_.annotation, _.annotationType)
-    doTest(_.category, _.category)
     doTest(_.method, _.method)
     doTest(_.source, _.source)
     doTest(_.assay, _.assay)
@@ -285,33 +293,34 @@ final class BedRowExprTest extends FunSuite {
   }
 
   private def doTargetGeneColumnTest[A](
-      columnName: String, 
       expected: A, 
       column: BedRowExpr.Columns => ColumnExpr[Option[A]]): Unit = {
     
-    val row = Helpers.csvRow("foo" -> "bar", columnName -> expected.toString)
+    val columnValue = "1:456-789_qwerty"
     
-    assert(columns.ann.annotationType !== AnnotationType.TargetGenePrediction)
+    val row = Helpers.csvRow("foo" -> "bar", "name" -> columnValue)
+    
+    assert(columns.ann.annotationType !== AnnotationType.TargetGenePredictions)
     
     assert(column(columns)(row) === None)
     
-    val newColumns = BedRowExpr.Columns(annotation.copy(annotationType = AnnotationType.TargetGenePrediction))
+    val newColumns = BedRowExpr.Columns(annotation.copy(annotationType = AnnotationType.TargetGenePredictions))
     
-    doNaValuesTest(newColumns)(column, columnName)
+    doNaValuesTest(newColumns)(column, "name")
     
     assert(column(newColumns)(row) === Some(expected))
   }
 
   test("targetGene column") {
-    doTargetGeneColumnTest("target_gene", "blerg", _.targetGene)
+    doTargetGeneColumnTest("qwerty", _.targetGene)
   }
 
   test("targetGeneStart column") {
-    doTargetGeneColumnTest("target_gene_start", 42L, _.targetGeneStart)
+    doTargetGeneColumnTest(456L, _.targetGeneStart)
   }
 
   test("targetGeneEnd column") {
-    doTargetGeneColumnTest("target_gene_end", 99L, _.targetGeneEnd)
+    doTargetGeneColumnTest(789L, _.targetGeneEnd)
   }
 
   private object EmptyDataRow extends DataRow {
@@ -335,7 +344,7 @@ final class BedRowExprTest extends FunSuite {
   private val assembly: String = "asdasdasfa"
   private val annotationType: AnnotationType = AnnotationType.CaQTL
   private val annotationId: String = "ASKJhkjasf"
-  private val category: Option[String] = Some("fhdolhujd")
+  private val category: AnnotationCategory = AnnotationCategory.CisRegulatoryElements
   private val tissueId: Option[String] = Some("sdgpl89dg")
   private val tissue: Option[String] = Some("v9j0 8sdf")
   private val source: Option[String] = Some("c8bvfxf")
@@ -356,11 +365,11 @@ final class BedRowExprTest extends FunSuite {
     source = source,
     assay = assay,
     collection = collections,
-    biosampleId = biosampleId,
-    biosampleType = biosampleType,
+    biosampleId = Some(biosampleId),
+    biosampleType = Some(biosampleType),
     biosample = biosample,
     method = method,
-    portalUsage = portalUsage,
+    portalUsage = Some(portalUsage),
     harmonizedStates = None,
     downloads = Nil)
 

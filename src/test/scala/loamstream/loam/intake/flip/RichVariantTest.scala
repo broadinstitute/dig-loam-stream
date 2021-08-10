@@ -22,36 +22,36 @@ final class RichVariantTest extends FunSuite {
   }
   
   test("forwarded accessors") {
-    val v = Variant(chrom = "a", pos = 123, alt = "b", ref = "c")
+    val v = Variant.from(chrom = "a", pos = "123", alt = "G", ref = "c")
     
     val richV = new RichVariant(ReferenceFiles.empty, JSet.empty, v)
     
-    assert(richV.chrom === "a")
+    assert(richV.chrom === "A")
     assert(richV.position === 123)
-    assert(richV.alt === "b")
-    assert(richV.reference === "c")
+    assert(richV.alt === "G")
+    assert(richV.reference === "C")
   }
   
   test("toKey") {
-    val v = Variant(chrom = "a", pos = 123, alt = "b", ref = "c")
+    val v = Variant.from(chrom = "a", pos = "123", alt = "g", ref = "c")
     
     val richV = new RichVariant(ReferenceFiles.empty, JSet.empty, v)
     
-    assert(richV.toKey === s"a_123_c_b")
+    assert(richV.toKey === s"A_123_C_G")
   }
   
   test("toKeyMunged") {
-    val v = Variant(chrom = "a", pos = 123, alt = "A", ref = "C")
+    val v = Variant.from(chrom = "a", pos = "123", alt = "A", ref = "C")
     
     val richV = new RichVariant(ReferenceFiles.empty, JSet.empty, v)
     
-    assert(richV.toKeyComplemented === s"a_123_G_T")
+    assert(richV.toKeyComplemented === s"A_123_G_T")
   }
   
   test("isIn26k") {
-    val v0 = Variant(chrom = "a", pos = 123, alt = "A", ref = "C")
+    val v0 = Variant.from(chrom = "a", pos = "123", alt = "A", ref = "C")
     
-    val v1 = Variant(chrom = "x", pos = 456, alt = "A", ref = "C")
+    val v1 = Variant.from(chrom = "x", pos = "456", alt = "A", ref = "C")
     
     val varId0 = (new RichVariant(ReferenceFiles.empty, JSet.empty, v0)).toKey
     
@@ -66,9 +66,9 @@ final class RichVariantTest extends FunSuite {
   }
   
   test("isIn26kMunged") {
-    val v0 = Variant(chrom = "a", pos = 123, alt = "A", ref = "C")
+    val v0 = Variant.from(chrom = "a", pos = "123", alt = "A", ref = "C")
     
-    val v1 = Variant(chrom = "x", pos = 456, alt = "A", ref = "C")
+    val v1 = Variant.from(chrom = "x", pos = "456", alt = "A", ref = "C")
     
     val varId0Munged = (new RichVariant(ReferenceFiles.empty, JSet.empty, v0)).toKeyComplemented
     
@@ -86,17 +86,17 @@ final class RichVariantTest extends FunSuite {
     Helpers.withTestFile("123456789") { testFile =>
       val handle = ReferenceFileHandle(testFile.toFile)
       
-      val refFiles = new ReferenceFiles(Map("a" -> handle))
+      val refFiles = new ReferenceFiles(Map("A" -> handle))
       
-      val v0 = Variant(chrom = "a", pos = 2, alt = "A", ref = "C")
+      val v0 = Variant.from(chrom = "a", pos = "2", alt = "A", ref = "C")
     
       val richV0 = new RichVariant(refFiles, JSet.empty, v0)
       
-      val v1 = Variant(chrom = "a", pos = 123, alt = "A", ref = "C")
+      val v1 = Variant.from(chrom = "a", pos = "123", alt = "A", ref = "C")
     
       val richV1 = new RichVariant(refFiles, JSet.empty, v1)
       
-      val v2 = Variant(chrom = "Q", pos = 123, alt = "A", ref = "C")
+      val v2 = Variant.from(chrom = "Q", pos = "123", alt = "A", ref = "C")
     
       val richV2 = new RichVariant(refFiles, JSet.empty, v2)
       
@@ -111,17 +111,17 @@ final class RichVariantTest extends FunSuite {
     Helpers.withTestFile("123456789") { testFile =>
       val handle = ReferenceFileHandle(testFile.toFile)
       
-      val refFiles = new ReferenceFiles(Map("a" -> handle))
+      val refFiles = new ReferenceFiles(Map("A" -> handle))
       
-      val v0 = Variant(chrom = "a", pos = 2, alt = "A", ref = "CCT")
+      val v0 = Variant.from(chrom = "a", pos = "2", alt = "A", ref = "CCT")
     
       val richV0 = new RichVariant(refFiles, JSet.empty, v0)
       
-      val v1 = Variant(chrom = "a", pos = 123, alt = "A", ref = "C")
+      val v1 = Variant.from(chrom = "a", pos = "123", alt = "A", ref = "C")
     
       val richV1 = new RichVariant(refFiles, JSet.empty, v1)
       
-      val v2 = Variant(chrom = "Q", pos = 123, alt = "A", ref = "C")
+      val v2 = Variant.from(chrom = "Q", pos = "123", alt = "A", ref = "C")
     
       val richV2 = new RichVariant(refFiles, JSet.empty, v2)
       
@@ -136,17 +136,17 @@ final class RichVariantTest extends FunSuite {
     Helpers.withTestFile("123456789") { testFile =>
       val handle = ReferenceFileHandle(testFile.toFile)
       
-      val refFiles = new ReferenceFiles(Map("a" -> handle))
+      val refFiles = new ReferenceFiles(Map("A" -> handle))
       
-      val v0 = Variant(chrom = "a", pos = 3, alt = "ACT", ref = "CCT")
+      val v0 = Variant.from(chrom = "a", pos = "3", alt = "ACT", ref = "CCT")
     
       val richV0 = new RichVariant(refFiles, JSet.empty, v0)
       
-      val v1 = Variant(chrom = "a", pos = 123, alt = "A", ref = "C")
+      val v1 = Variant.from(chrom = "a", pos = "123", alt = "A", ref = "C")
     
       val richV1 = new RichVariant(refFiles, JSet.empty, v1)
       
-      val v2 = Variant(chrom = "Q", pos = 123, alt = "A", ref = "C")
+      val v2 = Variant.from(chrom = "Q", pos = "123", alt = "A", ref = "C")
     
       val richV2 = new RichVariant(refFiles, JSet.empty, v2)
       

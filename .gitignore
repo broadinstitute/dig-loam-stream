@@ -8,7 +8,7 @@ bin/
 project/.bloop/
 /project/project
 /project/target
-/project/metals.sbt
+project/metals.sbt
 /target
 /src/target
 tmp/

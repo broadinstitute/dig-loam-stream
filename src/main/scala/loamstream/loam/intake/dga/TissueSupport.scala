@@ -11,7 +11,7 @@ import loamstream.loam.intake.DataRow
 import loamstream.loam.intake.Source
 import loamstream.util.HttpClient
 import loamstream.util.Loggable
-import loamstream.util.SttpHttpClient
+import loamstream.util.DefaultHttpClient
 import loamstream.util.TimeUtils
 import org.json4s.jackson.JsonMethods._
 
@@ -64,7 +64,7 @@ trait TissueSupport { self: Loggable =>
     
     def versionAndTissueSource(
           url: String = Defaults.tissueUrl,
-          httpClient: HttpClient = new SttpHttpClient()): (Source[String], Source[Tissue]) = {
+          httpClient: HttpClient = new DefaultHttpClient()): (Source[String], Source[Tissue]) = {
       
       def getJson: String = TimeUtils.time(s"Hitting $url", info(_)) {
         httpClient.post(url, headers = Headers.ContentType.applicationJson) match {

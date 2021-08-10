@@ -1,16 +1,40 @@
 package loamstream.loam.intake
 
 import loamstream.loam.intake.flip.Complement
+import scala.util.Try
+import loamstream.util.Tries
+import scala.util.Success
+import scala.util.Failure
 
 /**
  * @author clint
  * Apr 1, 2020
  */
-final case class Variant(chrom: String, pos: Int, ref: String, alt: String) {
+final class Variant private (val chrom: String, val pos: Int, val ref: String, val alt: String) {
    
   require(ref.nonEmpty)
   require(alt.nonEmpty)
   
+  override def toString: String = s"${getClass.getSimpleName}($chrom,$pos,$ref,$alt)"
+
+  private def copy(
+    chrom: String = this.chrom,
+    pos: Int = this.pos, 
+    ref: String = this.ref, 
+    alt: String = this.alt): Variant = new Variant(chrom = chrom, pos = pos, ref = ref, alt = alt)
+
+  override def hashCode: Int = Seq(chrom, pos, ref, alt).hashCode
+
+  override def equals(other: Any): Boolean = other match {
+    case that: Variant => {
+      this.chrom == that.chrom && 
+      this.pos == that.pos && 
+      this.ref == that.ref && 
+      this.alt == that.alt
+    }
+    case _ => false
+  }
+
   def underscoreDelimited: String = delimitedBy('_')
 
   def colonDelimited: String = delimitedBy(':')
@@ -37,23 +61,70 @@ final case class Variant(chrom: String, pos: Int, ref: String, alt: String) {
   
   def isMultiNucleotide: Boolean = ref.size > 1 || alt.size > 1
   
-  //TODO: Something faster?  Don't make an array of parts and throw it away?
-  def isMultiAllelic: Boolean = alt.split(',').size > 1
+  def isMultiAllelic: Boolean = alt.exists(_ == ',') || ref.exists(_ == ',')
 }
-  
+
 object Variant {
-  def unapply(s: String): Option[Variant] = s match {
-    case Regexes.underscoreDelimited(chrom, pos, ref, alt) => Some(Variant(chrom, pos.toInt, ref, alt))
-    case Regexes.spaceDelimited(chrom, pos, ref, alt) => Some(Variant(chrom, pos.toInt, ref, alt))
-    case Regexes.colonDelimited(chrom, pos, ref, alt) => Some(Variant(chrom, pos.toInt, ref, alt))
-    case _ => None
+  private def makeVariant(
+      raw: Option[String])
+     (chrom: String, 
+      pos: Either[String, Int], 
+      ref: String, 
+      alt: String): Try[Variant] = {
+
+    def normalize(str: String) = str.trim.toUpperCase.replaceAll("^\\,*", "").replaceAll("\\,*$", "")
+
+    val normalizedRef = normalize(ref)
+    val normalizedAlt = normalize(alt)
+
+    val posAttempt: Try[Int] = pos match {
+      case Left(posString) => Try(posString.toInt)
+      case Right(p) => Success(p)
+    }
+
+    def orig = raw.getOrElse(s"<original-unknown> (chrom='$chrom', pos='$pos', ref='$ref', alt='$alt')")
+
+    import Tries.failure
+
+    if(!Alleles.areAllowedAlleles(normalizedRef)) { failure(s"Disallowed ref allele encountered in '$orig'") }
+    else if(!Alleles.areAllowedAlleles(normalizedAlt)) { failure(s"Disallowed alt allele encountered in '$orig'") }
+    else if(posAttempt.isFailure) { failure(s"Non-numeric position field encountered in '$raw'") }
+    else {
+      //TODO: More validations?  Known chrom?
+      for {
+        p <- posAttempt
+      } yield {
+        new Variant(chrom.trim.toUpperCase, pos = p, ref = normalizedRef, alt = normalizedAlt)
+      }
+    }
   }
-  
-  def apply(varId: String): Variant = {
-    unapply(varId).getOrElse(sys.error(s"Couldn't determine chromosome and position from variant ID '${varId}'"))
+
+  private def parse(varId: String): Try[(String, String, String, String)] = varId match {
+    case Regexes.underscoreDelimited(chrom, pos, ref, alt) => Success((chrom, pos, ref, alt))
+    case Regexes.spaceDelimited(chrom, pos, ref, alt) => Success((chrom, pos, ref, alt))
+    case Regexes.colonDelimited(chrom, pos, ref, alt) => Success((chrom, pos, ref, alt))
+    case _ => {
+      Tries.failure(s"Couldn't extract chrom, pos, ref, and alt from '$varId'; tried '_', ' ', and ':' delimiters")
+    }
   }
+
+  private def parseAndMake(s: String): Try[Variant] = {
+    parse(s).flatMap { case (chrom, pos, ref, alt) => makeVariant(Option(s))(chrom, Left(pos), ref, alt) }
+  }
+
+  def unapply(s: String): Option[Variant] = parseAndMake(s).toOption
   
+  def apply(varId: String): Variant = parseAndMake(varId).get
+
   def from(varId: String): Variant = apply(varId)
+
+  def from(chrom: String, pos: String, ref: String, alt: String): Variant = {
+    makeVariant(None)(chrom, Left(pos), ref, alt).get
+  }
+
+  def from(chrom: String, pos: Int, ref: String, alt: String): Variant = {
+    makeVariant(None)(chrom, Right(pos), ref, alt).get
+  }
   
   object Regexes {
     val underscoreDelimited= """^(.+?)_(\d+?)_(.+?)_(.+?)$""".r

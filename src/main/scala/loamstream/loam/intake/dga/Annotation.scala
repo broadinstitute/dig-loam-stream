@@ -22,62 +22,57 @@ import scala.collection.compat._
 final case class Annotation private[dga] (
     annotationType: AnnotationType,
     annotationId: String,
-    category: Option[String],
+    category: AnnotationCategory,
     tissueId: Option[String],
     tissue: Option[String],
     source: Option[String],
     assay: Option[Seq[String]],
     collection: Option[Seq[String]],
-    biosampleId: String,
-    biosampleType: String,
+    biosampleId: Option[String],
+    biosampleType: Option[String],
     biosample: Option[String],
     method: Option[String], 
-    portalUsage: String,
+    portalUsage: Option[String], //TODO: Optional since it comes back null sometimes, but technically required. 
     harmonizedStates: Option[Map[String, String]],
-    downloads: Seq[Annotation.Download]) extends Loggable {
+    downloads: Seq[Annotation.Download],
+    private val derivedFrom: Option[JValue] = None) extends Loggable {
   
   /**
    * Returns True if the annotation meets all criteria for ingesting.
    */
   def isUploadable: Boolean = {
     val anyDownloads = downloads.nonEmpty
-    val portalUsageIsAcceptable = !portalUsageIsNone
     
-    //ignore any datasets with no no valid datasets to load and portalUsage != "None"
-    val result = {
-      anyDownloads && 
-      portalUsageIsAcceptable
-    }
+    //Only datasets with 1+ valid downloads are ingestible
+    val ingestible = anyDownloads
     
-    if(!result) {
+    if(!ingestible) {
       def msg(specificPart: String) = {
         s"Skipping ${annotationId}: biosample id: ${biosampleId} " +
         s"because ${specificPart} ; downloads: ${downloads}"
       }
       
-      if(!anyDownloads) {
+      if(!ingestible) {
         warn(msg("No bed files were available"))
-      } else if(!portalUsageIsAcceptable) {
-        warn(msg(s"portal_usage field is '${portalUsage}'"))
-      }
+      } 
     }
     
-    result
+    ingestible
   }
   
   def notUploadable: Boolean = !isUploadable
   
-  private[dga] def portalUsageIsNone: Boolean = portalUsage == "None"
-  
-  def toMetadata: Annotation.Metadata = Annotation.Metadata(
-      sources = this.downloads,
-      annotationMethod = this.method) 
+  def toMetadata: Annotation.Metadata = {
+    require(derivedFrom.isDefined, s"Couldn't make metadata for annotation ${annotationId}: missing source JSON")
+    
+    Annotation.Metadata(
+      annotationMethod = this.method,
+      derivedFrom = derivedFrom.get) 
+  }
 }
 
 object Annotation {
   import Json.JsonOps
-  
-  private[dga] def spacesToUnderscores(s: String): String = s.replaceAll("\\s+", "_")
   
   private def allFileDownloads(json: JValue): Try[Iterable[Download]] = {
     json.tryAsObject("file_download").flatMap { downloadsById =>
@@ -100,18 +95,18 @@ object Annotation {
     for {
       annotationId <- json.tryAsString("annotation_id")
       annotationType <- json.tryAsString("annotation_type").flatMap(AnnotationType.tryFromString)
+      category <- json.tryAsString("annotation_category").flatMap(AnnotationCategory.tryFromString)
       fileDownloads <- filteredSortedFileDownloads(annotationId, json)
-      biosampleId <- json.tryAsString("biosample_term_id")
-      biosampleType <- json.tryAsString("biosample_type")
-      portalUsage <- json.tryAsString("portal_usage")
+      biosampleId = json.asStringOption("biosample_term_id")
+      biosampleType = json.asStringOption("biosample_type")
+      portalUsage = json.asStringOption("portal_usage")
       method = json.asStringOption("annotation_method")
       collections = json.tryAsStringArray("collection_tags").toOption
-      assay = json.tryAsStringArray("underlying_assay").toOption
+      assay = json.tryAsStringArray("underlying_assay").toOption //required?
       source = json.asStringOption("annotation_source")
-      category = json.asStringOption("annotation_category")
       tissueId = json.asStringOption("portal_tissue_id")
-      biosample = tissueIdsToNames.get(biosampleId)
       tissue = tissueId.flatMap(tissueIdsToNames.get)
+      biosample = biosampleId.flatMap(tissueIdsToNames.get)//tissueIdsToNames.get(biosampleId)
       harmonizedStates = json.tryAs[Map[String, String]]("harmonized_states").toOption
     } yield {
       Annotation(
@@ -129,7 +124,8 @@ object Annotation {
         method = method,
         portalUsage = portalUsage,
         harmonizedStates = harmonizedStates,
-        downloads = fileDownloads)
+        downloads = fileDownloads,
+        derivedFrom = Option(json))
     }
   }
   
@@ -229,6 +225,8 @@ object Annotation {
       case Uploading.name => Uploading
       case _ => Other
     }
+    
+    def values: Set[Status] = Set(Released, Uploading, Other)
   }
   
   object File {
@@ -242,8 +240,8 @@ object Annotation {
   }
   
   final case class Metadata(
-    sources: Seq[Annotation.Download],
-    annotationMethod: Option[String]) {
+    annotationMethod: Option[String],
+    derivedFrom: JValue) {
         
     def vendor: String = "DGA"
     
@@ -254,7 +252,9 @@ object Annotation {
       val annotationMethodPart: Option[JField] = annotationMethod.map("method" -> JString(_))
       
       val fields: Seq[JField] = Seq(
-        "sources" -> JArray(this.sources.to(List).map(_.toJson))
+          "vendor" -> JString(vendor),
+          "version" -> JString(version),
+          "derivedFrom" -> derivedFrom
       ) ++ annotationMethodPart
       
       JObject(fields: _*)

@@ -10,22 +10,24 @@ import loamstream.loam.intake.LiteralColumnExpr
 import loamstream.loam.intake.ColumnTransforms
 import scala.util.Try
 import scala.util.matching.Regex
+import scala.util.Success
+import scala.util.Failure
 
 /**
  * @author clint
  * Jan 20, 2021
  */
-final case class BedRowExpr(annotation: Annotation) extends DataRowParser[Try[BedRow]] {
+final case class BedRowExpr(annotation: Annotation, failFast: Boolean = false) extends DataRowParser[Try[BedRow]] {
   private val columns = new BedRowExpr.Columns(annotation)
   
-  override def apply(row: DataRow): Try[BedRow] = Try {
+  override def apply(row: DataRow): Try[BedRow] = {
     def requiredField[A](oa: Option[A], name: String): A = {
       require(oa.isDefined, s"Required field '${name}' failed to parse.")
       
       oa.get
     }
     
-    BedRow(
+    val attempt = Try(BedRow(
       dataset = columns.dataset(row),
       biosampleId = columns.biosampleId(row),    // e.g. UBERON:293289
       biosampleType = columns.biosampleType(row),
@@ -33,7 +35,6 @@ final case class BedRowExpr(annotation: Annotation) extends DataRowParser[Try[Be
       tissueId = columns.tissueId(row),   // e.g. UBERON:293289
       tissue = columns.tissue(row),
       annotation = columns.annotation(row).name,    // annotation type, e.g. binding_site
-      category = columns.category(row),
       method = columns.method(row),  // e.g. MAC2
       source = columns.source(row),   // e.g. ATAC-seq-peak
       assay = columns.assay(row),   // e.g. ATAC-seq
@@ -41,11 +42,16 @@ final case class BedRowExpr(annotation: Annotation) extends DataRowParser[Try[Be
       chromosome = requiredField(columns.chromosome(row), "chromosome"),
       start = requiredField(columns.start(row), "start"),
       end = requiredField(columns.end(row), "end"),
-      state = requiredField(columns.state(row), "state"), 
+      state = columns.state(row), 
       targetGene = columns.targetGene(row),    //TODO  only for annotation_type == "target_gene_prediction"
       targetGeneStart = columns.targetGeneStart(row),    // TODO only for annotation_type == "target_gene_prediction"
       targetGeneEnd = columns.targetGeneEnd(row) //TODO  only for annotation_type == "target_gene_prediction"
-      )
+    ))
+      
+    attempt match {
+      case f @ Failure(e) => if(failFast) throw e else f    
+      case a => a
+    }
   }
 }
 
@@ -57,6 +63,10 @@ object BedRowExpr {
         
         if(pandasDefaultNaValues.contains(s)) { None }
         else { Some(s) }
+      }
+      
+      def spacesToUnderscores(implicit ev: A =:= String): ColumnExpr[String] = {
+        ColumnTransforms.normalizeSpaces(expr.asString)
       }
     }
     
@@ -70,6 +80,10 @@ object BedRowExpr {
       def remove(regex: String)(implicit ev: A =:= String): ColumnExpr[Option[String]] = {
         expr.map(_.map(_.replaceAll(regex, "")))
       }
+      
+      def spacesToUnderscores(implicit ev: A =:= String): ColumnExpr[Option[String]] = {
+        ColumnTransforms.normalizeSpacesOpt(expr.map(_.map(ev)))
+      }
     }
   }
   
@@ -82,9 +96,8 @@ object BedRowExpr {
     val biosampleType = LiteralColumnExpr(ann.biosampleType)
     val biosample = LiteralColumnExpr(ann.biosample)
     val tissueId = LiteralColumnExpr(ann.tissueId)
-    val tissue = LiteralColumnExpr(ann.tissue)
+    val tissue = LiteralColumnExpr(ann.tissue).spacesToUnderscores
     val annotation = LiteralColumnExpr(ann.annotationType)
-    val category = LiteralColumnExpr(ann.category)
     val method = LiteralColumnExpr(ann.method)
     val source = LiteralColumnExpr(ann.source)
     val assay = LiteralColumnExpr(ann.assay)
@@ -101,11 +114,15 @@ object BedRowExpr {
     }
     val end = ColumnName("end").or(ColumnName("chromEnd")).asOptionWithNaValues.asLongOption
     
+    private val stateOrNameOpt: ColumnExpr[Option[String]] = {
+      ColumnName("state").or(ColumnName("name")).asOptionWithNaValues
+    }
+    
     // the annotation name needs to be harmonized (accessible chromatin is special!)
-    val state = {
+    val state: ColumnExpr[Option[String]] = {
       val baseExpr = (ann.annotationType match {
         case ac @ AnnotationType.AccessibleChromatin => LiteralColumnExpr(Option(ac.name)) 
-        case _ => ColumnName("state").or(ColumnName("name")).asOptionWithNaValues 
+        case _ => stateOrNameOpt 
       }).map {
         //Strip any leading digit prefix, if present
         _.map(_.replaceAll("^\\d+_", ""))
@@ -116,18 +133,24 @@ object BedRowExpr {
         case Some(hs) => baseExpr.map(_.flatMap(hs.get))
         case None => baseExpr
       }
-    }
+    }.spacesToUnderscores
 
-    private def ifTargetGenePrediction(column: String): ColumnExpr[Option[String]] = {
+    private def ifTargetGenePrediction(regex: Regex): ColumnExpr[Option[String]] = {
       ann.annotationType match {
-        case AnnotationType.TargetGenePrediction => ColumnName(column).asOptionWithNaValues
+        case AnnotationType.TargetGenePredictions => {
+          stateOrNameOpt.map {
+            _.collect { case regex(v) => v }
+          }
+        }
         case _ => LiteralColumnExpr(None) 
       }
     }
     
-    val targetGene: ColumnExpr[Option[String]] = ifTargetGenePrediction("target_gene")
-    val targetGeneStart: ColumnExpr[Option[Long]] = ifTargetGenePrediction("target_gene_start").map(_.map(_.toLong))
-    val targetGeneEnd: ColumnExpr[Option[Long]] = ifTargetGenePrediction("target_gene_end").map(_.map(_.toLong))
+    val targetGene: ColumnExpr[Option[String]] = ifTargetGenePrediction(Regexes.targetGeneName)
+    val targetGeneStart: ColumnExpr[Option[Long]] = ifTargetGenePrediction(Regexes.targetGeneStart).map(_.map(_.toLong))
+    val targetGeneEnd: ColumnExpr[Option[Long]] = ifTargetGenePrediction(Regexes.targetGeneEnd).map(_.map(_.toLong))
+    
+    val strand: ColumnExpr[Option[Strand]] = ColumnName("strand").asOption.map(_.flatMap(Strand.fromString))
   }
   
   //See https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html 
@@ -141,5 +164,11 @@ object BedRowExpr {
     as.foreach(result.add)
         
     result
+  }
+  
+  private object Regexes {
+    val targetGeneStart = """^.*\:(\d+)-.*$""".r
+    val targetGeneEnd = """^.*\:\d+-(\d+).*$""".r
+    val targetGeneName = """^.*\:\d+-\d+_(.*)$""".r
   }
 }

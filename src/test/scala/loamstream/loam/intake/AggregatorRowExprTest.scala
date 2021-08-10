@@ -110,7 +110,7 @@ final class AggregatorRowExprTest extends FunSuite {
 
       val dataRows = Source.
                         fromIterable(inputWithoutBetaColumn).
-                        tagFlips(markerDef, Helpers.FlipDetectors.NoFlipsEver).
+                        map(Helpers.analyzeNoFlipsEver(markerDef)).
                         map(expr)
   
       
@@ -160,7 +160,7 @@ final class AggregatorRowExprTest extends FunSuite {
 
     val skippedDataRows = Source.
                             fromIterable(input).
-                            tagFlips(markerDef, Helpers.FlipDetectors.NoFlipsEver).
+                            map(Helpers.analyzeNoFlipsEver(markerDef)).
                             map(_.skip).
                             map(expr).
                             records.

@@ -2,7 +2,7 @@ package loamstream.loam.intake.dga
 
 import loamstream.loam.intake.DataRow
 import loamstream.util.HttpClient
-import loamstream.util.SttpHttpClient
+import loamstream.util.DefaultHttpClient
 import org.json4s._
 import org.json4s.JsonAST.JNumber
 import loamstream.loam.intake.Source

@@ -2,6 +2,8 @@ package loamstream.loam.intake.dga
 
 import org.scalatest.FunSuite
 import scala.util.Success
+import loamstream.TestHelpers
+import scala.util.Try
 
 /**
  * @author clint
@@ -12,55 +14,68 @@ final class AnnotationTypeTest extends FunSuite {
   
   test("name") {
     assert(AccessibleChromatin.name === "accessible_chromatin")
-    assert(ChromatinState.name === "chromatin_state")
     assert(BindingSites.name === "binding_sites")
-    assert(TargetGenePrediction.name === "target_gene_prediction")
-    assert(CandidateRegulatoryRegions.name === "candidate_regulatory_regions")
-    assert(HistoneModifications.name === "histone_modifications")
-    assert(VariantAllelicEffects.name === "variant_allelic_effects")
-    assert(EQTL.name === "eqtl")
+    assert(CandidateRegulatoryElements.name === "candidate_regulatory_elements")
     assert(CaQTL.name === "caqtl")
-    assert(BindingFootprint.name === "binding_footprint")
+    assert(ChromatinState.name === "chromatin_state")
+    assert(EQTL.name === "eqtl")
+    assert(GeneExpression.name === "gene_expression")
+    assert(HistoneModifications.name === "histone_modifications")
+    assert(HQTL.name === "hQTL")
+    assert(MeQTL.name === "meQTL")
+    assert(Other.name === "other")
+    assert(RepresentativeDNaseHypersensitivitySites.name === "representative_DNase_hypersensitivity_sites") 
+    assert(SQTL.name === "sQTL")
+    assert(TargetGenePredictions.name === "target_gene_predictions")
+    assert(VariantAllelicEffects.name === "variant_allelic_effects")
   }
   
   test("values") {
     val expected: Set[AnnotationType] = Set(
-      AccessibleChromatin, 
-      ChromatinState, 
-      BindingSites, 
-      TargetGenePrediction,
-      CandidateRegulatoryRegions,
-      HistoneModifications,
-      VariantAllelicEffects,
-      EQTL,
+      AccessibleChromatin,
+      BindingSites,
+      CandidateRegulatoryElements,
       CaQTL,
-      BindingFootprint)
+      ChromatinState,
+      EQTL,
+      GeneExpression,
+      HistoneModifications,
+      HQTL,
+      MeQTL,
+      Other,
+      RepresentativeDNaseHypersensitivitySites, 
+      SQTL,
+      TargetGenePredictions,
+      VariantAllelicEffects)
       
     assert(AnnotationType.values === expected)
   }
   
   test("fromString") {
-    assert(fromString("accessible_chromatin") === Some(AccessibleChromatin))
-    assert(fromString("chromatin_state") === Some(ChromatinState))
-    assert(fromString("binding_sites") === Some(BindingSites))
-    assert(fromString("target_gene_prediction") === Some(TargetGenePrediction))
-    assert(fromString("candidate_regulatory_regions") === Some(CandidateRegulatoryRegions))
-    assert(fromString("histone_modifications") === Some(HistoneModifications))
-    assert(fromString("variant_allelic_effects") === Some(VariantAllelicEffects))
-    assert(fromString("eQTL") === Some(EQTL))
-    assert(fromString("caQTL") === Some(CaQTL))
-    assert(fromString("binding_footprint") === Some(BindingFootprint))
+    def doTest(s: String, expected: Option[AnnotationType]): Unit = {
+      val withSpaces = s.replaceAll("_", " ")
+      
+      assert(fromString(s) === expected)
+      assert(fromString(withSpaces) === expected)
+      assert(fromString(TestHelpers.to1337Speak(s)) === expected)
+      assert(fromString(TestHelpers.to1337Speak(withSpaces)) === expected)
+    }
     
-    assert(fromString("Accessible chroMatin") === Some(AccessibleChromatin))
-    assert(fromString("Chromatin StAte") === Some(ChromatinState))
-    assert(fromString("Binding SiTes") === Some(BindingSites))
-    assert(fromString("Target Gene PrediCtion") === Some(TargetGenePrediction))
-    assert(fromString("CandidatE reguLatory Regions") === Some(CandidateRegulatoryRegions))
-    assert(fromString("HistonE Modifications") === Some(HistoneModifications))
-    assert(fromString("Variant alleliC effects") === Some(VariantAllelicEffects))
-    assert(fromString("EQTL") === Some(EQTL))
-    assert(fromString("CAqtl") === Some(CaQTL))
-    assert(fromString("BInding FOotprint") === Some(BindingFootprint))
+    doTest("accessible_chromatin", Some(AccessibleChromatin))
+    doTest("binding_sites", Some(BindingSites))
+    doTest("candidate_regulatory_elements", Some(CandidateRegulatoryElements))
+    doTest("caqtl", Some(CaQTL))
+    doTest("chromatin_state", Some(ChromatinState))
+    doTest("eqtl", Some(EQTL))
+    doTest("gene_expression", Some(GeneExpression))
+    doTest("histone_modifications", Some(HistoneModifications))
+    doTest("hQTL", Some(HQTL))
+    doTest("meQTL", Some(MeQTL))
+    doTest("other", Some(Other))
+    doTest("representative_DNase_hypersensitivity_sites", Some(RepresentativeDNaseHypersensitivitySites))
+    doTest("sQTL", Some(SQTL))
+    doTest("target_gene_predictions", Some(TargetGenePredictions))
+    doTest("variant_allelic_effects", Some(VariantAllelicEffects))
     
     assert(fromString("") === None)
     assert(fromString("asfsadgfsd") === None)
@@ -68,27 +83,30 @@ final class AnnotationTypeTest extends FunSuite {
   }
   
   test("tryFromString") {
-    assert(tryFromString("accessible_chromatin") === Success(AccessibleChromatin))
-    assert(tryFromString("chromatin_state") === Success(ChromatinState))
-    assert(tryFromString("binding_sites") === Success(BindingSites))
-    assert(tryFromString("target_gene_prediction") === Success(TargetGenePrediction))
-    assert(tryFromString("candidate_regulatory_regions") === Success(CandidateRegulatoryRegions))
-    assert(tryFromString("histone_modifications") === Success(HistoneModifications))
-    assert(tryFromString("variant_allelic_effects") === Success(VariantAllelicEffects))
-    assert(tryFromString("eQTL") === Success(EQTL))
-    assert(tryFromString("caQTL") === Success(CaQTL))
-    assert(tryFromString("binding_footprint") === Success(BindingFootprint))
+    def doTest(s: String, expected: Try[AnnotationType]): Unit = {
+      val withSpaces = s.replaceAll("_", " ")
+      
+      assert(tryFromString(s) === expected)
+      assert(tryFromString(withSpaces) === expected)
+      assert(tryFromString(TestHelpers.to1337Speak(s)) === expected)
+      assert(tryFromString(TestHelpers.to1337Speak(withSpaces)) === expected)
+    }
     
-    assert(tryFromString("Accessible chroMatin") === Success(AccessibleChromatin))
-    assert(tryFromString("Chromatin StAte") === Success(ChromatinState))
-    assert(tryFromString("Binding SiTes") === Success(BindingSites))
-    assert(tryFromString("Target Gene PrediCtion") === Success(TargetGenePrediction))
-    assert(tryFromString("CandidatE reguLatory Regions") === Success(CandidateRegulatoryRegions))
-    assert(tryFromString("HistonE Modifications") === Success(HistoneModifications))
-    assert(tryFromString("Variant alleliC effects") === Success(VariantAllelicEffects))
-    assert(tryFromString("EQTL") === Success(EQTL))
-    assert(tryFromString("CAqtl") === Success(CaQTL))
-    assert(tryFromString("BInding FOotprint") === Success(BindingFootprint))
+    doTest("accessible_chromatin", Success(AccessibleChromatin))
+    doTest("binding_sites", Success(BindingSites))
+    doTest("candidate_regulatory_elements", Success(CandidateRegulatoryElements))
+    doTest("caqtl", Success(CaQTL))
+    doTest("chromatin_state", Success(ChromatinState))
+    doTest("eqtl", Success(EQTL))
+    doTest("gene_expression", Success(GeneExpression))
+    doTest("histone_modifications", Success(HistoneModifications))
+    doTest("hQTL", Success(HQTL))
+    doTest("meQTL", Success(MeQTL))
+    doTest("other", Success(Other))
+    doTest("representative_DNase_hypersensitivity_sites", Success(RepresentativeDNaseHypersensitivitySites))
+    doTest("sQTL", Success(SQTL))
+    doTest("target_gene_predictions", Success(TargetGenePredictions))
+    doTest("variant_allelic_effects", Success(VariantAllelicEffects))
     
     assert(tryFromString("").isFailure)
     assert(tryFromString("asfsadgfsd").isFailure)

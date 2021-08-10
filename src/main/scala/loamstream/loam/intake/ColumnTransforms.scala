@@ -35,6 +35,27 @@ object ColumnTransforms {
     baseChromExpr.map(_.map(doNormalizeChromNames))
   }
   
+  private[intake] def doNormalizeSpaces(requireNonEmpty: Boolean)(s: String): String = {
+    val trimmed = s.trim
+    
+    if(requireNonEmpty) { 
+      require(trimmed.nonEmpty)
+    }
+    
+    trimmed.replaceAll("\\s+", "_")
+  }
+  
+  def normalizeSpaces(
+      baseExpr: ColumnExpr[String], 
+      requireNonEmpty: Boolean = false): ColumnExpr[String] = baseExpr.map(doNormalizeSpaces(requireNonEmpty))
+  
+  def normalizeSpacesOpt(
+      baseExpr: ColumnExpr[Option[String]], 
+      requireNonEmpty: Boolean = false): ColumnExpr[Option[String]] = {
+    
+    baseExpr.map(_.map(doNormalizeSpaces(requireNonEmpty)))
+  }
+  
   private object Regexes {
     val chrom: Regex = """(?i)^(chr)?(1\d?|2[0-6]?|[3-9]|x|y|xy|mt?)""".r
   }

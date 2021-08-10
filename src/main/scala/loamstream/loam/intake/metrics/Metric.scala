@@ -133,22 +133,21 @@ object Metric {
     type Counts = Map[String, Int]
     
     def doAdd(acc: Counts, elem: VariantRow.Parsed[R]): Counts = {
+      val shouldBeCounted = elem.notSkipped || countSkipped
+
       elem.derivedFromAnalyzed match {
-        // we can't count this kind of skipped row, since it was skipped before a marker 
-        // was computed from it, so we can't know which chromosome to assign the count to.
-        case Some(tagged: VariantRow.Analyzed.Tagged) => {
-          if(tagged.notSkipped || countSkipped) {
-            import tagged.marker.chrom
-            
-            val newCount = acc.get(chrom) match {
-              case Some(count) => count + 1
-              case None => 1
-            }
-            
-            acc + (chrom -> newCount)
-          } else {
-            acc
+        // We can only count rows derived from Tagged rows, since others were either skipped before a marker could
+        // be computed from them, or were malformed such that no marker could be be computed from them.  In those 
+        // cases, we can't know which chromosome to assign the count to.
+        case Some(tagged: VariantRow.Analyzed.Tagged) if shouldBeCounted => {
+          import tagged.marker.chrom
+          
+          val newCount = acc.get(chrom) match {
+            case Some(count) => count + 1
+            case None => 1
           }
+          
+          acc + (chrom -> newCount)
         }
         case _ => acc
       }
@@ -161,11 +160,19 @@ object Metric {
   
   def countFlipped[R <: BaseVariantRow]: Metric[R, Int] = Fold.countIf {
     case t: VariantRow.Parsed.Transformed[R] => t.isFlipped
+    case p: VariantRow.Parsed[R] => p.derivedFromAnalyzed match {
+      case Some(t: VariantRow.Analyzed.Tagged) => t.isFlipped
+      case _ => false
+    }
     case _ => false
   }
   
   def countComplemented[R <: BaseVariantRow]: Metric[R, Int] = Fold.countIf {
     case t: VariantRow.Parsed.Transformed[R] => t.isComplementStrand
+    case p: VariantRow.Parsed[R] => p.derivedFromAnalyzed match {
+      case Some(t: VariantRow.Analyzed.Tagged) => t.isComplementStrand
+      case _ => false
+    }
     case _ => false
   }
   
@@ -190,9 +197,15 @@ object Metric {
   }
   
   def writeValidVariantsTo[R <: BaseVariantRow](
-      sink: RowSink[R]): Metric[R, Unit] = Fold.foreach { row =>
-    if(row.notSkipped) {
-      row.aggRowOpt.foreach(sink.accept)
+      sink: RowSink[R],
+      autoClose: Boolean = true): Metric[R, Unit] = {
+
+    val doWrite: Metric[R, Unit] = Fold.foreach { row =>
+      if(row.notSkipped) {
+        row.aggRowOpt.foreach(sink.accept)
+      }
     }
+    
+    if(autoClose) doWrite.map(_ => sink.close()) else doWrite
   }
 }

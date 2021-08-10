@@ -71,7 +71,11 @@ final class MetricTest extends FunSuite {
       nDef = Some(AnonColumnDef(LiteralColumnExpr(99))))
 
   private val rowsNoFlips = {
-    source.tagFlips(markerVariantDef, new MetricTest.MockFlipDetector(Set.empty)).map(defaultRowExpr)
+    IntakeSyntax.doTagFlips(
+      source, 
+      markerVariantDef, 
+      new MetricTest.MockFlipDetector(Set.empty),
+      failFast = true).map(defaultRowExpr)
   }
   
   private val zeroedChromosomeCounts: Map[String, Int] = Chromosomes.names.map(_ -> 0).toMap                            
@@ -150,7 +154,11 @@ final class MetricTest extends FunSuite {
         betaDef = Some(AggregatorColumnDefs.beta(beta)),
         nDef = Some(AnonColumnDef(LiteralColumnExpr(99))))
     
-    val rows = source.tagFlips(toAggregatorFormat.markerDef, flipDetector).map(toAggregatorFormat)
+    val rows = IntakeSyntax.doTagFlips(
+      source,
+      toAggregatorFormat.markerDef, 
+      flipDetector,
+      failFast = true).map(toAggregatorFormat)
         
     val countDisagreements = Metric.countWithDisagreeingBetaStderrZscore[PValueVariantRow]()
                       
@@ -181,7 +189,11 @@ final class MetricTest extends FunSuite {
         betaDef = Some(AggregatorColumnDefs.beta(beta)),
         nDef = Some(AnonColumnDef(LiteralColumnExpr(99))))
                       
-    val rows = source.tagFlips(markerVariantDef, flipDetector).map(toAggregatorFormat)
+    val rows = IntakeSyntax.doTagFlips(
+      source,
+      markerVariantDef, 
+      flipDetector,
+      failFast = true).map(toAggregatorFormat)
                       
     val countDisagreements = Metric.countWithDisagreeingBetaStderrZscore[PValueVariantRow]()
                       
@@ -215,7 +227,11 @@ final class MetricTest extends FunSuite {
         betaDef = Some(AggregatorColumnDefs.beta(beta)),
         nDef = Some(AnonColumnDef(LiteralColumnExpr(99))))
                       
-    val rows = source.tagFlips(toAggregatorFormat.markerDef, flipDetector).map(toAggregatorFormat)
+    val rows = IntakeSyntax.doTagFlips(
+      source,
+      toAggregatorFormat.markerDef, 
+      flipDetector,
+      failFast = true).map(toAggregatorFormat)
                       
     val countDisagreements = Metric.countWithDisagreeingBetaStderrZscore[PValueVariantRow]()
                       
@@ -251,7 +267,11 @@ final class MetricTest extends FunSuite {
     
     val flipDetector = new MetricTest.MockFlipDetector(Set(Vars.y, Vars.a, Vars.b).map(Variant.from))
         
-    val rows = source.tagFlips(markerDef, flipDetector).map(toAggregatorFormat)
+    val rows = IntakeSyntax.doTagFlips(
+      source,
+      markerDef, 
+      flipDetector,
+      failFast = true).map(toAggregatorFormat)
     
     val countDisagreements = Metric.countWithDisagreeingBetaStderrZscore[PValueVariantRow]()
                       
@@ -281,7 +301,11 @@ final class MetricTest extends FunSuite {
     
     val flipDetector = new MetricTest.MockFlipDetector(Set(Vars.y, Vars.a, Vars.b).map(Variant.from))
         
-    val rows = source.tagFlips(markerDef, flipDetector).map(toAggregatorFormat)
+    val rows = IntakeSyntax.doTagFlips(
+      source,
+      markerDef, 
+      flipDetector,
+      failFast = true).map(toAggregatorFormat)
     
     val countDisagreements = Metric.countWithDisagreeingBetaStderrZscore[PValueVariantRow]()
                       
@@ -315,15 +339,23 @@ final class MetricTest extends FunSuite {
           metadata = metadata,
           markerDef = markerDef,
           pvalueDef = AggregatorColumnDefs.pvalue(Pvalue),
-          nDef = Some(AnonColumnDef(LiteralColumnExpr(99))))
+          nDef = Some(AnonColumnDef(LiteralColumnExpr(99))),
+          failFast = true)
       
       val skipped: Set[Variant] = if(anySkips) Set(Variant("2_123_A_T"), Variant("1_124_A_T")) else Set.empty
           
       val flipDetector = Helpers.FlipDetectors.NoFlipsEver
-          
-      val rows = source.tagFlips(markerDef, flipDetector).map(toAggregatorFormat).map { row =>
-        if(shouldBeSkipped(skipped)(row, _.marker)) row.skip else row
-      }
+      
+      val rows = IntakeSyntax.
+        doTagFlips(
+          source,
+          markerDef, 
+          flipDetector,
+          failFast = true).
+        map(toAggregatorFormat).
+        map { row =>
+          if(shouldBeSkipped(skipped)(row, _.marker)) row.skip else row
+        }
       
       val m = Metric.countByChromosome[PValueVariantRow](countSkipped = countSkipped)
       
@@ -370,7 +402,11 @@ final class MetricTest extends FunSuite {
     
     val flipDetector = MetricTest.MockFlipDetector(flippedVariants = flipped, complementedVariants = complemented)
         
-    val rows = source.tagFlips(markerDef, flipDetector).map(toAggregatorFormat)
+    val rows = IntakeSyntax.doTagFlips(
+      source,
+      markerDef, 
+      flipDetector,
+      failFast = true).map(toAggregatorFormat)
     
     doMetricTest(metric, expected)(rows)
   }
@@ -414,8 +450,12 @@ final class MetricTest extends FunSuite {
     
     val flipDetector = Helpers.FlipDetectors.NoFlipsEver
     
-    val parsedRows = source.tagFlips(markerDef, flipDetector).map(toAggregatorFormat)
-    
+    val parsedRows = IntakeSyntax.doTagFlips(
+      source,
+      markerDef, 
+      flipDetector,
+      failFast = true).map(toAggregatorFormat)
+
     val withSomeSkips = parsedRows.map { row =>
       if(skipped.contains(row.aggRowOpt.get.asInstanceOf[PValueVariantRow].marker)) row.skip else row
     }
@@ -464,9 +504,16 @@ final class MetricTest extends FunSuite {
     
     val skipped = Set(v1, v4)
         
-    val rows = source.tagFlips(markerDef, flipDetector).map(toAggregatorFormat).map { row =>
-      if(shouldBeSkipped(skipped)(row, _.originalMarker)) row.skip else row
-    }
+    val rows = IntakeSyntax.
+      doTagFlips(
+        source,
+        markerDef, 
+        flipDetector,
+        failFast = true).
+      map(toAggregatorFormat).
+      map { row =>
+        if(shouldBeSkipped(skipped)(row, _.originalMarker)) row.skip else row
+      }
         
     val expected = SummaryStats(
       validVariants = 6 - skipped.size,
@@ -513,9 +560,16 @@ final class MetricTest extends FunSuite {
     
     val skipped = Set(v1, v4)
         
-    val rows = source.tagFlips(markerDef, flipDetector).map(toAggregatorFormat).map { row =>
-      if(shouldBeSkipped(skipped)(row, _.originalMarker)) row.skip else row
-    }
+    val rows = IntakeSyntax
+      .doTagFlips(
+        source,
+        markerDef, 
+        flipDetector,
+        failFast = true)
+      .map(toAggregatorFormat)
+      .map { row =>
+        if(shouldBeSkipped(skipped)(row, _.originalMarker)) row.skip else row
+      }
         
     val expected = SummaryStats(
       validVariants = 6 - skipped.size,
@@ -559,9 +613,16 @@ final class MetricTest extends FunSuite {
       
     val skipped = Set(Vars.y, Vars.a).map(Variant.from)
     
-    val rows = source.tagFlips(markerDef, flipDetector).map(toAggregatorFormat).map { row =>
-      if(shouldBeSkipped(skipped)(row, _.marker)) row.skip else row
-    }
+    val rows = IntakeSyntax
+      .doTagFlips(
+        source,
+        markerDef, 
+        flipDetector,
+        failFast = true)
+      .map(toAggregatorFormat)
+      .map { row =>
+        if(shouldBeSkipped(skipped)(row, _.marker)) row.skip else row
+      }
                       
     def makeRow(variant: Variant, pvalue: Double, derivedFromRecordNumber: Option[Long]) = {
       PValueVariantRow(

@@ -65,13 +65,22 @@ final class Variant private (val chrom: String, val pos: Int, val ref: String, v
 }
 
 object Variant {
-  private def makeVariant(raw: Option[String])(chrom: String, pos: String, ref: String, alt: String): Try[Variant] = {
+  private def makeVariant(
+      raw: Option[String])
+     (chrom: String, 
+      pos: Either[String, Int], 
+      ref: String, 
+      alt: String): Try[Variant] = {
+
     def normalize(str: String) = str.trim.toUpperCase.replaceAll("^\\,*", "").replaceAll("\\,*$", "")
 
     val normalizedRef = normalize(ref)
     val normalizedAlt = normalize(alt)
 
-    val posAttempt = Try(pos.toInt)
+    val posAttempt: Try[Int] = pos match {
+      case Left(posString) => Try(posString.toInt)
+      case Right(p) => Success(p)
+    }
 
     def orig = raw.getOrElse(s"<original-unknown> (chrom='$chrom', pos='$pos', ref='$ref', alt='$alt')")
 
@@ -100,7 +109,7 @@ object Variant {
   }
 
   private def parseAndMake(s: String): Try[Variant] = {
-    parse(s).flatMap { case (chrom, pos, ref, alt) => makeVariant(Option(s))(chrom, pos, ref, alt) }
+    parse(s).flatMap { case (chrom, pos, ref, alt) => makeVariant(Option(s))(chrom, Left(pos), ref, alt) }
   }
 
   def unapply(s: String): Option[Variant] = parseAndMake(s).toOption
@@ -110,7 +119,11 @@ object Variant {
   def from(varId: String): Variant = apply(varId)
 
   def from(chrom: String, pos: String, ref: String, alt: String): Variant = {
-    makeVariant(None)(chrom, pos, ref, alt).get
+    makeVariant(None)(chrom, Left(pos), ref, alt).get
+  }
+
+  def from(chrom: String, pos: Int, ref: String, alt: String): Variant = {
+    makeVariant(None)(chrom, Right(pos), ref, alt).get
   }
   
   object Regexes {

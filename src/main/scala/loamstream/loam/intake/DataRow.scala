@@ -18,6 +18,14 @@ object DataRow {
     delegate: CSVRecord, 
     isSkipped: Boolean = false) extends DataRow {
 
+    override def toString: String = {
+      import scala.collection.JavaConverters._
+      
+      val headerNames = delegate.getParser.getHeaderNames.asScala.toList
+      
+      s"${this.getClass.getSimpleName}(delegate=${delegate}, headers=${headerNames}, values=${delegate.toMap} isSkipped=${isSkipped})"
+    }
+    
     override def headers: Seq[String] = {
       import scala.collection.JavaConverters._
       

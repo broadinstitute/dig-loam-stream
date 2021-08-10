@@ -21,7 +21,7 @@ object Json {
     
     //TODO: There must be a better way :(
     a match {
-      case s: String => s  
+      case s: String => s
       case l: Long => l
       case i: Int => i
       case d: Double => d
@@ -40,13 +40,15 @@ object Json {
   def toJValue[A](as: Seq[A])(implicit discriminator: DummyImplicit): JValue = JArray(as.to(List).map(toJValue(_)))
   
   implicit final class JsonOps(val jv: JValue) extends AnyVal {
-    private def makeMessage(tpe: String, fieldName: String): String = {
+    private def makeFieldMessage(tpe: String, fieldName: String): String = {
       s"Couldn't find ${tpe} field '${fieldName}' in ${compact(render(jv))}"
     }
     
+    private def makeMessage(tpe: String): String = s"Couldn't treat json as a(n) ${tpe}: ${compact(render(jv))}"
+    
     def tryAsString(fieldName: String): Try[String] = (jv \ fieldName) match {
       case JString(s) => Success(s.trim)
-      case _ => Tries.failure(makeMessage("string", fieldName)) 
+      case _ => Tries.failure(makeFieldMessage("string", fieldName)) 
     }
     
     def tryAsStrings(fieldName: String): Try[Seq[String]] = tryAsArray(fieldName).map(_.map { case JString(s) => s })
@@ -58,7 +60,12 @@ object Json {
     
     def tryAsArray(fieldName: String): Try[Seq[JValue]] = (jv \ fieldName) match {
       case JArray(jvs) => Success(jvs)
-      case _ => Tries.failure(makeMessage("string", fieldName)) 
+      case _ => Tries.failure(makeFieldMessage("string", fieldName)) 
+    }
+    
+    def tryAsArray: Try[Seq[JValue]] = jv match {
+      case JArray(jvs) => Success(jvs)
+      case _ => Tries.failure(makeMessage("array")) 
     }
     
     def tryAsStringArray(fieldName: String): Try[Seq[String]] = {
@@ -67,7 +74,12 @@ object Json {
     
     def tryAsObject(fieldName: String): Try[Map[String, JValue]] = (jv \ fieldName) match {
       case jobj: JObject => Success(jobj.obj.toMap)
-      case _ => Tries.failure(makeMessage("string", fieldName)) 
+      case _ => Tries.failure(makeFieldMessage("object", fieldName)) 
+    }
+    
+    def tryAsObject: Try[Map[String, JValue]] = jv match {
+      case jobj: JObject => Success(jobj.obj.toMap)
+      case _ => Tries.failure(makeMessage("object")) 
     }
     
     def tryAs[A](fieldName: String)(implicit mf: Manifest[A], formats: Formats = DefaultFormats): Try[A] = Try {

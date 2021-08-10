@@ -28,7 +28,7 @@ object Tries {
     * If the input contains all Successes, returns a Success wrapping a T containing all the values of the input Tries.
     * If the input contains any Failures, returns the FIRST Failure encountered.
     */
-  def sequence[E, M[X] <: Traversable[X]]
+  def sequence[E, M[X] <: TraversableOnce[X]]
   (attempts: M[Try[E]])(implicit cbf: CanBuildFrom[M[Try[E]], E, M[E]]): Try[M[E]] = {
 
     val firstFailureOpt = attempts.collectFirst { case f @ Failure(_) => f }
@@ -38,7 +38,10 @@ object Tries {
       case None => Try {
         val builder = cbf(attempts)
 
-        builder ++= attempts.collect { case Success(h) => h }
+        attempts.foreach { 
+          case Success(h) => builder += h
+          case Failure(_) => ()
+        }
   
         builder.result()
       }

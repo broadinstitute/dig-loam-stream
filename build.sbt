@@ -26,6 +26,8 @@ lazy val Versions = new {
   val Sttp = "2.0.6"
   val CommonsCompress = "1.20"
   val Breeze = "1.1"
+  val RequestsScala = "0.6.7"
+  val OkHttp = "4.9.1"
   val Monix = "3.3.0"
   val ScalaCollectionCompat = "2.2.0"
 }
@@ -64,6 +66,8 @@ lazy val mainDeps = Seq(
   "com.softwaremill.sttp.client" %% "core" % Versions.Sttp,
   "org.apache.commons" % "commons-compress" % Versions.CommonsCompress,
   "org.scalanlp" %% "breeze" % Versions.Breeze,
+  "com.lihaoyi" %% "requests" % Versions.RequestsScala,
+  "com.squareup.okhttp3" % "okhttp" % Versions.OkHttp,
   "io.monix" %% "monix" % Versions.Monix,
   "org.scala-lang.modules" %% "scala-collection-compat" % Versions.ScalaCollectionCompat
 )

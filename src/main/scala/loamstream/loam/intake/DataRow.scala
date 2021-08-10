@@ -11,16 +11,20 @@ import scala.collection.compat._
  * @author clint
  * Feb 10, 2020
  */
-trait DataRow extends SkippableRow[DataRow] with KeyedRow with IndexedRow with RowWithRecordNumber
-
+trait DataRow extends KeyedRow with IndexedRow with RowWithRecordNumber with SkippableRow[DataRow]
+ 
 object DataRow {
-  final case class CommonsCsvDataRow(delegate: CSVRecord, isSkipped: Boolean = false) extends DataRow { 
+  final case class CommonsCsvDataRow(
+    delegate: CSVRecord, 
+    isSkipped: Boolean = false) extends DataRow {
+
     override def toString: String = {
       import scala.collection.JavaConverters._
       
       val headerNames = delegate.getParser.getHeaderNames.asScala.toList
       
-      s"${this.getClass.getSimpleName}(delegate=${delegate}, headers=${headerNames}, isSkipped=${isSkipped})"
+      s"${this.getClass.getSimpleName}(delegate=${delegate}, headers=${headerNames}, " + 
+      s"values=${delegate.toMap} isSkipped=${isSkipped})"
     }
     
     override def headers: Seq[String] = {
@@ -42,7 +46,11 @@ object DataRow {
     override def skip: CommonsCsvDataRow = copy(isSkipped = true)
   }
   
-  final case class JsonDataRow(json: JObject, recordNumber: Long, isSkipped: Boolean = false) extends DataRow {
+  final case class JsonDataRow(
+    json: JObject, 
+    recordNumber: Long, 
+    isSkipped: Boolean = false) extends DataRow {
+
     override def headers: Seq[String] = json.values.keys.to(List)
     
     override def hasField(name: String): Boolean = json.obj.exists { case JField(n, _) => n == name } 

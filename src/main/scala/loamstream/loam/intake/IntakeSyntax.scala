@@ -24,6 +24,10 @@ import loamstream.util.Terminable
 import loamstream.util.Throwables
 import loamstream.util.TimeUtils
 import scala.collection.compat._
+import loamstream.util.LogContext
+import scala.util.Success
+import scala.util.Failure
+import scala.util.Try
 
 
 /**
@@ -198,7 +202,7 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     }
     
     private def toFilterTransform(p: DataRowPredicate): DataRow => DataRow = { row =>
-      if(row.isSkipped || p(row)) { row } else { row.skip }
+      if(row.isSkipped || p(row))  row else row.skip
     }
     
     def filter(p: DataRowPredicate): ViaTarget[R] = {
@@ -215,9 +219,27 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       
       destParams.close()
     }
-    
-    def via[R <: BaseVariantRow](expr: VariantRowExpr[R]): MapFilterAndWriteTarget[R, Unit] = {
-      val dataRows = rows.tagFlips(expr.markerDef, flipDetector).map(expr)
+
+    private def tagFlips(
+      markerDef: MarkerColumnDef, 
+      flipDetector: => FlipDetector,
+      failFast: Boolean)
+     (implicit logCtx: LogContext): Source[VariantRow.Analyzed] = {
+
+       doTagFlips(rows, markerDef, flipDetector, failFast)(logCtx)
+    }
+
+    def via[R <: BaseVariantRow](
+      expr: VariantRowExpr[R], 
+      logStore: Store, 
+      append: Boolean = false): MapFilterAndWriteTarget[R, Unit] = doVia(expr)(Log.toFile(logStore, append))
+
+    private def doVia[R <: BaseVariantRow](
+        expr: VariantRowExpr[R])(implicit logContext: LogContext): MapFilterAndWriteTarget[R, Unit] = {
+
+      val analyzedRows = tagFlips(expr.markerDef, flipDetector, failFast = expr.failFast)
+
+      val parsedRows = analyzedRows.map(expr)
       
       val pseudoMetric: Metric[R, Unit] = Fold.foreach(_ => ()) // TODO :(
       
@@ -227,10 +249,51 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
       
       val newToBeClosed = toBeClosed - destParams + newDestParams
       
-      new MapFilterAndWriteTarget(newDestParams, metadata, dataRows, pseudoMetric, newToBeClosed)
+      new MapFilterAndWriteTarget(newDestParams, metadata, parsedRows, pseudoMetric, newToBeClosed)
     }
   }
   
+  private[intake] def doTagFlips(
+      rows: Source[DataRow],
+      markerDef: MarkerColumnDef, 
+      flipDetector: => FlipDetector,
+      failFast: Boolean)
+     (implicit logCtx: LogContext): Source[VariantRow.Analyzed] = {
+    
+      lazy val actualFlipDetector = flipDetector
+    
+      rows.map { row =>
+        def skipRow(cause: Option[Throwable] = None): VariantRow.Analyzed.SkippedNotTagged = {
+          logCtx.warn(s"Couldn't parse variant id from row #${row.recordNumber}: '${RowFilters.asString(row)}'; " +
+                         "check ref and alt columns")
+
+          VariantRow.Analyzed.SkippedNotTagged(row, cause = cause)
+        }
+
+        if(row.isSkipped) { skipRow(cause = None) }
+        else {
+          val attempt = Try {
+            val originalMarker = markerDef.apply(row)
+          
+            val disposition = actualFlipDetector.isFlipped(originalMarker)
+          
+            val newMarker = originalMarker.flipIf(disposition.isFlipped).complementIf(disposition.isComplementStrand)
+            
+            VariantRow.Analyzed.Tagged(
+                derivedFrom = row, 
+                marker = newMarker,
+                originalMarker = originalMarker, 
+                disposition = disposition)
+          } 
+          
+          attempt match {
+            case Success(tagged) => tagged
+            case Failure(e) => if(failFast) throw e else skipRow(cause = Some(e))
+          }
+        }
+      }
+    }
+
   final class MapFilterAndWriteTarget[R <: BaseVariantRow, A](
       destParams: DestinationParams[RenderableJsonRow], 
       metadata: AggregatorMetadata,
@@ -263,8 +326,8 @@ trait IntakeSyntax extends Interpolators with Metrics with RowFilters with RowTr
     
     def filter(predicate: Predicate[R]): MapFilterAndWriteTarget[R, A] = {
       def filterTransform(row: VariantRow.Parsed[R]): VariantRow.Parsed[R] = row match {
-        case t @ VariantRow.Transformed(_, dataRow) => if(predicate(dataRow)) t else t.skip
-        case r @ VariantRow.Skipped(_, _, _, _) => r
+        case t @ VariantRow.Parsed.Transformed(_, _, dataRow) => if(predicate(dataRow)) t else t.skip
+        case r @ VariantRow.Parsed.Skipped(_, _, _, _, _) => r
       }
       
       copy(rows = rows.map(filterTransform), toBeClosed = toBeClosed ++ asCloseable(predicate))

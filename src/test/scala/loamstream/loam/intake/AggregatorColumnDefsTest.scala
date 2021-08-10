@@ -122,7 +122,7 @@ final class AggregatorColumnDefsTest extends FunSuite {
       
       val row = Helpers.csvRow("foo" -> "17", "bar" -> "123456", "baz" -> "a", "bip" -> "t")
       
-      val expectedString = if(uppercaseAlleles) "17_123456_A_T" else "17_123456_a_t" 
+      val expectedString = if(uppercaseAlleles) "17_123456_A_T" else "17_123456_A_T" 
       
       assert(markerDef(row) == Variant.from(expectedString))
     }

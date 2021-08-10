@@ -33,10 +33,10 @@ object AggregatorColumnDefs {
     val variantExpr: ColumnExpr[Variant] = {
       val asVariant = for {
         chrom <- chromExpr
-        pos <- posColumn.asString.asInt
+        pos <- posColumn.asString.trim
         ref <- refColumn.asString.trim
         alt <- altColumn.asString.trim
-      } yield Variant(chrom, pos, ref, alt)
+      } yield Variant.from(chrom, pos, ref, alt)
       
       if(uppercaseAlleles) asVariant.map(_.toUpperCase) else asVariant
     }

@@ -7,6 +7,7 @@ import scala.util.Failure
 import scala.util.Try
 import org.json4s.JsonAST._
 import scala.collection.mutable.ListBuffer
+import scala.util.Success
 
 
 /**
@@ -304,48 +305,48 @@ object PValueVariantRow {
  * Dec 1, 2020
  */
 object VariantRow {
-  final case class Tagged(
-      delegate: DataRow,
+
+  sealed trait Analyzed extends SkippableRow[Analyzed] {
+    def derivedFrom: DataRow
+  }
+
+  object Analyzed {
+    final case class SkippedNotTagged(
+      derivedFrom: DataRow,
+      cause: Option[Throwable] = None) extends Analyzed {
+
+      override def isSkipped: Boolean = true
+
+      override def skip: SkippedNotTagged = this
+    }
+
+    final case class Tagged(
+      derivedFrom: DataRow,
       marker: Variant,
       originalMarker: Variant,
-      disposition: Disposition,
-      isSkipped: Boolean = false) extends DataRow {
+      disposition: Disposition) extends Analyzed {
     
-    override def skip: Tagged = copy(isSkipped = true)
-    
-    def isFlipped: Boolean = disposition.isFlipped
-    def notFlipped: Boolean = disposition.notFlipped
-    
-    def isSameStrand: Boolean = disposition.isSameStrand
-    def isComplementStrand: Boolean = disposition.isComplementStrand
-    
-    override def headers: Seq[String] = delegate.headers
-    
-    override def hasField(name: String): Boolean = delegate.hasField(name)
-    
-    override def getFieldByName(name: String): String = delegate.getFieldByName(name)
-    
-    override def getFieldByIndex(i: Int): String = delegate.getFieldByIndex(i)
-    
-    override def size: Int = delegate.size
-    
-    override def recordNumber: Long = delegate.recordNumber
+      override def isSkipped: Boolean = false
+
+      override def skip: SkippedNotTagged = SkippedNotTagged(derivedFrom = derivedFrom)
+      
+      def isFlipped: Boolean = disposition.isFlipped
+      def notFlipped: Boolean = disposition.notFlipped
+      
+      def isSameStrand: Boolean = disposition.isSameStrand
+      def isComplementStrand: Boolean = disposition.isComplementStrand
+    }
   }
-  
+
   sealed trait Parsed[R <: BaseVariantRow] extends DataRow {
-    val derivedFrom: Tagged
+    def derivedFrom: DataRow
+    def derivedFromAnalyzed: Option[Analyzed]
     
     def aggRowOpt: Option[R]
     
     override def skip: Parsed[R]
     
     def transform(f: R => R): Parsed[R]
-    
-    final def isFlipped: Boolean = derivedFrom.isFlipped
-    final def notFlipped: Boolean = derivedFrom.notFlipped
-    
-    final def isSameStrand: Boolean = derivedFrom.isSameStrand
-    final def isComplementStrand: Boolean = derivedFrom.isComplementStrand
     
     override def headers: Seq[String] = derivedFrom.headers
     
@@ -359,30 +360,42 @@ object VariantRow {
     
     override def recordNumber: Long = derivedFrom.recordNumber
   }
-  
-  final case class Transformed[R <: BaseVariantRow](
-      derivedFrom: Tagged,
-      aggRow: R) extends Parsed[R] {
+
+  object Parsed {
+    final case class Transformed[R <: BaseVariantRow](
+        derivedFrom: DataRow,
+        derivedFromTagged: Analyzed.Tagged,
+        aggRow: R) extends Parsed[R] {
+
+      override def derivedFromAnalyzed: Option[Analyzed] = Option(derivedFromTagged)
+
+      def isFlipped: Boolean = derivedFromTagged.isFlipped
+      def notFlipped: Boolean = derivedFromTagged.notFlipped
+      
+      def isSameStrand: Boolean = derivedFromTagged.isSameStrand
+      def isComplementStrand: Boolean = derivedFromTagged.isComplementStrand
+
+      override def aggRowOpt: Option[R] = Some(aggRow)
+      
+      override def isSkipped: Boolean = false
+      
+      override def skip: Skipped[R] = Skipped(derivedFrom, derivedFromAnalyzed, aggRowOpt)
+      
+      override def transform(f: R => R): Transformed[R] = copy(aggRow = f(aggRow))
+    }
     
-    override def aggRowOpt: Option[R] = Some(aggRow)
-    
-    override def isSkipped: Boolean = false
-    
-    override def skip: Skipped[R] = Skipped(derivedFrom, aggRowOpt)
-    
-    override def transform(f: R => R): Transformed[R] = copy(aggRow = f(aggRow))
-  }
-  
-  final case class Skipped[R <: BaseVariantRow](
-      derivedFrom: Tagged, 
-      aggRowOpt: Option[R],
-      message: Option[String] = None,
-      cause: Option[Failure[Parsed[R]]] = None) extends Parsed[R] {
-    
-    override def isSkipped: Boolean = true
-    
-    override def skip: Skipped[R] = this
-    
-    override def transform(f: R => R): Skipped[R] = this
+    final case class Skipped[R <: BaseVariantRow](
+        derivedFrom: DataRow, 
+        derivedFromAnalyzed: Option[Analyzed],
+        aggRowOpt: Option[R],
+        message: Option[String] = None,
+        cause: Option[Failure[Parsed[R]]] = None) extends Parsed[R] {
+      
+      override def isSkipped: Boolean = true
+      
+      override def skip: Skipped[R] = this
+      
+      override def transform(f: R => R): Skipped[R] = this
+    }
   }
 }

@@ -16,6 +16,19 @@ import scala.collection.compat._
  * Feb 10, 2020
  */
 object Helpers {
+  def analyzeNoFlipsEver(markerDef: MarkerColumnDef)(row: DataRow): VariantRow.Analyzed = {
+    if(row.isSkipped) { VariantRow.Analyzed.SkippedNotTagged(row) }
+    else {
+      val marker = markerDef(row)
+
+      VariantRow.Analyzed.Tagged(
+        derivedFrom = row,
+        marker = marker,
+        originalMarker = marker,
+        disposition = Disposition.NotFlippedSameStrand)
+    }
+  }
+
   private final case class SkippableMockCsvRow(
       isSkipped: Boolean, 
       columnNamesToValues: (String, String)*) extends DataRow {

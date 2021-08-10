@@ -21,16 +21,16 @@ import loamstream.loam.intake.RenderableJsonRow
  */
 object Metric {
   def countGreaterThan[R <: BaseVariantRow](
-      column: VariantRow.Transformed[R] => Double)(threshold: Double): Metric[R, Int] = {
+      column: VariantRow.Parsed.Transformed[R] => Double)(threshold: Double): Metric[R, Int] = {
     
     Fold.countIf[VariantRow.Parsed[R]] {
-      case VariantRow.Skipped(_, _, _, _) => false
-      case row @ VariantRow.Transformed(_, _) => column(row) > threshold
+      case VariantRow.Parsed.Skipped(_, _, _, _, _) => false
+      case row @ VariantRow.Parsed.Transformed(_, _, _) => column(row) > threshold
     }
   }
   
   def fractionGreaterThan[R <: BaseVariantRow](
-      column: VariantRow.Transformed[R] => Double)(threshold: Double): Metric[R, Double] = {
+      column: VariantRow.Parsed.Transformed[R] => Double)(threshold: Double): Metric[R, Double] = {
     
     fractionOfTotal(countGreaterThan[R](column)(threshold))
   }
@@ -47,7 +47,7 @@ object Metric {
       client: BioIndexClient)(p: Variant => Boolean): Metric[R, Int] = {
     
     Fold.countIf { 
-      case VariantRow.Transformed(_, dataRow) => p(dataRow.marker) 
+      case VariantRow.Parsed.Transformed(_, _, dataRow) => p(dataRow.marker) 
       case _ => false
     }
   }
@@ -89,14 +89,15 @@ object Metric {
     
     def agreesFlip(z: Double, beta: Double, se: Double): Boolean = agrees(z, -(beta / se))
     
-    def isFlipped(sourceRow: VariantRow.Tagged): Boolean = sourceRow.disposition.isFlipped
+    def isFlipped(sourceRow: VariantRow.Analyzed.Tagged): Boolean = sourceRow.disposition.isFlipped
     
     val agreesFn: VariantRow.Parsed[R] => Boolean = { 
-      case VariantRow.Transformed(
-          sourceRow, 
+      case tr @ VariantRow.Parsed.Transformed(
+          _, 
+          _, 
           WithMarkerZSeBeta(marker, Some(z), Some(se), Some(beta))) => {
             
-        if(isFlipped(sourceRow)) {
+        if(isFlipped(tr.derivedFromTagged)) {
           agrees(z, -(beta / se))
         } else {
           agrees(z, beta / se)
@@ -115,11 +116,11 @@ object Metric {
   }
   
   def mean[R <: BaseVariantRow, N](
-      column: VariantRow.Transformed[R] => N)(implicit ev: Numeric[N]): Metric[R, Double] = {
+      column: VariantRow.Parsed.Transformed[R] => N)(implicit ev: Numeric[N]): Metric[R, Double] = {
     
     val sumFold: Fold[VariantRow.Parsed[R], N, N] = Fold.sum {
-      case VariantRow.Skipped(_, _, _, _) => ev.zero
-      case t @ VariantRow.Transformed(_, _) => column(t)
+      case VariantRow.Parsed.Skipped(_, _, _, _, _) => ev.zero
+      case t @ VariantRow.Parsed.Transformed(_, _, _) => column(t)
     }
     val countFold: Fold[VariantRow.Parsed[R], Int, Int] = Fold.count
     
@@ -132,17 +133,23 @@ object Metric {
     type Counts = Map[String, Int]
     
     def doAdd(acc: Counts, elem: VariantRow.Parsed[R]): Counts = {
-      if(elem.notSkipped || countSkipped) {
-        import elem.derivedFrom.marker.chrom
-        
-        val newCount = acc.get(chrom) match {
-          case Some(count) => count + 1
-          case None => 1
+      val shouldBeCounted = elem.notSkipped || countSkipped
+
+      elem.derivedFromAnalyzed match {
+        // We can only count rows derived from Tagged rows, since others were either skipped before a marker could
+        // be computed from them, or were malformed such that no marker could be be computed from them.  In those 
+        // cases, we can't know which chromosome to assign the count to.
+        case Some(tagged: VariantRow.Analyzed.Tagged) if shouldBeCounted => {
+          import tagged.marker.chrom
+          
+          val newCount = acc.get(chrom) match {
+            case Some(count) => count + 1
+            case None => 1
+          }
+          
+          acc + (chrom -> newCount)
         }
-        
-        acc + (chrom -> newCount)
-      } else {
-        acc
+        case _ => acc
       }
     }
     
@@ -151,9 +158,23 @@ object Metric {
     Fold.apply[VariantRow.Parsed[R], Counts, Counts](startingCounts, doAdd, identity)
   }
   
-  def countFlipped[R <: BaseVariantRow]: Metric[R, Int] = Fold.countIf(_.isFlipped)
+  def countFlipped[R <: BaseVariantRow]: Metric[R, Int] = Fold.countIf {
+    case t: VariantRow.Parsed.Transformed[R] => t.isFlipped
+    case p: VariantRow.Parsed[R] => p.derivedFromAnalyzed match {
+      case Some(t: VariantRow.Analyzed.Tagged) => t.isFlipped
+      case _ => false
+    }
+    case _ => false
+  }
   
-  def countComplemented[R <: BaseVariantRow]: Metric[R, Int] = Fold.countIf(_.isComplementStrand)
+  def countComplemented[R <: BaseVariantRow]: Metric[R, Int] = Fold.countIf {
+    case t: VariantRow.Parsed.Transformed[R] => t.isComplementStrand
+    case p: VariantRow.Parsed[R] => p.derivedFromAnalyzed match {
+      case Some(t: VariantRow.Analyzed.Tagged) => t.isComplementStrand
+      case _ => false
+    }
+    case _ => false
+  }
   
   def countSkipped[R <: BaseVariantRow]: Metric[R, Int] = Fold.countIf(_.isSkipped)
   

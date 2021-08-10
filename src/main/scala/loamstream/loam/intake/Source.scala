@@ -1,25 +1,25 @@
 package loamstream.loam.intake
 
-import java.io.FileReader
-import java.io.InputStreamReader
-import java.io.Reader
-import java.nio.file.Path
-import java.nio.file.Paths
-
-import org.apache.commons.csv.CSVFormat
-import org.apache.commons.csv.CSVParser
-
+import loamstream.loam.intake.flip.FlipDetector
 import loamstream.util.BashScript
+import loamstream.util.LogContext
 import loamstream.util.Loggable
 import loamstream.util.TakesEndingActionIterator
 import loamstream.util.Throwables
-import java.util.zip.GZIPInputStream
-import java.io.FileInputStream
-import java.io.StringReader
-import loamstream.loam.intake.flip.FlipDetector
-import scala.util.Try
-import org.json4s.JsonAST.JValue
+import org.apache.commons.csv.CSVFormat
+import org.apache.commons.csv.CSVParser
 import org.json4s.JsonAST.JObject
+import org.json4s.JsonAST.JValue
+
+import java.io.FileInputStream
+import java.io.FileReader
+import java.io.InputStreamReader
+import java.io.Reader
+import java.io.StringReader
+import java.nio.file.Path
+import java.nio.file.Paths
+import java.util.zip.GZIPInputStream
+import scala.util.Try
 
 /**
  * @author clint
@@ -44,27 +44,6 @@ sealed trait Source[R] {
   
   private final def fromCombinator[S](f: Iterator[R] => Iterator[S]): Source[S] = {
     new Source.FromIterator(f(records))
-  }
-  
-  def tagFlips(
-      markerDef: MarkerColumnDef, 
-      flipDetector: => FlipDetector)(implicit ev: R <:< DataRow): Source[VariantRow.Tagged] = {
-    
-    lazy val actualFlipDetector = flipDetector
-    
-    this.map(ev).map { row =>
-      val originalMarker = markerDef.apply(row)
-    
-      val disposition = actualFlipDetector.isFlipped(originalMarker)
-    
-      val newMarker = originalMarker.flipIf(disposition.isFlipped).complementIf(disposition.isComplementStrand)
-      
-      VariantRow.Tagged(
-          delegate = row, 
-          marker = newMarker,
-          originalMarker = originalMarker, 
-          disposition = disposition)
-    }
   }
   
   def map[S](f: R => S): Source[S] = fromCombinator(_.map(f))

@@ -7,7 +7,7 @@ import org.scalatest.FunSuite
  * May 4, 2021
  */
 final class VariantCountRowTest extends FunSuite {
-  private val variant = Variant("1", 2, "A", "C")
+  private val variant = Variant.from("1", 2, "A", "C")
   
   test("jsonValues - optional values present") {
     import org.json4s._

@@ -33,6 +33,9 @@ object SlurmStatus {
   case object Completed extends SlurmStatus("CD", "COMPLETED", DrmStatus.CommandResult(0))
   //Job has terminated all processes on all nodes with an exit code of zero.
 
+  case object Completing extends SlurmStatus("CG", "COMPLETING", DrmStatus.Failed)
+  //Job is in the process of completing. Some processes on some nodes may still be active. 
+
   case object DeadLine extends SlurmStatus("DL", "DEADLINE", DrmStatus.Failed, TerminationReason.RunTime)
   //Job terminated on deadline.
 
@@ -70,7 +73,7 @@ object SlurmStatus {
   //Job terminated upon reaching its time limit.
   
   lazy val values: Iterable[SlurmStatus] = Set(
-      BootFail, Cancelled, Completed, DeadLine, Failed, NodeFail, OutOfMemory, 
+      BootFail, Cancelled, Completed, Completing, DeadLine, Failed, NodeFail, OutOfMemory, 
       Pending, Preempted, Running, Requeued, Resizing, Revoked, Suspended, Timeout)
 
   private lazy val byShortName: Map[String, SlurmStatus] = values.iterator.map(s => s.shortName -> s).toMap

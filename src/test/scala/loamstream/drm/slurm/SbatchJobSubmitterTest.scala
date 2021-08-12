@@ -168,7 +168,7 @@ final class SbatchJobSubmitterTest extends FunSuite {
           "-t", "7:0:0",
           "--mem-per-cpu=6G",
           "--cpus-per-task=5",
-          "-J", "some-job-name",
+          "-J", "some-job-name[0-3]",
           "-o", s"${Locations.Default.slurmDir}/some-job-name.%a.stdout",
           "-e", s"${Locations.Default.slurmDir}/some-job-name.%a.stderr", 
           taskArray.drmScriptFile.toString

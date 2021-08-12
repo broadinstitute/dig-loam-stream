@@ -165,7 +165,7 @@ object SbatchJobSubmitter extends Loggable {
     
     val queuePart: Seq[String] = Nil //TODO does Slurm have the notion of a queue?
     
-    val jobNamePart = Seq("-J", taskArray.drmJobName)
+    val jobNamePart = Seq("-J", s"${taskArray.drmJobName}[0-${taskArray.size}]")
     
     val stdoutPart = Seq("-o", s"${taskArray.stdOutPathTemplate}")
     

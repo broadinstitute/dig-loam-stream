@@ -3,6 +3,7 @@ package loamstream.drm
 import java.nio.file.Path
 import loamstream.conf.DrmConfig
 import loamstream.util.BashScript
+import loamstream.model.jobs.JobOracle
 
 /**
  * @author clint
@@ -30,6 +31,7 @@ trait PathBuilder {
     //scriptBuilderParams.drmIndexVarExpr is a special string that will be substituted with the index of a job
     //in a task/job array at execution time.  
     //LSF uses '%I', Uger uses JobTemplate.PARAMETRIC_INDEX ('$drmaa_incr_ph$')
-    s"${pathTemplatePrefix}${drmConfig.workDir.render}/$jobName.${scriptBuilderParams.drmIndexVarExpr}.$suffix"
+    //s"${pathTemplatePrefix}${drmConfig.workDir.render}/$jobName.${scriptBuilderParams.drmIndexVarExpr}.$suffix"
+    s"${pathTemplatePrefix}${drmConfig.workDir.render}/$jobName/${scriptBuilderParams.drmIndexVarExpr}.$suffix"
   }
 }

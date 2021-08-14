@@ -250,8 +250,8 @@ LOAMSTREAM_JOB_EXIT_CODE=$$?
 
 echo "Start: $$START\\nEnd: $$(date +%Y-%m-%dT%H:%M:%S)" >> $finalOutputDir0/stats
 
-origStdoutPath="${drmOutputDir}/${jobName}.${toIndex(0)}.stdout"
-origStderrPath="${drmOutputDir}/${jobName}.${toIndex(0)}.stderr"
+origStdoutPath="${drmOutputDir}/${jobName}/${toIndex(0)}.stdout"
+origStderrPath="${drmOutputDir}/${jobName}/${toIndex(0)}.stderr"
 
 stdoutDestPath="$finalOutputDir0/stdout"
 stderrDestPath="$finalOutputDir0/stderr"
@@ -277,8 +277,8 @@ LOAMSTREAM_JOB_EXIT_CODE=$$?
 
 echo "Start: $$START\\nEnd: $$(date +%Y-%m-%dT%H:%M:%S)" >> $finalOutputDir1/stats
 
-origStdoutPath="${drmOutputDir}/${jobName}.${toIndex(1)}.stdout"
-origStderrPath="${drmOutputDir}/${jobName}.${toIndex(1)}.stderr"
+origStdoutPath="${drmOutputDir}/${jobName}/${toIndex(1)}.stdout"
+origStderrPath="${drmOutputDir}/${jobName}/${toIndex(1)}.stderr"
 
 stdoutDestPath="$finalOutputDir1/stdout"
 stderrDestPath="$finalOutputDir1/stderr"
@@ -304,8 +304,8 @@ LOAMSTREAM_JOB_EXIT_CODE=$$?
 
 echo "Start: $$START\\nEnd: $$(date +%Y-%m-%dT%H:%M:%S)" >> $finalOutputDir2/stats
 
-origStdoutPath="${drmOutputDir}/${jobName}.${toIndex(2)}.stdout"
-origStderrPath="${drmOutputDir}/${jobName}.${toIndex(2)}.stderr"
+origStdoutPath="${drmOutputDir}/${jobName}/${toIndex(2)}.stdout"
+origStderrPath="${drmOutputDir}/${jobName}/${toIndex(2)}.stderr"
 
 stdoutDestPath="$finalOutputDir2/stdout"
 stderrDestPath="$finalOutputDir2/stderr"

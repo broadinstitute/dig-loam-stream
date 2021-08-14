@@ -31,7 +31,7 @@ final case class DrmTaskArray(
   lazy val drmScriptFile: Path = writeDrmScriptFiles()
 
   private def writeDrmScriptFiles(): Path = {
-    val drmWorkDir = drmConfig.workDir
+    val drmWorkDir = drmConfig.workDir.resolve(drmJobName)
     
     LFiles.createDirsIfNecessary(drmWorkDir)
 

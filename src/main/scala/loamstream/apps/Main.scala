@@ -24,6 +24,10 @@ import loamstream.util.OneTimeLatch
 import loamstream.util.TimeUtils
 import loamstream.util.Versions
 import scala.collection.compat._
+import loamstream.drm.DrmSystem
+import org.apache.commons.io.FilenameUtils
+import org.apache.commons.io.FileUtils
+import loamstream.conf.DrmConfig
 
 
 /**
@@ -149,6 +153,18 @@ object Main extends Loggable {
       }
     }
     
+    private def clearDrmWorkDir(drmConfig: Option[DrmConfig]): Unit = drmConfig.map(_.workDir).foreach { dir =>
+      info(s"Clearing out DRM work dir ${dir.toAbsolutePath}")
+        
+      FileUtils.cleanDirectory(dir.toFile)
+    }
+
+    private def clearDrmWorkDirs(wiring: AppWiring): Unit = {
+      clearDrmWorkDir(wiring.config.lsfConfig)
+      clearDrmWorkDir(wiring.config.ugerConfig)
+      clearDrmWorkDir(wiring.config.slurmConfig)
+    }
+
     def doRealRun(
         intent: Intent.RealRun, 
         makeDao: LoamConfig => LoamDao = conf => AppWiring.makeDefaultDbIn(conf.executionConfig.dbDir)): Unit = {
@@ -159,6 +175,8 @@ object Main extends Loggable {
       
       info(s"Loamstream will create logs and metadata files under ${lsDir}")
       
+      clearDrmWorkDirs(wiring)
+
       addShutdownHook(wiring)
       
       addUncaughtExceptionHandler(Some(wiring))

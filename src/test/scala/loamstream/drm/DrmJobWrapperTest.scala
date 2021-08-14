@@ -161,9 +161,9 @@ final class DrmJobWrapperTest extends FunSuite {
 
       import loamstream.util.Paths.Implicits.PathHelpers
       
-      val expected0 = (drmConfig.workDir / s"$jobName.1.stdout").toAbsolutePath
-      val expected1 = (drmConfig.workDir / s"$jobName.2.stdout").toAbsolutePath
-      val expected2 = (drmConfig.workDir / s"$jobName.3.stdout").toAbsolutePath
+      val expected0 = (drmConfig.workDir / s"$jobName/1.stdout").toAbsolutePath
+      val expected1 = (drmConfig.workDir / s"$jobName/2.stdout").toAbsolutePath
+      val expected2 = (drmConfig.workDir / s"$jobName/3.stdout").toAbsolutePath
 
       assert(stdOutPath0 === expected0)
       assert(stdOutPath1 === expected1)
@@ -205,9 +205,9 @@ final class DrmJobWrapperTest extends FunSuite {
 
       import loamstream.util.Paths.Implicits.PathHelpers
       
-      val expected0 = (drmConfig.workDir / s"$jobName.1.stderr").toAbsolutePath
-      val expected1 = (drmConfig.workDir / s"$jobName.2.stderr").toAbsolutePath
-      val expected2 = (drmConfig.workDir / s"$jobName.3.stderr").toAbsolutePath
+      val expected0 = (drmConfig.workDir / s"$jobName/1.stderr").toAbsolutePath
+      val expected1 = (drmConfig.workDir / s"$jobName/2.stderr").toAbsolutePath
+      val expected2 = (drmConfig.workDir / s"$jobName/3.stderr").toAbsolutePath
 
       assert(stdErrPath0 === expected0)
       assert(stdErrPath1 === expected1)
@@ -308,8 +308,8 @@ final class DrmJobWrapperTest extends FunSuite {
                          |
                          |echo "Start: $$START\\nEnd: $$(date +%Y-%m-%dT%H:%M:%S)" >> ${wrapper0.statsFileDestPath}
                          |
-                         |origStdoutPath="${(workDir / jobName).render}.1.stdout"
-                         |origStderrPath="${(workDir / jobName).render}.1.stderr"
+                         |origStdoutPath="${(workDir / jobName).render}/1.stdout"
+                         |origStderrPath="${(workDir / jobName).render}/1.stderr"
                          |
                          |stdoutDestPath="${(jobOracle.dirFor(j0) / "stdout").render}"
                          |stderrDestPath="${(jobOracle.dirFor(j0) / "stderr").render}"

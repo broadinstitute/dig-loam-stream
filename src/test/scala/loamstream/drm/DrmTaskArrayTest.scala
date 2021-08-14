@@ -128,8 +128,8 @@ final class DrmTaskArrayTest extends FunSuite {
       
       doTest(
           pathBuilder, 
-          s"foo${workDir.render}/${expectedJobName}.bar.stdout",
-          s"foo${workDir.render}/${expectedJobName}.bar.stderr")
+          s"foo${workDir.render}/${expectedJobName}/bar.stdout",
+          s"foo${workDir.render}/${expectedJobName}/bar.stderr")
     }
     
     {
@@ -139,8 +139,8 @@ final class DrmTaskArrayTest extends FunSuite {
     
       doTest(
           pathBuilder, 
-          s"${workDir.render}/${expectedJobName}.bar.stdout",
-          s"${workDir.render}/${expectedJobName}.bar.stderr")
+          s"${workDir.render}/${expectedJobName}/bar.stdout",
+          s"${workDir.render}/${expectedJobName}/bar.stderr")
     }
   }
 
@@ -213,7 +213,7 @@ final class DrmTaskArrayTest extends FunSuite {
   
       assert(taskArray.scriptContents === (new ScriptBuilder(scriptBuilderParams)).buildFrom(taskArray))
   
-      assert(taskArray.drmScriptFile.getParent === drmConfig.workDir)
+      assert(taskArray.drmScriptFile.getParent === drmConfig.workDir.resolve(arrayName))
   
       assert(Files.readFrom(taskArray.drmScriptFile) === taskArray.scriptContents)
       

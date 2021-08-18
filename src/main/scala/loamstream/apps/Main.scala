@@ -48,7 +48,7 @@ object Main extends Loggable {
     info(s"Worker mode is ${if(cli.toValues.workerSupplied) "ON" else "OFF"}")
     
     val intent = Intent.from(cli)
-    
+
     import loamstream.cli.Intent._
 
     def run = new Run
@@ -153,10 +153,14 @@ object Main extends Loggable {
       }
     }
     
-    private def clearDrmWorkDir(drmConfig: Option[DrmConfig]): Unit = drmConfig.map(_.workDir).foreach { dir =>
-      info(s"Clearing out DRM work dir ${dir.toAbsolutePath}")
-        
-      FileUtils.cleanDirectory(dir.toFile)
+    private def clearDrmWorkDir(drmConfig: Option[DrmConfig]): Unit = {
+      import java.nio.file.Files.exists
+
+      drmConfig.map(_.workDir).filter(exists(_)).foreach { dir =>
+        info(s"Clearing out DRM work dir ${dir.toAbsolutePath}")
+          
+        FileUtils.cleanDirectory(dir.toFile)
+      }
     }
 
     private def clearDrmWorkDirs(wiring: AppWiring): Unit = {

@@ -15,17 +15,17 @@ final class RunResultsTest extends FunSuite {
     val s = RunResults.Completed("foo", 0, Nil, Nil)
     
     assert(s.tryAsSuccess("", RunResults.SuccessPredicate.zeroIsSuccess) === Success(s))
-    assert(s.tryAsSuccess("", RunResults.SuccessPredicate.countsAsSuccess(42)).isFailure)
+    assert(s.tryAsSuccess("", RunResults.SuccessPredicate.ByExitCode.countsAsSuccess(42)).isFailure)
     
     val u = RunResults.Completed("foo", 42, Nil, Nil)
     
     assert(u.tryAsSuccess("", RunResults.SuccessPredicate.zeroIsSuccess).isFailure === true)
-    assert(u.tryAsSuccess("", RunResults.SuccessPredicate.countsAsSuccess(42)) === Success(u))
+    assert(u.tryAsSuccess("", RunResults.SuccessPredicate.ByExitCode.countsAsSuccess(42)) === Success(u))
     
     val cns = RunResults.CouldNotStart("foo", new Exception with NoStackTrace)
     
     assert(cns.tryAsSuccess("", RunResults.SuccessPredicate.zeroIsSuccess).isFailure)
-    assert(cns.tryAsSuccess("", RunResults.SuccessPredicate.countsAsSuccess(42)).isFailure)
+    assert(cns.tryAsSuccess("", RunResults.SuccessPredicate.ByExitCode.countsAsSuccess(42)).isFailure)
   }
   
   test("apply - defaults") {

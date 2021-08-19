@@ -59,10 +59,27 @@ object DrmChunkRunnerWiring extends Loggable {
 
       val sessionTracker: SessionTracker = new SessionTracker.Default
 
-      val jobKiller = QdelJobKiller.fromExecutable(
-        sessionTracker, 
-        ugerConfig, 
-        isSuccess = RunResults.SuccessPredicate.zeroIsSuccess)
+      val jobKiller = {
+        import RunResults.SuccessPredicate
+        import RunResults.SuccessPredicate.ByExitCode
+        import RunResults.SuccessPredicate.ByExitCode.{zeroIsSuccess => ecIsZero}
+
+        val isAboutNonExistentJobs: SuccessPredicate = { 
+          _.stdout.iterator.map(_.toLowerCase.trim).exists { line => 
+            line.startsWith("the job") &&
+            line.endsWith("does not exist")
+          }
+        }
+
+        val ecIsOne = ByExitCode.countsAsSuccess(1)
+
+        val isSuccess = ecIsZero || (ecIsOne && isAboutNonExistentJobs)
+
+        QdelJobKiller.fromExecutable(
+          sessionTracker, 
+          ugerConfig, 
+          isSuccess = isSuccess)
+      }
 
       val ugerRunner = DrmChunkRunner(
         environmentType = EnvironmentType.Uger,
@@ -104,7 +121,7 @@ object DrmChunkRunnerWiring extends Loggable {
       val jobKiller = BkillJobKiller.fromExecutable(
         sessionTracker, 
         lsfConfig, 
-        isSuccess = RunResults.SuccessPredicate.zeroIsSuccess)
+        isSuccess = RunResults.SuccessPredicate.ByExitCode.zeroIsSuccess)
 
       val lsfRunner = DrmChunkRunner(
         environmentType = EnvironmentType.Lsf,
@@ -152,7 +169,7 @@ object DrmChunkRunnerWiring extends Loggable {
       val jobKiller = ScancelJobKiller.fromExecutable(
         sessionTracker, 
         slurmConfig, 
-        isSuccess = RunResults.SuccessPredicate.countsAsSuccess(Set(0, 1)))
+        isSuccess = RunResults.SuccessPredicate.ByExitCode.countsAsSuccess(Set(0, 1)))
 
       val slurmRunner = DrmChunkRunner(
         environmentType = EnvironmentType.Slurm,

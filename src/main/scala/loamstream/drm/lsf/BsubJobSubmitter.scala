@@ -111,7 +111,7 @@ object BsubJobSubmitter extends Loggable {
     val invoker = new CommandInvoker.Sync.JustOnce[Params](
         binaryName = actualExecutable, 
         delegateFn = invokeBinaryToSubmitJobs(lsfConfig, actualExecutable),
-        isSuccess = RunResults.SuccessPredicate.zeroIsSuccess)
+        isSuccess = RunResults.SuccessPredicate.ByExitCode.zeroIsSuccess)
     
     new BsubJobSubmitter(invoker)
   }

@@ -115,7 +115,7 @@ object BacctAccountingClient {
         lsfConfig.maxBacctRetries, 
         binaryName, 
         scheduler,
-        isSuccess = RunResults.SuccessPredicate.zeroIsSuccess))
+        isSuccess = RunResults.SuccessPredicate.ByExitCode.zeroIsSuccess))
   }
   
   //"Data lines" look like this:

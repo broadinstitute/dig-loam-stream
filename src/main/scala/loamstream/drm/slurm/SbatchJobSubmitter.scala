@@ -107,7 +107,7 @@ object SbatchJobSubmitter extends Loggable {
     val justOnce = new CommandInvoker.Async.JustOnce[Params](
         binaryName = actualExecutable, 
         delegateFn = invokeBinaryToSubmitJobs(actualExecutable),
-        isSuccess = RunResults.SuccessPredicate.zeroIsSuccess)
+        isSuccess = RunResults.SuccessPredicate.ByExitCode.zeroIsSuccess)
     
     val invoker = {
       if(slurmConfig.maxRetries < 1) { justOnce }

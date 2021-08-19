@@ -57,17 +57,29 @@ sealed trait RunResults {
 }
 
 object RunResults {
-  type SuccessPredicate = RunResults => Boolean
+  trait SuccessPredicate extends (RunResults => Boolean)
 
   object SuccessPredicate {
-    val zeroIsSuccess: SuccessPredicate = countsAsSuccess(ExitCodes.isSuccess(_))
+    def apply(p: RunResults => Boolean): SuccessPredicate = r => p(r)
 
-    def countsAsSuccess(p: Int => Boolean): SuccessPredicate = {
-      case Completed(_, exitCode, _, _) => p(exitCode)
-      case _ => false
+    implicit final class SuccessPredicateOps(val sp: SuccessPredicate) extends AnyVal {
+      def &&(other: SuccessPredicate): SuccessPredicate = r => sp(r) && other(r)
+
+      def ||(other: SuccessPredicate): SuccessPredicate = r => sp(r) || other(r)
     }
 
-    def countsAsSuccess(exitCode: Int): SuccessPredicate = countsAsSuccess(Set(exitCode))
+    val zeroIsSuccess: SuccessPredicate = ByExitCode.zeroIsSuccess
+
+    object ByExitCode {
+      val zeroIsSuccess: SuccessPredicate = countsAsSuccess(ExitCodes.isSuccess(_))
+
+      def countsAsSuccess(p: Int => Boolean): SuccessPredicate = {
+        case Completed(_, exitCode, _, _) => p(exitCode)
+        case _ => false
+      }
+      
+      def countsAsSuccess(exitCode: Int, others: Int*): SuccessPredicate = countsAsSuccess((exitCode +: others).toSet)
+    }
   }
 
   def apply(

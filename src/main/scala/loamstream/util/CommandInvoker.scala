@@ -33,13 +33,13 @@ object CommandInvoker {
 
   trait Async[A] extends (AsyncInvocationFn[A])
   
-  import RunResults.SuccessPredicate.zeroIsSuccess
+  import RunResults.SuccessPredicate.ByExitCode.zeroIsSuccess
 
   object Sync {
     final class JustOnce[A](
       val binaryName: String,
       delegateFn: InvocationFn[A],
-      isSuccess: RunResults.SuccessPredicate/*  = zeroIsSuccess */) extends CommandInvoker.Sync[A] with Loggable {
+      isSuccess: RunResults.SuccessPredicate) extends CommandInvoker.Sync[A] with Loggable {
 
       override def apply(param: A): Try[RunResults.Completed] = {
         delegateFn(param).flatMap(_.tryAsSuccess("", isSuccess))

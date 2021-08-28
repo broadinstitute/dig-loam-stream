@@ -12,6 +12,7 @@ import loamstream.conf.DrmConfig
 import loamstream.model.execute.DrmSettings
 import loamstream.util.Loggable
 import loamstream.conf.Locations
+import loamstream.util.CanBeClosed
 
 /**
  * @author clint
@@ -27,9 +28,9 @@ final case class DrmJobWrapper(
 
   private def makePath(template: String): Path = pathBuilder.reifyPathTemplate(template, drmIndex)
   
-  def drmStdOutPath(taskArray: DrmTaskArray): Path = makePath(taskArray.stdOutPathTemplate)
+  def drmStdOutPath(taskArray: DrmTaskArray): Path = Paths.get("/dev/null") //makePath(taskArray.stdOutPathTemplate)
 
-  def drmStdErrPath(taskArray: DrmTaskArray): Path = makePath(taskArray.stdErrPathTemplate)
+  def drmStdErrPath(taskArray: DrmTaskArray): Path = Paths.get("/dev/null") //makePath(taskArray.stdErrPathTemplate)
   
   private lazy val stdOutDestPath: Path = LogFileNames.stdout(jobDir)
 
@@ -38,6 +39,14 @@ final case class DrmJobWrapper(
   private lazy val exitCodeDestPath: Path = LogFileNames.exitCode(jobDir)
 
   private[drm] lazy val statsFileDestPath: Path = LogFileNames.stats(jobDir)
+
+  private[drm] lazy val commandScript: Path = {
+    val scriptPath = jobDir.resolve("command.sh").toAbsolutePath
+
+    loamstream.util.Files.writeTo(scriptPath)(commandLineInTaskArray)
+
+    scriptPath
+  }
 
   def outputStreams: OutputStreams = OutputStreams(stdOutDestPath, stdErrDestPath)
 
@@ -59,9 +68,13 @@ final case class DrmJobWrapper(
       case _ => ""
     }
 
-    val timePrefixPart = DrmJobWrapper.timePrefix(statsFileDestPath)
+    //val timePrefixPart = DrmJobWrapper.timePrefix(statsFileDestPath)
 
-    val result = s"${timePrefixPart} ${singularityPart}${commandLineJob.commandLineString}"
+    //val redirectsPart = s"1> ${stdOutDestPath} 2> ${stdErrDestPath}"
+
+    //val result = s"${timePrefixPart} ${singularityPart}${commandLineJob.commandLineString} ${redirectsPart}"
+
+    val result = s"${singularityPart}${commandLineJob.commandLineString}"
 
     trace(s"Raw command in DRM shell script: '${result}'")
 
@@ -73,29 +86,24 @@ final case class DrmJobWrapper(
 
     import DrmJobWrapper.timestampCommand
 
+    val timePrefixPart = DrmJobWrapper.timePrefix(statsFileDestPath)
+
+    val redirectsPart = s"1> ${stdOutDestPath} 2> ${stdErrDestPath}"
+
     // scalastyle:off line.size.limit
     s"""|jobDir="${outputDir.render}"
         |mkdir -p $$jobDir
         |
         |START="$$(${timestampCommand})"
         |
-        |${commandLineInTaskArray}
+        |${timePrefixPart} sh ${commandScript} ${redirectsPart}
         |
         |LOAMSTREAM_JOB_EXIT_CODE=$$?
         |
-        |echo "Start: $$START\\nEnd: $$(${timestampCommand})" >> ${statsFileDestPath}
+        |echo "Start: $$START" >> ${statsFileDestPath}
+        |echo "End: $$(${timestampCommand})" >> ${statsFileDestPath}
         |
-        |origStdoutPath="${drmStdOutPath(taskArray).render}"
-        |origStderrPath="${drmStdErrPath(taskArray).render}"
-        |
-        |stdoutDestPath="${stdOutDestPath.render}"
-        |stderrDestPath="${stdErrDestPath.render}"
-        |exitcodeDestPath="${exitCodeDestPath.render}"
-        |
-        |echo $$LOAMSTREAM_JOB_EXIT_CODE > $$exitcodeDestPath
-        |
-        |mv $$origStdoutPath $$stdoutDestPath || echo "Couldn't move DRM std out log $$origStdoutPath; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
-        |mv $$origStderrPath $$stderrDestPath || echo "Couldn't move DRM std err log $$origStderrPath; it's likely the job wasn't submitted successfully" > $$stderrDestPath
+        |echo "$$LOAMSTREAM_JOB_EXIT_CODE" > "${exitCodeDestPath.render}"
         |
         |exit $$LOAMSTREAM_JOB_EXIT_CODE
         |""".stripMargin

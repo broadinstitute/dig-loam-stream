@@ -152,21 +152,25 @@ object Main extends Loggable {
         case _ => ()
       }
     }
+
+    private def clearDir(dir: Path): Unit = {
+      info(s"Clearing out dir ${dir.toAbsolutePath}")
+
+      FileUtils.cleanDirectory(dir.toFile)
+    }
     
     private def clearDrmWorkDir(drmConfig: Option[DrmConfig]): Unit = {
       import java.nio.file.Files.exists
 
-      drmConfig.map(_.workDir).filter(exists(_)).foreach { dir =>
-        info(s"Clearing out DRM work dir ${dir.toAbsolutePath}")
-          
-        FileUtils.cleanDirectory(dir.toFile)
-      }
+      drmConfig.map(_.workDir).filter(exists(_)).foreach(clearDir)
     }
 
-    private def clearDrmWorkDirs(wiring: AppWiring): Unit = {
+    private def clearWorkDirs(wiring: AppWiring): Unit = {
       clearDrmWorkDir(wiring.config.lsfConfig)
       clearDrmWorkDir(wiring.config.ugerConfig)
       clearDrmWorkDir(wiring.config.slurmConfig)
+      //TODO: Commit
+      clearDir(wiring.config.executionConfig.locations.jobDataDir)
     }
 
     def doRealRun(
@@ -179,7 +183,7 @@ object Main extends Loggable {
       
       info(s"Loamstream will create logs and metadata files under ${lsDir}")
       
-      clearDrmWorkDirs(wiring)
+      clearWorkDirs(wiring)
 
       addShutdownHook(wiring)
       

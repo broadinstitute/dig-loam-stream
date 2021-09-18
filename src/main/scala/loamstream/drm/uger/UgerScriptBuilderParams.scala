@@ -4,6 +4,7 @@ import java.nio.file.Path
 
 import loamstream.conf.UgerConfig
 import loamstream.drm.ScriptBuilderParams
+import loamstream.drm.DrmSystem
 
 
 /**
@@ -37,6 +38,8 @@ final case class UgerScriptBuilderParams(extraPathDir: Path, condaEnvName: Strin
   override val indexEnvVarName: String = "SGE_TASK_ID"
   override val jobIdEnvVarName: String = "JOB_ID"
   override val drmIndexVarExpr: String = "$TASK_ID"
+
+  override def drmSystem: DrmSystem = DrmSystem.Uger
 }
 
 object UgerScriptBuilderParams {

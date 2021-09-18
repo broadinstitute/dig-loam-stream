@@ -68,12 +68,6 @@ final case class DrmJobWrapper(
       case _ => ""
     }
 
-    //val timePrefixPart = DrmJobWrapper.timePrefix(statsFileDestPath)
-
-    //val redirectsPart = s"1> ${stdOutDestPath} 2> ${stdErrDestPath}"
-
-    //val result = s"${timePrefixPart} ${singularityPart}${commandLineJob.commandLineString} ${redirectsPart}"
-
     val result = s"${singularityPart}${commandLineJob.commandLineString}"
 
     trace(s"Raw command in DRM shell script: '${result}'")
@@ -86,24 +80,33 @@ final case class DrmJobWrapper(
 
     import DrmJobWrapper.timestampCommand
 
-    val timePrefixPart = DrmJobWrapper.timePrefix(statsFileDestPath)
-
-    val redirectsPart = s"1> ${stdOutDestPath} 2> ${stdErrDestPath}"
+    val timePrefixPart = DrmJobWrapper.timePrefix()
 
     // scalastyle:off line.size.limit
     s"""|jobDir="${outputDir.render}"
-        |mkdir -p $$jobDir
+        |mkdir -p "$$jobDir"
+        |
+        |STATS_FILE="${statsFileDestPath.render}"
+        |EXITCODE_FILE="${exitCodeDestPath.render}"
+        |COMMAND_SCRIPT="${commandScript}"
+        |STDOUT_FILE="${stdOutDestPath.render}"
+        |STDERR_FILE="${stdErrDestPath.render}"
+        |
+        |echo "Node: $$(hostname)" >> $$STATS_FILE
+        |echo Task_Array_Name: ${taskArray.drmJobName} >> $$STATS_FILE
+        |echo DRM_Task_Id: "$${jobId}-$${i}" >> $$STATS_FILE
+        |echo Raw_Logs: ".loamstream/slurm/${taskArray.drmJobName}/$${i}.{stdout,stderr}"
         |
         |START="$$(${timestampCommand})"
         |
-        |${timePrefixPart} sh ${commandScript} ${redirectsPart}
+        |${timePrefixPart} bash $$COMMAND_SCRIPT 1> $$STDOUT_FILE 2> $$STDERR_FILE
         |
         |LOAMSTREAM_JOB_EXIT_CODE=$$?
         |
-        |echo "Start: $$START" >> ${statsFileDestPath}
-        |echo "End: $$(${timestampCommand})" >> ${statsFileDestPath}
+        |echo "Start: $$START" >> $$STATS_FILE
+        |echo "End: $$(${timestampCommand})" >> $$STATS_FILE
         |
-        |echo "$$LOAMSTREAM_JOB_EXIT_CODE" > "${exitCodeDestPath.render}"
+        |echo "$$LOAMSTREAM_JOB_EXIT_CODE" > $$EXITCODE_FILE
         |
         |exit $$LOAMSTREAM_JOB_EXIT_CODE
         |""".stripMargin
@@ -112,14 +115,14 @@ final case class DrmJobWrapper(
 }
 
 object DrmJobWrapper {
-  private[drm] def timePrefix(statsFile: Path): String = {
+  private[drm] def timePrefix(statsFileEnvVarName: String = "STATS_FILE"): String = {
     //NB: Memory will be max-rss, in kilobytes.
     //System is time spent in kernel code, user is time spent in user code.
     val formatSpec = "ExitCode: %x\\nMemory: %Mk\\nSystem: %Ss\\nUser: %Us"
 
     //Use `which time` to find the 'time' binary on the path (we do NOT want the Bash builtin 'time').
     //-o makes output specified by $formatSpec go to $statsFile.
-    s"""`which time` -o ${statsFile} --format="${formatSpec}""""
+    s"""`which time` -o $$${statsFileEnvVarName} --format="${formatSpec}""""
   }
 
   private[drm] val timestampCommand: String = """date +%Y-%m-%dT%H:%M:%S"""

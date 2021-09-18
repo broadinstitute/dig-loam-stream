@@ -118,15 +118,24 @@ object DrmTaskArray extends Loggable {
   object TaskIndexingStrategy {
     case object Unchanged extends TaskIndexingStrategy(identity)
     case object PlusOne extends TaskIndexingStrategy(_ + 1)
+    case object MinusOne extends TaskIndexingStrategy(_ - 1)
     
-    lazy val Uger: TaskIndexingStrategy = PlusOne
-    lazy val Lsf: TaskIndexingStrategy = PlusOne
-    lazy val Slurm: TaskIndexingStrategy = PlusOne
+    //lazy val Uger: TaskIndexingStrategy = PlusOne
+    //lazy val Lsf: TaskIndexingStrategy = PlusOne
+    //lazy val Slurm: TaskIndexingStrategy = PlusOne
     
     def forDrmSystem(drmSystem: DrmSystem): TaskIndexingStrategy = drmSystem match {
-      case DrmSystem.Uger => Uger
-      case DrmSystem.Lsf => Lsf
-      case DrmSystem.Slurm => Slurm
+      case DrmSystem.Uger => PlusOne
+      case DrmSystem.Lsf => PlusOne
+      case DrmSystem.Slurm => PlusOne
+    }
+
+    object InDrmScript {
+      def forDrmSystem(drmSystem: DrmSystem): TaskIndexingStrategy = drmSystem match {
+        case DrmSystem.Uger => Unchanged
+        case DrmSystem.Lsf => Unchanged
+        case DrmSystem.Slurm => Unchanged
+      }
     }
   }
 }

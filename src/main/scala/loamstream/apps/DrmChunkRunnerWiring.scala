@@ -26,6 +26,7 @@ import loamstream.drm.slurm.ScancelJobKiller
 import loamstream.drm.slurm.SlurmPathBuilder
 import loamstream.util.RunResults
 import loamstream.drm.AccountingClient
+import loamstream.drm.DrmSystem
 
 /**
  * @author clint
@@ -162,7 +163,7 @@ object DrmChunkRunnerWiring extends Loggable {
 
       //TODO Support stats gathered by `time` wrappers in DRM shell scripts, via ExecutionStats
       //For now, since `sacct` is not available at BCH, don't attempt to collect accounting info.
-      val accountingClient = AccountingClient.AlwaysFailsAccountingClient
+      val accountingClient = new AccountingClient.AlwaysFailsAccountingClient(DrmSystem.Slurm)
 
       val sessionTracker: SessionTracker = new SessionTracker.Default
 

@@ -159,7 +159,7 @@ object SbatchJobSubmitter extends Loggable {
     
     val numCores = drmSettings.cores.value
     
-    val arrayIndicesPart: Seq[String] = Seq(s"--array=0-${taskArray.size}") 
+    val arrayIndicesPart: Seq[String] = Seq(s"--array=1-${taskArray.size}") 
     
     val coresPart = Seq(s"--cpus-per-task=${numCores}")
     

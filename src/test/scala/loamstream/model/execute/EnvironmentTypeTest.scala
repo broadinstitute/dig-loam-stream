@@ -1,6 +1,10 @@
 package loamstream.model.execute
 
 import org.scalatest.FunSuite
+import Resources._
+import java.time.LocalDateTime
+import loamstream.model.quantities.Memory
+import loamstream.model.quantities.CpuTime
 
 /**
  * @author clint
@@ -8,6 +12,90 @@ import org.scalatest.FunSuite
  */
 final class EnvironmentTypeTest extends FunSuite {
   import EnvironmentType._
+
+  test("matches - everything 'matches' no resources") {
+    assert(Local.matches(None) === true)
+    assert(Google.matches(None) === true)
+    assert(Uger.matches(None) === true)
+    assert(Lsf.matches(None) === true)
+    assert(Slurm.matches(None) === true)
+    assert(Aws.matches(None) === true)
+  }
+
+  private val localResources = LocalResources(LocalDateTime.now, LocalDateTime.now)
+  private val googleResources = GoogleResources("some-cluster", LocalDateTime.now, LocalDateTime.now)
+  private val ugerResources = UgerResources(
+    memory = Memory.inKb(123),
+    cpuTime = CpuTime.inSeconds(123),
+    node = Some("some-node"),
+    queue = None,
+    startTime = LocalDateTime.now,
+    endTime = LocalDateTime.now,
+    raw = Some("lalala"))
+
+  private val lsfResources = LsfResources(
+    memory = Memory.inKb(123),
+    cpuTime = CpuTime.inSeconds(123),
+    node = Some("some-node"),
+    queue = None,
+    startTime = LocalDateTime.now,
+    endTime = LocalDateTime.now,
+    raw = Some("lalala"))
+  
+  private val slurmResources = SlurmResources(
+    memory = Memory.inKb(123),
+    cpuTime = CpuTime.inSeconds(123),
+    node = Some("some-node"),
+    queue = None,
+    startTime = LocalDateTime.now,
+    endTime = LocalDateTime.now,
+    raw = Some("lalala"))
+
+  private val awsResources = AwsResources("some-cluster", LocalDateTime.now, LocalDateTime.now)
+
+  test("matches - some resources") {
+    assert(Local.matches(Some(localResources)) === true)
+    assert(Local.matches(Some(googleResources)) === false)
+    assert(Local.matches(Some(ugerResources)) === false)
+    assert(Local.matches(Some(lsfResources)) === false)
+    assert(Local.matches(Some(slurmResources)) === false)
+    assert(Local.matches(Some(awsResources)) === false)
+
+    assert(Google.matches(Some(localResources)) === false)
+    assert(Google.matches(Some(googleResources)) === true)
+    assert(Google.matches(Some(ugerResources)) === false)
+    assert(Google.matches(Some(lsfResources)) === false)
+    assert(Google.matches(Some(slurmResources)) === false)
+    assert(Google.matches(Some(awsResources)) === false)
+
+    assert(Uger.matches(Some(localResources)) === false)
+    assert(Uger.matches(Some(googleResources)) === false)
+    assert(Uger.matches(Some(ugerResources)) === true)
+    assert(Uger.matches(Some(lsfResources)) === false)
+    assert(Uger.matches(Some(slurmResources)) === false)
+    assert(Uger.matches(Some(awsResources)) === false)
+
+    assert(Lsf.matches(Some(localResources)) === false)
+    assert(Lsf.matches(Some(googleResources)) === false)
+    assert(Lsf.matches(Some(ugerResources)) === false)
+    assert(Lsf.matches(Some(lsfResources)) === true)
+    assert(Lsf.matches(Some(slurmResources)) === false)
+    assert(Lsf.matches(Some(awsResources)) === false)
+
+    assert(Slurm.matches(Some(localResources)) === false)
+    assert(Slurm.matches(Some(googleResources)) === false)
+    assert(Slurm.matches(Some(ugerResources)) === false)
+    assert(Slurm.matches(Some(lsfResources)) === false)
+    assert(Slurm.matches(Some(slurmResources)) === true)
+    assert(Slurm.matches(Some(awsResources)) === false)
+
+    assert(Aws.matches(Some(localResources)) === false)
+    assert(Aws.matches(Some(googleResources)) === false)
+    assert(Aws.matches(Some(ugerResources)) === false)
+    assert(Aws.matches(Some(lsfResources)) === false)
+    assert(Aws.matches(Some(slurmResources)) === false)
+    assert(Aws.matches(Some(awsResources)) === true)
+  }
   
   test("name") {
     assert(Local.name === "local")

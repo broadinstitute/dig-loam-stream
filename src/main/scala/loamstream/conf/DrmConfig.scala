@@ -220,7 +220,7 @@ object SlurmConfig extends ConfigParser[SlurmConfig] with Loggable {
     import ValueReaders.CpusReader
     import ValueReaders.CpuTimeReader
 
-    trace("Parsing LSF config...")
+    trace("Parsing SLURM config...")
     
     //NB: Ficus marshals the contents of loamstream.slurm into a SlurmDefaults instance.
     //Names of fields in SlurmDefaults and keys under loamstream.slurm must match.

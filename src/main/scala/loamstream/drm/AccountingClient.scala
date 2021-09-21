@@ -56,10 +56,8 @@ object AccountingClient {
 
   object StatsFileAccountingClient {
     private val statsLineRegex = "^(.+?)\\:(.*)$".r
-  }
 
-  final class StatsFileAccountingClient(drmSystem: DrmSystem, oracle: DrmJobOracle) extends AccountingClient {
-    def getResourceUsage(taskId: DrmTaskId): Task[DrmResources] = {
+    def parseStatsFile(drmSystem: DrmSystem)(statsFile: Path): Try[DrmResources] = {
       def statsFileLines(file: Path): Seq[String] = CanBeClosed.using(scala.io.Source.fromFile(file.toFile)) { 
         _.getLines.map(_.trim).filter(_.nonEmpty).toList
       }
@@ -80,9 +78,7 @@ object AccountingClient {
 
       def dropTrailing(ch: Char)(s: String): String = if(s.last == ch) s.dropRight(1) else s
 
-      val attempt: Try[DrmResources] = for {
-        jobDir <- Try(oracle.dirFor(taskId))
-        statsFile <- Files.tryFile(jobDir.resolve("stats"))
+      for {
         statsData <- parseStatsFile(statsFile)
         lookup = (key: String) => doLookup(key)(statsData, statsFile)
         memoryInK <- lookup("Memory").map(dropTrailing('k')).map(_.toDouble).map(Memory.inKb)
@@ -105,6 +101,16 @@ object AccountingClient {
           Option(statsFileLines(statsFile).mkString(System.lineSeparator))
         )
       }
+    }
+  }
+
+  final class StatsFileAccountingClient(drmSystem: DrmSystem, oracle: DrmJobOracle) extends AccountingClient {
+    def getResourceUsage(taskId: DrmTaskId): Task[DrmResources] = {
+      val attempt = for {
+        jobDir <- Try(oracle.dirFor(taskId))
+        statsFile <- Files.tryFile(jobDir.resolve("stats"))
+        resources <- StatsFileAccountingClient.parseStatsFile(drmSystem)(statsFile)
+      } yield resources
 
       Task.fromTry(attempt)
     }

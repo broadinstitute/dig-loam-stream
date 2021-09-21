@@ -42,6 +42,10 @@ final class SbatchJobSubmitter private[slurm] (
   private[slurm] def toDrmSubmissionResult(taskArray: DrmTaskArray)(runResults: RunResults): DrmSubmissionResult = {
     runResults match {
       case r @ RunResults.Completed(_, exitCode, _, _) if ExitCodes.isSuccess(exitCode) => {
+        if(r.stderr.nonEmpty) {
+          r.logStdOutAndStdErr("Got stderr output from sbatch, stdout and stderr follow:")
+        }
+
         SbatchJobSubmitter.extractJobId(r.stdout) match {
           case Some(jobId) =>  makeSuccess(jobId, taskArray)
           case None => {

@@ -55,7 +55,11 @@ abstract class RateLimitedPoller[P](
 
       import Iterators.Implicits.IteratorOps
         
-      statuses.nextOption()
+      val result = statuses.nextOption()
+
+      trace(s"Got exit status $result")
+
+      result
     }
 
     def readExitCodeFromStatsFile(file: Path): Option[DrmStatus] = {
@@ -78,13 +82,11 @@ abstract class RateLimitedPoller[P](
       CanBeClosed.using(Source.fromFile(file.toFile)) { source =>
         val lines: Iterator[String] = source.getLines.map(_.trim).filter(_.nonEmpty)
         
-        val statuses: Iterator[DrmStatus] = {
-          lines.flatMap(line => Try(line.toInt).toOption).map(DrmStatus.CommandResult(_))
+        val exitCodes: Iterator[Int] = {
+          lines.map(line => Try(line.toInt).get)
         }
 
-        import Iterators.Implicits.IteratorOps
-        
-        statuses.nextOption()
+        toStatusOpt(exitCodes)
       }
     }
     
@@ -105,14 +107,17 @@ abstract class RateLimitedPoller[P](
       }
 
       val existingExitCodeFileObs = waitFor(exitCodeFileObs)
-      val existingStatsFileObs = waitFor(exitCodeFileObs)
+      val existingStatsFileObs = waitFor(statsFileObs)
       
       def readFromStatsFile(file: Path): Observable[DrmStatus] = Observable.fromIterable(readExitCodeFromStatsFile(file))
       def readFromExitCodeFile(file: Path): Observable[DrmStatus] = Observable.fromIterable(readExitCodeFromExitCodeFile(file))
 
       val statusObs = {
-        existingStatsFileObs.flatMap(readFromStatsFile) onErrorFallbackTo
-        existingExitCodeFileObs.flatMap(readFromExitCodeFile)
+        for {
+          ec0 <- existingStatsFileObs.flatMap(readFromStatsFile)
+          ec1 <- existingExitCodeFileObs.flatMap(readFromExitCodeFile)
+          ec <- Observable(ec0, ec1)
+        } yield ec
       }
 
       statusObs.map(toPollResult)

@@ -10,13 +10,18 @@ import loamstream.util.Loggable
 import loamstream.util.Processes
 import loamstream.util.RunResults
 import loamstream.util.Users
+import loamstream.util.OneTimeLatch
 
 /**
  * @author clint
  * Jul 14, 2020
  */
 trait JobKiller {
-  def killAllJobs(): Unit
+  private val latch = new OneTimeLatch
+
+  final def killAllJobs(): Unit = latch.doOnce(doKillAllJobs())
+
+  protected def doKillAllJobs(): Unit
 }
 
 object JobKiller extends Loggable {
@@ -25,7 +30,7 @@ object JobKiller extends Loggable {
       commandInvoker: CommandInvoker.Sync[Unit], 
       sessionTracker: SessionTracker) extends JobKiller with Loggable {
 
-    override def killAllJobs(): Unit = {
+    override protected def doKillAllJobs(): Unit = {
       if(sessionTracker.nonEmpty) {
         commandInvoker.apply(()) match {
           case Success(runResults) => debug(s"Killed ${drmSystem.name} jobs")

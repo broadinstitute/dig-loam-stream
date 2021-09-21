@@ -154,9 +154,11 @@ object Main extends Loggable {
     }
 
     private def clearDir(dir: Path): Unit = {
-      info(s"Clearing out dir ${dir.toAbsolutePath}")
+      if(java.nio.file.Files.exists(dir)) {
+        info(s"Clearing out dir ${dir.toAbsolutePath}")
 
-      FileUtils.cleanDirectory(dir.toFile)
+        FileUtils.cleanDirectory(dir.toFile)
+      }
     }
     
     private def clearDrmWorkDir(drmConfig: Option[DrmConfig]): Unit = {

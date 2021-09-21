@@ -59,6 +59,8 @@ abstract class RateLimitedPoller[P](
     }
 
     def readExitCodeFromStatsFile(file: Path): Option[DrmStatus] = {
+      trace(s"Reading from $file")
+      
       CanBeClosed.using(Source.fromFile(file.toFile)) { source =>
         val lines: Iterator[String] = source.getLines.map(_.trim).filter(_.nonEmpty)
         
@@ -71,6 +73,8 @@ abstract class RateLimitedPoller[P](
     }
 
     def readExitCodeFromExitCodeFile(file: Path): Option[DrmStatus] = {
+      trace(s"Reading from $file")
+
       CanBeClosed.using(Source.fromFile(file.toFile)) { source =>
         val lines: Iterator[String] = source.getLines.map(_.trim).filter(_.nonEmpty)
         
@@ -90,11 +94,14 @@ abstract class RateLimitedPoller[P](
       import java.nio.file.Files.exists
 
       val exitCodeFileObs = Observable.eval(oracle.dirOptFor(taskId).map(LogFileNames.exitCode))
-      val statsFileObs = Observable.eval(oracle.dirOptFor(taskId).map(LogFileNames.exitCode))
+      val statsFileObs = Observable.eval(oracle.dirOptFor(taskId).map(LogFileNames.stats))
 
       def waitFor(fileObs: Observable[Option[Path]]): Observable[Path] = fileObs.flatMap {
-        case Some(p) => Observable.from(fileMonitor.waitForCreationOf(p)).map(_ => p)
-        case None => Observable.fromTry(Tries.failure(s"Couldn't find job dir for DRM job with id: $taskId"))
+        case Some(p) => {
+          trace(s"Waiting for $p") 
+          Observable.from(fileMonitor.waitForCreationOf(p)).map(_ => p)
+        }
+        case None =>  Observable.fromTry(Tries.failure(s"Couldn't find job dir for DRM job with id: $taskId"))
       }
 
       val existingExitCodeFileObs = waitFor(exitCodeFileObs)

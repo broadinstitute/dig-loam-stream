@@ -95,18 +95,18 @@ final case class DrmJobWrapper(
         |echo "Node: $$(hostname)" >> $$STATS_FILE
         |echo Task_Array_Name: ${taskArray.drmJobName} >> $$STATS_FILE
         |echo DRM_Task_Id: "$${jobId}-$${i}" >> $$STATS_FILE
-        |echo Raw_Logs: ".loamstream/slurm/${taskArray.drmJobName}/$${i}.{stdout,stderr}"
+        |echo "Raw_Logs: .loamstream/slurm/${taskArray.drmJobName}/$${i}.{stdout,stderr}" >> $$STATS_FILE
         |
         |START="$$(${timestampCommand})"
+        |echo "Start: $$START" >> $$STATS_FILE
         |
         |${timePrefixPart} bash $$COMMAND_SCRIPT 1> $$STDOUT_FILE 2> $$STDERR_FILE
         |
         |LOAMSTREAM_JOB_EXIT_CODE=$$?
         |
-        |echo "Start: $$START" >> $$STATS_FILE
-        |echo "End: $$(${timestampCommand})" >> $$STATS_FILE
-        |
         |echo "$$LOAMSTREAM_JOB_EXIT_CODE" > $$EXITCODE_FILE
+        |
+        |echo "End: $$(${timestampCommand})" >> $$STATS_FILE
         |
         |exit $$LOAMSTREAM_JOB_EXIT_CODE
         |""".stripMargin

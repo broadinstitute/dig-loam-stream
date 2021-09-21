@@ -50,7 +50,27 @@ abstract class RateLimitedPoller[P](
      (runResults: RunResults.Completed, 
       idsToLookFor: Set[DrmTaskId]): Observable[PollResult] = {
     
-    def readExitCodeFrom(file: Path): Option[DrmStatus] = {
+    def toStatusOpt(exitCodes: Iterator[Int]): Option[DrmStatus] = {
+      val statuses = exitCodes.map(DrmStatus.CommandResult(_))
+
+      import Iterators.Implicits.IteratorOps
+        
+      statuses.nextOption()
+    }
+
+    def readExitCodeFromStatsFile(file: Path): Option[DrmStatus] = {
+      CanBeClosed.using(Source.fromFile(file.toFile)) { source =>
+        val lines: Iterator[String] = source.getLines.map(_.trim).filter(_.nonEmpty)
+        
+        val exitCodes: Iterator[Int] = lines.collectFirst {
+          case RateLimitedPoller.Regexes.exitCodeInStatsFile(ec) => ec.toInt
+        }.iterator
+
+        toStatusOpt(exitCodes)
+      }
+    }
+
+    def readExitCodeFromExitCodeFile(file: Path): Option[DrmStatus] = {
       CanBeClosed.using(Source.fromFile(file.toFile)) { source =>
         val lines: Iterator[String] = source.getLines.map(_.trim).filter(_.nonEmpty)
         
@@ -70,15 +90,25 @@ abstract class RateLimitedPoller[P](
       import java.nio.file.Files.exists
 
       val exitCodeFileObs = Observable.eval(oracle.dirOptFor(taskId).map(LogFileNames.exitCode))
+      val statsFileObs = Observable.eval(oracle.dirOptFor(taskId).map(LogFileNames.exitCode))
 
-      val existingExitCodeFileObs = exitCodeFileObs.flatMap {
+      def waitFor(fileObs: Observable[Option[Path]]): Observable[Path] = fileObs.flatMap {
         case Some(p) => Observable.from(fileMonitor.waitForCreationOf(p)).map(_ => p)
         case None => Observable.fromTry(Tries.failure(s"Couldn't find job dir for DRM job with id: $taskId"))
       }
+
+      val existingExitCodeFileObs = waitFor(exitCodeFileObs)
+      val existingStatsFileObs = waitFor(exitCodeFileObs)
       
-      existingExitCodeFileObs.flatMap { file =>
-        Observable.fromIterable(readExitCodeFrom(file).map(toPollResult))
+      def readFromStatsFile(file: Path): Observable[DrmStatus] = Observable.fromIterable(readExitCodeFromStatsFile(file))
+      def readFromExitCodeFile(file: Path): Observable[DrmStatus] = Observable.fromIterable(readExitCodeFromExitCodeFile(file))
+
+      val statusObs = {
+        existingStatsFileObs.flatMap(readFromStatsFile) onErrorFallbackTo
+        existingExitCodeFileObs.flatMap(readFromExitCodeFile)
       }
+
+      statusObs.map(toPollResult)
     }
 
     Observable.from(idsToLookFor)
@@ -199,6 +229,10 @@ abstract class RateLimitedPoller[P](
 object RateLimitedPoller {
   final case class PollResultsForInvocation(runResults: RunResults.Completed, pollingResults: Map[DrmTaskId, Try[DrmStatus]])
   
+  object Regexes {
+    val exitCodeInStatsFile = """^ExitCode\:\s*(\d+)$""".r
+  }
+
   type PollResult = (DrmTaskId, DrmStatus)
   
   abstract class Companion[P, A <: RateLimitedPoller[P]] {

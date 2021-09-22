@@ -103,6 +103,8 @@ object SqueuePoller extends RateLimitedPoller.Companion[Iterable[DrmTaskId], Squ
           drmTaskIds <- SlurmDrmTaskId.parseDrmTaskIds(jobIdPart)
           status <- (tryFromShortName(statusPart) orElse tryFromFullName(statusPart))
         } yield {
+          trace(s"Got SLURM status '${status}' (raw: '${statusPart}') for task IDs ${drmTaskIds}")
+
           //TODO: Does Slurm really report multiple jobs with the same status?
           drmTaskIds.map(_ -> status.drmStatus)
         }

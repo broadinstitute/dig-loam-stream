@@ -35,7 +35,7 @@ final class SlurmStatusTest extends FunSuite {
 
     assert(Completing.shortName === "CG")
     assert(Completing.fullName === "COMPLETING")
-    assert(Completing.drmStatus === DrmStatus.Failed)
+    assert(Completing.drmStatus === DrmStatus.Done)
     assert(Completing.terminationReason === None)
     //Job is in the process of completing. Some processes on some nodes may still be active. 
 

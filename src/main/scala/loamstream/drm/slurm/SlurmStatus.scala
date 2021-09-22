@@ -33,7 +33,13 @@ object SlurmStatus {
   case object Completed extends SlurmStatus("CD", "COMPLETED", DrmStatus.CommandResult(0))
   //Job has terminated all processes on all nodes with an exit code of zero.
 
-  case object Completing extends SlurmStatus("CG", "COMPLETING", DrmStatus.Failed)
+  // NB: It's not at all clear what this means.  More info at 
+  // https://slurm.schedmd.com/troubleshoot.html#completing
+  // This seems to mean a job that Slurm is trying to kill but can't.  In practice, it only gets 
+  // assigned to commands that end up finishing normally.  I'll map this to `Done`, which will
+  // get LS to treat this a success.  If the job's exit code ends up being non-zero, it can still
+  //be deemed a failure that way. -Clint Sep 22, 2021
+  case object Completing extends SlurmStatus("CG", "COMPLETING", DrmStatus.Done)
   //Job is in the process of completing. Some processes on some nodes may still be active. 
 
   case object DeadLine extends SlurmStatus("DL", "DEADLINE", DrmStatus.Failed, TerminationReason.RunTime)

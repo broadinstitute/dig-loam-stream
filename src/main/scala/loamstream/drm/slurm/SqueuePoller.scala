@@ -105,6 +105,15 @@ object SqueuePoller extends RateLimitedPoller.Companion[Iterable[DrmTaskId], Squ
         } yield {
           trace(s"Got SLURM status '${status}' (raw: '${statusPart}') for task IDs ${drmTaskIds}")
 
+          if(status == SlurmStatus.Completing) {
+            val msg = {
+              s"Got SLURM Status ${status.fullName} for task id(s) ${drmTaskIds}.  LS will treat it as a " +
+              "success, but it may indicate problems.  See https://slurm.schedmd.com/troubleshoot.html#completing"
+            }
+
+            warn(msg)
+          }
+
           //TODO: Does Slurm really report multiple jobs with the same status?
           drmTaskIds.map(_ -> status.drmStatus)
         }

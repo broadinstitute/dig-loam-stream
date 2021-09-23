@@ -4,6 +4,7 @@ import loamstream.loam.intake.IntakeSyntax
 import loamstream.loam.intake.dga.DgaSyntax
 import loamstream.loam.intake.AwsRowSink
 import loamstream.loam.intake.dga.Tissue
+import org.json4s._
 
 /**
  * @author clint
@@ -25,9 +26,8 @@ final class DgaTissueUploadTest extends AwsFunSuite with IntakeSyntax with DgaSy
         batchSize = 10000, //10k
         s3Client = s3Client,
         baseDir = Some(testDir),
-        // :(
-        yes = true,
-        uuid = uuid)
+        uuid = uuid,
+        metadata = JObject("foo" -> JInt(42)))
     
     val count: Fold[Tissue, Int, Int] = Fold.count
     val upload: Fold[Tissue, Unit, Unit] = Fold.foreach(sink.accept)

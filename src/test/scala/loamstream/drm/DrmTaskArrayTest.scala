@@ -57,6 +57,7 @@ object DrmTaskArrayTest {
     override def preamble: Option[String] = ??? 
     override def indexEnvVarName: String = ???
     override def jobIdEnvVarName: String = ???
+    override def drmSystem: DrmSystem = ???
   }
 }
 
@@ -239,15 +240,16 @@ final class DrmTaskArrayTest extends FunSuite {
   
   test("TaskIndexingStrategy") {
     import DrmTaskArray.TaskIndexingStrategy
+    import DrmSystem._
+
+    assert(TaskIndexingStrategy.forDrmSystem(Uger).toIndex(1) === 2)
+    assert(TaskIndexingStrategy.forDrmSystem(Uger)(1) === 2)
     
-    assert(TaskIndexingStrategy.Uger.toIndex(1) === 2)
-    assert(TaskIndexingStrategy.Uger(1) === 2)
+    assert(TaskIndexingStrategy.forDrmSystem(Lsf).toIndex(1) === 2)
+    assert(TaskIndexingStrategy.forDrmSystem(Lsf)(1) === 2)
     
-    assert(TaskIndexingStrategy.Lsf.toIndex(1) === 2)
-    assert(TaskIndexingStrategy.Lsf(1) === 2)
-    
-    assert(TaskIndexingStrategy.Slurm.toIndex(1) === 2)
-    assert(TaskIndexingStrategy.Slurm(1) === 2)
+    assert(TaskIndexingStrategy.forDrmSystem(Slurm).toIndex(1) === 2)
+    assert(TaskIndexingStrategy.forDrmSystem(Slurm)(1) === 2)
   }
   
   test("TaskIndexingStrategy.forDrmSystem") {
@@ -255,8 +257,8 @@ final class DrmTaskArrayTest extends FunSuite {
     import TaskIndexingStrategy.forDrmSystem
     import DrmSystem._
     
-    assert(forDrmSystem(DrmSystem.Uger) === TaskIndexingStrategy.Uger)
-    assert(forDrmSystem(DrmSystem.Lsf) === TaskIndexingStrategy.Lsf)
-    assert(forDrmSystem(DrmSystem.Slurm) === TaskIndexingStrategy.Slurm)
+    assert(forDrmSystem(DrmSystem.Uger) === TaskIndexingStrategy.PlusOne)
+    assert(forDrmSystem(DrmSystem.Lsf) === TaskIndexingStrategy.PlusOne)
+    assert(forDrmSystem(DrmSystem.Slurm) === TaskIndexingStrategy.PlusOne)
   }
 }

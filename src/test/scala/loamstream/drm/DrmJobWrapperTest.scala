@@ -44,7 +44,7 @@ final class DrmJobWrapperTest extends FunSuite {
   private val baseSlurmConfig = SlurmConfig(maxNumJobsPerTaskArray = 42)
   
   private def wrapCommand(drmJob: DrmJobWrapper, command: String): String = {
-    s"${DrmJobWrapper.timePrefix(drmJob.statsFileDestPath)} ${command}"
+    s"${DrmJobWrapper.timePrefix("STATS_FILE_NAME")} ${command}"
   }
 
   test("commandLineInTaskArray - no image") {

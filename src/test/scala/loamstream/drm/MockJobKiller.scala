@@ -6,6 +6,6 @@ package loamstream.drm
  */
 object MockJobKiller {
   object DoesNothing extends JobKiller {
-    override def killAllJobs(): Unit = ()
+    override protected def doKillAllJobs(): Unit = ()
   }
 }

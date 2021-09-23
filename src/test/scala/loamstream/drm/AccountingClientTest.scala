@@ -9,19 +9,25 @@ import org.scalatest.FunSuite
   */
 final class AccountingClientTest extends FunSuite {
   test("AlwaysFailsAccountingClient") {
-    import AccountingClient.AlwaysFailsAccountingClient._    
-    import monix.execution.Scheduler.Implicits.global
+    for {
+      drmSystem <- DrmSystem.values
+    } {
+      val client = new AccountingClient.AlwaysFailsAccountingClient(drmSystem)
+      
+      import client._    
+      import monix.execution.Scheduler.Implicits.global
 
-    val taskId = DrmTaskId("foo", 123)
+      val taskId = DrmTaskId("foo", 123)
 
-    assert(getTerminationReason(taskId).runSyncUnsafe() === None)
-    
-    intercept[Exception] {
-      getResourceUsage(taskId).runSyncUnsafe()
-    }
+      assert(getTerminationReason(taskId).runSyncUnsafe() === None)
+      
+      intercept[Exception] {
+        getResourceUsage(taskId).runSyncUnsafe()
+      }
 
-    intercept[Exception] {
-      getAccountingInfo(taskId).runSyncUnsafe()
+      intercept[Exception] {
+        getAccountingInfo(taskId).runSyncUnsafe()
+      }
     }
   }
 }

@@ -37,18 +37,7 @@ trait AccountingClient {
 object AccountingClient {
   final class AlwaysFailsAccountingClient(drmSystem: DrmSystem) extends AccountingClient {
     override def getResourceUsage(taskId: DrmTaskId): Task[DrmResources] = {
-      //Task.fromTry(Tries.failure("getResourceUsage() is disabled"))
-
-      Task.now {
-        drmSystem.resourcesMaker(
-          Memory.inKb(123),
-          CpuTime.inSeconds(1.23),
-          Option("unknown-node"),
-          None,
-          LocalDateTime.now,
-          LocalDateTime.now,
-          None)
-      }
+      Task.fromTry(Tries.failure("getResourceUsage() is disabled"))
     }
 
     override def getTerminationReason(taskId: DrmTaskId): Task[Option[TerminationReason]] = Task(None)

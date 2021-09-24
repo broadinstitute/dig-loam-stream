@@ -74,6 +74,12 @@ object TestHelpers {
     override def dirOptFor(job: LJob): Option[Path] = Some(path(Paths.mungePathRelatedChars(job.name)))
   }
   
+  final case class DummyDrmJobOracle(workDir: Path) extends DrmJobOracle  {
+    override def dirOptFor(taskId: DrmTaskId): Option[Path] = {
+      Some(workDir.resolve(Paths.mungePathRelatedChars(s"${taskId.jobId}-${taskId.taskIndex}")))
+    }
+  }
+
   object DummyDrmJobOracle extends DrmJobOracle  {
     override def dirOptFor(taskId: DrmTaskId): Option[Path] = {
       Some(path(Paths.mungePathRelatedChars(s"${taskId.jobId}-${taskId.taskIndex}")))

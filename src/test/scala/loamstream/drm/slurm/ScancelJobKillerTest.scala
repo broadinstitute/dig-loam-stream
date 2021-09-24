@@ -64,12 +64,10 @@ final class ScancelJobKillerTest extends FunSuite {
       }
 
       val jobKiller = new ScancelJobKiller(
-        commandInvoker= commandInvoker, 
+        commandInvoker = commandInvoker, 
         sessionTracker = sessionTracker)
 
       assert(sessionTracker.isEmpty)
-
-      jobKiller.killAllJobs()
 
       assert(taskArrayIds === Nil)
 

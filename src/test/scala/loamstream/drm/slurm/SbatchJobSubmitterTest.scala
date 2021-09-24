@@ -148,14 +148,18 @@ final class SbatchJobSubmitterTest extends FunSuite {
             initialSettings = drmSettings)
         }
 
+        val jobOracle = TestHelpers.InDirJobOracle(workDir)
+
         val taskArray = DrmTaskArray.fromCommandLineJobs(
           executionConfig = ExecutionConfig.default,
-          jobOracle = TestHelpers.InDirJobOracle(workDir),
+          jobOracle = jobOracle,
           drmSettings = drmSettings,
           drmConfig = SlurmConfig(),
           pathBuilder = SlurmPathBuilder,
           jobs = jobs,
           jobName = "some-job-name")
+
+        jobs.map(jobOracle.dirFor).foreach(_.toFile.mkdirs())
 
         val actual = makeTokens(
           actualExecutable = "foo",
@@ -164,7 +168,7 @@ final class SbatchJobSubmitterTest extends FunSuite {
 
         val expected: Seq[String] = Seq(
           "foo",
-          "--array=0-3",
+          "--array=1-3",
           "-t", "7:0:0",
           "--mem-per-cpu=6G",
           "--cpus-per-task=5",

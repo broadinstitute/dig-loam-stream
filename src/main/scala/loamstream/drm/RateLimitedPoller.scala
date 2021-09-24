@@ -27,6 +27,7 @@ import java.nio.file.Path
 import loamstream.util.LogFileNames
 import loamstream.util.Tries
 import loamstream.util.FileMonitor
+import scala.util.Failure
 
 /**
  * @author clint
@@ -95,29 +96,31 @@ abstract class RateLimitedPoller[P](
       
       import java.nio.file.Files.exists
 
-      val exitCodeFileObs = Observable.eval(oracle.dirOptFor(taskId).map(LogFileNames.exitCode))
-      val statsFileObs = Observable.eval(oracle.dirOptFor(taskId).map(LogFileNames.stats))
+      val exitCodeFile = oracle.dirOptFor(taskId).map(LogFileNames.exitCode)
+      val statsFile = oracle.dirOptFor(taskId).map(LogFileNames.stats)
 
-      def waitFor(fileObs: Observable[Option[Path]]): Observable[Path] = fileObs.flatMap {
+      def waitFor(fileOpt: Option[Path]): Observable[Path] = (fileOpt match {
         case Some(p) => {
           trace(s"Waiting for $p") 
+
           Observable.from(fileMonitor.waitForCreationOf(p)).map(_ => p)
         }
         case None =>  Observable.fromTry(Tries.failure(s"Couldn't find job dir for DRM job with id: $taskId"))
-      }
+      }).onErrorHandleWith(_ => Observable.empty)
 
-      val existingExitCodeFileObs = waitFor(exitCodeFileObs)
-      val existingStatsFileObs = waitFor(statsFileObs)
+      val existingExitCodeFileObs = waitFor(exitCodeFile)
+      val existingStatsFileObs = waitFor(statsFile)
       
       def readFromStatsFile(file: Path): Observable[DrmStatus] = Observable.fromIterable(readExitCodeFromStatsFile(file))
       def readFromExitCodeFile(file: Path): Observable[DrmStatus] = Observable.fromIterable(readExitCodeFromExitCodeFile(file))
 
-      val statusObs = {
-        for {
-          ec0 <- existingStatsFileObs.flatMap(readFromStatsFile)
-          ec1 <- existingExitCodeFileObs.flatMap(readFromExitCodeFile)
-          ec <- Observable(ec0, ec1)
-        } yield ec
+      val statusObs = Observables.merge(
+        existingStatsFileObs.flatMap(readFromStatsFile),
+        existingExitCodeFileObs.flatMap(readFromExitCodeFile)
+      ).headOrElse {
+        error(s"Looked for ${(exitCodeFile.toSeq ++ statsFile).mkString(",")} , none of which could be found.")
+
+        DrmStatus.Failed
       }
 
       statusObs.map(toPollResult)

@@ -65,12 +65,9 @@ object Qsub {
 
       val taskArrayPart = Seq("-t", s"1-${taskArraySize}")
       
-      //val stdoutPathPart = Seq("-o", params.stdOutPathTemplate)
-      //val stderrPathPart = Seq("-e", params.stdErrPathTemplate)
+      val stdoutPathPart = Seq("-o", params.stdOutPathTemplate)
+      val stderrPathPart = Seq("-e", params.stdErrPathTemplate)
 
-      val stdoutPathPart = Seq("-o", "/dev/null")
-      val stderrPathPart = Seq("-e", "/dev/null")
-      
       val numCoresPart = Seq(
         "-binding",
         s"linear:${numCores}",

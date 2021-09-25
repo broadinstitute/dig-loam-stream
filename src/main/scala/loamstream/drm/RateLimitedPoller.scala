@@ -51,108 +51,121 @@ abstract class RateLimitedPoller[P](
      (runResults: RunResults.Completed, 
       idsToLookFor: Set[DrmTaskId]): Observable[PollResult] = {
     
-    def toStatusOpt(exitCodes: Iterator[Int]): Option[DrmStatus] = {
-      val statuses = exitCodes.map(DrmStatus.CommandResult(_))
-
-      import Iterators.Implicits.IteratorOps
-        
-      val result = statuses.nextOption()
-
-      trace(s"Got exit status $result")
-
-      result
-    }
-
-    def readExitCodeFromStatsFile(file: Path): Option[DrmStatus] = {
-      trace(s"Reading from $file")
-      
-      CanBeClosed.using(Source.fromFile(file.toFile)) { source =>
-        val lines: Iterator[String] = source.getLines.map(_.trim).filter(_.nonEmpty)
-        
-        val exitCodes: Iterator[Int] = lines.collectFirst {
-          case RateLimitedPoller.Regexes.exitCodeInStatsFile(ec) => ec.toInt
-        }.iterator
-
-        toStatusOpt(exitCodes)
-      }
-    }
-
-    def readExitCodeFromExitCodeFile(file: Path): Option[DrmStatus] = {
-      trace(s"Reading from $file")
-
-      CanBeClosed.using(Source.fromFile(file.toFile)) { source =>
-        val lines: Iterator[String] = source.getLines.map(_.trim).filter(_.nonEmpty)
-        
-        val exitCodes: Iterator[Int] = {
-          lines.map(line => Try(line.toInt).get)
-        }
-
-        toStatusOpt(exitCodes)
-      }
-    }
     
-    def exitCodeFor(taskId: DrmTaskId): Observable[PollResult] = {
-      def toPollResult(status: DrmStatus): PollResult = taskId -> status
-      
-      import java.nio.file.Files.exists
-
-      val exitCodeFile = oracle.dirOptFor(taskId).map(LogFileNames.exitCode)
-      val statsFile = oracle.dirOptFor(taskId).map(LogFileNames.stats)
-
-      def waitFor(fileOpt: Option[Path]): Observable[Path] = (fileOpt match {
-        case Some(p) => {
-          trace(s"Waiting for $p") 
-
-          Observable.from(fileMonitor.waitForCreationOf(p)).map(_ => p)
-        }
-        case None =>  Observable.fromTry(Tries.failure(s"Couldn't find job dir for DRM job with id: $taskId"))
-      }).onErrorHandleWith(_ => Observable.empty)
-
-      val existingExitCodeFileObs = waitFor(exitCodeFile)
-      val existingStatsFileObs = waitFor(statsFile)
-      
-      def readFromStatsFile(file: Path): Observable[DrmStatus] = Observable.fromIterable(readExitCodeFromStatsFile(file))
-      def readFromExitCodeFile(file: Path): Observable[DrmStatus] = Observable.fromIterable(readExitCodeFromExitCodeFile(file))
-
-      val statusObs = Observables.merge(
-        existingStatsFileObs.flatMap(readFromStatsFile),
-        existingExitCodeFileObs.flatMap(readFromExitCodeFile)
-      ).headOrElse {
-        error(s"Looked for ${(exitCodeFile.toSeq ++ statsFile).mkString(",")} , none of which could be found.")
-
-        DrmStatus.Failed
-      }
-
-      statusObs.map(toPollResult)
-    }
 
     Observable.from(idsToLookFor)
       .subscribeOn(Schedulers.oneThreadPerCpu)
       .executeOn(Schedulers.oneThreadPerCpu)
-      .flatMap(exitCodeFor)
+      .flatMap(exitCodeFor(oracle))
   }
-  
-  final override def poll(oracle: DrmJobOracle)(drmTaskIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, Try[DrmStatus])] = {
-    //Invoke qstat, to get the status of all submitted-but-not-finished jobs in this session
-    val commandResultObs: Observable[RunResults.Completed] = {
-      import Schedulers.singleThreaded
+
+  private def toStatusOpt(exitCodes: Iterator[Int]): Option[DrmStatus] = {
+    val statuses = exitCodes.map(DrmStatus.CommandResult(_))
+
+    import Iterators.Implicits.IteratorOps
       
-      val params = toParams(oracle)(drmTaskIds)
+    val result = statuses.nextOption()
+
+    trace(s"Got exit status $result")
+
+    result
+  }
+
+  private def readExitCodeFromStatsFile(file: Path): Option[DrmStatus] = {
+    trace(s"Reading from $file")
+    
+    CanBeClosed.using(Source.fromFile(file.toFile)) { source =>
+      val lines: Iterator[String] = source.getLines.map(_.trim).filter(_.nonEmpty)
       
-      def tryAsSuccess(results: RunResults): Observable[RunResults.Completed] = {
-        //TODO: Parameterize on success predicate?
-        Observable.fromTry(results.tryAsSuccess("", RunResults.SuccessPredicate.zeroIsSuccess))
+      val exitCodes: Iterator[Int] = lines.collectFirst {
+        case RateLimitedPoller.Regexes.exitCodeInStatsFile(ec) => ec.toInt
+      }.iterator
+
+      toStatusOpt(exitCodes)
+    }
+  }
+
+  private def readExitCodeFromExitCodeFile(file: Path): Option[DrmStatus] = {
+    trace(s"Reading from $file")
+
+    CanBeClosed.using(Source.fromFile(file.toFile)) { source =>
+      val lines: Iterator[String] = source.getLines.map(_.trim).filter(_.nonEmpty)
+      
+      val exitCodes: Iterator[Int] = {
+        lines.map(line => Try(line.toInt).get)
       }
 
-      Observable
-        .from(commandInvoker(params))
-        .flatMap(tryAsSuccess)
-        .observeOn(singleThreaded)
-        .executeOn(singleThreaded)
-        .onErrorHandleWith {
-          warnThenComplete(s"Error invoking ${name}, will try again during at next polling time.")
-        }
+      toStatusOpt(exitCodes)
     }
+  }
+
+  private def waitFor(taskId: DrmTaskId)(fileOpt: Option[Path]): Observable[Path] = (fileOpt match {
+    case Some(p) => {
+      trace(s"Waiting for $p") 
+
+      Observable.from(fileMonitor.waitForCreationOf(p)).map(_ => p)
+    }
+    case None =>  Observable.fromTry(Tries.failure(s"Couldn't find job dir for DRM job with id: $taskId"))
+  }).onErrorHandleWith(_ => Observable.empty)
+
+  private def exitCodeFor(oracle: DrmJobOracle)(taskId: DrmTaskId): Observable[PollResult] = {
+    def toPollResult(status: DrmStatus): PollResult = taskId -> status
+    
+    import java.nio.file.Files.exists
+
+    val exitCodeFile = oracle.dirOptFor(taskId).map(LogFileNames.exitCode)
+    val statsFile = oracle.dirOptFor(taskId).map(LogFileNames.stats)
+
+    val existingExitCodeFileObs = waitFor(taskId)(exitCodeFile)
+    val existingStatsFileObs = waitFor(taskId)(statsFile)
+    
+    def readFromStatsFile(file: Path): Observable[DrmStatus] = {
+      Observable.fromIterable(readExitCodeFromStatsFile(file))
+    }
+
+    def readFromExitCodeFile(file: Path): Observable[DrmStatus] = {
+      Observable.fromIterable(readExitCodeFromExitCodeFile(file))
+    }
+
+    val statusObs = Observables.merge(
+      existingStatsFileObs.flatMap(readFromStatsFile),
+      existingExitCodeFileObs.flatMap(readFromExitCodeFile)
+    ).headOrElse {
+      error(s"Looked for ${(exitCodeFile.toSeq ++ statsFile).mkString(",")} , none of which could be found.")
+
+      DrmStatus.Failed
+    }
+
+    statusObs.map(toPollResult)
+  }
+  
+  //Invoke qstat, to get the status of all submitted-but-not-finished jobs in this session
+  private def makeCommandResultObs(
+      oracle: DrmJobOracle)(drmTaskIds: Iterable[DrmTaskId]): Observable[RunResults.Completed] = {
+
+    import Schedulers.singleThreaded
+      
+    val params = toParams(oracle)(drmTaskIds)
+      
+    def tryAsSuccess(results: RunResults): Observable[RunResults.Completed] = {
+      //TODO: Parameterize on success predicate?
+      Observable.fromTry(results.tryAsSuccess("", RunResults.SuccessPredicate.zeroIsSuccess))
+    }
+
+    Observable
+      .from(commandInvoker(params))
+      .flatMap(tryAsSuccess)
+      .observeOn(singleThreaded)
+      .executeOn(singleThreaded)
+      .onErrorHandleWith {
+        warnThenComplete(s"Error invoking ${name}, will try again during at next polling time.")
+      }
+  }
+
+  final override def poll(
+      oracle: DrmJobOracle)(drmTaskIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, Try[DrmStatus])] = {
+
+    val commandResultObs = makeCommandResultObs(oracle)(drmTaskIds)
 
     //The Set of distinct DrmTaskIds (jobId/task index coords) that we're polling for
     val drmTaskIdSet = drmTaskIds.to(Set)
@@ -242,7 +255,9 @@ abstract class RateLimitedPoller[P](
 }
 
 object RateLimitedPoller {
-  final case class PollResultsForInvocation(runResults: RunResults.Completed, pollingResults: Map[DrmTaskId, Try[DrmStatus]])
+  final case class PollResultsForInvocation(
+    runResults: RunResults.Completed, 
+    pollingResults: Map[DrmTaskId, Try[DrmStatus]])
   
   object Regexes {
     val exitCodeInStatsFile = """^ExitCode\:\s*(\d+)$""".r

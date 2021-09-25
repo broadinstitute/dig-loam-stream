@@ -25,7 +25,8 @@ sealed abstract class SlurmStatus(
 
 object SlurmStatus {
   case object BootFail extends SlurmStatus("BF", "BOOT_FAIL", DrmStatus.Failed)
-  //Job terminated due to launch failure, typically due to a hardware failure (e.g. unable to boot the node or block and the job can not be requeued).
+  //Job terminated due to launch failure, typically due to a hardware failure 
+  //(e.g. unable to boot the node or block and the job can not be requeued).
 
   case object Cancelled extends SlurmStatus("CA", "CANCELLED", DrmStatus.Failed, TerminationReason.UserRequested)
   //Job was explicitly cancelled by the user or system administrator. The job may or may not have been initiated.
@@ -66,12 +67,14 @@ object SlurmStatus {
   case object Requeued extends SlurmStatus("RQ", "REQUEUED", DrmStatus.Requeued)
   //Job was requeued.
 
-  case object Resizing extends SlurmStatus("RS", "RESIZING", DrmStatus.Running) //TODO: is DrmStatus mapping appropriate?
+  //TODO: is DrmStatus mapping appropriate?
+  case object Resizing extends SlurmStatus("RS", "RESIZING", DrmStatus.Running) 
   //Job is about to change size.
 
-  case object Revoked extends SlurmStatus("RV", "REVOKED", DrmStatus.Undetermined) //TODO: Research what this means
+  //TODO: Research what this means
+  case object Revoked extends SlurmStatus("RV", "REVOKED", DrmStatus.Undetermined) 
   //Sibling was removed from cluster due to other cluster starting the job.
-
+  
   case object Suspended extends SlurmStatus("S", "SUSPENDED", DrmStatus.Suspended)
   //Job has an allocation, but execution has been suspended and CPUs have been released for other jobs.
 

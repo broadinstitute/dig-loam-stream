@@ -50,7 +50,8 @@ final class SqueuePoller private[slurm] (
     
     val statusAttemptsById = outputLines.iterator.map(SqueuePoller.parseDataLine).flatMap { //TODO 
       case Success(pollResults) => pollResults.map { case (drmTaskId, drmStatus) => (drmTaskId, Success(drmStatus)) }
-      case Failure(e) => throw new Exception(s"Error parsing ${commandName} output: looking for ids: ${idsWereLookingFor}; runResults: ${runResults}", e)
+      case Failure(e) => throw new Exception(
+        s"Error parsing ${commandName} output: looking for ids: ${idsWereLookingFor}; runResults: ${runResults}", e)
     }.toMap
     
     PollResultsForInvocation(runResults, statusAttemptsById)

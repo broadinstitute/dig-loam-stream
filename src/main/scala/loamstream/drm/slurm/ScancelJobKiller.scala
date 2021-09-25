@@ -28,7 +28,7 @@ object ScancelJobKiller extends JobKiller.Companion[ScancelJobKiller]("scancel",
       //Only kill jobs from a specified user (in practice, who we're running as)
       "-u", username,
       //Quiet: don't report errors for already-completed jobs
-      "--quiet",
+      "--quiet"
       )
     
     //def jobIdsPart = sessionTracker.drmTaskIdsSoFar.map(DrmSystem.Slurm.format)

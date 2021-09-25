@@ -65,7 +65,7 @@ object RunResults {
     implicit final class SuccessPredicateOps(val sp: SuccessPredicate) extends AnyVal {
       def &&(other: SuccessPredicate): SuccessPredicate = r => sp(r) && other(r)
 
-      def ||(other: SuccessPredicate): SuccessPredicate = r => sp(r) || other(r)
+      def ||(other: SuccessPredicate): SuccessPredicate = r => sp(r) || other(r) //scalastyle:ignore method.name
     }
 
     val zeroIsSuccess: SuccessPredicate = ByExitCode.zeroIsSuccess

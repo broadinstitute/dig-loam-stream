@@ -37,7 +37,20 @@ object DrmChunkRunnerWiring extends Loggable {
   object Defaults {
     val pollingFrequencyInHz = 0.1
   }
-  
+
+  import RunResults.SuccessPredicate
+  import RunResults.SuccessPredicate.ByExitCode
+  import RunResults.SuccessPredicate.ByExitCode.{zeroIsSuccess => ecIsZero}
+
+  private object SuccessPredicates {
+    val isAboutNonExistentJobs: SuccessPredicate = { 
+      _.stdout.iterator.map(_.toLowerCase.trim).exists { line => 
+        line.startsWith("the job") &&
+        line.endsWith("does not exist")
+      }
+    }
+  }
+
   private[apps] def makeUgerChunkRunner(
     loamConfig: LoamConfig,
     scheduler: Scheduler): Option[(DrmChunkRunner, Seq[Terminable])] = {
@@ -51,30 +64,15 @@ object DrmChunkRunnerWiring extends Loggable {
       val pollingFrequencyInHz = Defaults.pollingFrequencyInHz
 
       val poller = QstatPoller.fromExecutable(pollingFrequencyInHz, loamConfig.executionConfig, scheduler = scheduler)
-
       val jobMonitor = new JobMonitor(scheduler, poller, pollingFrequencyInHz)
-
       val jobSubmitter = QsubJobSubmitter.fromExecutable(ugerConfig)(scheduler = scheduler)
-
       val accountingClient = QacctAccountingClient.useActualBinary(ugerConfig, scheduler)
-
       val sessionTracker: SessionTracker = new SessionTracker.Default
 
       val jobKiller = {
-        import RunResults.SuccessPredicate
-        import RunResults.SuccessPredicate.ByExitCode
-        import RunResults.SuccessPredicate.ByExitCode.{zeroIsSuccess => ecIsZero}
-
-        val isAboutNonExistentJobs: SuccessPredicate = { 
-          _.stdout.iterator.map(_.toLowerCase.trim).exists { line => 
-            line.startsWith("the job") &&
-            line.endsWith("does not exist")
-          }
-        }
-
         val ecIsOne = ByExitCode.countsAsSuccess(1)
 
-        val isSuccess = ecIsZero || (ecIsOne && isAboutNonExistentJobs)
+        val isSuccess = ecIsZero || (ecIsOne && SuccessPredicates.isAboutNonExistentJobs)
 
         QdelJobKiller.fromExecutable(
           sessionTracker, 

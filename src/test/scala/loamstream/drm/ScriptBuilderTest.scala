@@ -240,81 +240,87 @@ ${sixSpaces}
 if [ "$$i" = "${toIndex(0)}" ]
 then
 jobDir="$finalOutputDir0"
-mkdir -p $$jobDir
+mkdir -p "$$jobDir"
+
+STATS_FILE="${finalOutputDir0}/stats"
+EXITCODE_FILE="${finalOutputDir0}/exitcode"
+COMMAND_SCRIPT="${finalOutputDir0}/command.sh"
+STDOUT_FILE="${finalOutputDir0}/stdout"
+STDERR_FILE="${finalOutputDir0}/stderr"
+
+echo "Node: $$(hostname)" >> $$STATS_FILE
+echo Task_Array_Name: ${jobName} >> $$STATS_FILE
+echo DRM_Task_Id: "$${jobId}-$${i}" >> $$STATS_FILE
+echo "Raw_Logs: .loamstream/${drmSystem.name.toLowerCase}/${jobName}/$${i}.{stdout,stderr}" >> $$STATS_FILE
 
 START="$$(date +%Y-%m-%dT%H:%M:%S)"
+echo "Start: $$START" >> $$STATS_FILE
 
-`which time` -o $finalOutputDir0/stats --format="ExitCode: %x\\nMemory: %Mk\\nSystem: %Ss\\nUser: %Us" ${singularityPrefix}/some/shapeit/executable -V /some/vcf/file.$discriminator0 -M /some/map/file.$discriminator0 -O /some/haplotype/file.$discriminator0 /some/sample/file -L /some/log/file --thread 2
+`which time` -o $$STATS_FILE --format="ExitCode: %x\\nMemory: %Mk\\nSystem: %Ss\\nUser: %Us" bash $$COMMAND_SCRIPT 1> $$STDOUT_FILE 2> $$STDERR_FILE
 
 LOAMSTREAM_JOB_EXIT_CODE=$$?
 
-echo "Start: $$START\\nEnd: $$(date +%Y-%m-%dT%H:%M:%S)" >> $finalOutputDir0/stats
+echo "$$LOAMSTREAM_JOB_EXIT_CODE" > $$EXITCODE_FILE
 
-origStdoutPath="${drmOutputDir}/${jobName}/${toIndex(0)}.stdout"
-origStderrPath="${drmOutputDir}/${jobName}/${toIndex(0)}.stderr"
-
-stdoutDestPath="$finalOutputDir0/stdout"
-stderrDestPath="$finalOutputDir0/stderr"
-exitcodeDestPath="$finalOutputDir0/exitcode"
-
-echo $$LOAMSTREAM_JOB_EXIT_CODE > $$exitcodeDestPath
-
-mv $$origStdoutPath $$stdoutDestPath || echo "Couldn't move DRM std out log $$origStdoutPath; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
-mv $$origStderrPath $$stderrDestPath || echo "Couldn't move DRM std err log $$origStderrPath; it's likely the job wasn't submitted successfully" > $$stderrDestPath
+echo "End: $$(date +%Y-%m-%dT%H:%M:%S)" >> $$STATS_FILE
 
 exit $$LOAMSTREAM_JOB_EXIT_CODE
 
 elif [ "$$i" = "${toIndex(1)}" ]
 then
 jobDir="$finalOutputDir1"
-mkdir -p $$jobDir
+mkdir -p "$$jobDir"
+
+STATS_FILE="${finalOutputDir1}/stats"
+EXITCODE_FILE="${finalOutputDir1}/exitcode"
+COMMAND_SCRIPT="${finalOutputDir1}/command.sh"
+STDOUT_FILE="${finalOutputDir1}/stdout"
+STDERR_FILE="${finalOutputDir1}/stderr"
+
+echo "Node: $$(hostname)" >> $$STATS_FILE
+echo Task_Array_Name: ${jobName} >> $$STATS_FILE
+echo DRM_Task_Id: "$${jobId}-$${i}" >> $$STATS_FILE
+echo "Raw_Logs: .loamstream/${drmSystem.name.toLowerCase}/${jobName}/$${i}.{stdout,stderr}" >> $$STATS_FILE
 
 START="$$(date +%Y-%m-%dT%H:%M:%S)"
+echo "Start: $$START" >> $$STATS_FILE
 
-`which time` -o $finalOutputDir1/stats --format="ExitCode: %x\\nMemory: %Mk\\nSystem: %Ss\\nUser: %Us" ${singularityPrefix}/some/shapeit/executable -V /some/vcf/file.$discriminator1 -M /some/map/file.$discriminator1 -O /some/haplotype/file.$discriminator1 /some/sample/file -L /some/log/file --thread 2
+`which time` -o $$STATS_FILE --format="ExitCode: %x\\nMemory: %Mk\\nSystem: %Ss\\nUser: %Us" bash $$COMMAND_SCRIPT 1> $$STDOUT_FILE 2> $$STDERR_FILE
 
 LOAMSTREAM_JOB_EXIT_CODE=$$?
 
-echo "Start: $$START\\nEnd: $$(date +%Y-%m-%dT%H:%M:%S)" >> $finalOutputDir1/stats
+echo "$$LOAMSTREAM_JOB_EXIT_CODE" > $$EXITCODE_FILE
 
-origStdoutPath="${drmOutputDir}/${jobName}/${toIndex(1)}.stdout"
-origStderrPath="${drmOutputDir}/${jobName}/${toIndex(1)}.stderr"
-
-stdoutDestPath="$finalOutputDir1/stdout"
-stderrDestPath="$finalOutputDir1/stderr"
-exitcodeDestPath="$finalOutputDir1/exitcode"
-
-echo $$LOAMSTREAM_JOB_EXIT_CODE > $$exitcodeDestPath
-
-mv $$origStdoutPath $$stdoutDestPath || echo "Couldn't move DRM std out log $$origStdoutPath; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
-mv $$origStderrPath $$stderrDestPath || echo "Couldn't move DRM std err log $$origStderrPath; it's likely the job wasn't submitted successfully" > $$stderrDestPath
+echo "End: $$(date +%Y-%m-%dT%H:%M:%S)" >> $$STATS_FILE
 
 exit $$LOAMSTREAM_JOB_EXIT_CODE
 
 elif [ "$$i" = "${toIndex(2)}" ]
 then
 jobDir="$finalOutputDir2"
-mkdir -p $$jobDir
+mkdir -p "$$jobDir"
+
+STATS_FILE="${finalOutputDir2}/stats"
+EXITCODE_FILE="${finalOutputDir2}/exitcode"
+COMMAND_SCRIPT="${finalOutputDir2}/command.sh"
+STDOUT_FILE="${finalOutputDir2}/stdout"
+STDERR_FILE="${finalOutputDir2}/stderr"
+
+echo "Node: $$(hostname)" >> $$STATS_FILE
+echo Task_Array_Name: ${jobName} >> $$STATS_FILE
+echo DRM_Task_Id: "$${jobId}-$${i}" >> $$STATS_FILE
+echo "Raw_Logs: .loamstream/${drmSystem.name.toLowerCase}/${jobName}/$${i}.{stdout,stderr}" >> $$STATS_FILE
 
 START="$$(date +%Y-%m-%dT%H:%M:%S)"
+echo "Start: $$START" >> $$STATS_FILE
 
-`which time` -o $finalOutputDir2/stats --format="ExitCode: %x\\nMemory: %Mk\\nSystem: %Ss\\nUser: %Us" ${singularityPrefix}/some/shapeit/executable -V /some/vcf/file.$discriminator2 -M /some/map/file.$discriminator2 -O /some/haplotype/file.$discriminator2 /some/sample/file -L /some/log/file --thread 2
+`which time` -o $$STATS_FILE --format="ExitCode: %x\\nMemory: %Mk\\nSystem: %Ss\\nUser: %Us" bash $$COMMAND_SCRIPT 1> $$STDOUT_FILE 2> $$STDERR_FILE
 
 LOAMSTREAM_JOB_EXIT_CODE=$$?
 
-echo "Start: $$START\\nEnd: $$(date +%Y-%m-%dT%H:%M:%S)" >> $finalOutputDir2/stats
+echo "$$LOAMSTREAM_JOB_EXIT_CODE" > $$EXITCODE_FILE
 
-origStdoutPath="${drmOutputDir}/${jobName}/${toIndex(2)}.stdout"
-origStderrPath="${drmOutputDir}/${jobName}/${toIndex(2)}.stderr"
-
-stdoutDestPath="$finalOutputDir2/stdout"
-stderrDestPath="$finalOutputDir2/stderr"
-exitcodeDestPath="$finalOutputDir2/exitcode"
-
-echo $$LOAMSTREAM_JOB_EXIT_CODE > $$exitcodeDestPath
-
-mv $$origStdoutPath $$stdoutDestPath || echo "Couldn't move DRM std out log $$origStdoutPath; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
-mv $$origStderrPath $$stderrDestPath || echo "Couldn't move DRM std err log $$origStderrPath; it's likely the job wasn't submitted successfully" > $$stderrDestPath
+echo "End: $$(date +%Y-%m-%dT%H:%M:%S)" >> $$STATS_FILE
 
 exit $$LOAMSTREAM_JOB_EXIT_CODE
 

@@ -307,7 +307,7 @@ final class DrmJobWrapperTest extends FunSuite {
                          |echo "Node: $$(hostname)" >> $$STATS_FILE
                          |echo Task_Array_Name: ${jobName} >> $$STATS_FILE
                          |echo DRM_Task_Id: "$${jobId}-$${i}" >> $$STATS_FILE
-                         |echo "Raw_Logs: .loamstream/slurm/${jobName}/$${i}.{stdout,stderr}" >> $$STATS_FILE
+                         |echo "Raw_Logs: .loamstream/${drmConfig.drmSystem.name.toLowerCase}/${jobName}/$${i}.{stdout,stderr}" >> $$STATS_FILE
                          |
                          |START="$$(date +%Y-%m-%dT%H:%M:%S)"
                          |echo "Start: $$START" >> $$STATS_FILE

@@ -84,6 +84,12 @@ final case class DrmJobWrapper(
 
     val timePrefixPart = DrmJobWrapper.timePrefix()
 
+    def drmWorkSubDir: Path = (taskArray.drmConfig.drmSystem match {
+      case DrmSystem.Uger => executionConfig.locations.ugerDir
+      case DrmSystem.Lsf => executionConfig.locations.lsfDir
+      case DrmSystem.Slurm => executionConfig.locations.slurmDir
+    }).getFileName
+
     // scalastyle:off line.size.limit
     s"""|jobDir="${outputDir.render}"
         |mkdir -p "$$jobDir"
@@ -97,7 +103,7 @@ final case class DrmJobWrapper(
         |echo "Node: $$(hostname)" >> $$STATS_FILE
         |echo Task_Array_Name: ${taskArray.drmJobName} >> $$STATS_FILE
         |echo DRM_Task_Id: "$${jobId}-$${i}" >> $$STATS_FILE
-        |echo "Raw_Logs: .loamstream/slurm/${taskArray.drmJobName}/$${i}.{stdout,stderr}" >> $$STATS_FILE
+        |echo "Raw_Logs: .loamstream/${drmWorkSubDir}/${taskArray.drmJobName}/$${i}.{stdout,stderr}" >> $$STATS_FILE
         |
         |START="$$(${timestampCommand})"
         |echo "Start: $$START" >> $$STATS_FILE

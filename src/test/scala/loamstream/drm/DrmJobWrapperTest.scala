@@ -43,9 +43,7 @@ final class DrmJobWrapperTest extends FunSuite {
   private val baseLsfConfig = LsfConfig(maxNumJobsPerTaskArray = 42)
   private val baseSlurmConfig = SlurmConfig(maxNumJobsPerTaskArray = 42)
   
-  private def wrapCommand(drmJob: DrmJobWrapper, command: String): String = {
-    s"${DrmJobWrapper.timePrefix("STATS_FILE_NAME")} ${command}"
-  }
+  private def wrapCommand(drmJob: DrmJobWrapper, command: String): String = command
 
   test("commandLineInTaskArray - no image") {
     val ugerSettings = TestHelpers.defaultUgerSettings
@@ -205,9 +203,9 @@ final class DrmJobWrapperTest extends FunSuite {
 
       import loamstream.util.Paths.Implicits.PathHelpers
       
-      val expected0 = (drmConfig.workDir / s"$jobName/1.stderr").toAbsolutePath
-      val expected1 = (drmConfig.workDir / s"$jobName/2.stderr").toAbsolutePath
-      val expected2 = (drmConfig.workDir / s"$jobName/3.stderr").toAbsolutePath
+      val expected0 = (drmConfig.workDir / jobName / "1.stderr").toAbsolutePath
+      val expected1 = (drmConfig.workDir / jobName / "2.stderr").toAbsolutePath
+      val expected2 = (drmConfig.workDir / jobName / "3.stderr").toAbsolutePath
 
       assert(stdErrPath0 === expected0)
       assert(stdErrPath1 === expected1)
@@ -298,27 +296,29 @@ final class DrmJobWrapperTest extends FunSuite {
       
       // scalastyle:off line.size.limit
       val expected = s"""|jobDir="${jobOracle.dirFor(j0).render}"
-                         |mkdir -p $$jobDir
+                         |mkdir -p "$$jobDir"
+                         |
+                         |STATS_FILE="${(jobOracle.dirFor(j0) / "stats").render}"
+                         |EXITCODE_FILE="${(jobOracle.dirFor(j0) / "exitcode").render}"
+                         |COMMAND_SCRIPT="${(jobOracle.dirFor(j0) / "command.sh").render}"
+                         |STDOUT_FILE="${(jobOracle.dirFor(j0) / "stdout").render}"
+                         |STDERR_FILE="${(jobOracle.dirFor(j0) / "stderr").render}"
+                         |
+                         |echo "Node: $$(hostname)" >> $$STATS_FILE
+                         |echo Task_Array_Name: ${jobName} >> $$STATS_FILE
+                         |echo DRM_Task_Id: "$${jobId}-$${i}" >> $$STATS_FILE
+                         |echo "Raw_Logs: .loamstream/slurm/${jobName}/$${i}.{stdout,stderr}" >> $$STATS_FILE
                          |
                          |START="$$(date +%Y-%m-%dT%H:%M:%S)"
+                         |echo "Start: $$START" >> $$STATS_FILE
                          |
-                         |${wrapCommand(wrapper0, s"${expectedSingularityPart}${j0.commandLineString}")}
+                         |`which time` -o $$STATS_FILE --format="ExitCode: %x\\nMemory: %Mk\\nSystem: %Ss\\nUser: %Us" bash $$COMMAND_SCRIPT 1> $$STDOUT_FILE 2> $$STDERR_FILE
                          |
                          |LOAMSTREAM_JOB_EXIT_CODE=$$?
                          |
-                         |echo "Start: $$START\\nEnd: $$(date +%Y-%m-%dT%H:%M:%S)" >> ${wrapper0.statsFileDestPath}
+                         |echo "$$LOAMSTREAM_JOB_EXIT_CODE" > $$EXITCODE_FILE
                          |
-                         |origStdoutPath="${(workDir / jobName).render}/1.stdout"
-                         |origStderrPath="${(workDir / jobName).render}/1.stderr"
-                         |
-                         |stdoutDestPath="${(jobOracle.dirFor(j0) / "stdout").render}"
-                         |stderrDestPath="${(jobOracle.dirFor(j0) / "stderr").render}"
-                         |exitcodeDestPath="${(jobOracle.dirFor(j0) / "exitcode").render}"
-                         |
-                         |echo $$LOAMSTREAM_JOB_EXIT_CODE > $$exitcodeDestPath
-                         |
-                         |mv $$origStdoutPath $$stdoutDestPath || echo "Couldn't move DRM std out log $$origStdoutPath; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
-                         |mv $$origStderrPath $$stderrDestPath || echo "Couldn't move DRM std err log $$origStderrPath; it's likely the job wasn't submitted successfully" > $$stderrDestPath
+                         |echo "End: $$(date +%Y-%m-%dT%H:%M:%S)" >> $$STATS_FILE
                          |
                          |exit $$LOAMSTREAM_JOB_EXIT_CODE
                          |""".stripMargin

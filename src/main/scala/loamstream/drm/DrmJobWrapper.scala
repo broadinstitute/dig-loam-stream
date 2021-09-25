@@ -28,9 +28,9 @@ final case class DrmJobWrapper(
 
   private def makePath(template: String): Path = pathBuilder.reifyPathTemplate(template, drmIndex)
   
-  def drmStdOutPath(taskArray: DrmTaskArray): Path = Paths.get("/dev/null") //makePath(taskArray.stdOutPathTemplate)
+  def drmStdOutPath(taskArray: DrmTaskArray): Path = makePath(taskArray.stdOutPathTemplate)
 
-  def drmStdErrPath(taskArray: DrmTaskArray): Path = Paths.get("/dev/null") //makePath(taskArray.stdErrPathTemplate)
+  def drmStdErrPath(taskArray: DrmTaskArray): Path = makePath(taskArray.stdErrPathTemplate)
   
   private lazy val stdOutDestPath: Path = LogFileNames.stdout(jobDir)
 

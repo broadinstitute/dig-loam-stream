@@ -52,7 +52,7 @@ final class UgerPathBuilderTest extends FunSuite {
     
     val expected = workDir.resolve("blarg-blahblah/$TASK_ID.stdout")
     
-    doPathTemplateTest(pathBuilder.stdOutPathTemplate, expected.render)
+    doPathTemplateTest(pathBuilder.stdOutPathTemplate, expected.toString)
   }
 
   test("ugerStdErrPathTemplate") {
@@ -62,7 +62,7 @@ final class UgerPathBuilderTest extends FunSuite {
     
     val expected = workDir.resolve("blarg-blahblah/$TASK_ID.stderr")
     
-    doPathTemplateTest(pathBuilder.stdErrPathTemplate, expected.render)
+    doPathTemplateTest(pathBuilder.stdErrPathTemplate, expected.toString)
   }
 
   private def doPathTemplateTest(makeTemplate: (DrmConfig, String) => String, expected: String): Unit = {

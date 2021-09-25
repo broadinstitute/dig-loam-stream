@@ -43,6 +43,8 @@ final case class DrmJobWrapper(
   private[drm] lazy val commandScript: Path = {
     val scriptPath = jobDir.resolve("command.sh").toAbsolutePath
 
+    loamstream.util.Files.createDirsIfNecessary(jobDir)
+
     loamstream.util.Files.writeTo(scriptPath)(commandLineInTaskArray)
 
     scriptPath

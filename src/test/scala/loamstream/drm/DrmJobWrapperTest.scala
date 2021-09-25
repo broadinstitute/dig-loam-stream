@@ -25,6 +25,7 @@ import loamstream.drm.slurm.SlurmPathBuilder
 import loamstream.model.jobs.commandline.HasCommandLine
 import loamstream.conf.SlurmConfig
 import loamstream.model.execute.SlurmDrmSettings
+import java.nio.file.Path
 
 /**
  * @author clint
@@ -267,29 +268,23 @@ final class DrmJobWrapperTest extends FunSuite {
   }
 
   test("commandChunk") {
+    def getDrmConfig(testWorkDir: Path)(settings: DrmSettings): DrmConfig = settings match {
+      case _: UgerDrmSettings => baseUgerConfig.copy(workDir = testWorkDir)
+      case _: LsfDrmSettings => baseLsfConfig.copy(workDir = testWorkDir)
+      case _: SlurmDrmSettings => baseSlurmConfig.copy(workDir = testWorkDir)
+    }
+
     def doTest(pathBuilder: PathBuilder, settings: DrmSettings, expectedSingularityPart: String): Unit = {
       val jobName = DrmTaskArray.makeJobName()
-
       val testWorkDir = TestHelpers.getWorkDir(getClass.getSimpleName)
-      
-      val drmConfig: DrmConfig = settings match {
-        case _: UgerDrmSettings => baseUgerConfig.copy(workDir = testWorkDir)
-        case _: LsfDrmSettings => baseLsfConfig.copy(workDir = testWorkDir)
-        case _: SlurmDrmSettings => baseSlurmConfig.copy(workDir = testWorkDir)
-      }
-      
+      val drmConfig = getDrmConfig(testWorkDir)(settings)
       val executionConfig: ExecutionConfig = baseExecutionConfig.copy(loamstreamDir = testWorkDir)
-      
       val jobOracle = TestHelpers.InDirJobOracle(testWorkDir)
-      
       val taskArray = {
         DrmTaskArray.fromCommandLineJobs(executionConfig, jobOracle, settings, drmConfig, pathBuilder, Seq(j0), jobName)
       }
-
       val Seq(wrapper0) = taskArray.drmJobs
-
       val workDir = drmConfig.workDir
-      
       val jobOutputDir = executionConfig.jobDataDir.toAbsolutePath
 
       import loamstream.util.Paths.Implicits.PathHelpers

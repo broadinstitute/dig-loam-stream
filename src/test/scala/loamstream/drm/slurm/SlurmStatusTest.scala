@@ -19,7 +19,8 @@ final class SlurmStatusTest extends FunSuite {
     assert(BootFail.fullName === "BOOT_FAIL")
     assert(BootFail.drmStatus === DrmStatus.Failed)
     assert(BootFail.terminationReason === None)
-    //Job terminated due to launch failure, typically due to a hardware failure (e.g. unable to boot the node or block and the job can not be requeued).
+    //Job terminated due to launch failure, typically due to a hardware failure 
+    //(e.g. unable to boot the node or block and the job can not be requeued).
 
     assert(Cancelled.shortName === "CA")
     assert(Cancelled.fullName === "CANCELLED")

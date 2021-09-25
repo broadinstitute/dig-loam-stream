@@ -83,7 +83,7 @@ final class SbatchJobSubmitterTest extends FunSuite {
 
     val submitter = new SbatchJobSubmitter(invoker)
 
-    val obs = submitter.submitJobs(null, null) //scalastyle.ignore:null
+    val obs = submitter.submitJobs(null, null) //scalastyle:ignore null
 
     import monix.execution.Scheduler.Implicits.global
 
@@ -101,7 +101,7 @@ final class SbatchJobSubmitterTest extends FunSuite {
 
     val submitter = new SbatchJobSubmitter(invoker)
 
-    val obs = submitter.submitJobs(null, null) //scalastyle.ignore:null
+    val obs = submitter.submitJobs(null, null) //scalastyle:ignore null
 
     import monix.execution.Scheduler.Implicits.global
 
@@ -119,7 +119,7 @@ final class SbatchJobSubmitterTest extends FunSuite {
 
     val submitter = new SbatchJobSubmitter(invoker)
 
-    val obs = submitter.submitJobs(null, null) //scalastyle.ignore:null
+    val obs = submitter.submitJobs(null, null) //scalastyle:ignore null
 
     import monix.execution.Scheduler.Implicits.global
 

@@ -4,23 +4,13 @@ import loamstream.drm.Queue
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
+import loamstream.drm.DrmDefaults
 
 
 /**
  * @author clint
  * May 10, 2018
  */
-object LsfDefaults {
-  //TODO: determine what this should be
-  val maxNumJobsPerTaskArray: Int = 2000 //scalastyle:ignore magic.number
-  
-  val cores: Cpus = Cpus(1)
-
-  val memoryPerCore: Memory = Memory.inGb(1)
-    
-  val maxRunTime: CpuTime = CpuTime.inHours(2)
-  
-  val maxRetries: Int = 9
-  
+object LsfDefaults extends DrmDefaults {
   val maxBacctRetries: Int = maxRetries
 }

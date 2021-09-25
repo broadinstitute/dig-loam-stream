@@ -15,6 +15,7 @@ import scala.collection.compat._
 final class DrmSystemTest extends FunSuite {
   import DrmSystem.Lsf
   import DrmSystem.Uger
+  import DrmSystem.Slurm
   
   test("defaultQueue") {
     assert(Uger.defaultQueue === Some(UgerDefaults.queue))
@@ -25,6 +26,7 @@ final class DrmSystemTest extends FunSuite {
     TestHelpers.withScriptContext { implicit scriptContext =>
       assert(Uger.config(scriptContext) === scriptContext.ugerConfig)
       assert(Lsf.config(scriptContext) === scriptContext.lsfConfig)
+      assert(Slurm.config(scriptContext) === scriptContext.slurmConfig)
     }
   }
   
@@ -32,6 +34,7 @@ final class DrmSystemTest extends FunSuite {
     TestHelpers.withScriptContext { implicit scriptContext =>
       assert(Uger.settingsFromConfig(scriptContext) === DrmSettings.fromUgerConfig(scriptContext.ugerConfig))
       assert(Lsf.settingsFromConfig(scriptContext) === DrmSettings.fromLsfConfig(scriptContext.lsfConfig))
+      assert(Slurm.settingsFromConfig(scriptContext) === DrmSettings.fromSlurmConfig(scriptContext.slurmConfig))
     }
   }
   
@@ -53,6 +56,7 @@ final class DrmSystemTest extends FunSuite {
     
     doTest("uger", Some(Uger))
     doTest("lsf", Some(Lsf))
+    doTest("slurm", Some(Slurm))
       
     doTest("", None)
     doTest("uger1234", None)
@@ -60,9 +64,24 @@ final class DrmSystemTest extends FunSuite {
     
     assert(DrmSystem.fromName("Uger") === Some(Uger))
     assert(DrmSystem.fromName("Lsf") === Some(Lsf))
+    assert(DrmSystem.fromName("Slurm") === Some(Slurm))
   }
   
   test("values") {
-    assert(DrmSystem.values.to(Set) === Set(Uger, Lsf))
+    assert(DrmSystem.values.to(Set) === Set(Uger, Lsf, Slurm))
+  }
+  
+  test("configKey") {
+    assert(Uger.configKey === "loamstream.uger")
+    assert(Lsf.configKey === "loamstream.lsf")
+    assert(Slurm.configKey === "loamstream.slurm")
+  }
+  
+  test("format") {
+    val tid = DrmTaskId("xyz", 42)
+    
+    assert(Uger.format(tid) === "xyz.42")
+    assert(Lsf.format(tid) === "xyz.42")
+    assert(Slurm.format(tid) === "xyz_42")
   }
 }

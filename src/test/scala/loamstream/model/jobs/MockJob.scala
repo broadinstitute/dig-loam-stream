@@ -2,8 +2,6 @@ package loamstream.model.jobs
 
 import loamstream.TestHelpers
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
 import loamstream.util.Sequence
 import loamstream.util.ValueBox
 import loamstream.util.Futures
@@ -11,6 +9,7 @@ import loamstream.model.execute.Resources
 import loamstream.model.execute.LocalSettings
 import loamstream.model.execute.Settings
 import java.nio.file.Path
+import monix.eval.Task
 
 /**
  * @author clint
@@ -34,7 +33,7 @@ abstract class MockJob(
   //NB: Previous versions defined equals() and hashCode() only in terms of 'toReturn', which caused problems;
   //switched back to reference equality.
 
-  override def execute(implicit context: ExecutionContext): Future[RunData] = {
+  override def execute: Task[RunData] = {
     count.mutate(_ + 1)
 
     if (delay > 0) {
@@ -43,7 +42,7 @@ abstract class MockJob(
     
     import Futures.Implicits._
     
-    Future.successful(toReturn)
+    Task(toReturn)
   }
   
   private[this] val count = ValueBox(0)

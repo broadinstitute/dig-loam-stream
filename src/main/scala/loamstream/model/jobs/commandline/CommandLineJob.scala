@@ -1,33 +1,13 @@
 package loamstream.model.jobs.commandline
 
-import java.nio.file.{ Files => JFiles }
 import java.nio.file.Path
-
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
-import scala.sys.process.ProcessBuilder
-import scala.sys.process.ProcessLogger
-import scala.util.Failure
-import scala.util.Success
-
-import loamstream.model.execute.Resources.LocalResources
-import loamstream.model.jobs.Execution
-import loamstream.model.jobs.JobResult.CommandInvocationFailure
-import loamstream.model.jobs.JobResult.CommandResult
-import loamstream.model.jobs.JobStatus
-import loamstream.model.jobs.LJob
-import loamstream.model.jobs.DataHandle
-import loamstream.util.Futures
-import loamstream.util.Loggable
-import loamstream.util.TimeUtils
-import loamstream.util.BashScript
-import java.io.BufferedWriter
-import java.io.FileWriter
-import java.io.Writer
-import loamstream.model.jobs.LocalJob
-import loamstream.model.jobs.JobNode
 import java.nio.file.Paths
+
 import loamstream.model.execute.Settings
+import loamstream.model.jobs.DataHandle
+import loamstream.model.jobs.JobNode
+import loamstream.model.jobs.LJob
+import loamstream.util.Loggable
 
 /**
  * LoamStream

@@ -18,7 +18,7 @@ import scala.util.Failure
  */
 final class FileMonitor(pollingRateInHz: Double, maxWaitTime: Duration) extends Terminable {
   import FileMonitor.Watcher
-  
+
   def waitForCreationOf(path: Path): Future[Unit] = {
     if(exists(path)) {
       Future.successful(())

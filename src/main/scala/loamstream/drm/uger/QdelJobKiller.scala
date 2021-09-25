@@ -7,6 +7,8 @@ import loamstream.drm.JobKiller
 import loamstream.drm.SessionTracker
 import loamstream.util.CommandInvoker
 import loamstream.util.Loggable
+import loamstream.drm.DrmStatus
+import loamstream.drm.DrmSystem
 
 /**
  * @author clint
@@ -14,19 +16,7 @@ import loamstream.util.Loggable
  */
 final class QdelJobKiller(
     commandInvoker: CommandInvoker.Sync[Unit], 
-    sessionTracker: SessionTracker) extends JobKiller with Loggable {
-  
-  override def killAllJobs(): Unit = {
-    if(sessionTracker.nonEmpty) {
-      commandInvoker.apply(()) match {
-        case Success(runResults) => debug("Killed UGER jobs")
-        case Failure(e) => warn(s"Error killing all UGER jobs: ${e.getMessage}", e)
-      }
-    } else {
-      debug(s"No Uger session initialized; not killing jobs")
-    }
-  }
-}
+    sessionTracker: SessionTracker) extends JobKiller.ForCommand(DrmSystem.Uger, commandInvoker, sessionTracker)
 
 object QdelJobKiller extends JobKiller.Companion[QdelJobKiller]("qdel", new QdelJobKiller(_, _)) {
   override protected[drm] def makeTokens(

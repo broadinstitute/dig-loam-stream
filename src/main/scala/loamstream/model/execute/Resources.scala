@@ -76,9 +76,11 @@ object Resources {
     
     type FieldsTuple = (Memory, CpuTime, Option[String], Option[Queue], LocalDateTime, LocalDateTime, Option[String])
     
+    //TODO: This is a smell
     def unapply(r: Resources): Option[FieldsTuple] = r match {
       case u: UgerResources => UgerResources.unapply(u)
       case l: LsfResources => LsfResources.unapply(l)
+      case s: SlurmResources => SlurmResources.unapply(s)
       case _ => None
     }
   }
@@ -101,6 +103,21 @@ object Resources {
       memory: Memory,
       cpuTime: CpuTime,
       node: Option[String],
+      queue: Option[Queue],
+      startTime: LocalDateTime,
+      endTime: LocalDateTime,
+      override val raw: Option[String] = None) extends DrmResources {
+    
+    override def withNode(newNodeOpt: Option[String]): DrmResources = copy(node = newNodeOpt)
+    
+    override def withQueue(newQueueOpt: Option[Queue]): DrmResources = copy(queue = newQueueOpt)
+  }
+  
+  final case class SlurmResources(
+      memory: Memory,
+      cpuTime: CpuTime,
+      node: Option[String],
+      //TODO: Does SLURM have a notion of queues?
       queue: Option[Queue],
       startTime: LocalDateTime,
       endTime: LocalDateTime,

@@ -1,5 +1,7 @@
 package loamstream.drm
 
+import java.nio.file.Path
+
 /**
   * @author Kaan
   *         clint
@@ -24,15 +26,19 @@ final class ScriptBuilder(params: ScriptBuilderParams) {
   
   private val endIf: String = s"${newLine}fi${newLine}"
 
+  private val taskIndexingStrategy = DrmTaskArray.TaskIndexingStrategy.InDrmScript.forDrmSystem(params.drmSystem)
+
+  private def jobIndexInScript(drmJob: DrmJobWrapper): Int = taskIndexingStrategy.toIndex(drmJob.drmIndex)
+
   def buildFrom(taskArray: DrmTaskArray): String = {
     val drmJobs = taskArray.drmJobs
     
     val firstIfBlock = getFirstIfBlock(taskArray)
 
-    val elseIfBlocks = drmJobs.tail.map { ugerJob =>
-      val index = ugerJob.drmIndex
+    val elseIfBlocks = drmJobs.tail.map { drmJob =>
+      val index = jobIndexInScript(drmJob)
       
-      s"${getElseIfHeader(index)}${getBody(taskArray, ugerJob)}"
+      s"${getElseIfHeader(index)}${getBody(taskArray, drmJob)}"
     }.mkString(newLine)
 
     s"${scriptHeader}${newLine}${firstIfBlock}${newLine}${elseIfBlocks}${endIf}"
@@ -40,9 +46,9 @@ final class ScriptBuilder(params: ScriptBuilderParams) {
 
   private def getFirstIfBlock(taskArray: DrmTaskArray): String = {
     val drmJob: DrmJobWrapper = taskArray.drmJobs.head
-    val indexStartValue: Int = drmJob.drmIndex
+    val index: Int = jobIndexInScript(drmJob)
     
-    val ifHeader = getIfHeader(indexStartValue)
+    val ifHeader = getIfHeader(index)
     val ifBody = getBody(taskArray, drmJob)
 
     s"${ifHeader}${ifBody}"
@@ -54,7 +60,11 @@ final class ScriptBuilder(params: ScriptBuilderParams) {
     s"${newLine}${commandChunk}"
   }
 
-  private def getIfHeader(index: Int): String = s"if [ $$i -eq $index ]${newLine}then"
+  private def getIfHeader(index: Int): String = {
+    //val mungedIndex
 
-  private def getElseIfHeader(index: Int): String = s"elif [ $$i -eq $index ]${newLine}then"
+    s"""if [ "$$i" = "$index" ]${newLine}then"""
+  }
+
+  private def getElseIfHeader(index: Int): String = s"""elif [ "$$i" = "$index" ]${newLine}then"""
 }

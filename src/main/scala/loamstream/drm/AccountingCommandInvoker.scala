@@ -1,11 +1,11 @@
 package loamstream.drm
 
-import scala.concurrent.ExecutionContext
-
 import loamstream.util.CommandInvoker
 import loamstream.util.Loggable
 import loamstream.util.Processes
 import monix.execution.Scheduler
+import scala.util.Try
+import loamstream.util.RunResults
 
 /**
  * @author clint
@@ -19,9 +19,10 @@ object AccountingCommandInvoker {
     def useActualBinary(
         maxRetries: Int, 
         binaryName: String,
-        scheduler: Scheduler)(implicit ec: ExecutionContext): CommandInvoker.Async[P] = {
+        scheduler: Scheduler,
+        isSuccess: RunResults.SuccessPredicate/*  = zeroIsSuccess */): CommandInvoker.Async[P] = {
       
-      def invokeBinaryFor(param: P) = {
+      def invokeBinaryFor(param: P) = Try {
         val tokens = makeTokens(binaryName, param)
         
         debug(s"Invoking '$binaryName': '${tokens.mkString(" ")}'")
@@ -34,7 +35,7 @@ object AccountingCommandInvoker {
       val invokeOnce = {
         implicit val sch = scheduler
         
-        new CommandInvoker.Async.JustOnce[P](binaryName, invokeBinaryFor)
+        new CommandInvoker.Async.JustOnce[P](binaryName, invokeBinaryFor, isSuccess)
       }
       
       if(notRetrying) {

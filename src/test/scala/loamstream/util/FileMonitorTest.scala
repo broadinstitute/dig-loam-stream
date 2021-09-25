@@ -14,7 +14,7 @@ import scala.collection.compat._
 final class FileMonitorTest extends FunSuite {
   
   import Paths.Implicits._
-  import TestHelpers.waitFor
+  import TestHelpers.waitForT
   
   test("'Waiting' for a file that already exists") {
     val workDir = TestHelpers.getWorkDir(getClass.getSimpleName)
@@ -67,7 +67,7 @@ final class FileMonitorTest extends FunSuite {
       }
     }
     
-    waitFor(future)
+    TestHelpers.waitFor(future)
     
     assert(JFiles.exists(initiallyNonExistantFile))
     
@@ -97,7 +97,7 @@ final class FileMonitorTest extends FunSuite {
     assert(JFiles.exists(fileThatNeverAppears) === false)
     
     intercept[Exception] {
-      waitFor(future)
+      TestHelpers.waitFor(future)
     }
     
     //Make sure we've cleaned up properly
@@ -165,7 +165,7 @@ final class FileMonitorTest extends FunSuite {
     
     import scala.concurrent.ExecutionContext.Implicits.global
     
-    waitFor(Future.sequence(futures))
+    TestHelpers.waitFor(Future.sequence(futures))
     
     assert(JFiles.exists(initiallyNonExistantFile))
     
@@ -205,7 +205,7 @@ final class FileMonitorTest extends FunSuite {
     import scala.concurrent.ExecutionContext.Implicits.global
     
     intercept[Exception] {
-      waitFor(Future.sequence(futures))
+      TestHelpers.waitFor(Future.sequence(futures))
     }
     
     //Make sure we've cleaned up properly

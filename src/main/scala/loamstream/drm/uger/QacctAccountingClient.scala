@@ -5,8 +5,6 @@ import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeFormatterBuilder
 
 import scala.collection.Seq
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
 import scala.concurrent.duration.DurationDouble
 import scala.util.Try
 import scala.util.matching.Regex
@@ -24,6 +22,8 @@ import loamstream.util.Loggable
 import loamstream.util.Options
 import loamstream.util.Tries
 import monix.execution.Scheduler
+import monix.eval.Task
+import loamstream.util.RunResults
 
 
 /**
@@ -35,17 +35,16 @@ import monix.execution.Scheduler
  * job id, to facilitate unit testing.
  */
 final class QacctAccountingClient(
-    qacctInvoker: CommandInvoker.Async[DrmTaskId])
-    (implicit ec: ExecutionContext) extends AccountingClient with Loggable {
+    qacctInvoker: CommandInvoker.Async[DrmTaskId]) extends AccountingClient with Loggable {
 
   import QacctAccountingClient._
 
-  private def getQacctOutputFor(taskId: DrmTaskId): Future[Seq[String]] = qacctInvoker(taskId).map(_.stdout)
+  private def getQacctOutputFor(taskId: DrmTaskId): Task[Seq[String]] = qacctInvoker(taskId).map(_.stdout)
 
   import Regexes.{ cpu, endTime, hostname, mem, qname, startTime }
   
-  override def getResourceUsage(taskId: DrmTaskId): Future[UgerResources] = {
-    def toResources(output: Seq[String]): Future[UgerResources] = {
+  override def getResourceUsage(taskId: DrmTaskId): Task[UgerResources] = {
+    def toResources(output: Seq[String]): Task[UgerResources] = {
       val nodeOpt = findField(output, hostname).toOption
       val queueOpt = findField(output, qname).map(Queue(_)).toOption
       
@@ -69,15 +68,15 @@ final class QacctAccountingClient(
         case e => debug(s"Error parsing qacct output: ${e.getMessage}", e)
       }
       
-      Future.fromTry(result)
+      Task.fromTry(result)
     }
     
     getQacctOutputFor(taskId).flatMap(toResources)
   }
   
-  override def getTerminationReason(taskId: DrmTaskId): Future[Option[TerminationReason]] = {
+  override def getTerminationReason(taskId: DrmTaskId): Task[Option[TerminationReason]] = {
     //NB: Uger/qacct does not provide this information directly. 
-    Future.successful(None)
+    Task.now(None)
   }
 }
 
@@ -89,8 +88,9 @@ object QacctAccountingClient extends Loggable {
   def useActualBinary(
       ugerConfig: UgerConfig, 
       scheduler: Scheduler,
-      binaryName: String = "qacct")(implicit ec: ExecutionContext): QacctAccountingClient = {
-    new QacctAccountingClient(QacctInvoker.useActualBinary(ugerConfig.maxRetries, binaryName, scheduler))
+      binaryName: String = "qacct",
+      isSuccess: RunResults.SuccessPredicate = RunResults.SuccessPredicate.zeroIsSuccess): QacctAccountingClient = {
+    new QacctAccountingClient(QacctInvoker.useActualBinary(ugerConfig.maxRetries, binaryName, scheduler, isSuccess))
   }
   
   private def orElseErrorMessage[A](msg: String)(a: => A): Try[A] = {

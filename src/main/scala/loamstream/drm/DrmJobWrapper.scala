@@ -12,6 +12,7 @@ import loamstream.conf.DrmConfig
 import loamstream.model.execute.DrmSettings
 import loamstream.util.Loggable
 import loamstream.conf.Locations
+import loamstream.util.CanBeClosed
 
 /**
  * @author clint
@@ -36,6 +37,18 @@ final case class DrmJobWrapper(
   private lazy val stdErrDestPath: Path = LogFileNames.stderr(jobDir)
   
   private lazy val exitCodeDestPath: Path = LogFileNames.exitCode(jobDir)
+
+  private[drm] lazy val statsFileDestPath: Path = LogFileNames.stats(jobDir)
+
+  private[drm] lazy val commandScript: Path = {
+    val scriptPath = jobDir.resolve("command.sh").toAbsolutePath
+
+    loamstream.util.Files.createDirsIfNecessary(jobDir)
+
+    loamstream.util.Files.writeTo(scriptPath)(commandLineInTaskArray)
+
+    scriptPath
+  }
 
   def outputStreams: OutputStreams = OutputStreams(stdOutDestPath, stdErrDestPath)
 
@@ -67,27 +80,58 @@ final case class DrmJobWrapper(
   def commandChunk(taskArray: DrmTaskArray): String = {
     val outputDir = jobDir.toAbsolutePath
 
+    import DrmJobWrapper.timestampCommand
+
+    val timePrefixPart = DrmJobWrapper.timePrefix()
+
+    def drmWorkSubDir: Path = (taskArray.drmConfig.drmSystem match {
+      case DrmSystem.Uger => executionConfig.locations.ugerDir
+      case DrmSystem.Lsf => executionConfig.locations.lsfDir
+      case DrmSystem.Slurm => executionConfig.locations.slurmDir
+    }).getFileName
+
     // scalastyle:off line.size.limit
-    s"""|${commandLineInTaskArray}
+    s"""|jobDir="${outputDir.render}"
+        |mkdir -p "$$jobDir"
+        |
+        |STATS_FILE="${statsFileDestPath.render}"
+        |EXITCODE_FILE="${exitCodeDestPath.render}"
+        |COMMAND_SCRIPT="${commandScript}"
+        |STDOUT_FILE="${stdOutDestPath.render}"
+        |STDERR_FILE="${stdErrDestPath.render}"
+        |
+        |echo "Node: $$(hostname)" >> $$STATS_FILE
+        |echo Task_Array_Name: ${taskArray.drmJobName} >> $$STATS_FILE
+        |echo DRM_Task_Id: "$${jobId}-$${i}" >> $$STATS_FILE
+        |echo "Raw_Logs: .loamstream/${drmWorkSubDir}/${taskArray.drmJobName}/$${i}.{stdout,stderr}" >> $$STATS_FILE
+        |
+        |START="$$(${timestampCommand})"
+        |echo "Start: $$START" >> $$STATS_FILE
+        |
+        |${timePrefixPart} bash $$COMMAND_SCRIPT 1> $$STDOUT_FILE 2> $$STDERR_FILE
         |
         |LOAMSTREAM_JOB_EXIT_CODE=$$?
         |
-        |origStdoutPath="${drmStdOutPath(taskArray).render}"
-        |origStderrPath="${drmStdErrPath(taskArray).render}"
+        |echo "$$LOAMSTREAM_JOB_EXIT_CODE" > $$EXITCODE_FILE
         |
-        |stdoutDestPath="${stdOutDestPath.render}"
-        |stderrDestPath="${stdErrDestPath.render}"
-        |exitcodeDestPath="${exitCodeDestPath.render}"
-        |
-        |jobDir="${outputDir.render}"
-        |
-        |mkdir -p $$jobDir
-        |mv $$origStdoutPath $$stdoutDestPath || echo "Couldn't move DRM std out log $$origStdoutPath; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
-        |mv $$origStderrPath $$stderrDestPath || echo "Couldn't move DRM std err log $$origStderrPath; it's likely the job wasn't submitted successfully" > $$stderrDestPath
-        |echo $$LOAMSTREAM_JOB_EXIT_CODE > $$exitcodeDestPath
+        |echo "End: $$(${timestampCommand})" >> $$STATS_FILE
         |
         |exit $$LOAMSTREAM_JOB_EXIT_CODE
         |""".stripMargin
     // scalastyle:on line.size.limit
   }
+}
+
+object DrmJobWrapper {
+  private[drm] def timePrefix(statsFileEnvVarName: String = "STATS_FILE"): String = {
+    //NB: Memory will be max-rss, in kilobytes.
+    //System is time spent in kernel code, user is time spent in user code.
+    val formatSpec = "ExitCode: %x\\nMemory: %Mk\\nSystem: %Ss\\nUser: %Us"
+
+    //Use `which time` to find the 'time' binary on the path (we do NOT want the Bash builtin 'time').
+    //-o makes output specified by $formatSpec go to $statsFile.
+    s"""`which time` -o $$${statsFileEnvVarName} --format="${formatSpec}""""
+  }
+
+  private[drm] val timestampCommand: String = """date +%Y-%m-%dT%H:%M:%S"""
 }

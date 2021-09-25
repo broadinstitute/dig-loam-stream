@@ -57,6 +57,7 @@ object DrmTaskArrayTest {
     override def preamble: Option[String] = ??? 
     override def indexEnvVarName: String = ???
     override def jobIdEnvVarName: String = ???
+    override def drmSystem: DrmSystem = ???
   }
 }
 
@@ -128,8 +129,8 @@ final class DrmTaskArrayTest extends FunSuite {
       
       doTest(
           pathBuilder, 
-          s"foo${workDir.render}/${expectedJobName}.bar.stdout",
-          s"foo${workDir.render}/${expectedJobName}.bar.stderr")
+          s"foo${workDir.render}/${expectedJobName}/bar.stdout",
+          s"foo${workDir.render}/${expectedJobName}/bar.stderr")
     }
     
     {
@@ -139,8 +140,8 @@ final class DrmTaskArrayTest extends FunSuite {
     
       doTest(
           pathBuilder, 
-          s"${workDir.render}/${expectedJobName}.bar.stdout",
-          s"${workDir.render}/${expectedJobName}.bar.stderr")
+          s"${workDir.render}/${expectedJobName}/bar.stdout",
+          s"${workDir.render}/${expectedJobName}/bar.stderr")
     }
   }
 
@@ -213,7 +214,7 @@ final class DrmTaskArrayTest extends FunSuite {
   
       assert(taskArray.scriptContents === (new ScriptBuilder(scriptBuilderParams)).buildFrom(taskArray))
   
-      assert(taskArray.drmScriptFile.getParent === drmConfig.workDir)
+      assert(taskArray.drmScriptFile.getParent === drmConfig.workDir.resolve(arrayName))
   
       assert(Files.readFrom(taskArray.drmScriptFile) === taskArray.scriptContents)
       
@@ -235,5 +236,29 @@ final class DrmTaskArrayTest extends FunSuite {
       //Run the test again, to make sure script files are overwritten without errors
       doTest(LsfConfig(workDir = workDir, maxNumJobsPerTaskArray = 99))
     }
+  }
+  
+  test("TaskIndexingStrategy") {
+    import DrmTaskArray.TaskIndexingStrategy
+    import DrmSystem._
+
+    assert(TaskIndexingStrategy.forDrmSystem(Uger).toIndex(1) === 2)
+    assert(TaskIndexingStrategy.forDrmSystem(Uger)(1) === 2)
+    
+    assert(TaskIndexingStrategy.forDrmSystem(Lsf).toIndex(1) === 2)
+    assert(TaskIndexingStrategy.forDrmSystem(Lsf)(1) === 2)
+    
+    assert(TaskIndexingStrategy.forDrmSystem(Slurm).toIndex(1) === 2)
+    assert(TaskIndexingStrategy.forDrmSystem(Slurm)(1) === 2)
+  }
+  
+  test("TaskIndexingStrategy.forDrmSystem") {
+    import DrmTaskArray.TaskIndexingStrategy
+    import TaskIndexingStrategy.forDrmSystem
+    import DrmSystem._
+    
+    assert(forDrmSystem(DrmSystem.Uger) === TaskIndexingStrategy.PlusOne)
+    assert(forDrmSystem(DrmSystem.Lsf) === TaskIndexingStrategy.PlusOne)
+    assert(forDrmSystem(DrmSystem.Slurm) === TaskIndexingStrategy.PlusOne)
   }
 }

@@ -121,7 +121,9 @@ object LsAtEbiTest extends Loggable {
   
   private def toUnit[A](ignored: A): Unit = ()
   
-  private def doToFailureIfNeeded(msg: String)(runResults: RunResults): Try[_] = runResults.tryAsSuccess
+  private def doToFailureIfNeeded(msg: String)(runResults: RunResults): Try[_] = {
+    runResults.tryAsSuccess("", RunResults.SuccessPredicate.zeroIsSuccess)
+  }
   
   private def copyToEbi(localFile: Path, remoteDest: Path): Try[Unit] = {
     val remoteHostAndPath = s"${ebiUserAtHost}:${remoteDest}"

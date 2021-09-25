@@ -1,15 +1,14 @@
 package loamstream.drm.uger
 
 import scala.concurrent.duration.Duration
-import loamstream.util.RateLimitedCache
+import scala.util.Try
+
+import loamstream.util.CommandInvoker
+import loamstream.util.Loggable
+import loamstream.util.Processes
 import loamstream.util.RateLimiter
 import loamstream.util.RunResults
 import loamstream.util.ValueBox
-import loamstream.util.Processes
-import loamstream.util.CommandInvoker
-import loamstream.util.Loggable
-import scala.concurrent.ExecutionContext
-import scala.util.Try
 import monix.execution.Scheduler
 
 /**
@@ -29,7 +28,8 @@ final class RateLimitedQacctInvoker private[uger] (
   
   val commandInvoker: CommandInvoker.Async.JustOnce[String] = new CommandInvoker.Async.JustOnce[String](
     binaryName, 
-    taskArrayId => getLimiter(taskArrayId).apply())
+    taskArrayId => getLimiter(taskArrayId).apply,
+    isSuccess = RunResults.SuccessPredicate.zeroIsSuccess)
   
   import RateLimitedQacctInvoker.JobId
   import RateLimitedQacctInvoker.Limiter
@@ -76,7 +76,7 @@ object RateLimitedQacctInvoker extends Loggable {
       maxRetries: Int, 
       scheduler: Scheduler): RateLimitedQacctInvoker = {
     
-    def invokeBinary(taskArrayJobId: JobId): Try[RunResults] = {
+    def invokeBinary(taskArrayJobId: JobId): Try[RunResults] = Try {
       val tokens = makeTokens(binaryName, taskArrayJobId)
       
       debug(s"Invoking '$binaryName': '${tokens.mkString(" ")}'")

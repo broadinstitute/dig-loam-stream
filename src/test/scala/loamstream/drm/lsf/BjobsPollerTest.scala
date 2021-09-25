@@ -27,7 +27,7 @@ import loamstream.TestHelpers.DummyDrmJobOracle
 final class BjobsPollerTest extends FunSuite {
 
   import Observables.Implicits._
-  import TestHelpers.waitFor
+  import TestHelpers.waitForT
   import Scheduler.Implicits.global
   
   // scalastyle:off line.size.limit

@@ -4,6 +4,7 @@ import loamstream.loam.intake.IntakeSyntax
 import loamstream.loam.intake.dga.DgaSyntax
 import loamstream.loam.intake.AwsRowSink
 import loamstream.loam.intake.dga.Tissue
+import org.json4s._
 
 /**
  * @author clint
@@ -17,17 +18,16 @@ final class DgaTissueUploadTest extends AwsFunSuite with IntakeSyntax with DgaSy
     
     val uuid = java.util.UUID.randomUUID.toString
     
-    val awsClient = new AwsClient.Default(aws)
-    
     val sink = new AwsRowSink(
         topic = "some-topic",
-        name = "some-name",
+        dataset = "some-name",
+        techType = None,
+        phenotype = None,
         batchSize = 10000, //10k
-        awsClient = awsClient,
+        s3Client = s3Client,
         baseDir = Some(testDir),
-        // :(
-        yes = true,
-        uuid = uuid)
+        uuid = uuid,
+        metadata = JObject("foo" -> JInt(42)))
     
     val count: Fold[Tissue, Int, Int] = Fold.count
     val upload: Fold[Tissue, Unit, Unit] = Fold.foreach(sink.accept)
@@ -44,7 +44,7 @@ final class DgaTissueUploadTest extends AwsFunSuite with IntakeSyntax with DgaSy
       info(s"Uploaded $n valid tissues")
     }
     
-    val uploaded = awsClient.list(s"${testDir}")
+    val uploaded = s3Client.list(s"${testDir}")
     
     val expectedKeys = Set(
         s"${testDir}/some-topic/some-name/part-00000-${uuid}.json",

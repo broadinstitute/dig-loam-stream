@@ -28,28 +28,32 @@ final class MissingOutputsJobFilterTest extends FunSuite {
   }
   
   test("shouldRun - missing outputs") {
-    val outputs: Set[DataHandle] = Seq("foo/bar/baz/", "/blerg/nerg").map(path).map(PathHandle(_): DataHandle).to(Set)
-    
-    assert(outputs.forall(_.isMissing))
-    
-    //Multiple missing outputs
-    {
-      val j0 = MockJob(JobStatus.Succeeded, outputs = outputs)
-    
-      assert(j0.outputs === outputs)
+    TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
+      val outputs: Set[DataHandle] = {
+        Seq("foo/bar/baz/", "/blerg/nerg").map(workDir.resolve(_)).map(PathHandle(_): DataHandle).to(Set)
+      }
       
-      assert(shouldRun(j0) === true)
-    }
-    
-    //One missing outputs
-    {
-      val justOne = outputs.take(1)
+      assert(outputs.forall(_.isMissing))
       
-      val j0 = MockJob(JobStatus.Succeeded, outputs = justOne)
-    
-      assert(j0.outputs === justOne)
+      //Multiple missing outputs
+      {
+        val j0 = MockJob(JobStatus.Succeeded, outputs = outputs)
       
-      assert(shouldRun(j0) === true)
+        assert(j0.outputs === outputs)
+        
+        assert(shouldRun(j0) === true)
+      }
+      
+      //One missing outputs
+      {
+        val justOne = outputs.take(1)
+        
+        val j0 = MockJob(JobStatus.Succeeded, outputs = justOne)
+      
+        assert(j0.outputs === justOne)
+        
+        assert(shouldRun(j0) === true)
+      }
     }
   }
   

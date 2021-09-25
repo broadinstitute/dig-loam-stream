@@ -1,7 +1,6 @@
 package loamstream.drm.uger
 
 
-import scala.concurrent.ExecutionContext
 import scala.util.Try
 
 import loamstream.conf.UgerConfig
@@ -11,12 +10,12 @@ import loamstream.drm.DrmTaskId
 import loamstream.drm.JobSubmitter
 import loamstream.model.execute.DrmSettings
 import loamstream.util.CommandInvoker
+import loamstream.util.LogContext
 import loamstream.util.Loggable
 import loamstream.util.RunResults
 import loamstream.util.Tries
-import loamstream.util.LogContext
-import monix.reactive.Observable
 import monix.execution.Scheduler
+import monix.reactive.Observable
 
 
 /**

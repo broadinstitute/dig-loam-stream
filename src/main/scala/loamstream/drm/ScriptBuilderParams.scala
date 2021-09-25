@@ -13,4 +13,5 @@ trait ScriptBuilderParams {
   def indexEnvVarName: String 
   def jobIdEnvVarName: String
   def drmIndexVarExpr: String
+  def drmSystem: DrmSystem
 }

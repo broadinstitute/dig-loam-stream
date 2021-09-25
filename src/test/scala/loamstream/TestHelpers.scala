@@ -61,6 +61,9 @@ import java.time.ZoneId
 import loamstream.conf.LsSettings
 import scala.concurrent.duration.FiniteDuration
 import loamstream.drm.DrmTaskId
+import monix.eval.Task
+import loamstream.conf.SlurmConfig
+import loamstream.model.execute.SlurmDrmSettings
 
 /**
   * @author clint
@@ -71,6 +74,12 @@ object TestHelpers {
     override def dirOptFor(job: LJob): Option[Path] = Some(path(Paths.mungePathRelatedChars(job.name)))
   }
   
+  final case class DummyDrmJobOracle(workDir: Path) extends DrmJobOracle  {
+    override def dirOptFor(taskId: DrmTaskId): Option[Path] = {
+      Some(workDir.resolve(Paths.mungePathRelatedChars(s"${taskId.jobId}-${taskId.taskIndex}")))
+    }
+  }
+
   object DummyDrmJobOracle extends DrmJobOracle  {
     override def dirOptFor(taskId: DrmTaskId): Option[Path] = {
       Some(path(Paths.mungePathRelatedChars(s"${taskId.jobId}-${taskId.taskIndex}")))
@@ -94,6 +103,7 @@ object TestHelpers {
     
     val ugerConfig = UgerConfig.fromConfig(config)
     val lsfConfig = LsfConfig.fromConfig(config)
+    val slurmConfig = SlurmConfig.fromConfig(config)
     val googleConfig = GoogleCloudConfig.fromConfig(config)
     val hailConfig = HailConfig.fromConfig(config)
     val pythonConfig = PythonConfig.fromConfig(config)
@@ -104,6 +114,7 @@ object TestHelpers {
     LoamConfig( 
       ugerConfig.toOption,
       lsfConfig.toOption,
+      slurmConfig.toOption,
       googleConfig.toOption,
       hailConfig.toOption,
       pythonConfig.toOption,
@@ -114,6 +125,7 @@ object TestHelpers {
   
   lazy val configWithUger = config.copy(drmSystem = Option(DrmSystem.Uger))
   lazy val configWithLsf = config.copy(drmSystem = Option(DrmSystem.Lsf))
+  lazy val configWithSlurm = config.copy(drmSystem = Option(DrmSystem.Slurm))
   
   lazy val localResources: LocalResources = { 
     val now = LocalDateTime.now
@@ -292,6 +304,17 @@ object TestHelpers {
       None,
       None)
   }
+
+  val defaultSlurmSettings: SlurmDrmSettings = {
+    val slurmConfig = config.slurmConfig.get 
+
+    SlurmDrmSettings(
+      slurmConfig.defaultCores,
+      slurmConfig.defaultMemoryPerCore,
+      slurmConfig.defaultMaxRunTime,
+      None,
+      None)
+  }
   
   def dummyJobDir: Path = path(UUID.randomUUID.toString).toAbsolutePath
   
@@ -305,11 +328,20 @@ object TestHelpers {
     10.minutes
   }
   
-  def waitFor[A](f: Future[A]): A = {
+  def waitFor[A](f: Future[A], timeout: Duration = defaultWaitTime): A = {
     import scala.concurrent.duration._
 
     //NB: Hard-coded timeout. :(  But at least it's no longer infinite! :)
-    Await.result(f, defaultWaitTime)
+    Await.result(f, timeout)
+  }
+  
+  def waitForT[A](t: Task[A], timeout: Duration = defaultWaitTime)(implicit disc: DummyImplicit): A = {
+    import scala.concurrent.duration._
+
+    import monix.execution.Scheduler.Implicits.global
+    
+    //NB: Hard-coded timeout. :(  But at least it's no longer infinite! :)
+    t.runSyncUnsafe(timeout)
   }
   
   //foobar => FoObAr, etc

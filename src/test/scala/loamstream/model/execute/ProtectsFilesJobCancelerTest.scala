@@ -101,18 +101,20 @@ final class ProtectsFilesJobCancelerTest extends FunSuite {
   }
   
   test("shouldCancel - empty protected set") {
-    val filter = ProtectsFilesJobCanceler.empty
-    
-    val loneOutput = DataHandle.PathHandle(path("foo"))
-    
-    assert(loneOutput.isMissing)
-    
-    //The one output being missing means the job should run; despite this, it's not eligible for cancellation
-    //since there are no protected outputs.
-    
-    val job = MockJob(JobStatus.Succeeded, outputs = Set(loneOutput))
-    
-    assert(filter.shouldCancel(job) === false)
+    TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
+      val filter = ProtectsFilesJobCanceler.empty
+      
+      val loneOutput = DataHandle.PathHandle(workDir.resolve("foo"))
+      
+      assert(loneOutput.isMissing)
+      
+      //The one output being missing means the job should run; despite this, it's not eligible for cancellation
+      //since there are no protected outputs.
+      
+      val job = MockJob(JobStatus.Succeeded, outputs = Set(loneOutput))
+      
+      assert(filter.shouldCancel(job) === false)
+    }
   }
   
   test("shouldCancel - some protected files, none apply") {

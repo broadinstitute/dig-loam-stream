@@ -2,15 +2,13 @@ package loamstream.model.jobs
 
 import java.time.Instant
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
-
 import loamstream.TestHelpers
 import loamstream.model.execute.LocalSettings
 import loamstream.util.Futures
 import loamstream.util.Observables
 import loamstream.util.ValueBox
 import loamstream.model.execute.Settings
+import monix.eval.Task
 
 
 /**
@@ -39,7 +37,7 @@ final case class RxMockJob(
   
   def lastRunTime: Option[Instant] = lastRunTimeRef()
   
-  override def execute(implicit context: ExecutionContext): Future[RunData] = {
+  override def execute: Task[RunData] = {
 
     executions.mutate { oldExecutions =>
       
@@ -51,7 +49,7 @@ final case class RxMockJob(
       newExecutions
     }
     
-    Future {    
+    Task.evalOnce {    
       trace(s"Starting job: $name")
 
       lastRunTimeRef := Some(Instant.now)

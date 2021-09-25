@@ -7,8 +7,6 @@ import org.scalatest.FunSuite
  * Dec 8, 2020
  */
 final class AwsClientTest extends AwsFunSuite {
-  private def newClient: AwsClient.Default = new AwsClient.Default(aws)
-  
   private case class Keys(private val testDir: String) {
     val foo = s"${testDir}/foo.txt"
     val bar =s"${testDir}/bar.txt"
@@ -21,13 +19,13 @@ final class AwsClientTest extends AwsFunSuite {
   }
   
   test("bucket") {
-    val client = newClient
+    val client = newS3Client
     
     assert(client.bucket === "dig-integration-tests")
   }
   
   testWithPseudoDir(s"${getClass.getSimpleName}-put_getAsString_list") { testDir =>
-    val client = newClient
+    val client = newS3Client
       
     assert(client.list(testDir) === Nil)
     
@@ -59,7 +57,7 @@ final class AwsClientTest extends AwsFunSuite {
   }
   
   testWithPseudoDir(s"${getClass.getSimpleName}-deleteDir-bit-by-bit") { testDir =>
-    val client = newClient
+    val client = newS3Client
       
     assert(client.list(testDir) === Nil)
     
@@ -93,7 +91,7 @@ final class AwsClientTest extends AwsFunSuite {
   }
   
   testWithPseudoDir(s"${getClass.getSimpleName}-deleteDir-all-at-once") { testDir =>
-    val client = newClient
+    val client = newS3Client
       
     assert(client.list(testDir) === Nil)
     
@@ -114,7 +112,7 @@ final class AwsClientTest extends AwsFunSuite {
     assert(client.list(testDir).toSet === expected0)
     
     client.deleteDir(testDir)
-    
+
     assert(client.list(testDir) === Nil)
   }
 }

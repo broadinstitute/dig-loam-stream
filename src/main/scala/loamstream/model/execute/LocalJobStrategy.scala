@@ -1,20 +1,28 @@
 package loamstream.model.execute
 
-import java.nio.file.{Files => JFiles}
+import java.nio.file.{ Files => JFiles }
+import java.nio.file.Path
+import java.time.LocalDateTime
+
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
+
 import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.jobs.JobResult.CommandResult
-import loamstream.model.jobs.{JobStatus, LJob, LocalJob, OutputStreams, RunData}
-import loamstream.model.jobs.commandline.{CloseableProcessLogger, CommandLineJob}
+import loamstream.model.jobs.JobStatus
+import loamstream.model.jobs.LJob
+import loamstream.model.jobs.LocalJob
+import loamstream.model.jobs.OutputStreams
+import loamstream.model.jobs.RunData
+import loamstream.model.jobs.commandline.CloseableProcessLogger
+import loamstream.model.jobs.commandline.CommandLineJob
+import loamstream.util.BashScript
+import loamstream.util.CanBeClosed
+import loamstream.util.Loggable
+import loamstream.util.TimeUtils
 import loamstream.util.ToFilesProcessLogger
-import loamstream.util.{BashScript, CanBeClosed, Futures, Loggable, TimeUtils}
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
-import java.nio.file.Path
-import loamstream.util.Processes
-import scala.util.Try
-import java.time.Instant
-import java.time.LocalDateTime
-import loamstream.util.Terminable
+import monix.eval.Task
 
 /**
  * @author clint
@@ -29,7 +37,7 @@ object LocalJobStrategy extends Loggable {
   def execute(
     job: LJob,
     jobDir: Path,
-    processLogger: ToFilesProcessLogger)(implicit context: ExecutionContext): Future[RunData] = {
+    processLogger: ToFilesProcessLogger): Task[RunData] = {
 
     require(canBeRun(job), s"Expected job to be one we can run locally, but got $job")
     
@@ -39,14 +47,14 @@ object LocalJobStrategy extends Loggable {
     }
   }
 
-  private def executeLocalJob(localJob: LocalJob)(implicit ctx: ExecutionContext): Future[RunData] = localJob.execute
+  private def executeLocalJob(localJob: LocalJob): Task[RunData] = localJob.execute
 
   private def executeCommandLineJob(
     commandLineJob: CommandLineJob,
     jobDir: Path,
-    processLogger: ToFilesProcessLogger)(implicit context: ExecutionContext): Future[RunData] = {
+    processLogger: ToFilesProcessLogger): Task[RunData] = {
     
-    Futures.runBlocking {
+    Task {
       val (exitValueAttempt, (start, end)) = TimeUtils.startAndEndTime {
         trace(s"RUNNING: ${commandLineJob.commandLineString}")
 
@@ -85,7 +93,6 @@ object LocalJobStrategy extends Loggable {
   }
   
   private def createWorkDirAndRun(job: CommandLineJob, processLogger: CloseableProcessLogger): Try[Int] = {
-    import scala.sys.process.ProcessBuilder
     
     val commandLineString = job.commandLineString
     

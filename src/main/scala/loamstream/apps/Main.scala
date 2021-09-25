@@ -24,6 +24,10 @@ import loamstream.util.OneTimeLatch
 import loamstream.util.TimeUtils
 import loamstream.util.Versions
 import scala.collection.compat._
+import loamstream.drm.DrmSystem
+import org.apache.commons.io.FilenameUtils
+import org.apache.commons.io.FileUtils
+import loamstream.conf.DrmConfig
 
 
 /**
@@ -44,7 +48,7 @@ object Main extends Loggable {
     info(s"Worker mode is ${if(cli.toValues.workerSupplied) "ON" else "OFF"}")
     
     val intent = Intent.from(cli)
-    
+
     import loamstream.cli.Intent._
 
     def run = new Run
@@ -148,7 +152,29 @@ object Main extends Loggable {
         case _ => ()
       }
     }
+
+    private def clearDir(dir: Path): Unit = {
+      if(java.nio.file.Files.exists(dir)) {
+        info(s"Clearing out dir ${dir.toAbsolutePath}")
+
+        FileUtils.cleanDirectory(dir.toFile)
+      }
+    }
     
+    private def clearDrmWorkDir(drmConfig: Option[DrmConfig]): Unit = {
+      import java.nio.file.Files.exists
+
+      drmConfig.map(_.workDir).filter(exists(_)).foreach(clearDir)
+    }
+
+    private def clearWorkDirs(wiring: AppWiring): Unit = {
+      clearDrmWorkDir(wiring.config.lsfConfig)
+      clearDrmWorkDir(wiring.config.ugerConfig)
+      clearDrmWorkDir(wiring.config.slurmConfig)
+      //TODO: Commit
+      clearDir(wiring.config.executionConfig.locations.jobDataDir)
+    }
+
     def doRealRun(
         intent: Intent.RealRun, 
         makeDao: LoamConfig => LoamDao = conf => AppWiring.makeDefaultDbIn(conf.executionConfig.dbDir)): Unit = {
@@ -159,6 +185,8 @@ object Main extends Loggable {
       
       info(s"Loamstream will create logs and metadata files under ${lsDir}")
       
+      clearWorkDirs(wiring)
+
       addShutdownHook(wiring)
       
       addUncaughtExceptionHandler(Some(wiring))
@@ -251,9 +279,9 @@ object Main extends Loggable {
   private[this] val shutdownLatch: OneTimeLatch = new OneTimeLatch
   
   private[apps] def shutdown(wiring: AppWiring): Unit = {
-    shutdownLatch.doOnce {
-      info("LoamStream shutting down...")
-      
+    info("LoamStream shutting down...")
+    
+    val alreadyShutDown = shutdownLatch.doOnce {
       wiring.shutdown() match {
         case Nil => info("LoamStream shut down successfully")
         case exceptions => {
@@ -264,6 +292,10 @@ object Main extends Loggable {
           }
         }
       }
+    }
+    
+    if(alreadyShutDown) {
+      info(s"LoamStream already shut down")
     }
   }
 }

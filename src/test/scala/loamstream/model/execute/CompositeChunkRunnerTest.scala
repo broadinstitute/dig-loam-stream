@@ -24,7 +24,7 @@ import loamstream.util.Maps
 final class CompositeChunkRunnerTest extends FunSuite {
   
   import CompositeChunkRunnerTest.{ MockRunner, local }
-  import loamstream.TestHelpers.waitFor
+  import loamstream.TestHelpers.waitForT
   
   test("canRun") {
 
@@ -77,7 +77,7 @@ final class CompositeChunkRunnerTest extends FunSuite {
 }
 
 object CompositeChunkRunnerTest {
-  private def local(n: Int) = AsyncLocalChunkRunner(ExecutionConfig.default, n)(ExecutionContext.global)
+  private def local(n: Int) = AsyncLocalChunkRunner(ExecutionConfig.default, n)
   
   private final case class MockRunner(allowed: MockJob) extends ChunkRunner {
     override def canRun(job: LJob): Boolean = job eq allowed

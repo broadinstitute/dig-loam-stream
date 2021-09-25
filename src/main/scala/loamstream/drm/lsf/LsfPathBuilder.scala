@@ -18,7 +18,7 @@ object LsfPathBuilder extends PathBuilder {
     Paths.get(pathString).toAbsolutePath
   }
     
-  //NB: Need to build this differently by environment (':' for Uger, '' for LSF)
+  //NB: Need to build this differently by environment (':' for Uger, '' for LSF and Slurm)
   override def pathTemplatePrefix: String = ""
   
   override def scriptBuilderParams: ScriptBuilderParams = LsfScriptBuilderParams

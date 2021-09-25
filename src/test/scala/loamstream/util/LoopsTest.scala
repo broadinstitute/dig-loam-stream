@@ -75,7 +75,7 @@ final class LoopsTest extends FunSuite {
   
   {
     import Loops.retryUntilSuccessWithBackoffAsync
-    import TestHelpers.waitFor
+    import TestHelpers.waitForT
     import scala.concurrent.ExecutionContext.Implicits.global
     
     val scheduler = Scheduler.io()

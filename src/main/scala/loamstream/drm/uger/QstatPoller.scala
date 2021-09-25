@@ -1,203 +1,77 @@
 package loamstream.drm.uger
 
-import scala.concurrent.ExecutionContext
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
-import scala.util.control.NonFatal
 
-import loamstream.conf.UgerConfig
+import QstatPoller.Params
+import loamstream.conf.ExecutionConfig
 import loamstream.drm.DrmStatus
 import loamstream.drm.DrmTaskId
-import loamstream.drm.Poller
-import loamstream.util.CommandInvoker
-import loamstream.util.ExecutorServices.QueueStrategy
-import loamstream.util.ExecutorServices.RejectedExecutionStrategy
-import loamstream.util.Fold
-import loamstream.util.Loggable
-import loamstream.util.Observables
-import loamstream.util.Terminable
-import loamstream.util.ThisMachine
-import loamstream.util.Throwables
-import loamstream.util.Tries
-import monix.reactive.Observable
-import monix.execution.Scheduler
-import monix.reactive.OverflowStrategy
-import loamstream.model.jobs.JobOracle
+import loamstream.drm.RateLimitedPoller
+import loamstream.drm.RateLimitedPoller.PollResultsForInvocation
 import loamstream.model.jobs.DrmJobOracle
-import java.nio.file.Path
-import loamstream.util.LogFileNames
-import loamstream.util.CanBeClosed
-import scala.io.Source
-import loamstream.util.Iterators
-import loamstream.util.ValueBox
+import loamstream.util.CommandInvoker
+import loamstream.util.FileMonitor
+import loamstream.util.Loggable
+import monix.execution.Scheduler
+
 import scala.collection.compat._
+import loamstream.util.RunResults
+import monix.reactive.Observable
+import java.nio.file.Path
+import scala.io.Source
+import loamstream.util.CanBeClosed
+import loamstream.util.Iterators
+import loamstream.util.LogFileNames
+import loamstream.util.Tries
 
-/**
- * @author clint
- * Jul 15, 2020
- */
-final class QstatPoller private[uger] (qstatInvoker: CommandInvoker.Async[Unit]) extends Poller with Loggable {
 
-  import QstatPoller._
+final class QstatPoller private[uger] (
+    commandName: String,
+    pollingFn: CommandInvoker.Async[Unit],
+    fileMonitor: FileMonitor) extends RateLimitedPoller[Unit](commandName, pollingFn, fileMonitor) {
 
-  override def poll(oracle: DrmJobOracle)(drmTaskIds: Iterable[DrmTaskId]): Observable[(DrmTaskId, Try[DrmStatus])] = {
-    //Invoke qstat, to get the status of all submitted-but-not-finished jobs in this session
-    val qstatResultObs = {
-      implicit val ec = ExecutionContexts.forQstat
-
-      Observable.from(qstatInvoker.apply(())).observeOn(Schedulers.forQstat).onErrorHandleWith {
-        warnThenComplete(s"Error invoking qstat, will try again during at next polling time.")
-      }
-    }
-
-    //The Set of distinct DrmTaskIds (jobId/task index coords) that we're polling for
-    val drmTaskIdSet = drmTaskIds.to(Set)
-
-    //Parse out DrmTaskIds and DrmStatuses from raw qstat output (one line per task)
-    val pollingResultsFromQstatObs = qstatResultObs.map { qstatResults =>
-      QstatSupport.getByTaskId(drmTaskIdSet, qstatResults.stdout)
-    }.asyncBoundary(Observables.defaultOverflowStrategy)
-
-    //For all the jobs that we're polling for that were not mentioned by qstat, assume they've finished
-    //(qstat only returns info about running jobs) and look up their exit codes to determine their final statuses.
-    pollingResultsFromQstatObs.flatMap { byTaskId =>
-      val notFoundByQstat = drmTaskIdSet -- byTaskId.keys
-
-      if (notFoundByQstat.nonEmpty) {
-        //For all the DrmTaskIds we're looking for but that weren't mentioned by qstat,
-        //determine the set of distinct job ids. Or, the ids of task arrays with finished jobs
-        //from the DrmTaskIds that we're polling for.
-        val taskArrayIdsNotFoundByQstat = notFoundByQstat.map(_.jobId)
-        
-        val numJobIds = taskArrayIdsNotFoundByQstat.size
-
-        debug(s"${notFoundByQstat.size} finished jobs not found by qstat, ${numJobIds} job IDs")
-      }
-      
-      val notFoundByQstatByTaskArrayId: Map[String, Set[DrmTaskId]] = notFoundByQstat.groupBy(_.jobId)
-      
-      val exitCodeStatusObses = {
-        notFoundByQstatByTaskArrayId.values.iterator.take(ThisMachine.numCpus).map { drmTaskIdsInTaskArray =>  
-          getExitCodes(oracle)(drmTaskIdsInTaskArray)
-        }.to(Seq)
-      }
-
-      val exitCodeStatuesObs = Observables.merge(exitCodeStatusObses)
-
-      //Concatentate results from qstat with those from looking up exit codes, wrapping in Trys as needed.
-      Observable.fromIterable(byTaskId) ++ {
-        exitCodeStatuesObs.map { case (tid, status) => (tid, Success(status)) }
-      }.asyncBoundary(Observables.defaultOverflowStrategy)
-    }
-  }
-
-  private def getExitCodes(oracle: DrmJobOracle)(idsToLookFor: Set[DrmTaskId]): Observable[PollResult] = {
-    def readExitCodeFrom(file: Path): Option[DrmStatus] = {
-      CanBeClosed.using(Source.fromFile(file.toFile)) { source =>
-        import Iterators.Implicits.IteratorOps
-        
-        val lines: Iterator[String] = source.getLines.map(_.trim).filter(_.nonEmpty)
-        
-        val statuses: Iterator[DrmStatus] = {
-          lines.flatMap(line => Try(line.toInt).toOption).map(DrmStatus.CommandResult(_))
-        }
-        
-        statuses.nextOption()
-      }
-    }
+  override protected def toParams(oracle: DrmJobOracle)(drmTaskIds: Iterable[DrmTaskId]): Params = ()
+  
+  import QstatPoller.PollResult
+  import QstatPoller.QstatSupport
+  
+  override protected def getStatusesByTaskId(
+      idsWereLookingFor: Iterable[DrmTaskId])
+     (runResults: RunResults.Completed): PollResultsForInvocation = {
     
-    def exitCodeFor(taskId: DrmTaskId): Observable[PollResult] = {
-      def toPollResult(status: DrmStatus): PollResult = taskId -> status
+    val attemptsByTaskId = QstatSupport.getByTaskId(idsWereLookingFor, runResults.stdout)
+    
+    PollResultsForInvocation(runResults, attemptsByTaskId)
+  }
+}  
+
+object QstatPoller extends RateLimitedPoller.Companion[Unit, QstatPoller] with Loggable {
+  def fromExecutable(
+      pollingFrequencyInHz: Double,
+      executionConfig: ExecutionConfig,
+      actualExecutable: String = "qstat",
+      scheduler: Scheduler): QstatPoller = {
+    
+    val invoker = commandInvoker(
+        pollingFrequencyInHz, 
+        actualExecutable, 
+        _ => Qstat.makeTokens(actualExecutable))(scheduler, this)
+    
+    import executionConfig.{ executionPollingFrequencyInHz, maxWaitTimeForOutputs }
+    
+    val fileMonitor = new FileMonitor(executionPollingFrequencyInHz, maxWaitTimeForOutputs)
+    
+    new QstatPoller(actualExecutable, invoker, fileMonitor)
+  }
       
-      import java.nio.file.Files.exists
-
-      Observable.fromIterable {
-        val exitCodeFile: Option[Path] = oracle.dirOptFor(taskId).map(LogFileNames.exitCode)
-        
-        exitCodeFile.flatMap { file =>
-          if(exists(file)) { readExitCodeFrom(file).map(toPollResult) } 
-          else { None }
-        }
-      }
-    }
-    
-    Observable.from(idsToLookFor).subscribeOn(Schedulers.forExitStatuses).flatMap(exitCodeFor)
-  }
-  
-  private def warnThenComplete[A](msg: => String): Throwable => Observable[A] = {
-    case NonFatal(e) => {
-      warn(msg, e)
-  
-      Observable.empty
-    }
-  }
-  
-  override def stop(): Unit = {
-    Throwables.quietly("Shutting down Qstat ExecutionContext") {
-      ExecutionContexts.forQstatHandle.stop()
-    }
-
-    Throwables.quietly("Shutting down exit-status-lookup ExecutionContext") {
-      ExecutionContexts.forExitStatusesHandle.stop()
-    }
-  }
-
-  private[uger] object ExecutionContexts {
-    lazy val (forQstat: ExecutionContext, forQstatHandle: Terminable) = {
-      val queueSize = 5 //TODO: ???
-
-      loamstream.util.ExecutionContexts.singleThread(
-        baseName = "LS-QstatQAcctPoller-forQstatPool",
-        queueStrategy = QueueStrategy.Bounded(queueSize), //TODO: ???
-        rejectedStrategy = RejectedExecutionStrategy.Drop) //TODO: ???
-    }
-
-    lazy val (forExitStatuses: ExecutionContext, forExitStatusesHandle: Terminable) = {
-      val queueSize = ThisMachine.numCpus //TODO: ???
-
-      loamstream.util.ExecutionContexts.oneThreadPerCpu(
-        baseName = "LS-QstatQAcctPoller-forQacctPool",
-        queueStrategy = QueueStrategy.Bounded(queueSize), //TODO: ???
-        rejectedStrategy = RejectedExecutionStrategy.Drop) //TODO: ???
-    }
-  }
-
-  private[uger] object Schedulers {
-    val forQstat: Scheduler = Scheduler(ExecutionContexts.forQstat)
-
-    val forExitStatuses: Scheduler = Scheduler(ExecutionContexts.forExitStatuses)
-  }
-}
-
-object QstatPoller extends Loggable {
-
-  def fromExecutables(
-    qstatPollingFrequencyInHz: Double,
-    ugerConfig: UgerConfig,
-    actualQstatExecutable: String = "qstat",
-    scheduler: Scheduler): QstatPoller = {
-
-    import Qstat.{ commandInvoker => qstatCommandInvoker }
-    import scala.concurrent.duration._
-
-    //TODO
-    implicit val sch = scheduler
-    
-    val qstat = qstatCommandInvoker(qstatPollingFrequencyInHz, actualQstatExecutable)
-
-    new QstatPoller(qstat)
-  }
-
-  type PollResult = (DrmTaskId, DrmStatus)
-  type PollResultsAttempt = Try[Iterator[PollResult]]
-  
   private[uger] object QstatSupport {
     object QstatRegexes {
       val jobIdStatusAndTaskIndex = """^(\w+)\s+\S+\s+\S+\s+\S+\s+(\w+)\s+.+\d+\s+(\d+)$""".r
       val jobIdStatusForWholeTaskArray = """^(\w+)\s+\S+\s+\S+\s+\S+\s+(\w+)\s+.+(\d+)\-(\d+)\:(\d+)$""".r
     }
-
+    
     def getByTaskId(
       idsWereLookingFor: Iterable[DrmTaskId],
       qstatOutput: Seq[String]): Map[DrmTaskId, Try[DrmStatus]] = {

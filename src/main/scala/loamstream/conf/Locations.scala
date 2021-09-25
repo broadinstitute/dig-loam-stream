@@ -23,6 +23,7 @@ trait Locations {
 
   def ugerDir: Path
   def lsfDir: Path
+  def slurmDir: Path
 }
 
 object Locations {
@@ -47,5 +48,6 @@ object Locations {
 
     override lazy val ugerDir = (loamstreamDir / "uger").normalize
     override lazy val lsfDir = (loamstreamDir / "lsf").normalize
+    override lazy val slurmDir = (loamstreamDir / "slurm").normalize
   }
 }

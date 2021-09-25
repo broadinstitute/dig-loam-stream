@@ -10,6 +10,7 @@ import loamstream.model.execute.Resources.GoogleResources
 import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.execute.Resources.UgerResources
 import loamstream.model.execute.Resources.LsfResources
+import loamstream.model.execute.Resources.SlurmResources
 import loamstream.model.execute.Resources.AwsResources
 import loamstream.model.jobs.JobResult.CommandResult
 import loamstream.model.jobs.JobResult.FailureWithException
@@ -36,7 +37,7 @@ final case class Execution(
     terminationReason: Option[TerminationReason]) extends Execution.Persisted {
 
   require(
-      environmentAndResourcesMatch, 
+      envType.matches(resources), 
       s"Environment type and resources must match, but got $envType and $resources")
       
   override def envType: EnvironmentType = settings.envType
@@ -44,16 +45,6 @@ final case class Execution(
   def isSuccess: Boolean = status.isSuccess
   def isFailure: Boolean = status.isFailure
   def isSkipped: Boolean = status.isSkipped
-  
-  private def environmentAndResourcesMatch: Boolean = (envType, resources) match {
-    case (_, None) => true
-    case (EnvironmentType.Local, Some(_: LocalResources)) => true
-    case (EnvironmentType.Google, Some(_: GoogleResources)) => true
-    case (EnvironmentType.Uger, Some(_: UgerResources)) => true
-    case (EnvironmentType.Lsf, Some(_: LsfResources)) => true
-    case (EnvironmentType.Aws, Some(_: AwsResources)) => true
-    case _ => false
-  }
 
   def isPersistable: Boolean = isSkipped || cmd.isDefined
   def notPersistable: Boolean = !isPersistable

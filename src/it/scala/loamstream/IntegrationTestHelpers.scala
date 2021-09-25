@@ -77,6 +77,7 @@ object IntegrationTestHelpers {
   val minimalConfig: LoamConfig = LoamConfig(
     ugerConfig = None,
     lsfConfig = None,
+    slurmConfig = None,
     googleConfig = None,
     hailConfig = None,
     pythonConfig = None,

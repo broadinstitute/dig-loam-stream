@@ -10,6 +10,7 @@ import loamstream.model.execute.Resources.LsfResources
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Memory
 import java.time.LocalDateTime
+import loamstream.model.execute.Resources.SlurmResources
 
 /**
  * @author clint
@@ -61,18 +62,19 @@ final class DrmResourcesTest extends FunSuite {
     
     doTest(UgerResources.apply)
     doTest(LsfResources.apply)
+    doTest(SlurmResources.apply)
   }
 
   test("withNode/withQueue") {
     def doTest[R <: DrmResources](makeResources: ResourcesMaker[R]): Unit = {
-      val r = UgerResources(
-        memory = Memory.inGb(1),
-        cpuTime = CpuTime(42.seconds),
-        node = None,
-        queue = None,
-        startTime = now,
-        endTime = now,
-        raw = Some(rawResourceData))
+      val r = makeResources(
+        Memory.inGb(1),
+        CpuTime(42.seconds),
+        None,
+        None,
+        now,
+        now,
+        Some(rawResourceData))
   
       val withNode = r.withNode("foo.example.com")
   
@@ -97,5 +99,6 @@ final class DrmResourcesTest extends FunSuite {
     
     doTest(UgerResources.apply)
     doTest(LsfResources.apply)
+    doTest(SlurmResources.apply)
   }
 }

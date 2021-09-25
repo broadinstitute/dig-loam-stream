@@ -21,6 +21,11 @@ import loamstream.model.execute.LsfDrmSettings
 import loamstream.model.execute.UgerDrmSettings
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.util.BashScript.Implicits.BashPath
+import loamstream.drm.slurm.SlurmPathBuilder
+import loamstream.model.jobs.commandline.HasCommandLine
+import loamstream.conf.SlurmConfig
+import loamstream.model.execute.SlurmDrmSettings
+import java.nio.file.Path
 
 /**
  * @author clint
@@ -37,41 +42,50 @@ final class DrmJobWrapperTest extends FunSuite {
   private val baseExecutionConfig = ExecutionConfig(maxRunsPerJob = 42)
   private val baseUgerConfig = UgerConfig(maxNumJobsPerTaskArray = 42)
   private val baseLsfConfig = LsfConfig(maxNumJobsPerTaskArray = 42)
+  private val baseSlurmConfig = SlurmConfig(maxNumJobsPerTaskArray = 42)
   
+  private def wrapCommand(drmJob: DrmJobWrapper, command: String): String = command
+
   test("commandLineInTaskArray - no image") {
     val ugerSettings = TestHelpers.defaultUgerSettings
+    val lsfSettings = TestHelpers.defaultLsfSettings
+    val slurmSettings = TestHelpers.defaultSlurmSettings
 
     assert(ugerSettings.containerParams === None)
-
-    val lsfSettings = TestHelpers.defaultLsfSettings
-
     assert(lsfSettings.containerParams === None)
+    assert(slurmSettings.containerParams === None)
 
     def doTest(pathBuilder: PathBuilder, drmSettings: DrmSettings): Unit = {
       val drmJob = DrmJobWrapper(baseExecutionConfig, drmSettings, pathBuilder, makeJob("foo"), path("."), 1)
 
-      assert(drmJob.commandLineInTaskArray === "foo")
+      val expected = wrapCommand(drmJob, "foo")
+
+      assert(drmJob.commandLineInTaskArray === expected)
     }
 
     doTest(ugerPathBuilder, ugerSettings)
     doTest(LsfPathBuilder, lsfSettings)
+    doTest(SlurmPathBuilder, slurmSettings)
   }
 
   test("commandLineInTaskArray - with image, default singularity settings") {
     val ugerSettings = TestHelpers.defaultUgerSettings.copy(containerParams = Option(ContainerParams("bar", "")))
-
     val lsfSettings = TestHelpers.defaultLsfSettings.copy(containerParams = Option(ContainerParams("baz", "")))
+    val slurmSettings = TestHelpers.defaultSlurmSettings.copy(containerParams = Option(ContainerParams("blerg", "")))
 
     assert(baseExecutionConfig.singularity == SingularityConfig.default)
 
     def doTest(pathBuilder: PathBuilder, drmSettings: DrmSettings): Unit = {
       val drmJob = DrmJobWrapper(baseExecutionConfig, drmSettings, pathBuilder, makeJob("foo"), path("."), 1)
 
-      assert(drmJob.commandLineInTaskArray === s"singularity exec ${drmSettings.containerParams.get.imageName} foo")
+      val expected = wrapCommand(drmJob, s"singularity exec ${drmSettings.containerParams.get.imageName} foo")
+
+      assert(drmJob.commandLineInTaskArray === expected)
     }
 
     doTest(ugerPathBuilder, ugerSettings)
     doTest(LsfPathBuilder, lsfSettings)
+    doTest(SlurmPathBuilder, slurmSettings)
   }
 
   test("commandLineInTaskArray - with image, non-default singularity settings") {
@@ -81,6 +95,10 @@ final class DrmJobWrapperTest extends FunSuite {
 
     val lsfSettings = {
       TestHelpers.defaultLsfSettings.copy(containerParams = Option(ContainerParams("baz", "--foo --bar")))
+    }
+
+    val slurmSettings = {
+      TestHelpers.defaultSlurmSettings.copy(containerParams = Option(ContainerParams("blerg", "--foo --bar")))
     }
 
     def doTest(pathBuilder: PathBuilder, drmSettings: DrmSettings): Unit = {
@@ -101,11 +119,12 @@ final class DrmJobWrapperTest extends FunSuite {
         s"blarg exec -B ${bar.render} -B ${fooBarBat.render} --foo --bar ${imageName} foo"
       }
 
-      assert(drmJob.commandLineInTaskArray === expected)
+      assert(drmJob.commandLineInTaskArray === wrapCommand(drmJob, expected))
     }
 
     doTest(ugerPathBuilder, ugerSettings)
     doTest(LsfPathBuilder, lsfSettings)
+    doTest(SlurmPathBuilder, slurmSettings)
   }
 
   private def makeJob(commandLine: String) = CommandLineJob(commandLine, Paths.get("."), LocalSettings)
@@ -141,9 +160,9 @@ final class DrmJobWrapperTest extends FunSuite {
 
       import loamstream.util.Paths.Implicits.PathHelpers
       
-      val expected0 = (drmConfig.workDir / s"$jobName.1.stdout").toAbsolutePath
-      val expected1 = (drmConfig.workDir / s"$jobName.2.stdout").toAbsolutePath
-      val expected2 = (drmConfig.workDir / s"$jobName.3.stdout").toAbsolutePath
+      val expected0 = (drmConfig.workDir / s"$jobName/1.stdout").toAbsolutePath
+      val expected1 = (drmConfig.workDir / s"$jobName/2.stdout").toAbsolutePath
+      val expected2 = (drmConfig.workDir / s"$jobName/3.stdout").toAbsolutePath
 
       assert(stdOutPath0 === expected0)
       assert(stdOutPath1 === expected1)
@@ -185,9 +204,9 @@ final class DrmJobWrapperTest extends FunSuite {
 
       import loamstream.util.Paths.Implicits.PathHelpers
       
-      val expected0 = (drmConfig.workDir / s"$jobName.1.stderr").toAbsolutePath
-      val expected1 = (drmConfig.workDir / s"$jobName.2.stderr").toAbsolutePath
-      val expected2 = (drmConfig.workDir / s"$jobName.3.stderr").toAbsolutePath
+      val expected0 = (drmConfig.workDir / jobName / "1.stderr").toAbsolutePath
+      val expected1 = (drmConfig.workDir / jobName / "2.stderr").toAbsolutePath
+      val expected2 = (drmConfig.workDir / jobName / "3.stderr").toAbsolutePath
 
       assert(stdErrPath0 === expected0)
       assert(stdErrPath1 === expected1)
@@ -249,50 +268,52 @@ final class DrmJobWrapperTest extends FunSuite {
   }
 
   test("commandChunk") {
+    def getDrmConfig(testWorkDir: Path)(settings: DrmSettings): DrmConfig = settings match {
+      case _: UgerDrmSettings => baseUgerConfig.copy(workDir = testWorkDir)
+      case _: LsfDrmSettings => baseLsfConfig.copy(workDir = testWorkDir)
+      case _: SlurmDrmSettings => baseSlurmConfig.copy(workDir = testWorkDir)
+    }
+
     def doTest(pathBuilder: PathBuilder, settings: DrmSettings, expectedSingularityPart: String): Unit = {
       val jobName = DrmTaskArray.makeJobName()
-
       val testWorkDir = TestHelpers.getWorkDir(getClass.getSimpleName)
-      
-      val drmConfig: DrmConfig = settings match {
-        case _: UgerDrmSettings => baseUgerConfig.copy(workDir = testWorkDir)
-        case _: LsfDrmSettings => baseLsfConfig.copy(workDir = testWorkDir)
-      }
-      
+      val drmConfig = getDrmConfig(testWorkDir)(settings)
       val executionConfig: ExecutionConfig = baseExecutionConfig.copy(loamstreamDir = testWorkDir)
-      
       val jobOracle = TestHelpers.InDirJobOracle(testWorkDir)
-      
       val taskArray = {
         DrmTaskArray.fromCommandLineJobs(executionConfig, jobOracle, settings, drmConfig, pathBuilder, Seq(j0), jobName)
       }
-
       val Seq(wrapper0) = taskArray.drmJobs
-
       val workDir = drmConfig.workDir
-      
       val jobOutputDir = executionConfig.jobDataDir.toAbsolutePath
 
       import loamstream.util.Paths.Implicits.PathHelpers
       
       // scalastyle:off line.size.limit
-      val expected = s"""|${expectedSingularityPart}${j0.commandLineString}
+      val expected = s"""|jobDir="${jobOracle.dirFor(j0).render}"
+                         |mkdir -p "$$jobDir"
+                         |
+                         |STATS_FILE="${(jobOracle.dirFor(j0) / "stats").render}"
+                         |EXITCODE_FILE="${(jobOracle.dirFor(j0) / "exitcode").render}"
+                         |COMMAND_SCRIPT="${(jobOracle.dirFor(j0) / "command.sh").render}"
+                         |STDOUT_FILE="${(jobOracle.dirFor(j0) / "stdout").render}"
+                         |STDERR_FILE="${(jobOracle.dirFor(j0) / "stderr").render}"
+                         |
+                         |echo "Node: $$(hostname)" >> $$STATS_FILE
+                         |echo Task_Array_Name: ${jobName} >> $$STATS_FILE
+                         |echo DRM_Task_Id: "$${jobId}-$${i}" >> $$STATS_FILE
+                         |echo "Raw_Logs: .loamstream/${drmConfig.drmSystem.name.toLowerCase}/${jobName}/$${i}.{stdout,stderr}" >> $$STATS_FILE
+                         |
+                         |START="$$(date +%Y-%m-%dT%H:%M:%S)"
+                         |echo "Start: $$START" >> $$STATS_FILE
+                         |
+                         |`which time` -o $$STATS_FILE --format="ExitCode: %x\\nMemory: %Mk\\nSystem: %Ss\\nUser: %Us" bash $$COMMAND_SCRIPT 1> $$STDOUT_FILE 2> $$STDERR_FILE
                          |
                          |LOAMSTREAM_JOB_EXIT_CODE=$$?
                          |
-                         |origStdoutPath="${(workDir / jobName).render}.1.stdout"
-                         |origStderrPath="${(workDir / jobName).render}.1.stderr"
+                         |echo "$$LOAMSTREAM_JOB_EXIT_CODE" > $$EXITCODE_FILE
                          |
-                         |stdoutDestPath="${(jobOracle.dirFor(j0) / "stdout").render}"
-                         |stderrDestPath="${(jobOracle.dirFor(j0) / "stderr").render}"
-                         |exitcodeDestPath="${(jobOracle.dirFor(j0) / "exitcode").render}"
-                         |
-                         |jobDir="${jobOracle.dirFor(j0).render}"
-                         |
-                         |mkdir -p $$jobDir
-                         |mv $$origStdoutPath $$stdoutDestPath || echo "Couldn't move DRM std out log $$origStdoutPath; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
-                         |mv $$origStderrPath $$stderrDestPath || echo "Couldn't move DRM std err log $$origStderrPath; it's likely the job wasn't submitted successfully" > $$stderrDestPath
-                         |echo $$LOAMSTREAM_JOB_EXIT_CODE > $$exitcodeDestPath
+                         |echo "End: $$(date +%Y-%m-%dT%H:%M:%S)" >> $$STATS_FILE
                          |
                          |exit $$LOAMSTREAM_JOB_EXIT_CODE
                          |""".stripMargin

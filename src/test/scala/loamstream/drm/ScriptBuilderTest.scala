@@ -19,6 +19,8 @@ import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
 import loamstream.util.BashScript.Implicits.BashPath
+import loamstream.drm.slurm.SlurmPathBuilder
+import loamstream.drm.slurm.SlurmScriptBuilderParams
 
 /**
  * Created by kyuksel on 2/29/2016.
@@ -34,8 +36,16 @@ final class ScriptBuilderTest extends FunSuite {
   import ScriptBuilderTest.EnrichedString
   import loamstream.TestHelpers.path
 
-  test("A shell script is generated out of a CommandLineJob, and can be used to submit a UGER job") {
-    def doTest(drmSystem: DrmSystem, containerParamsOpt: Option[ContainerParams]): Unit = {
+  for {
+    drmSystem <- DrmSystem.values
+    containerParamsOpt <- Iterable(None, Some(ContainerParams("library/foo:1.23", "--foo --bar")))
+  } {
+    val testName = {
+      s"A shell script is generated out of a CommandLineJob, and can be used to submit a ${drmSystem} job " +
+      s"with container params $containerParamsOpt"
+    }
+    
+    test(testName) { 
       val drmSettings = drmSystem.settingsMaker(
           Cpus(1),
           Memory.inGb(42),
@@ -82,38 +92,34 @@ final class ScriptBuilderTest extends FunSuite {
         
       assert(scriptContents === expectedScriptContents)
     }
-    
-    val containerParams = ContainerParams("library/foo:1.23", "--foo --bar")
-    
-    doTest(DrmSystem.Uger, None)
-    doTest(DrmSystem.Uger, Some(containerParams))
-    doTest(DrmSystem.Lsf, None)
-    doTest(DrmSystem.Lsf, Some(containerParams))
   }
-
   
   private val ugerScriptBuilderParams = new UgerScriptBuilderParams(path("/foo/bar"), "someEnv")
   
   private val ugerPathBuilder = new UgerPathBuilder(ugerScriptBuilderParams)
   
   private def defaultQueue(drmSystem: DrmSystem): Option[Queue] = drmSystem match {
-    case DrmSystem.Lsf => None
+    case DrmSystem.Lsf | DrmSystem.Slurm => None
     case DrmSystem.Uger => Some(Queue("broad"))
+    
   }
   
   private def drmConfig(drmSystem: DrmSystem): DrmConfig = drmSystem match {
     case DrmSystem.Lsf => TestHelpers.configWithLsf.lsfConfig.get
     case DrmSystem.Uger => TestHelpers.configWithUger.ugerConfig.get
+    case DrmSystem.Slurm => TestHelpers.configWithSlurm.slurmConfig.get
   }
   
   private def pathBuilder(drmSystem: DrmSystem): PathBuilder = drmSystem match {
     case DrmSystem.Lsf => LsfPathBuilder
     case DrmSystem.Uger => ugerPathBuilder
+    case DrmSystem.Slurm => SlurmPathBuilder
   }
   
   private def scriptBuilderParams(drmSystem: DrmSystem): ScriptBuilderParams = drmSystem match {
     case DrmSystem.Lsf => LsfScriptBuilderParams
     case DrmSystem.Uger => ugerScriptBuilderParams
+    case DrmSystem.Slurm => SlurmScriptBuilderParams
   }
 
   private def getShapeItCommandLineJob(discriminator: Int): CommandLineJob = {
@@ -218,75 +224,103 @@ final class ScriptBuilderTest extends FunSuite {
                                |
                                |i=$LSB_JOBINDEX
                                |jobId=$LSB_JOBID""".stripMargin
+                               
+      case DrmSystem.Slurm => """|module load singularity/3.2.1
+                                 |
+                                 |i=$SLURM_ARRAY_TASK_ID
+                                 |jobId=$SLURM_ARRAY_JOB_ID""".stripMargin
     }
+
+    def toIndex(i: Int): Int = DrmTaskArray.TaskIndexingStrategy.forDrmSystem(drmSystem).toIndex(i)
     
     // scalastyle:off line.size.limit
     s"""#!/bin/bash
 ${header}
 ${sixSpaces}
-if [ $$i -eq 1 ]
+if [ "$$i" = "${toIndex(0)}" ]
 then
-${singularityPrefix}/some/shapeit/executable -V /some/vcf/file.$discriminator0 -M /some/map/file.$discriminator0 -O /some/haplotype/file.$discriminator0 /some/sample/file -L /some/log/file --thread 2
-
-LOAMSTREAM_JOB_EXIT_CODE=$$?
-
-origStdoutPath="${drmOutputDir}/${jobName}.1.stdout"
-origStderrPath="${drmOutputDir}/${jobName}.1.stderr"
-
-stdoutDestPath="$finalOutputDir0/stdout"
-stderrDestPath="$finalOutputDir0/stderr"
-exitcodeDestPath="$finalOutputDir0/exitcode"
-
 jobDir="$finalOutputDir0"
+mkdir -p "$$jobDir"
 
-mkdir -p $$jobDir
-mv $$origStdoutPath $$stdoutDestPath || echo "Couldn't move DRM std out log $$origStdoutPath; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
-mv $$origStderrPath $$stderrDestPath || echo "Couldn't move DRM std err log $$origStderrPath; it's likely the job wasn't submitted successfully" > $$stderrDestPath
-echo $$LOAMSTREAM_JOB_EXIT_CODE > $$exitcodeDestPath
+STATS_FILE="${finalOutputDir0}/stats"
+EXITCODE_FILE="${finalOutputDir0}/exitcode"
+COMMAND_SCRIPT="${finalOutputDir0}/command.sh"
+STDOUT_FILE="${finalOutputDir0}/stdout"
+STDERR_FILE="${finalOutputDir0}/stderr"
 
-exit $$LOAMSTREAM_JOB_EXIT_CODE
+echo "Node: $$(hostname)" >> $$STATS_FILE
+echo Task_Array_Name: ${jobName} >> $$STATS_FILE
+echo DRM_Task_Id: "$${jobId}-$${i}" >> $$STATS_FILE
+echo "Raw_Logs: .loamstream/${drmSystem.name.toLowerCase}/${jobName}/$${i}.{stdout,stderr}" >> $$STATS_FILE
 
-elif [ $$i -eq 2 ]
-then
-${singularityPrefix}/some/shapeit/executable -V /some/vcf/file.$discriminator1 -M /some/map/file.$discriminator1 -O /some/haplotype/file.$discriminator1 /some/sample/file -L /some/log/file --thread 2
+START="$$(date +%Y-%m-%dT%H:%M:%S)"
+echo "Start: $$START" >> $$STATS_FILE
+
+`which time` -o $$STATS_FILE --format="ExitCode: %x\\nMemory: %Mk\\nSystem: %Ss\\nUser: %Us" bash $$COMMAND_SCRIPT 1> $$STDOUT_FILE 2> $$STDERR_FILE
 
 LOAMSTREAM_JOB_EXIT_CODE=$$?
 
-origStdoutPath="${drmOutputDir}/${jobName}.2.stdout"
-origStderrPath="${drmOutputDir}/${jobName}.2.stderr"
+echo "$$LOAMSTREAM_JOB_EXIT_CODE" > $$EXITCODE_FILE
 
-stdoutDestPath="$finalOutputDir1/stdout"
-stderrDestPath="$finalOutputDir1/stderr"
-exitcodeDestPath="$finalOutputDir1/exitcode"
+echo "End: $$(date +%Y-%m-%dT%H:%M:%S)" >> $$STATS_FILE
 
+exit $$LOAMSTREAM_JOB_EXIT_CODE
+
+elif [ "$$i" = "${toIndex(1)}" ]
+then
 jobDir="$finalOutputDir1"
+mkdir -p "$$jobDir"
 
-mkdir -p $$jobDir
-mv $$origStdoutPath $$stdoutDestPath || echo "Couldn't move DRM std out log $$origStdoutPath; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
-mv $$origStderrPath $$stderrDestPath || echo "Couldn't move DRM std err log $$origStderrPath; it's likely the job wasn't submitted successfully" > $$stderrDestPath
-echo $$LOAMSTREAM_JOB_EXIT_CODE > $$exitcodeDestPath
+STATS_FILE="${finalOutputDir1}/stats"
+EXITCODE_FILE="${finalOutputDir1}/exitcode"
+COMMAND_SCRIPT="${finalOutputDir1}/command.sh"
+STDOUT_FILE="${finalOutputDir1}/stdout"
+STDERR_FILE="${finalOutputDir1}/stderr"
 
-exit $$LOAMSTREAM_JOB_EXIT_CODE
+echo "Node: $$(hostname)" >> $$STATS_FILE
+echo Task_Array_Name: ${jobName} >> $$STATS_FILE
+echo DRM_Task_Id: "$${jobId}-$${i}" >> $$STATS_FILE
+echo "Raw_Logs: .loamstream/${drmSystem.name.toLowerCase}/${jobName}/$${i}.{stdout,stderr}" >> $$STATS_FILE
 
-elif [ $$i -eq 3 ]
-then
-${singularityPrefix}/some/shapeit/executable -V /some/vcf/file.$discriminator2 -M /some/map/file.$discriminator2 -O /some/haplotype/file.$discriminator2 /some/sample/file -L /some/log/file --thread 2
+START="$$(date +%Y-%m-%dT%H:%M:%S)"
+echo "Start: $$START" >> $$STATS_FILE
+
+`which time` -o $$STATS_FILE --format="ExitCode: %x\\nMemory: %Mk\\nSystem: %Ss\\nUser: %Us" bash $$COMMAND_SCRIPT 1> $$STDOUT_FILE 2> $$STDERR_FILE
 
 LOAMSTREAM_JOB_EXIT_CODE=$$?
 
-origStdoutPath="${drmOutputDir}/${jobName}.3.stdout"
-origStderrPath="${drmOutputDir}/${jobName}.3.stderr"
+echo "$$LOAMSTREAM_JOB_EXIT_CODE" > $$EXITCODE_FILE
 
-stdoutDestPath="$finalOutputDir2/stdout"
-stderrDestPath="$finalOutputDir2/stderr"
-exitcodeDestPath="$finalOutputDir2/exitcode"
+echo "End: $$(date +%Y-%m-%dT%H:%M:%S)" >> $$STATS_FILE
 
+exit $$LOAMSTREAM_JOB_EXIT_CODE
+
+elif [ "$$i" = "${toIndex(2)}" ]
+then
 jobDir="$finalOutputDir2"
+mkdir -p "$$jobDir"
 
-mkdir -p $$jobDir
-mv $$origStdoutPath $$stdoutDestPath || echo "Couldn't move DRM std out log $$origStdoutPath; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
-mv $$origStderrPath $$stderrDestPath || echo "Couldn't move DRM std err log $$origStderrPath; it's likely the job wasn't submitted successfully" > $$stderrDestPath
-echo $$LOAMSTREAM_JOB_EXIT_CODE > $$exitcodeDestPath
+STATS_FILE="${finalOutputDir2}/stats"
+EXITCODE_FILE="${finalOutputDir2}/exitcode"
+COMMAND_SCRIPT="${finalOutputDir2}/command.sh"
+STDOUT_FILE="${finalOutputDir2}/stdout"
+STDERR_FILE="${finalOutputDir2}/stderr"
+
+echo "Node: $$(hostname)" >> $$STATS_FILE
+echo Task_Array_Name: ${jobName} >> $$STATS_FILE
+echo DRM_Task_Id: "$${jobId}-$${i}" >> $$STATS_FILE
+echo "Raw_Logs: .loamstream/${drmSystem.name.toLowerCase}/${jobName}/$${i}.{stdout,stderr}" >> $$STATS_FILE
+
+START="$$(date +%Y-%m-%dT%H:%M:%S)"
+echo "Start: $$START" >> $$STATS_FILE
+
+`which time` -o $$STATS_FILE --format="ExitCode: %x\\nMemory: %Mk\\nSystem: %Ss\\nUser: %Us" bash $$COMMAND_SCRIPT 1> $$STDOUT_FILE 2> $$STDERR_FILE
+
+LOAMSTREAM_JOB_EXIT_CODE=$$?
+
+echo "$$LOAMSTREAM_JOB_EXIT_CODE" > $$EXITCODE_FILE
+
+echo "End: $$(date +%Y-%m-%dT%H:%M:%S)" >> $$STATS_FILE
 
 exit $$LOAMSTREAM_JOB_EXIT_CODE
 

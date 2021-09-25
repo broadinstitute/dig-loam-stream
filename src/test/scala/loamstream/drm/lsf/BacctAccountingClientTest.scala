@@ -24,7 +24,7 @@ import monix.execution.Scheduler
  * Apr 18, 2019
  */
 final class BacctAccountingClientTest extends FunSuite {
-  import loamstream.TestHelpers.waitFor
+  import loamstream.TestHelpers.waitForT
   
   private def runResultsAttempt(
       binaryName: String = "MOCK", 
@@ -47,11 +47,12 @@ final class BacctAccountingClientTest extends FunSuite {
           0, 
           "MOCK", 
           _ => runResultsAttempt(stdout = bacctOutput), 
-          scheduler = Scheduler.computation())
+          scheduler = Scheduler.computation(),
+          isSuccess = RunResults.SuccessPredicate.zeroIsSuccess)
 
       val taskId = DrmTaskId("foo", 42)
       
-      waitFor(new BacctAccountingClient(mockInvoker).getResourceUsage(taskId).failed)
+      waitForT(new BacctAccountingClient(mockInvoker).getResourceUsage(taskId).failed)
     }
     
     doTest(Nil)
@@ -67,11 +68,12 @@ final class BacctAccountingClientTest extends FunSuite {
         0, 
         "MOCK", 
         _ => runResultsAttempt(stdout = splitOutput),
-        scheduler = Scheduler.computation())
+        scheduler = Scheduler.computation(),
+        isSuccess = RunResults.SuccessPredicate.zeroIsSuccess)
     
     val taskId = DrmTaskId("someJobId", 42)
     
-    val actual = waitFor((new BacctAccountingClient(mockInvoker)).getResourceUsage(taskId))
+    val actual = waitForT((new BacctAccountingClient(mockInvoker)).getResourceUsage(taskId))
     
     val expected = LsfResources(
             Memory.inMb(123), 
@@ -104,11 +106,12 @@ final class BacctAccountingClientTest extends FunSuite {
           0, 
           "MOCK", 
           _ => runResultsAttempt(stdout = splitOutput),
-          scheduler = Scheduler.computation())
+          scheduler = Scheduler.computation(),
+        isSuccess = RunResults.SuccessPredicate.zeroIsSuccess)
       
       val taskId = DrmTaskId("someJobId", 42)
       
-      val actual = waitFor((new BacctAccountingClient(mockInvoker)).getTerminationReason(taskId))
+      val actual = waitForT((new BacctAccountingClient(mockInvoker)).getTerminationReason(taskId))
       
       assert(actual === expected)
     }
@@ -139,11 +142,12 @@ final class BacctAccountingClientTest extends FunSuite {
         0, 
         "MOCK", 
         _ => runResultsAttempt(stdout = splitOutput),
-        scheduler = Scheduler.computation())
+        scheduler = Scheduler.computation(),
+        isSuccess = RunResults.SuccessPredicate.zeroIsSuccess)
     
     val taskId = DrmTaskId("someJobId", 42)
     
-    val actual = waitFor((new BacctAccountingClient(mockInvoker)).getResourceUsage(taskId))
+    val actual = waitForT((new BacctAccountingClient(mockInvoker)).getResourceUsage(taskId))
     
     val expected = LsfResources(
             Memory.inMb(28), 

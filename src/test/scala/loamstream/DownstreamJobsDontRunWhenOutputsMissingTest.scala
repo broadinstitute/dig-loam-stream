@@ -69,7 +69,7 @@ final class DownstreamJobsDontRunWhenOutputsMissingTest extends FunSuite {
     val executor = { 
       val default = RxExecuter.default
       
-      default.copy(fileMonitor = fileMonitor, maxRunsPerJob = 1)(default.executionContext)
+      default.copy(fileMonitor = fileMonitor, maxRunsPerJob = 1)
     }
     
     val results = executor.execute(executable)

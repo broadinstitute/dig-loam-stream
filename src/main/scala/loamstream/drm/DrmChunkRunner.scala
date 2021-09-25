@@ -1,8 +1,5 @@
 package loamstream.drm
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
-
 import DrmStatus.toJobResult
 import DrmStatus.toJobStatus
 import loamstream.conf.DrmConfig
@@ -33,6 +30,7 @@ import cats.kernel.Eq
 import loamstream.model.jobs.commandline.HasCommandLine
 import scala.collection.compat._
 import loamstream.util.Maps
+import monix.eval.Task
 
 /**
  * @author clint
@@ -50,10 +48,12 @@ final case class DrmChunkRunner(
     accountingClient: AccountingClient,
     jobKiller: JobKiller,
     private val sessionTracker: SessionTracker
-  )(implicit ec: ExecutionContext) extends ChunkRunnerFor(environmentType) with 
+  ) extends ChunkRunnerFor(environmentType) with 
         Terminable.StopsComponents with Loggable {
 
-  require(environmentType.isUger || environmentType.isLsf, "Only UGER and LSF environments are supported")
+  require(
+      environmentType.isDrm, 
+      s"Only DRM environments are supported. Must be one of ${DrmSystem.values.mkString(",")}")
   
   import DrmChunkRunner._
 
@@ -98,7 +98,13 @@ final case class DrmChunkRunner(
         rawJobChunk <- rawJobs.sliding(maxJobsPerTaskArray, maxJobsPerTaskArray)
       } yield {
         val drmTaskArray = TimeUtils.time(s"Making DrmTaskArray with ${rawJobChunk.size} jobs", debug(_)) {
-          fromCommandLineJobs(executionConfig, jobOracle, settings, drmConfig, pathBuilder, rawJobChunk)
+          fromCommandLineJobs(
+              executionConfig, 
+              jobOracle, 
+              settings, 
+              drmConfig, 
+              pathBuilder, 
+              rawJobChunk)
         }
         
         runJobs(settings, drmTaskArray, jobOracle)
@@ -147,7 +153,7 @@ final case class DrmChunkRunner(
   private def toRunDataStream
     (jobOracle: JobOracle,
      drmJobs: Seq[DrmJobWrapper])(
-    submissionResult: DrmSubmissionResult)(implicit ec: ExecutionContext): Observable[(LJob, RunData)] = {
+    submissionResult: DrmSubmissionResult): Observable[(LJob, RunData)] = {
     
     val commandLineJobs = drmJobs.map(_.commandLineJob)
     
@@ -161,7 +167,7 @@ final case class DrmChunkRunner(
   
   private[drm] def jobsToRunDatas(
     jobsById: Map[DrmTaskId, DrmJobWrapper],
-    jobOracle: JobOracle)(implicit ec: ExecutionContext): Observable[(LJob, RunData)] = {
+    jobOracle: JobOracle): Observable[(LJob, RunData)] = {
 
     val drmJobOracle = DrmJobOracle.from(jobOracle, jobsById.mapValues(_.commandLineJob: LJob))
     
@@ -205,27 +211,24 @@ object DrmChunkRunner extends Loggable {
     case _ => true
   }
   
-  private[drm] def getAccountingInfoFor(accountingClient: AccountingClient)(taskId: DrmTaskId)
-                                       (implicit ec: ExecutionContext): Future[Option[AccountingInfo]] = {
+  private[drm] def getAccountingInfoFor(
+      accountingClient: AccountingClient)(taskId: DrmTaskId): Task[Option[AccountingInfo]] = {
     
-    val infoAttempt = accountingClient.getAccountingInfo(taskId)
+    val infoAttempt = accountingClient.getAccountingInfo(taskId).map(Option(_))
         
-    //For side effect only
-    infoAttempt.recover {
-      case e => warn(s"Error invoking accounting client for job with DRM id '$taskId': ${e.getMessage}", e)
-    }
+    infoAttempt.onErrorRecover[Option[AccountingInfo]] { case e => 
+      warn(s"Error invoking accounting client for job with DRM id '$taskId': ${e.getMessage}", e)
     
-    infoAttempt.transformWith { 
-      case attempt => Future.successful(attempt.toOption)
+      None
     }
   }
   
   private[drm] def toRunData(
       accountingClient: AccountingClient, 
       wrapper: DrmJobWrapper, 
-      taskId: DrmTaskId)(s: DrmStatus)(implicit ec: ExecutionContext): Observable[RunData] = {
+      taskId: DrmTaskId)(s: DrmStatus): Observable[RunData] = {
     
-    val infoOptFuture: Future[Option[AccountingInfo]] = {
+    val infoOptT: Task[Option[AccountingInfo]] = {
       val statusDescription = s"${simpleNameOf[DrmStatus]} ${s}"
       
       if(s.isFinished && notSuccess(s)) {
@@ -235,12 +238,12 @@ object DrmChunkRunner extends Loggable {
       } else {
         debug(s"${statusDescription} is NOT finished or is a success, NOT determining execution node and queue: $s")
         
-        Future.successful(None)
+        Task.now(None)
       }
     }
     
-    val resultFuture = for {
-      infoOpt <- infoOptFuture
+    val resultT = for {
+      infoOpt <- infoOptT
     } yield {
       RunData(
         job = wrapper.commandLineJob,
@@ -252,14 +255,13 @@ object DrmChunkRunner extends Loggable {
         terminationReasonOpt = infoOpt.flatMap(_.terminationReasonOpt))
     }
     
-    Observable.from(resultFuture)
+    Observable.from(resultT)
   }
   
   private[drm] def toRunDatas(
     accountingClient: AccountingClient, 
     //jobsAndDrmStatusesById: Map[DrmTaskId, JobAndStatuses])
-    jobsAndDrmStatusesById: Observable[(DrmTaskId, DrmJobWrapper, DrmStatus)])
-    (implicit ec: ExecutionContext): Observable[(LJob, RunData)] = {
+    jobsAndDrmStatusesById: Observable[(DrmTaskId, DrmJobWrapper, DrmStatus)]): Observable[(LJob, RunData)] = {
 
     val drmJobsToExecutionObservables: Observable[(DrmJobWrapper, RunData)] = for {
       (taskId, wrapper, status) <- jobsAndDrmStatusesById

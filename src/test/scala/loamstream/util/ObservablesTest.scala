@@ -22,7 +22,7 @@ import scala.collection.compat._
 final class ObservablesTest extends FunSuite {
   
   import Observables.Implicits._
-  import loamstream.TestHelpers.waitFor
+  import loamstream.TestHelpers.waitForT
   
   private def isEven(i: Int): Boolean = i % 2 == 0
   private def isOdd(i: Int): Boolean = !isEven(i)
@@ -42,7 +42,7 @@ final class ObservablesTest extends FunSuite {
     
     val o = Observables.observeAsync(42)
     
-    val actual = o.toListL.runSyncUnsafe(TestHelpers.defaultWaitTime)
+    val actual = waitForT(o.toListL)
     
     assert(actual === Seq(42))
   }
@@ -53,19 +53,19 @@ final class ObservablesTest extends FunSuite {
     val o = Observables.observeAsync(throw new Exception("nuh"))
       
     intercept[Exception] {
-      waitFor(o.firstAsFuture)
+      waitForT(o.firstL)
     }
   }
   
   test("toMap") {
     import Observables.toMap
     
-    assert(waitFor(toMap(Nil).lastAsFuture) == Map.empty)
+    assert(waitForT(toMap(Nil).lastL) == Map.empty)
     
     {
       val tuples = Seq("a" -> Observable(1), "b" -> Observable(2), "c" -> Observable(3))
       
-      assert(waitFor(toMap(tuples).lastAsFuture) == Map("a" -> 1, "b" -> 2, "c" -> 3))
+      assert(waitForT(toMap(tuples).lastL) == Map("a" -> 1, "b" -> 2, "c" -> 3))
     }
     
     {
@@ -82,7 +82,7 @@ final class ObservablesTest extends FunSuite {
     
     val shouldBeEmpty = Observables.merge[Int](Nil)
     
-    assert(waitFor(shouldBeEmpty.isEmpty.firstAsFuture))
+    assert(waitForT(shouldBeEmpty.isEmpty.firstL))
   }
   
   test("merge - empty inputs (plural)") {
@@ -92,7 +92,7 @@ final class ObservablesTest extends FunSuite {
     
     val shouldBeEmpty = Observables.merge(os)
     
-    assert(waitFor(shouldBeEmpty.isEmpty.firstAsFuture))
+    assert(waitForT(shouldBeEmpty.isEmpty.firstL))
   }
   
   test("merge - non-empty") {
@@ -245,12 +245,12 @@ final class ObservablesTest extends FunSuite {
   test("firstAsFuture") {
     val f = Observable("a", "b", "c", "d").firstAsFuture
 
-    assert(waitFor(f) == "a")
+    assert(TestHelpers.waitFor(f) == "a")
   }
 
   test("lastAsFuture") {
     val f = Observable("a", "b", "c", "d").lastAsFuture
 
-    assert(waitFor(f) == "d")
+    assert(TestHelpers.waitFor(f) == "d")
   }
 }

@@ -18,6 +18,8 @@ import monix.execution.Scheduler
 import loamstream.TestHelpers.DummyDrmJobOracle
 import loamstream.util.Files
 import scala.collection.compat._
+import loamstream.conf.ExecutionConfig
+import loamstream.util.FileMonitor
 
 /**
  * @author clint
@@ -43,64 +45,74 @@ final class QstatPollerTest extends FunSuite {
   private val qstatLines = headerLines ++ dataLines
     
   test("poll - happy path") {
-    val qstatInvocationFn: CommandInvoker.InvocationFn[Unit] = { _ => 
-      Success(RunResults.Successful("MOCK_QSTAT", qstatLines, Nil))
-    }
-    
-    import LogContext.Implicits.Noop
-    import Scheduler.Implicits.global
-    
-    val qstatInvoker: CommandInvoker.Async[Unit] = {
-      new CommandInvoker.Async.JustOnce("MOCK_QSTAT", qstatInvocationFn)
-    }
-    
-    val poller = new QstatPoller(qstatInvoker)
-    
-    import Observables.Implicits._
-    
-    val runningTaskIds = Seq(DrmTaskId("19115592", 2), DrmTaskId("19115592", 1))
-    
-    val finishedTaskId = DrmTaskId("19115592", 3)
-    
-    //NB: Make sure finished job has an exit code recorded where we expect to find it.
-    {
-      val jobDir = DummyDrmJobOracle.dirFor(finishedTaskId)
+    TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
+      val qstatInvocationFn: CommandInvoker.InvocationFn[Unit] = { _ => 
+        Success(RunResults.Completed("MOCK_QSTAT", 0, qstatLines, Nil))
+      }
       
-      val exitcodeFile = jobDir.resolve("exitcode")
-    
-      jobDir.toFile.mkdirs()
+      import LogContext.Implicits.Noop
+      import Scheduler.Implicits.global
       
-      import java.nio.file.Files.exists
+      val qstatInvoker: CommandInvoker.Async[Unit] = {
+        new CommandInvoker.Async.JustOnce(
+          "MOCK_QSTAT", 
+          qstatInvocationFn,
+          isSuccess = RunResults.SuccessPredicate.zeroIsSuccess)
+      }
       
-      assert(exists(jobDir))
+      import ExecutionConfig.default.{executionPollingFrequencyInHz, maxWaitTimeForOutputs}
       
-      Files.writeTo(exitcodeFile)("0")
+      val fileMonitor = new FileMonitor(executionPollingFrequencyInHz, maxWaitTimeForOutputs) 
       
-      assert(exists(exitcodeFile))
-    }
-    
-    {
+      val poller = new QstatPoller("MOCK_QSTAT", qstatInvoker, fileMonitor)
+      
+      import Observables.Implicits._
+      
+      val runningTaskIds = Seq(DrmTaskId("19115592", 2), DrmTaskId("19115592", 1))
+      
+      val finishedTaskId = DrmTaskId("19115592", 3)
+      
+      val drmJobOracle = DummyDrmJobOracle(workDir)
 
-      val results = poller.poll(DummyDrmJobOracle)(runningTaskIds).toListL.runSyncUnsafe(TestHelpers.defaultWaitTime)
+      //NB: Make sure finished job has an exit code recorded where we expect to find it.
+      {
+        val jobDir = drmJobOracle.dirFor(finishedTaskId)
+        
+        jobDir.toFile.mkdirs()
+
+        import java.nio.file.Files.exists
+
+        val exitcodeFile = jobDir.resolve("exitcode")
       
-      val expected = Seq(
-          runningTaskIds(0) -> Success(DrmStatus.Running),
-          runningTaskIds(1) -> Success(DrmStatus.Running))
-          
-      assert(results === expected)
-    }
-    
-    {
-      val results = poller.poll(DummyDrmJobOracle)(runningTaskIds :+ finishedTaskId)
-                          .toListL
-                          .runSyncUnsafe(TestHelpers.defaultWaitTime)
+        assert(exists(jobDir))
+        
+        Files.writeTo(exitcodeFile)("0")
+        
+        assert(exists(exitcodeFile))
+      }
       
-      val expected = Seq(
-          runningTaskIds(0) -> Success(DrmStatus.Running),
-          runningTaskIds(1) -> Success(DrmStatus.Running),
-          finishedTaskId -> Success(DrmStatus.CommandResult(0)))
-          
-      assert(results === expected)
+      {
+        val results = poller.poll(drmJobOracle)(runningTaskIds).toListL.runSyncUnsafe(TestHelpers.defaultWaitTime)
+        
+        val expected = Seq(
+            runningTaskIds(0) -> Success(DrmStatus.Running),
+            runningTaskIds(1) -> Success(DrmStatus.Running))
+            
+        assert(results === expected)
+      }
+      
+      {
+        val results = poller.poll(drmJobOracle)(runningTaskIds :+ finishedTaskId)
+                            .toListL
+                            .runSyncUnsafe(TestHelpers.defaultWaitTime)
+        
+        val expected = Seq(
+            runningTaskIds(0) -> Success(DrmStatus.Running),
+            runningTaskIds(1) -> Success(DrmStatus.Running),
+            finishedTaskId -> Success(DrmStatus.CommandResult(0)))
+            
+        assert(results === expected)
+      }
     }
   }
   

@@ -29,7 +29,7 @@ object BashScript extends Loggable {
   //NB: Profiler-guided optimization: pattern-matching is almost 2x faster than using a Set, and this method gets 
   //called _a lot_.
   private def shouldBeEscaped(ch: Char): Boolean = ch match {
-    case '\\' | '\'' | '\"' | '\n' | '\r' | '\t' | '\b' | '\f' | ' ' => true
+    case '\\' | '\'' | '\"' | '\n' | '\r' | '\t' | '\b' | '\f' | ' ' | '(' | ')' | '$' | '>' | '<' | '|' => true
     case _ => false
   }
 

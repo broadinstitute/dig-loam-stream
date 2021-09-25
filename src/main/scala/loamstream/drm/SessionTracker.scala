@@ -9,6 +9,8 @@ import loamstream.util.ValueBox
 trait SessionTracker {
   def register(drmTaskIds: Iterable[DrmTaskId]): Unit
   
+  def drmTaskIdsSoFar: Iterable[DrmTaskId]
+  
   def taskArrayIdsSoFar: Iterable[String]
   
   def isEmpty: Boolean
@@ -21,22 +23,26 @@ object SessionTracker {
     final override def register(drmTaskIds: Iterable[DrmTaskId]): Unit = ()
   
     final override def taskArrayIdsSoFar: Iterable[String] = Nil
+    
+    final override def drmTaskIdsSoFar: Iterable[DrmTaskId] = Nil
   
     final override def isEmpty: Boolean = true
   }
   
   final class Default extends SessionTracker {
-    private[this] val soFar: ValueBox[java.util.Set[String]] = ValueBox(new java.util.HashSet)
+    private[this] val soFar: ValueBox[java.util.Set[DrmTaskId]] = ValueBox(new java.util.HashSet)
     
     import scala.collection.JavaConverters._
     
     override def register(drmTaskIds: Iterable[DrmTaskId]): Unit = soFar.mutate { sf =>
-      sf.addAll(drmTaskIds.map(_.jobId).asJavaCollection)
+      sf.addAll(drmTaskIds.asJavaCollection)
       
       sf
     }
   
-    override def taskArrayIdsSoFar: Iterable[String] = soFar.get(_.asScala.toIterable)
+    override def taskArrayIdsSoFar: Iterable[String] = soFar.get(_.asScala.toSet.map((_: DrmTaskId).jobId))
+    
+    override def drmTaskIdsSoFar: Iterable[DrmTaskId] = soFar.get(_.asScala.toSet)
     
     override def isEmpty: Boolean = soFar.get(_.isEmpty)
   }

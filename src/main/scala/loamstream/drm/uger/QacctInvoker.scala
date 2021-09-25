@@ -1,16 +1,11 @@
 package loamstream.drm.uger
 
+import scala.concurrent.duration.Duration
+
+import loamstream.conf.UgerConfig
 import loamstream.drm.AccountingCommandInvoker
 import loamstream.drm.DrmTaskId
-import scala.concurrent.ExecutionContext
 import loamstream.util.CommandInvoker
-import loamstream.util.Processes
-import loamstream.util.RateLimitedCache
-import scala.util.Try
-import loamstream.util.RunResults
-import loamstream.util.ValueBox
-import loamstream.conf.UgerConfig
-import scala.concurrent.duration.Duration
 import monix.execution.Scheduler
 
 /**
@@ -27,7 +22,7 @@ object QacctInvoker extends AccountingCommandInvoker.Companion[DrmTaskId] {
         binaryName: String,
         ugerConfig: UgerConfig,
         maxCacheAge: Duration,
-        scheduler: Scheduler)(implicit ec: ExecutionContext): CommandInvoker.Async[String] = {
+        scheduler: Scheduler): CommandInvoker.Async[String] = {
 
       val rateLimitedCache = RateLimitedQacctInvoker.fromActualBinary(
           maxSize = ugerConfig.maxQacctCacheSize,

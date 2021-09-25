@@ -101,9 +101,7 @@ object Files {
     file
   }
   
-  def writeLinesTo(file: Path)(lines: TraversableOnce[String]): Path = {
-    val lineSeparator = System.lineSeparator
-    
+  def writeLinesTo(file: Path, lineSeparator: String = System.lineSeparator)(lines: TraversableOnce[String]): Path = {
     CanBeClosed.enclosed(JFiles.newBufferedWriter(file, StandardCharsets.UTF_8)) { writer =>
       def addLineEndingIfNeeded(line: String) = if(line.endsWith(lineSeparator)) line else s"${line}${lineSeparator}"
       

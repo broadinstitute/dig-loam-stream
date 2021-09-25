@@ -8,6 +8,9 @@ import loamstream.loam.LoamScriptContext
 import loamstream.model.execute.DrmSettings
 import loamstream.model.execute.UgerDrmSettings
 import loamstream.model.execute.LsfDrmSettings
+import loamstream.conf.SlurmConfig
+import loamstream.model.execute.SlurmDrmSettings
+import loamstream.model.execute.Resources
 
 /**
  * @author clint
@@ -17,8 +20,10 @@ sealed trait DrmSystem {
   type Config <: DrmConfig
   
   type Settings <: DrmSettings
+
+  type Resources <: Resources.DrmResources
   
-  def name: String
+  def name: String = toString
   
   def defaultQueue: Option[Queue]
   
@@ -27,6 +32,16 @@ sealed trait DrmSystem {
   def settingsFromConfig(scriptContext: LoamScriptContext): Settings
   
   def settingsMaker: DrmSettings.SettingsMaker
+
+  def resourcesMaker: Resources.DrmResources.ResourcesMaker[Resources]
+  
+  def configKey: String = s"loamstream.${name.toLowerCase}"
+  
+  def format(drmTaskId: DrmTaskId): String = formatWithSeparator('.', drmTaskId) 
+  
+  final protected def formatWithSeparator(sep: Char, drmTaskId: DrmTaskId): String = {
+    s"${drmTaskId.jobId}${sep}${drmTaskId.taskIndex}"
+  }
 }
 
 object DrmSystem {
@@ -34,8 +49,8 @@ object DrmSystem {
     override type Config = UgerConfig
   
     override type Settings = UgerDrmSettings
-    
-    override def name: String = toString
+
+    override type Resources = Resources.UgerResources
     
     override def defaultQueue: Option[Queue] = Option(UgerDefaults.queue)
     
@@ -46,14 +61,16 @@ object DrmSystem {
     }
     
     override val settingsMaker: DrmSettings.SettingsMaker = UgerDrmSettings.apply
+
+    override val resourcesMaker: Resources.DrmResources.ResourcesMaker[Resources] = Resources.UgerResources.apply
   }
   
   final case object Lsf extends DrmSystem {
     override type Config = LsfConfig
   
     override type Settings = LsfDrmSettings
-    
-    override def name: String = toString
+
+    override type Resources = Resources.LsfResources
     
     override def defaultQueue: Option[Queue] = None
     
@@ -64,15 +81,35 @@ object DrmSystem {
     }
     
     override val settingsMaker: DrmSettings.SettingsMaker = LsfDrmSettings.apply
+
+    override val resourcesMaker: Resources.DrmResources.ResourcesMaker[Resources] = Resources.LsfResources.apply
   }
   
-  def fromName(name: String): Option[DrmSystem] = {
-    val mungedName = name.toLowerCase.capitalize
+  final case object Slurm extends DrmSystem {
+    override type Config = SlurmConfig
+  
+    override type Settings = SlurmDrmSettings
+
+    override type Resources = Resources.SlurmResources
     
-    if(mungedName == Uger.name) { Some(Uger) }
-    else if(mungedName == Lsf.name) { Some(Lsf) }
-    else { None }
+    override def defaultQueue: Option[Queue] = None
+    
+    override def config(scriptContext: LoamScriptContext): SlurmConfig = scriptContext.slurmConfig
+    
+    override def settingsFromConfig(scriptContext: LoamScriptContext): Settings = {
+      DrmSettings.fromSlurmConfig(config(scriptContext))
+    }
+    
+    override val settingsMaker: DrmSettings.SettingsMaker = SlurmDrmSettings.apply
+
+    override val resourcesMaker: Resources.DrmResources.ResourcesMaker[Resources] = Resources.SlurmResources.apply
+    
+    override def format(drmTaskId: DrmTaskId): String = formatWithSeparator('_', drmTaskId)
   }
   
-  lazy val values: Iterable[DrmSystem] = Seq(Uger, Lsf)
+  def fromName(name: String): Option[DrmSystem] = byName.get(name.trim.toLowerCase)
+  
+  lazy val values: Iterable[DrmSystem] = Seq(Uger, Lsf, Slurm)
+  
+  private lazy val byName: Map[String, DrmSystem] = values.iterator.map(d => d.name.toLowerCase -> d).toMap
 }

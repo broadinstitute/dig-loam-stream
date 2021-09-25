@@ -23,13 +23,14 @@ import loamstream.util.Processes
 import loamstream.drm.DrmTaskId
 import monix.reactive.Observable
 import scala.collection.compat._
+import loamstream.util.CommandInvoker
 
 /**
  * @author clint
  * May 15, 2018
  */
 final class BsubJobSubmitter private[lsf] (
-    submissionFn: BsubJobSubmitter.SubmissionFn) extends JobSubmitter with Loggable {
+    submissionFn: CommandInvoker.Sync[BsubJobSubmitter.Params]) extends JobSubmitter with Loggable {
     
   import BsubJobSubmitter._
   
@@ -39,8 +40,7 @@ final class BsubJobSubmitter private[lsf] (
     runAttemptObs.map { attempt =>
       attempt.map(toDrmSubmissionResult(taskArray)) match {
         case Success(submissionResult) => submissionResult
-        case Failure(e: Exception) => DrmSubmissionResult.SubmissionFailure(e)
-        case Failure(e) => DrmSubmissionResult.SubmissionFailure(new Exception(e))
+        case Failure(e) => DrmSubmissionResult.SubmissionFailure(e)
       }
     }
   }
@@ -49,7 +49,7 @@ final class BsubJobSubmitter private[lsf] (
   
   private[lsf] def toDrmSubmissionResult(taskArray: DrmTaskArray)(runResults: RunResults): DrmSubmissionResult = {
     runResults match {
-      case r: RunResults.Successful => {
+      case r @ RunResults.Completed(_, exitCode, _, _) if ExitCodes.isSuccess(exitCode) => {
         BsubJobSubmitter.extractJobId(r.stdout) match {
           case Some(jobId) =>  makeSuccess(jobId, taskArray)
           case None => {
@@ -59,7 +59,7 @@ final class BsubJobSubmitter private[lsf] (
           }
         }
       } 
-      case r: RunResults.Unsuccessful => {
+      case r: RunResults.Completed => {
         logAndMakeFailure(r) { r =>
           s"LSF Job submission failure: `${r.commandLine}` failed with status code ${r.exitCode}"
         }
@@ -103,30 +103,38 @@ final class BsubJobSubmitter private[lsf] (
 }
 
 object BsubJobSubmitter extends Loggable {
-  type SubmissionFn = (DrmSettings, DrmTaskArray) => Try[RunResults]
+  type Params = (DrmSettings, DrmTaskArray)
+  
+  type SubmissionFn = CommandInvoker.InvocationFn[Params]
   
   def fromExecutable(lsfConfig: LsfConfig, actualExecutable: String = "bsub"): BsubJobSubmitter = {
-    new BsubJobSubmitter(invokeBinaryToSubmitJobs(lsfConfig, actualExecutable))
+    val invoker = new CommandInvoker.Sync.JustOnce[Params](
+        binaryName = actualExecutable, 
+        delegateFn = invokeBinaryToSubmitJobs(lsfConfig, actualExecutable),
+        isSuccess = RunResults.SuccessPredicate.ByExitCode.zeroIsSuccess)
+    
+    new BsubJobSubmitter(invoker)
   }
   
   private[lsf] def invokeBinaryToSubmitJobs(
       lsfConfig: LsfConfig, 
-      actualExecutable: String): SubmissionFn = { (drmSettings, taskArray) =>
-        
-    val tokens = makeTokens(actualExecutable, lsfConfig, taskArray, drmSettings)
-    
-    debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
-    
-    import scala.sys.process._
-    
-    val scriptFile = taskArray.drmScriptFile.toFile
-    
-    //NB: script contents are piped to bsub
-    val processBuilder: ProcessBuilder = tokens #< scriptFile
-    
-    val tokensForLogging = tokens ++ Seq("<", scriptFile.toString)
-    
-    Processes.runSync(tokensForLogging)(processBuilder = processBuilder)
+      actualExecutable: String): SubmissionFn = { 
+        case (drmSettings, taskArray) => Try {
+          val tokens = makeTokens(actualExecutable, lsfConfig, taskArray, drmSettings)
+          
+          debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
+          
+          import scala.sys.process._
+          
+          val scriptFile = taskArray.drmScriptFile.toFile
+          
+          //NB: script contents are piped to bsub
+          val processBuilder: ProcessBuilder = tokens #< scriptFile
+          
+          val tokensForLogging = tokens ++ Seq("<", scriptFile.toString)
+          
+          Processes.runSync(tokensForLogging)(processBuilder = processBuilder)
+        }
   }
   
   import DrmSubmissionResult.SubmissionFailure

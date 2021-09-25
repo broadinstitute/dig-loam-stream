@@ -7,8 +7,6 @@ import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeFormatterBuilder
 import java.time.temporal.ChronoField
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
 import scala.util.Success
 import scala.util.Try
 import scala.util.matching.Regex
@@ -26,6 +24,8 @@ import loamstream.util.Loggable
 import loamstream.util.Options
 import loamstream.util.Tries
 import monix.execution.Scheduler
+import monix.eval.Task
+import loamstream.util.RunResults
 
 
 /**
@@ -33,20 +33,19 @@ import monix.execution.Scheduler
  * Apr 18, 2019
  */
 final class BacctAccountingClient(
-    bacctInvoker: CommandInvoker.Async[DrmTaskId])
-    (implicit ec: ExecutionContext) extends AccountingClient with Loggable {
+    bacctInvoker: CommandInvoker.Async[DrmTaskId]) extends AccountingClient with Loggable {
 
   import BacctAccountingClient._
 
-  override def getResourceUsage(taskId: DrmTaskId): Future[LsfResources] = {
-    getBacctOutputFor(taskId).flatMap(output => Future.fromTry(toResources(output)))
+  override def getResourceUsage(taskId: DrmTaskId): Task[LsfResources] = {
+    getBacctOutputFor(taskId).flatMap(output => Task.fromTry(toResources(output)))
   }
   
-  override def getTerminationReason(taskId: DrmTaskId): Future[Option[TerminationReason]] = {
+  override def getTerminationReason(taskId: DrmTaskId): Task[Option[TerminationReason]] = {
     getBacctOutputFor(taskId).map(toTerminationReason)
   }
   
-  private def getBacctOutputFor(taskId: DrmTaskId): Future[Seq[String]] = {
+  private def getBacctOutputFor(taskId: DrmTaskId): Task[Seq[String]] = {
     bacctInvoker(taskId).map(_.stdout.map(_.trim))
   }
     
@@ -105,13 +104,18 @@ final class BacctAccountingClient(
 
 object BacctAccountingClient {
   /**
-   * Make a QacctAccountingClient that will retrieve job metadata by running some executable, by default, `qacct`.
+   * Make a BacctAccountingClient that will retrieve job metadata by running some executable, by default, `bacct`.
    */
   def useActualBinary(
       lsfConfig: LsfConfig, 
       scheduler: Scheduler,
-      binaryName: String = "bacct")(implicit ec: ExecutionContext): BacctAccountingClient = {
-    new BacctAccountingClient(BacctInvoker.useActualBinary(lsfConfig.maxBacctRetries, binaryName, scheduler))
+      binaryName: String = "bacct"): BacctAccountingClient = {
+    new BacctAccountingClient(
+      BacctInvoker.useActualBinary(
+        lsfConfig.maxBacctRetries, 
+        binaryName, 
+        scheduler,
+        isSuccess = RunResults.SuccessPredicate.ByExitCode.zeroIsSuccess))
   }
   
   //"Data lines" look like this:

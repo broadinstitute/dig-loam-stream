@@ -28,6 +28,7 @@ import loamstream.util.LogFileNames
 import loamstream.util.Tries
 import loamstream.util.FileMonitor
 import scala.util.Failure
+import loamstream.util.Files
 
 /**
  * @author clint
@@ -50,8 +51,6 @@ abstract class RateLimitedPoller[P](
       oracle: DrmJobOracle)
      (runResults: RunResults.Completed, 
       idsToLookFor: Set[DrmTaskId]): Observable[PollResult] = {
-    
-    
 
     Observable.from(idsToLookFor)
       .subscribeOn(Schedulers.oneThreadPerCpu)
@@ -66,7 +65,12 @@ abstract class RateLimitedPoller[P](
       Observable.from(fileMonitor.waitForCreationOf(p)).map(_ => p)
     }
     case None =>  Observable.fromTry(Tries.failure(s"Couldn't find job dir for DRM job with id: $taskId"))
-  }).onErrorHandleWith(_ => Observable.empty)
+  }).onErrorHandleWith {
+    case e => 
+      warn(s"Error waiting for ${fileOpt}", e)
+
+      Observable.empty
+  }
 
   private def exitCodeFor(oracle: DrmJobOracle)(taskId: DrmTaskId): Observable[PollResult] = {
     def toPollResult(status: DrmStatus): PollResult = taskId -> status

@@ -232,11 +232,11 @@ object DrmChunkRunner extends Loggable {
       val statusDescription = s"${simpleNameOf[DrmStatus]} ${s}"
       
       if(s.isFinished && notSuccess(s)) {
-        debug(s"${statusDescription} is finished and NOT a success, determining execution node and queue: $s")
+        debug(s"For task ${taskId}, ${statusDescription} is finished and NOT a success, determining execution node and queue: $s")
         
         getAccountingInfoFor(accountingClient)(taskId)
       } else {
-        debug(s"${statusDescription} is NOT finished or is a success, NOT determining execution node and queue: $s")
+        debug(s"For task ${taskId}, ${statusDescription} is NOT finished or is a success, NOT determining execution node and queue: $s")
         
         Task.now(None)
       }

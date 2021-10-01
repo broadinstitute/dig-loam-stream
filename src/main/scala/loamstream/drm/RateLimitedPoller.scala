@@ -93,11 +93,12 @@ abstract class RateLimitedPoller[P](
       Observable.fromIterable(readExitCodeFromExitCodeFile(file))
     }
 
-    val statusObs = Observables.merge(
-      existingStatsFileObs.flatMap(readFromStatsFile),
-      existingExitCodeFileObs.flatMap(readFromExitCodeFile)
-    ).headOrElse {
-      error(s"Looked for ${(exitCodeFile.toSeq ++ statsFile).mkString(",")} , none of which could be found.")
+    val statusObs = {
+      existingExitCodeFileObs.flatMap(readFromExitCodeFile) //++
+      //existingStatsFileObs.flatMap(readFromStatsFile)
+    }.headOrElse {
+      //error(s"Looked for ${(exitCodeFile.toSeq ++ statsFile).mkString(",")} , none of which could be found.")
+      error(s"Treating ${taskId} as ${DrmStatus.Failed} ; waited for ${exitCodeFile}, but it didn't appear.")
 
       DrmStatus.Failed
     }

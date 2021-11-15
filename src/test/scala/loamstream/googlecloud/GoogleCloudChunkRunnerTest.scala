@@ -26,19 +26,17 @@ import scala.collection.compat._
 import loamstream.util.Maps
 import loamstream.util.Observables
 
+import GoogleCloudChunkRunnerTest.LiteralMockDataProcClient
+import GoogleCloudChunkRunnerTest.MockDataProcClient
+import loamstream.TestHelpers.waitForT
+import loamstream.util.Observables.Implicits._
+import monix.execution.Scheduler.Implicits.global
 
 /**
  * @author clint
  * Dec 15, 2016
  */
 final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResources {
-  
-  import GoogleCloudChunkRunnerTest.LiteralMockDataProcClient
-  import GoogleCloudChunkRunnerTest.MockDataProcClient
-  import loamstream.TestHelpers.waitForT
-  import loamstream.util.Observables.Implicits._
-  import monix.execution.Scheduler.Implicits.global
-
   private val clusterId = "some-cluster-id"
   
   private val googleConfig = {
@@ -109,7 +107,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
   }
   
   test("withCluster") {
-    import Observables.Implicits._
+    
     
     withMockRunner { (_, googleRunner, mockClient) =>
       assert(googleRunner.singleThreadedExecutor.isShutdown === false)
@@ -671,8 +669,6 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
   }
   
   test("startClusterIfNecessary - error starting cluster") {
-    import GoogleCloudChunkRunnerTest.LiteralMockDataProcClient
-    
     withMockClient { delegateClient =>
       val client = new LiteralMockDataProcClient(
           delegate = delegateClient, 

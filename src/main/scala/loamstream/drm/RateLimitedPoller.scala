@@ -28,6 +28,7 @@ import loamstream.util.LogFileNames
 import loamstream.util.Tries
 import loamstream.util.FileMonitor
 import scala.util.Failure
+import loamstream.util.Files
 
 /**
  * @author clint
@@ -50,53 +51,11 @@ abstract class RateLimitedPoller[P](
       oracle: DrmJobOracle)
      (runResults: RunResults.Completed, 
       idsToLookFor: Set[DrmTaskId]): Observable[PollResult] = {
-    
-    
 
     Observable.from(idsToLookFor)
       .subscribeOn(Schedulers.oneThreadPerCpu)
       .executeOn(Schedulers.oneThreadPerCpu)
       .flatMap(exitCodeFor(oracle))
-  }
-
-  private def toStatusOpt(exitCodes: Iterator[Int]): Option[DrmStatus] = {
-    val statuses = exitCodes.map(DrmStatus.CommandResult(_))
-
-    import Iterators.Implicits.IteratorOps
-      
-    val result = statuses.nextOption()
-
-    trace(s"Got exit status $result")
-
-    result
-  }
-
-  private def readExitCodeFromStatsFile(file: Path): Option[DrmStatus] = {
-    trace(s"Reading from $file")
-    
-    CanBeClosed.using(Source.fromFile(file.toFile)) { source =>
-      val lines: Iterator[String] = source.getLines.map(_.trim).filter(_.nonEmpty)
-      
-      val exitCodes: Iterator[Int] = lines.collectFirst {
-        case RateLimitedPoller.Regexes.exitCodeInStatsFile(ec) => ec.toInt
-      }.iterator
-
-      toStatusOpt(exitCodes)
-    }
-  }
-
-  private def readExitCodeFromExitCodeFile(file: Path): Option[DrmStatus] = {
-    trace(s"Reading from $file")
-
-    CanBeClosed.using(Source.fromFile(file.toFile)) { source =>
-      val lines: Iterator[String] = source.getLines.map(_.trim).filter(_.nonEmpty)
-      
-      val exitCodes: Iterator[Int] = {
-        lines.map(line => Try(line.toInt).get)
-      }
-
-      toStatusOpt(exitCodes)
-    }
   }
 
   private def waitFor(taskId: DrmTaskId)(fileOpt: Option[Path]): Observable[Path] = (fileOpt match {
@@ -106,7 +65,12 @@ abstract class RateLimitedPoller[P](
       Observable.from(fileMonitor.waitForCreationOf(p)).map(_ => p)
     }
     case None =>  Observable.fromTry(Tries.failure(s"Couldn't find job dir for DRM job with id: $taskId"))
-  }).onErrorHandleWith(_ => Observable.empty)
+  }).onErrorHandleWith {
+    case e => 
+      warn(s"Error waiting for ${fileOpt}", e)
+
+      Observable.empty
+  }
 
   private def exitCodeFor(oracle: DrmJobOracle)(taskId: DrmTaskId): Observable[PollResult] = {
     def toPollResult(status: DrmStatus): PollResult = taskId -> status
@@ -118,6 +82,8 @@ abstract class RateLimitedPoller[P](
 
     val existingExitCodeFileObs = waitFor(taskId)(exitCodeFile)
     val existingStatsFileObs = waitFor(taskId)(statsFile)
+
+    import RateLimitedPoller.{readExitCodeFromExitCodeFile, readExitCodeFromStatsFile}
     
     def readFromStatsFile(file: Path): Observable[DrmStatus] = {
       Observable.fromIterable(readExitCodeFromStatsFile(file))
@@ -127,11 +93,10 @@ abstract class RateLimitedPoller[P](
       Observable.fromIterable(readExitCodeFromExitCodeFile(file))
     }
 
-    val statusObs = Observables.merge(
-      existingStatsFileObs.flatMap(readFromStatsFile),
+    val statusObs = {
       existingExitCodeFileObs.flatMap(readFromExitCodeFile)
-    ).headOrElse {
-      error(s"Looked for ${(exitCodeFile.toSeq ++ statsFile).mkString(",")} , none of which could be found.")
+    }.headOrElse {
+      error(s"Treating ${taskId} as ${DrmStatus.Failed} ; waited for ${exitCodeFile}, but it didn't appear.")
 
       DrmStatus.Failed
     }
@@ -295,6 +260,50 @@ object RateLimitedPoller {
       new CommandInvoker.Async.JustOnce[P](
         commandName, 
         cachedInvocationFn, isSuccess = RunResults.SuccessPredicate.zeroIsSuccess)
+    }
+  }
+
+  private def toStatusOpt(exitCodes: Iterator[Int])(implicit logCtx: LogContext): Option[DrmStatus] = {
+    val statuses = exitCodes.map(DrmStatus.CommandResult(_))
+
+    import Iterators.Implicits.IteratorOps
+
+    val result = statuses.nextOption()
+
+    logCtx.trace(s"Got exit status $result")
+
+    result
+  }
+
+  private[drm] def readExitCodeFromStatsFile(file: Path)(implicit logCtx: LogContext): Option[DrmStatus] = {
+    logCtx.trace(s"Reading from $file")
+    
+    CanBeClosed.using(Source.fromFile(file.toFile)) { source =>
+      val lines: Seq[String] = source.getLines.map(_.trim).filter(_.nonEmpty).toList
+      
+      logCtx.trace(s"Read from '${file}' and got lines: ${lines}")
+
+      val exitCodes: Iterator[Int] = lines.collectFirst {
+        case RateLimitedPoller.Regexes.exitCodeInStatsFile(ec) => ec.toInt
+      }.iterator
+
+      toStatusOpt(exitCodes)
+    }
+  }
+
+  private[drm] def readExitCodeFromExitCodeFile(file: Path)(implicit logCtx: LogContext): Option[DrmStatus] = {
+    logCtx.trace(s"Reading from $file")
+
+    CanBeClosed.using(Source.fromFile(file.toFile)) { source =>
+      val lines: Seq[String] = source.getLines.map(_.trim).filter(_.nonEmpty).toList
+
+      logCtx.trace(s"Read from '${file}' and got lines: ${lines}")
+      
+      val exitCodes: Iterator[Int] = {
+        lines.map(line => Try(line.toInt).get).iterator
+      }
+
+      toStatusOpt(exitCodes)
     }
   }
 }

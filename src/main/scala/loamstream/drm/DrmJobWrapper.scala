@@ -106,7 +106,6 @@ final case class DrmJobWrapper(
         |echo "Raw_Logs: .loamstream/${drmWorkSubDir}/${taskArray.drmJobName}/$${i}.{stdout,stderr}" >> $$STATS_FILE
         |
         |START="$$(${timestampCommand})"
-        |echo "Start: $$START" >> $$STATS_FILE
         |
         |${timePrefixPart} bash $$COMMAND_SCRIPT 1> $$STDOUT_FILE 2> $$STDERR_FILE
         |
@@ -114,6 +113,7 @@ final case class DrmJobWrapper(
         |
         |echo "$$LOAMSTREAM_JOB_EXIT_CODE" > $$EXITCODE_FILE
         |
+        |echo "Start: $$START" >> $$STATS_FILE
         |echo "End: $$(${timestampCommand})" >> $$STATS_FILE
         |
         |exit $$LOAMSTREAM_JOB_EXIT_CODE

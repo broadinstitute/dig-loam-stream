@@ -254,7 +254,6 @@ echo DRM_Task_Id: "$${jobId}-$${i}" >> $$STATS_FILE
 echo "Raw_Logs: .loamstream/${drmSystem.name.toLowerCase}/${jobName}/$${i}.{stdout,stderr}" >> $$STATS_FILE
 
 START="$$(date +%Y-%m-%dT%H:%M:%S)"
-echo "Start: $$START" >> $$STATS_FILE
 
 `which time` -o $$STATS_FILE --format="ExitCode: %x\\nMemory: %Mk\\nSystem: %Ss\\nUser: %Us" bash $$COMMAND_SCRIPT 1> $$STDOUT_FILE 2> $$STDERR_FILE
 
@@ -262,6 +261,7 @@ LOAMSTREAM_JOB_EXIT_CODE=$$?
 
 echo "$$LOAMSTREAM_JOB_EXIT_CODE" > $$EXITCODE_FILE
 
+echo "Start: $$START" >> $$STATS_FILE
 echo "End: $$(date +%Y-%m-%dT%H:%M:%S)" >> $$STATS_FILE
 
 exit $$LOAMSTREAM_JOB_EXIT_CODE
@@ -283,7 +283,6 @@ echo DRM_Task_Id: "$${jobId}-$${i}" >> $$STATS_FILE
 echo "Raw_Logs: .loamstream/${drmSystem.name.toLowerCase}/${jobName}/$${i}.{stdout,stderr}" >> $$STATS_FILE
 
 START="$$(date +%Y-%m-%dT%H:%M:%S)"
-echo "Start: $$START" >> $$STATS_FILE
 
 `which time` -o $$STATS_FILE --format="ExitCode: %x\\nMemory: %Mk\\nSystem: %Ss\\nUser: %Us" bash $$COMMAND_SCRIPT 1> $$STDOUT_FILE 2> $$STDERR_FILE
 
@@ -291,6 +290,7 @@ LOAMSTREAM_JOB_EXIT_CODE=$$?
 
 echo "$$LOAMSTREAM_JOB_EXIT_CODE" > $$EXITCODE_FILE
 
+echo "Start: $$START" >> $$STATS_FILE
 echo "End: $$(date +%Y-%m-%dT%H:%M:%S)" >> $$STATS_FILE
 
 exit $$LOAMSTREAM_JOB_EXIT_CODE
@@ -312,7 +312,6 @@ echo DRM_Task_Id: "$${jobId}-$${i}" >> $$STATS_FILE
 echo "Raw_Logs: .loamstream/${drmSystem.name.toLowerCase}/${jobName}/$${i}.{stdout,stderr}" >> $$STATS_FILE
 
 START="$$(date +%Y-%m-%dT%H:%M:%S)"
-echo "Start: $$START" >> $$STATS_FILE
 
 `which time` -o $$STATS_FILE --format="ExitCode: %x\\nMemory: %Mk\\nSystem: %Ss\\nUser: %Us" bash $$COMMAND_SCRIPT 1> $$STDOUT_FILE 2> $$STDERR_FILE
 
@@ -320,6 +319,7 @@ LOAMSTREAM_JOB_EXIT_CODE=$$?
 
 echo "$$LOAMSTREAM_JOB_EXIT_CODE" > $$EXITCODE_FILE
 
+echo "Start: $$START" >> $$STATS_FILE
 echo "End: $$(date +%Y-%m-%dT%H:%M:%S)" >> $$STATS_FILE
 
 exit $$LOAMSTREAM_JOB_EXIT_CODE

@@ -16,17 +16,29 @@ import scala.collection.compat._
  * Jan 20, 2021
  */
 object Json {
+  private object Number {
+    def unapply[A](a: A): Option[JValue] = {
+      import org.json4s.JsonDSL._
+
+      //TODO: There must be a better way :(
+      a match {
+        case l: Long => Some(l)
+        case i: Int => Some(i)
+        case d: Double => Some(d)
+        case f: Float => Some(f)
+        case bd: BigDecimal => Some(bd)
+        case _ => None
+      }
+    }
+  }
+
   def toJValue[A](a: A): JValue = {
     import org.json4s.JsonDSL._
     
     //TODO: There must be a better way :(
     a match {
       case s: String => s
-      case l: Long => l
-      case i: Int => i
-      case d: Double => d
-      case f: Float => f
-      case bd: BigDecimal => bd
+      case Number(jv) => jv
       case b: Boolean => b
       case None => JNull
       case Some(value) => toJValue(value)

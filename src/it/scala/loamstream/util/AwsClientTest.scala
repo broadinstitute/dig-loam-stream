@@ -43,7 +43,7 @@ final class AwsClientTest extends AwsFunSuite {
     
     val expected0 = keys.all
         
-    assert(client.list(testDir).toSet === expected0)
+    assert(client.list(s"${testDir}/").toSet === expected0)
     
     assert(client.getAsString(s"${testDir}/") === None)
     assert(client.getAsString(s"${testDir}/lalala") === None)
@@ -75,25 +75,25 @@ final class AwsClientTest extends AwsFunSuite {
     
     val expected0 = keys.all
         
-    assert(client.list(testDir).toSet === expected0)
+    assert(client.list(s"${testDir}/").toSet === expected0)
     
     client.deleteDir(s"${testDir}/subdir/subsubdir/")
     
-    assert(client.list(testDir).toSet === (expected0 - keys.zerg))
+    assert(client.list(s"${testDir}/").toSet === (expected0 - keys.zerg))
     
     client.deleteDir(s"${testDir}/subdir/")
     
-    assert(client.list(testDir).toSet === (expected0 - zerg - blah - blerg))
+    assert(client.list(s"${testDir}/").toSet === (expected0 - zerg - blah - blerg))
     
-    client.deleteDir(testDir)
+    client.deleteDir(s"${testDir}/")
     
-    assert(client.list(testDir) === Nil)
+    assert(client.list(s"${testDir}/") === Nil)
   }
   
   testWithPseudoDir(s"${getClass.getSimpleName}-deleteDir-all-at-once") { testDir =>
     val client = newS3Client
       
-    assert(client.list(testDir) === Nil)
+    assert(client.list(s"${testDir}/") === Nil)
     
     val keys = Keys(testDir)
     
@@ -109,10 +109,10 @@ final class AwsClientTest extends AwsFunSuite {
     
     val expected0 = keys.all
         
-    assert(client.list(testDir).toSet === expected0)
+    assert(client.list(s"${testDir}/").toSet === expected0)
     
-    client.deleteDir(testDir)
+    client.deleteDir(s"${testDir}/")
 
-    assert(client.list(testDir) === Nil)
+    assert(client.list(s"${testDir}/") === Nil)
   }
 }

@@ -36,7 +36,7 @@ object S3Client {
     override def bucket: String = bucketApi.bucket
     
     override def list(prefix: String, delimiter: String = "/"): Seq[String] = {
-      bucketApi.ls(prefix).map(_ => ???)
+      bucketApi.ls(prefix).map(_.key)
     }
   
     override def deleteDir(key: String): Unit = {

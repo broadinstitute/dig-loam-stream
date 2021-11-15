@@ -100,10 +100,10 @@ final case class DrmJobWrapper(
         |STDOUT_FILE="${stdOutDestPath.render}"
         |STDERR_FILE="${stdErrDestPath.render}"
         |
-        |stdbuf -oL echo "Node: $$(hostname)" >> $$STATS_FILE
-        |stdbuf -oL echo Task_Array_Name: ${taskArray.drmJobName} >> $$STATS_FILE
-        |stdbuf -oL echo DRM_Task_Id: "$${jobId}-$${i}" >> $$STATS_FILE
-        |stdbuf -oL echo "Raw_Logs: .loamstream/${drmWorkSubDir}/${taskArray.drmJobName}/$${i}.{stdout,stderr}" >> $$STATS_FILE
+        |echo "Node: $$(hostname)" >> $$STATS_FILE
+        |echo Task_Array_Name: ${taskArray.drmJobName} >> $$STATS_FILE
+        |echo DRM_Task_Id: "$${jobId}-$${i}" >> $$STATS_FILE
+        |echo "Raw_Logs: .loamstream/${drmWorkSubDir}/${taskArray.drmJobName}/$${i}.{stdout,stderr}" >> $$STATS_FILE
         |
         |START="$$(${timestampCommand})"
         |
@@ -111,10 +111,10 @@ final case class DrmJobWrapper(
         |
         |LOAMSTREAM_JOB_EXIT_CODE=$$?
         |
-        |stdbuf -oL echo "$$LOAMSTREAM_JOB_EXIT_CODE" > $$EXITCODE_FILE
+        |echo "$$LOAMSTREAM_JOB_EXIT_CODE" > $$EXITCODE_FILE
         |
-        |stdbuf -oL echo "Start: $$START" >> $$STATS_FILE
-        |stdbuf -oL echo "End: $$(${timestampCommand})" >> $$STATS_FILE
+        |echo "Start: $$START" >> $$STATS_FILE
+        |echo "End: $$(${timestampCommand})" >> $$STATS_FILE
         |
         |exit $$LOAMSTREAM_JOB_EXIT_CODE
         |""".stripMargin

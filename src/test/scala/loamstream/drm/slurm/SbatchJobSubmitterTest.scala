@@ -70,7 +70,7 @@ final class SbatchJobSubmitterTest extends FunSuite {
         DrmTaskId(jobId.toString, 3) -> (jobs(2), 3)
       )
 
-      val actual = result.mapValues { case DrmJobWrapper(_, _, _, job, _, idx) => (job, idx) }
+      val actual = result.mapValues { case DrmJobWrapper(_, _, _, job, _, idx) => (job, idx) }.toMap
 
       assert(actual === expected)
     }

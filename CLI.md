@@ -1,0 +1,56 @@
+# LoamStream command-line options
+
+- Backend: `-b`|`--backend`  <uger|lsf|slurm>           
+  - The backend to run DRM jobs on. Options are: uger,lsf,slurm
+- Clean 
+  - `--clean`
+    - Deletes `.loamstream/` 
+    - Effectively the same as using all of `--clean-db`, `--clean-logs`, and `--clean-scripts`
+  - `--clean-db`
+    - Clean db by deleting `.loamstream/db/`
+  - `--clean-logs`
+    - Remove old logs by deleting `.loamstream/logs`
+  - `--clean-scripts`               
+    - Clean out generated DRM scripts by deleting `.loamstream/{uger,lsf,slurm}`
+- Compile-only
+  - `--compile-only`
+    - Only compile and evaluate the supplied .loam files, don't execute any jobs. Useful for checking that Loam code compiles and works with specific config files.
+- Config
+  - `--conf` <conf-file>
+    - Path to LoamStream config file.  This is different from any config files referred to by Loam code, and provides LoamStream-wide parameters.
+- Hashing
+  - `--disable-hashing`             
+    - Don't hash files when determining whether ajob may be skipped, or when recording the status of finished jobs.
+- Dry-run
+  - `-d`|`--dry-run`
+    - Similar to `--compile-only`, but log what jobs would be run without running them
+- Loam code
+  - `-l`|`--loams`  <1 or more space-delimited files containing Loam code>
+    - Path(s) to loam code files to evaluate.
+- Job-graph validation
+  -`-n`|`--no-validation`
+    - Don't validate the job-graph produced by evaluating .loam files, for example to make sure that multiple jobs dont produce the same output, etc.
+- Protect outputs
+  `-p`|`--protect-files-from` 
+    - Path to file containing list of outputs (paths or GCS URIs) that all jobs will be prevented from overwriting.
+- Filtering which jobs to run
+  - `-r`|`--run` <everything|ifAnyMissingOutputs|allOf ...|anyOf...|noneOf...>
+    - `everything`: always runjobs, never skip them
+    - `allOf <regexes>`: run jobs if their names match ALL of the passed regexes
+    - `anyOf <regexes>`: run jobs if their names match ANY of the passed regexes
+    - `noneOf <regexes>`: run jobs if their names match NONE of the passed regexes
+    - `ifAnyMissingOutputs`: run jobs if any of their outputs are missing.  
+    - All of these supercede the default job-filtering logic, which relies on the status of jobs' inputs, and information in the DB (`.loamstream/db`) about past runs.
+- Work dir
+  - `--work-dir` <path>
+    - Path to store logs, db files, and job metadata in, analogous to the default `.loamstream`.  Only respected if `--worker` is also supplied.
+- Worker instances
+  - `-w`|`--worker` 
+    - Run in worker mode (run on a DRM system on behalf of another LS instance, to run jobs expressed as "native" Loam/Scala code, for example).
+    - It is not recommended to specify this argument manually!
+- Help
+  - `-h`|`--help`
+    - Show help and exit
+  - `-v`|`--version`
+    - Print version information and exit
+    

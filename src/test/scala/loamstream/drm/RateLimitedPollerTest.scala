@@ -42,31 +42,4 @@ final class RateLimitedPollerTest extends FunSuite {
       assert(actual === expected)
     }
   }
-   /*private[drm] def readExitCodeFromStatsFile(file: Path): Option[DrmStatus] = {
-    trace(s"Reading from $file")
-    
-    CanBeClosed.using(Source.fromFile(file.toFile)) { source =>
-      val lines: Iterator[String] = source.getLines.map(_.trim).filter(_.nonEmpty)
-      
-      val exitCodes: Iterator[Int] = lines.collectFirst {
-        case RateLimitedPoller.Regexes.exitCodeInStatsFile(ec) => ec.toInt
-      }.iterator
-
-      toStatusOpt(exitCodes)
-    }
-  }
-
-  private[drm] def readExitCodeFromExitCodeFile(file: Path): Option[DrmStatus] = {
-    trace(s"Reading from $file")
-
-    CanBeClosed.using(Source.fromFile(file.toFile)) { source =>
-      val lines: Iterator[String] = source.getLines.map(_.trim).filter(_.nonEmpty)
-      
-      val exitCodes: Iterator[Int] = {
-        lines.map(line => Try(line.toInt).get)
-      }
-
-      toStatusOpt(exitCodes)
-    }
-  }*/
 }

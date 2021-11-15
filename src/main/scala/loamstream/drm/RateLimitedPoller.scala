@@ -94,10 +94,8 @@ abstract class RateLimitedPoller[P](
     }
 
     val statusObs = {
-      existingExitCodeFileObs.flatMap(readFromExitCodeFile) //++
-      //existingStatsFileObs.flatMap(readFromStatsFile)
+      existingExitCodeFileObs.flatMap(readFromExitCodeFile)
     }.headOrElse {
-      //error(s"Looked for ${(exitCodeFile.toSeq ++ statsFile).mkString(",")} , none of which could be found.")
       error(s"Treating ${taskId} as ${DrmStatus.Failed} ; waited for ${exitCodeFile}, but it didn't appear.")
 
       DrmStatus.Failed

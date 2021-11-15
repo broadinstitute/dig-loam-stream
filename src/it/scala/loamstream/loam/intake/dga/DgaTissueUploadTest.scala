@@ -9,8 +9,14 @@ import org.json4s._
 /**
  * @author clint
  * Dec 8, 2020
+ * 
+ * NOTE: disabled (made abstract) since the DGA REST API changed since this was written.
+ * TODO: Evaluate if this is worth salvaging, or if a different approach to testing the DGA support would be better.
+ * A "live" integration test like this shouldn't run on every commit at a minimum, since the DGA REST API is only 
+ * brought up at specific ingestion times and is otherwise unavailable.
  */
-final class DgaTissueUploadTest extends AwsFunSuite with IntakeSyntax with DgaSyntax with Loggable {
+
+abstract class DgaTissueUploadTest extends AwsFunSuite with IntakeSyntax with DgaSyntax with Loggable {
   testWithPseudoDir(s"${getClass.getSimpleName}-Read_from_DGA_upload_to_S3") { testDir =>
     val (versionSource, tissueSource) = Dga.Tissues.versionAndTissueSource()
     

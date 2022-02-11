@@ -57,6 +57,7 @@ sealed trait VariantRowExpr[R <: BaseVariantRow] extends TaggedRowParser[R] {
     val dataset = LiteralColumnExpr(metadata.dataset)
     val phenotype = LiteralColumnExpr(metadata.phenotype)
     val ancestry = LiteralColumnExpr(metadata.ancestry)
+    val sex = LiteralColumnExpr(metadata.sex)
   }
 }
 
@@ -83,6 +84,7 @@ object VariantRowExpr extends Loggable {
         dataset = metadataColumnDefs.dataset(dataRow),
         phenotype = metadataColumnDefs.phenotype(dataRow),
         ancestry = metadataColumnDefs.ancestry(dataRow),
+        sex = metadataColumnDefs.sex(dataRow),
         alleleCount = alleleCountDef.map(_.apply(taggedRow)),
         alleleCountCases = alleleCountCasesDef.map(_.apply(taggedRow)), 
         alleleCountControls = alleleCountControlsDef.map(_.apply(taggedRow)),
@@ -118,6 +120,7 @@ object VariantRowExpr extends Loggable {
         dataset = metadataColumnDefs.dataset(dataRow),
         phenotype = metadataColumnDefs.phenotype(dataRow),
         ancestry = metadataColumnDefs.ancestry(dataRow),
+        sex = metadataColumnDefs.sex(dataRow),
         zscore = zscoreDef.map(_.apply(taggedRow)),
         stderr = stderrDef.map(_.apply(taggedRow)),
         beta = betaDef.map(_.apply(taggedRow)),

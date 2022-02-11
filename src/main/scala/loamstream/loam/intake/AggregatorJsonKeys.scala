@@ -14,6 +14,7 @@ object AggregatorJsonKeys {
   val dataset = "dataset"
   val phenotype = "phenotype"
   val ancestry = "ancestry"
+  val sex = "sex"
   val pValue = "pValue"
   val beta = "beta"
   val oddsRatio = "oddsRatio"

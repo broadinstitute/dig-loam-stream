@@ -91,6 +91,8 @@ sealed trait BaseVariantRow extends RenderableJsonRow {
   def phenotype: String
   
   def ancestry: Ancestry
+
+  def sex: Option[Sex]
   
   def derivedFromRecordNumber: Option[Long]
   
@@ -119,7 +121,8 @@ object BaseVariantRow {
       AggregatorJsonKeys.multiAllelic -> JBool(marker.isMultiAllelic),
       AggregatorJsonKeys.dataset -> JString(dataset),
       AggregatorJsonKeys.phenotype -> JString(phenotype),
-      AggregatorJsonKeys.ancestry -> JString(ancestry.name))
+      AggregatorJsonKeys.ancestry -> JString(ancestry.name),
+      AggregatorJsonKeys.sex -> toJson(sex.map(_.name)))
   }
   
   object Headers {
@@ -128,7 +131,8 @@ object BaseVariantRow {
       (Seq(
         AggregatorJsonKeys.dataset,
         AggregatorJsonKeys.phenotype,
-        AggregatorJsonKeys.ancestry) ++
+        AggregatorJsonKeys.ancestry,
+        AggregatorJsonKeys.sex) ++
       Seq(
         AggregatorColumnNames.pvalue,
         AggregatorColumnNames.zscore,
@@ -145,6 +149,7 @@ object BaseVariantRow {
       AggregatorJsonKeys.dataset,
       AggregatorJsonKeys.phenotype,
       AggregatorJsonKeys.ancestry,
+      AggregatorJsonKeys.sex,
       AggregatorJsonKeys.alleleCount,
       AggregatorJsonKeys.alleleCountCases, 
       AggregatorJsonKeys.alleleCountControls,
@@ -164,6 +169,7 @@ final case class VariantCountRow(
   dataset: String,
   phenotype: String,
   ancestry: Ancestry,
+  sex: Option[Sex],
   alleleCount: Option[Long],
   alleleCountCases: Option[Long], 
   alleleCountControls: Option[Long],
@@ -193,6 +199,7 @@ final case class VariantCountRow(
     buffer += Some(dataset)
     buffer += Some(phenotype)
     buffer += Some(ancestry.name)
+    buffer += sex.map(_.name)
     
     addOpt(alleleCount)
     addOpt(alleleCountCases) 
@@ -236,6 +243,7 @@ final case class PValueVariantRow(
   dataset: String,
   phenotype: String,
   ancestry: Ancestry,
+  sex: Option[Sex] = None,
   zscore: Option[Double] = None,
   stderr: Option[Double] = None,
   beta: Option[Double] = None,
@@ -265,6 +273,7 @@ final case class PValueVariantRow(
     buffer += Some(dataset)
     buffer += Some(phenotype)
     buffer += Some(ancestry.name)
+    buffer += sex.map(_.name)
     buffer += Some(pvalue.toString)
     
     addOpt(zscore)

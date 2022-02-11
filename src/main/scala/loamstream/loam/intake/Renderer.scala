@@ -14,6 +14,7 @@ trait Renderer {
 object Renderer {
   final case class CommonsCsv(csvFormat: CSVFormat) extends Renderer {
     override def render(row: RenderableRow): String = {
+      // TODO: Look into this, flatten is fine, but the headers could be off as it eliminates optionals
       val unpacked = row.values.flatten//map(_.getOrElse(null)) //TODO: null ok?
       
       csvFormat.format(unpacked: _*)

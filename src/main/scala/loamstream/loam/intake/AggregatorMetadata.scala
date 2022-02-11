@@ -24,6 +24,7 @@ final case class AggregatorMetadata(
     ancestry: Ancestry,
     author: Option[String] = None,
     tech: TechType,
+    sex: Option[Sex] = None,
     quantitative: Option[AggregatorMetadata.Quantitative],
     properties: Seq[(String, String)] = Nil) {
     
@@ -59,6 +60,8 @@ final case class AggregatorMetadata(
       case Some(Subjects(s)) => Seq("subjects" -> s.toString)
       case _ => Nil
     }
+
+    val sexPart: Seq[(String, String)] = sex.map(s => Seq("sex" -> s.toString)).getOrElse(Nil)
     
     val s3Uri: String = {
       //TODO: 
@@ -79,6 +82,7 @@ final case class AggregatorMetadata(
       "dataset" -> s"${dataset} ${phenotype}",
       "ancestry" -> escape(ancestry.name),
       "tech" -> escape(tech.name)) ++
+      sexPart ++
       quantitativePart ++
       authorPart
   }
@@ -125,6 +129,7 @@ object AggregatorMetadata extends ConfigParser[AggregatorMetadata] {
     ancestry: String,
     author: Option[String] = None,
     tech: String,
+    sex: Option[String] = None,
     cases: Option[Int] = None,
     controls: Option[Int] = None,
     subjects: Option[Int] = None) {
@@ -141,6 +146,7 @@ object AggregatorMetadata extends ConfigParser[AggregatorMetadata] {
         tt <- TechType.tryFromString(tech)
         an <- Ancestry.tryFromString(ancestry)
         ut = topic.flatMap(UploadType.fromString)
+        s = sex.flatMap(Sex.fromString)
       } yield {
         AggregatorMetadata(
           bucketName = bucketName,
@@ -151,6 +157,7 @@ object AggregatorMetadata extends ConfigParser[AggregatorMetadata] {
           ancestry = an,
           author = author,
           tech = tt,
+          sex = s,
           quantitative = quantitative)
       }
     }
@@ -160,6 +167,7 @@ object AggregatorMetadata extends ConfigParser[AggregatorMetadata] {
         tt <- TechType.tryFromString(tech)
         an <- Ancestry.tryFromString(ancestry)
         ut = topic.flatMap(UploadType.fromString)
+        s = sex.flatMap(Sex.fromString)
       } yield {
         NoPhenotype(
           bucketName = bucketName,
@@ -169,6 +177,7 @@ object AggregatorMetadata extends ConfigParser[AggregatorMetadata] {
           ancestry = an,
           author = author,
           tech = tt,
+          sex = s,
           quantitative = quantitative)
       }
     }
@@ -178,6 +187,7 @@ object AggregatorMetadata extends ConfigParser[AggregatorMetadata] {
         tt <- TechType.tryFromString(tech)
         an <- Ancestry.tryFromString(ancestry)
         ut = topic.flatMap(UploadType.fromString)
+        s = sex.flatMap(Sex.fromString)
       } yield {
         NoPhenotypeOrQuantitative(
           bucketName = bucketName,
@@ -186,7 +196,8 @@ object AggregatorMetadata extends ConfigParser[AggregatorMetadata] {
           varIdFormat = varIdFormat,
           ancestry = an,
           author = author,
-          tech = tt)
+          tech = tt,
+          sex = s)
       }
     }
   }
@@ -214,6 +225,7 @@ object AggregatorMetadata extends ConfigParser[AggregatorMetadata] {
       ancestry: Ancestry,
       author: Option[String],
       tech: TechType,
+      sex: Option[Sex],
       quantitative: Option[Quantitative]) {
     
     def toMetadata(phenotype: String): AggregatorMetadata = {
@@ -225,7 +237,8 @@ object AggregatorMetadata extends ConfigParser[AggregatorMetadata] {
           varIdFormat = varIdFormat, 
           ancestry = ancestry, 
           author = author, 
-          tech = tech, 
+          tech = tech,
+          sex = sex,
           quantitative = quantitative)
     }
   }
@@ -248,7 +261,8 @@ object AggregatorMetadata extends ConfigParser[AggregatorMetadata] {
       varIdFormat: String = Defaults.varIdFormat,
       ancestry: Ancestry,
       author: Option[String],
-      tech: TechType) {
+      tech: TechType,
+      sex: Option[Sex]) {
     
     def toMetadata(phenotype: String, quantitative: Option[Quantitative]): AggregatorMetadata = {
       AggregatorMetadata(
@@ -259,7 +273,8 @@ object AggregatorMetadata extends ConfigParser[AggregatorMetadata] {
           varIdFormat = varIdFormat, 
           ancestry = ancestry, 
           author = author, 
-          tech = tech, 
+          tech = tech,
+          sex = sex,
           quantitative = quantitative)
     }
   }

@@ -66,7 +66,7 @@ object CloudSdkDataProcWrapper extends Loggable {
     val gcloud = normalize(config.gcloudBinary)
 
     gcloud +: "beta" +: "dataproc" +: "clusters" +: verb +: "--project" +: config.projectId +: 
-    "--region" +: config.region +: args
+    "--region" +: config.region +: args +: "--quiet"
   }
 
   private def runCommand(tokens: Seq[String]): Int = runProcess(tokens.mkString(" "), "Google Cloud SDK")

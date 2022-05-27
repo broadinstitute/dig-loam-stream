@@ -77,7 +77,7 @@ trait TissueSupport { self: Loggable =>
     }
     
     object Defaults {
-      val tissueUrl: String = "http://www.diabetesepigenome.org:8080/tissueOntology"
+      val tissueUrl: String = "http://cmdga.org:8080/tissueOntology"
       
       val numTissuesToPrintWhenLogging: Int = 1000
     }

@@ -126,11 +126,15 @@ object DrmJobWrapper {
   private[drm] def timePrefix(statsFileEnvVarName: String = "STATS_FILE"): String = {
     //NB: Memory will be max-rss, in kilobytes.
     //System is time spent in kernel code, user is time spent in user code.
-    val formatSpec = "ExitCode: %x\\nMemory: %Mk\\nSystem: %Ss\\nUser: %Us"
+
+    //val formatSpec = "ExitCode: %x\\nMemory: %Mk\\nSystem: %Ss\\nUser: %Us"
 
     //Use `which time` to find the 'time' binary on the path (we do NOT want the Bash builtin 'time').
     //-o makes output specified by $formatSpec go to $statsFile.
-    s"""`which time` -o $$${statsFileEnvVarName} --format="${formatSpec}""""
+
+    //s"""`which time` -o $$${statsFileEnvVarName} --format="${formatSpec}""""
+    s"""time """
+
   }
 
   private[drm] val timestampCommand: String = """date +%Y-%m-%dT%H:%M:%S"""

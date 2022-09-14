@@ -23,15 +23,13 @@ object AnnotationCategory {
   case object GeneticVariantEffects extends AnnotationCategory("genetic_variant_effects")
   case object Others extends AnnotationCategory("others")
   case object TargetGeneLinks extends AnnotationCategory("target_gene_links")
-  case object VariantGeneLinks extends AnnotationCategory("variant_gene_links")
 
   lazy val values: Set[AnnotationCategory] = Set(
       CisRegulatoryElements,
       GeneExpressionLevels,
       GeneticVariantEffects,
       Others,
-      TargetGeneLinks,
-      VariantGeneLinks)
+      TargetGeneLinks)
       
   private lazy val namesToValues: Map[String, AnnotationCategory] = values.map(at => at.name.toLowerCase -> at).toMap
   

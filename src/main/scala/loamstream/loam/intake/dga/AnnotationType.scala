@@ -35,6 +35,7 @@ object AnnotationType {
   case object SQTL extends AnnotationType("sQTL")
   case object TargetGenePredictions extends AnnotationType("target_gene_predictions")
   case object VariantAllelicEffects extends AnnotationType("variant_allelic_effects")
+  case object VariantToGene extends AnnotationType("variant_to_gene")
   
   lazy val values: Set[AnnotationType] = Set(
       AccessibleChromatin,
@@ -51,7 +52,8 @@ object AnnotationType {
       RepresentativeDNaseHypersensitivitySites, 
       SQTL,
       TargetGenePredictions,
-      VariantAllelicEffects)
+      VariantAllelicEffects,
+      VariantToGene)
       
   private lazy val namesToValues: Map[String, AnnotationType] = values.map(at => at.name.toLowerCase -> at).toMap
   

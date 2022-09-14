@@ -137,7 +137,7 @@ object BedRowExpr {
 
     private def ifTargetGenePrediction(regex: Regex): ColumnExpr[Option[String]] = {
       ann.annotationType match {
-        case AnnotationType.TargetGenePredictions => {
+        case AnnotationType.TargetGenePredictions | AnnotationType.VariantToGene => {
           stateOrNameOpt.map {
             _.collect { case regex(v) => v }
           }

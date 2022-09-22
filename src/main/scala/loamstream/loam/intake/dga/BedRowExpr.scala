@@ -164,25 +164,25 @@ object BedRowExpr {
     val targetGeneEnd: ColumnExpr[Option[Long]] = ifTargetGenePrediction(Regexes.targetGeneEnd).map(_.map(_.toLong))
     val variant: ColumnExpr[Option[String]] = {
       ann.annotationType match {
-        case AnnotationType.VariantToGene => LiteralColumnExpr(variant)
+        case AnnotationType.VariantToGene => LiteralColumnExpr(Some("variant"))
         case _ => LiteralColumnExpr(None)
       }
     }
     val gene: ColumnExpr[Option[String]] = {
       ann.annotationType match {
-        case AnnotationType.VariantToGene => LiteralColumnExpr(gene)
+        case AnnotationType.VariantToGene => LiteralColumnExpr(Some("gene"))
         case _ => LiteralColumnExpr(None)
       }
     }
     val score: ColumnExpr[Option[String]] = {
       ann.annotationType match {
-        case AnnotationType.VariantToGene => LiteralColumnExpr(score)
+        case AnnotationType.VariantToGene => LiteralColumnExpr(Some("score"))
         case _ => LiteralColumnExpr(None)
       }
     }
     val info: ColumnExpr[Option[String]] = {
       ann.annotationType match {
-        case AnnotationType.VariantToGene => LiteralColumnExpr(info)
+        case AnnotationType.VariantToGene => LiteralColumnExpr(Some("info"))
         case _ => LiteralColumnExpr(None)
       }
     }

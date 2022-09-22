@@ -41,7 +41,7 @@ trait BedSupport { self: Loggable =>
       //credentials worked.  At this point, I've opted not to ask too many questions, but something is
       //obviously wrong and needs fixing.  I'll take another stab at this during the next intake round.
       // Sheepishly, -Clint. July 1, 2021
-      val tokens = Seq("wget", "-q", "-O", "-", url.toString)
+      val tokens = Seq("wget", "--no-check-certificate", "-q", "-O", "-", url.toString)
 
       val attempt = loamstream.util.Processes.runAndExposeStreams(tokens)()(context)
 

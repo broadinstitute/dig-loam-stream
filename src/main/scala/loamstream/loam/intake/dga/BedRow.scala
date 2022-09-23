@@ -29,7 +29,7 @@ final case class BedRow(
     targetGeneEnd: Option[Long],    // only for annotation_type == "target_gene_predictions"
     variant: Option[String],    // only for annotation_type == "variant_to_gene"
     gene: Option[String],    // only for annotation_type == "variant_to_gene"
-    score: Option[String],    // only for annotation_type == "variant_to_gene"
+    score: Option[Long],    // only for annotation_type == "variant_to_gene"
     info: Option[String]    // only for annotation_type == "variant_to_gene"
   ) extends RenderableJsonRow {
 

@@ -65,7 +65,7 @@ object CloudSdkDataProcWrapper extends Loggable {
   private[googlecloud] def gcloudTokens(config: GoogleCloudConfig)(verb: String)(args: String*): Seq[String] = {
     val gcloud = normalize(config.gcloudBinary)
 
-    gcloud +: "beta" +: "dataproc" +: "clusters" +: verb +: "--project" +: config.projectId +: 
+    gcloud +: "beta" +: "dataproc" +: "clusters" +: verb +: "--quiet" +: "--project" +: config.projectId +: 
     "--region" +: config.region +: args
   }
 

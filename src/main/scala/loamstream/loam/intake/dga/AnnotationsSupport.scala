@@ -79,7 +79,11 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
         
         val bedRowExpr = BedRowExpr(annotation)
         
-        val (handle, bedRowAttempts) = Beds.downloadBed(url, auth)
+        // add headers default: Option[Seq[String]] = Some(Seq("chrom", "start", "end", "state", "value"))
+		val (handle, bedRowAttempts) = annotation.annotationType match {
+          case AnnotationType.VariantToGene => Beds.downloadBed(url, auth, Some(Seq("variant","gene","score","distanceToTSS","evidence","cS2G","info","chr","location")))
+          case _ => Beds.downloadBed(url, auth)
+        }
 
         val rowTuples = bedRowAttempts.map(row => (row, bedRowExpr(row)))
         
@@ -352,6 +356,6 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
 
 object AnnotationsSupport {
   object Defaults {
-    val url: URI = URI.create("http://www.diabetesepigenome.org:8080/getAnnotation")
+    val url: URI = URI.create("http://cmdga.org:8080/getAnnotation")
   }
 }

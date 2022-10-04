@@ -109,7 +109,8 @@ final class DefaultHttpClient extends HttpClient with Loggable {
         url = url, 
         auth = toRequestAuth(auth), 
         data = body.getOrElse("").getBytes,
-        headers = headers).text
+        headers = headers,
+        readTimeout = 100000).text
     }
   }
   

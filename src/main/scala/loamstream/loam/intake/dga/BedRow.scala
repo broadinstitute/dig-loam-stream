@@ -26,7 +26,11 @@ final case class BedRow(
     state: Option[String], 
     targetGene: Option[String],    // only for annotation_type == "target_gene_predictions"
     targetGeneStart: Option[Long],    // only for annotation_type == "target_gene_predictions"
-    targetGeneEnd: Option[Long]    // only for annotation_type == "target_gene_predictions"
+    targetGeneEnd: Option[Long],    // only for annotation_type == "target_gene_predictions"
+    variant: Option[String],    // only for annotation_type == "variant_to_gene"
+    gene: Option[String],    // only for annotation_type == "variant_to_gene"
+    score: Option[Long],    // only for annotation_type == "variant_to_gene"
+    info: Option[String]    // only for annotation_type == "variant_to_gene"
   ) extends RenderableJsonRow {
 
   import Json.toJValue
@@ -55,7 +59,11 @@ final case class BedRow(
       noJNull("targetGene", targetGene) ++
       noJNull("targetGeneStart", targetGeneStart) ++
       noJNull("targetGeneEnd", targetGeneEnd) ++
-      noJNull("state", state)
+      noJNull("state", state) ++
+      noJNull("variant", variant) ++
+      noJNull("gene", gene) ++
+      noJNull("score", score) ++
+      noJNull("info", info)
       
     tuples.toList
   }

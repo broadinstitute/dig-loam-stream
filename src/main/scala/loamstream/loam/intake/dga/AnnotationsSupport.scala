@@ -82,6 +82,7 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
         // add headers default: Option[Seq[String]] = Some(Seq("chrom", "start", "end", "state", "value"))
 		val (handle, bedRowAttempts) = annotation.annotationType match {
           case AnnotationType.VariantToGene => Beds.downloadBed(url, auth, Some(Seq("variant","gene","score","distanceToTSS","evidence","cS2G","info","chr","location")))
+          case AnnotationType.GeneExpression => Beds.downloadBed(url, auth, Some(Seq("gene","ensemblID","#samples","TPM_for_all_samples","min_TPM","1stQu_TPM","median_TPM","mean_TPM","3rdQu_TPM","max_TPM")))
           case _ => Beds.downloadBed(url, auth)
         }
 
@@ -155,7 +156,7 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
      * Download all the annotations available.
      */
     def downloadAnnotations(
-        url: URI = AnnotationsSupport.Defaults.url,
+        url: URI,
         httpClient: HttpClient = new DefaultHttpClient): Source[Try[Annotation]] = {
       
       info(s"Downloading region annotations from '$url' ...")

@@ -357,6 +357,6 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
 
 object AnnotationsSupport {
   object Defaults {
-    val url: URI = URI.create("http://cmdga.org:8080/getAnnotation")
+    val url: URI = URI.create("http://cmdga.org:6543/getAnnotation")
   }
 }

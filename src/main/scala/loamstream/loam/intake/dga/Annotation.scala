@@ -166,24 +166,25 @@ object Annotation {
       
       tsv
     }
-    
-    def assemblyMatchesHg19: Boolean = {
+
+    def assemblyIsValid: Boolean = {
       
       val hg19 = AssemblyIds.hg19
-      
-      val asmsMatch = AssemblyMap.matchAssemblies(download.assemblyId, hg19)
-      
+      val grch38 = AssemblyIds.grch38
+
+      val asmsMatch = Seq(AssemblyMap.matchAssemblies(download.assemblyId, hg19), AssemblyMap.matchAssemblies(download.assemblyId, grch38)).exists(y => y == true)
+
       if(!asmsMatch) {
         ctx.warn(s"File ${fileName} with assembly Id '${download.assemblyId}' " +
-                 s"does not match assembly ${hg19}; skipping...")
+                 s"does not match valid assemblies: ${hg19}, ${grch38}; skipping...")
       }
       
       asmsMatch
     }
 
     category match {
-      case AnnotationCategory.GeneExpressionLevels => isReleased && isTsv && assemblyMatchesHg19
-      case _ => isReleased && isBed && assemblyMatchesHg19
+      case AnnotationCategory.GeneExpressionLevels => isReleased && isTsv && assemblyIsValid
+      case _ => isReleased && isBed && assemblyIsValid
     }
   }
   

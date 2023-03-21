@@ -6,4 +6,5 @@ package loamstream.loam.intake.dga
  */
 object AssemblyIds {
   val hg19 = "hg19"
+  val grch38 = "grch38"
 }

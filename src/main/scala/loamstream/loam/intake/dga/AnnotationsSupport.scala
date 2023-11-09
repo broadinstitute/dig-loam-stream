@@ -162,11 +162,12 @@ trait AnnotationsSupport { self: Loggable with BedSupport with TissueSupport =>
       info(s"Downloading region annotations from '$url' ...")
     
       //fetch all the annotations as JSON
+      //body removed: body = Some("{\"type\": \"Annotation\"}")
       def resp = TimeUtils.time(s"Hitting $url", info(_)) {
         httpClient.post(
           url = url.toString, 
           headers = Headers.ContentType.applicationJson,
-          body = Some("{\"type\": \"Annotation\"}")) //TODO: Make this string with json4s
+          body = None) //TODO: Make this string with json4s
       }
           
       import org.json4s.jackson.JsonMethods._

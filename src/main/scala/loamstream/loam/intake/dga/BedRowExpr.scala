@@ -39,9 +39,9 @@ final case class BedRowExpr(annotation: Annotation, failFast: Boolean = false) e
       source = columns.source(row),   // e.g. ATAC-seq-peak
       assay = columns.assay(row),   // e.g. ATAC-seq
       collection = columns.collection(row), 
-      chromosome = requiredField(columns.chromosome(row), "chromosome"),
-      start = requiredField(columns.start(row), "start"),
-      end = requiredField(columns.end(row), "end"),
+      chromosome = columns.chromosome(row),
+      start = columns.start(row),
+      end = columns.end(row),
       state = columns.state(row), 
       targetGene = columns.targetGene(row),    //TODO  only for annotation_type == "target_gene_prediction"
       targetGeneStart = columns.targetGeneStart(row),    // TODO only for annotation_type == "target_gene_prediction"
@@ -49,7 +49,16 @@ final case class BedRowExpr(annotation: Annotation, failFast: Boolean = false) e
       variant = columns.variant(row), //TODO  only for annotation_type == "variant_to_gene"
       gene = columns.gene(row), //TODO  only for annotation_type == "variant_to_gene"
       score = columns.score(row), //TODO  only for annotation_type == "variant_to_gene"
-      info = columns.info(row) //TODO  only for annotation_type == "variant_to_gene"
+      info = columns.info(row), //TODO  only for annotation_type == "variant_to_gene"
+      ensemblId = columns.ensemblId(row),    // only for annotation_type == "gene_expression"
+      nSamples = columns.nSamples(row),    // only for annotation_type == "gene_expression"
+      tpmForAllSamples = columns.tpmForAllSamples(row),    // only for annotation_type == "gene_expression"
+      minTpm = columns.minTpm(row),    // only for annotation_type == "gene_expression"
+      firstQuTpm = columns.firstQuTpm(row),    // only for annotation_type == "gene_expression"
+      medianTpm = columns.medianTpm(row),    // only for annotation_type == "gene_expression"
+      meanTpm = columns.meanTpm(row),    // only for annotation_type == "gene_expression"
+      thirdQuTpm = columns.thirdQuTpm(row),    // only for annotation_type == "gene_expression"
+      maxTpm = columns.maxTpm(row)    // only for annotation_type == "gene_expression"
     ))
       
     attempt match {
@@ -106,25 +115,28 @@ object BedRowExpr {
     val source = LiteralColumnExpr(ann.source)
     val assay = LiteralColumnExpr(ann.assay)
     val collection = LiteralColumnExpr(ann.collection)
-    val chromosome = {
-      ColumnTransforms.ensureAlphabeticChromNamesOpt {
-        ColumnTransforms.normalizeChromNamesOpt {
-          ColumnName("chromosome").or(ColumnName("chr")).or(ColumnName("chrom")).asOptionWithNaValues
-        }
+    val chromosome: ColumnExpr[Option[String]] = {
+      ann.annotationType match {
+        case AnnotationType.GeneExpression => LiteralColumnExpr(None)
+        case _ =>
+          ColumnTransforms.ensureAlphabeticChromNamesOpt {
+            ColumnTransforms.normalizeChromNamesOpt {
+              ColumnName("chromosome").or(ColumnName("chr")).or(ColumnName("chrom")).asOptionWithNaValues
+            }
+          }
       }
     }
+
     val start = ann.annotationType match {
-      case vtg @ AnnotationType.VariantToGene =>
-        ColumnName("location").asOptionWithNaValues.asLongOption
-      case _ =>
-        ColumnName("start").or(ColumnName("chromStart")).asOptionWithNaValues.asLongOption
+      case vtg @ AnnotationType.VariantToGene => ColumnName("location").asOptionWithNaValues.asLongOption
+      case ge @ AnnotationType.GeneExpression => LiteralColumnExpr(None)
+      case _ => ColumnName("start").or(ColumnName("chromStart")).asOptionWithNaValues.asLongOption
     }
 
     val end = ann.annotationType match {
-      case vtg @ AnnotationType.VariantToGene =>
-        ColumnName("location").asOptionWithNaValues.asLongOption
-      case _ =>
-        ColumnName("end").or(ColumnName("chromEnd")).asOptionWithNaValues.asLongOption
+      case vtg @ AnnotationType.VariantToGene => ColumnName("location").asOptionWithNaValues.asLongOption
+      case ge @ AnnotationType.GeneExpression => LiteralColumnExpr(None)
+      case _ => ColumnName("end").or(ColumnName("chromEnd")).asOptionWithNaValues.asLongOption
     }
 
     private val stateOrNameOpt: ColumnExpr[Option[String]] = {
@@ -134,7 +146,7 @@ object BedRowExpr {
     // the annotation name needs to be harmonized (accessible chromatin is special!)
     val state: ColumnExpr[Option[String]] = {
       val baseExpr = (ann.annotationType match {
-        case x @ (AnnotationType.AccessibleChromatin | AnnotationType.VariantToGene) =>
+        case x @ (AnnotationType.AccessibleChromatin | AnnotationType.VariantToGene | AnnotationType.GeneExpression) =>
           LiteralColumnExpr(Option(x.name))
         case _ => stateOrNameOpt 
       }).map {
@@ -170,7 +182,7 @@ object BedRowExpr {
     }
     val gene: ColumnExpr[Option[String]] = {
       ann.annotationType match {
-        case AnnotationType.VariantToGene => ColumnName("gene").asOptionWithNaValues.map(_.map(_.toString))
+        case (AnnotationType.VariantToGene | AnnotationType.GeneExpression) => ColumnName("gene").asOptionWithNaValues.map(_.map(_.toString))
         case _ => LiteralColumnExpr(None)
       }
     }
@@ -183,6 +195,60 @@ object BedRowExpr {
     val info: ColumnExpr[Option[String]] = {
       ann.annotationType match {
         case AnnotationType.VariantToGene => ColumnName("info").asOptionWithNaValues.map(_.map(_.toString))
+        case _ => LiteralColumnExpr(None)
+      }
+    }
+    val ensemblId: ColumnExpr[Option[String]] = {
+      ann.annotationType match {
+        case AnnotationType.GeneExpression => ColumnName("ensemblID").asOptionWithNaValues.map(_.map(_.toString))
+        case _ => LiteralColumnExpr(None)
+      }
+    }
+    val nSamples: ColumnExpr[Option[String]] = {
+      ann.annotationType match {
+        case AnnotationType.GeneExpression => ColumnName("#samples").asOptionWithNaValues.map(_.map(_.toString))
+        case _ => LiteralColumnExpr(None)
+      }
+    }
+    val tpmForAllSamples: ColumnExpr[Option[String]] = {
+      ann.annotationType match {
+        case AnnotationType.GeneExpression => ColumnName("TPM_for_all_samples").asOptionWithNaValues.map(_.map(_.toString))
+        case _ => LiteralColumnExpr(None)
+      }
+    }
+    val minTpm: ColumnExpr[Option[String]] = {
+      ann.annotationType match {
+        case AnnotationType.GeneExpression => ColumnName("min_TPM").asOptionWithNaValues.map(_.map(_.toString))
+        case _ => LiteralColumnExpr(None)
+      }
+    }
+    val firstQuTpm: ColumnExpr[Option[String]] = {
+      ann.annotationType match {
+        case AnnotationType.GeneExpression => ColumnName("1stQu_TPM").asOptionWithNaValues.map(_.map(_.toString))
+        case _ => LiteralColumnExpr(None)
+      }
+    }
+    val medianTpm: ColumnExpr[Option[String]] = {
+      ann.annotationType match {
+        case AnnotationType.GeneExpression => ColumnName("median_TPM").asOptionWithNaValues.map(_.map(_.toString))
+        case _ => LiteralColumnExpr(None)
+      }
+    }
+    val meanTpm: ColumnExpr[Option[String]] = {
+      ann.annotationType match {
+        case AnnotationType.GeneExpression => ColumnName("mean_TPM").asOptionWithNaValues.map(_.map(_.toString))
+        case _ => LiteralColumnExpr(None)
+      }
+    }
+    val thirdQuTpm: ColumnExpr[Option[String]] = {
+      ann.annotationType match {
+        case AnnotationType.GeneExpression => ColumnName("3rdQu_TPM").asOptionWithNaValues.map(_.map(_.toString))
+        case _ => LiteralColumnExpr(None)
+      }
+    }
+    val maxTpm: ColumnExpr[Option[String]] = {
+      ann.annotationType match {
+        case AnnotationType.GeneExpression => ColumnName("max_TPM").asOptionWithNaValues.map(_.map(_.toString))
         case _ => LiteralColumnExpr(None)
       }
     }

@@ -20,9 +20,9 @@ final case class BedRow(
     source: Option[String],   //TODO: Only Optional for now; e.g. ATAC-seq-peak
     assay: Option[Seq[String]],   //TODO: Only Optional for now; e.g. ATAC-seq
     collection: Option[Seq[String]], //TODO: Only Optional for now; e.g. ENCODE
-    chromosome: String,
-    start: Long,
-    end: Long,
+    chromosome: Option[String],
+    start: Option[Long],
+    end: Option[Long],
     state: Option[String], 
     targetGene: Option[String],    // only for annotation_type == "target_gene_predictions"
     targetGeneStart: Option[Long],    // only for annotation_type == "target_gene_predictions"
@@ -30,7 +30,16 @@ final case class BedRow(
     variant: Option[String],    // only for annotation_type == "variant_to_gene"
     gene: Option[String],    // only for annotation_type == "variant_to_gene"
     score: Option[Long],    // only for annotation_type == "variant_to_gene"
-    info: Option[String]    // only for annotation_type == "variant_to_gene"
+    info: Option[String],    // only for annotation_type == "variant_to_gene"
+    ensemblId: Option[String],    // only for annotation_type == "gene_expression"
+    nSamples: Option[String],    // only for annotation_type == "gene_expression"
+    tpmForAllSamples: Option[String],    // only for annotation_type == "gene_expression"
+    minTpm: Option[String],    // only for annotation_type == "gene_expression"
+    firstQuTpm: Option[String],    // only for annotation_type == "gene_expression"
+    medianTpm: Option[String],    // only for annotation_type == "gene_expression"
+    meanTpm: Option[String],    // only for annotation_type == "gene_expression"
+    thirdQuTpm: Option[String],    // only for annotation_type == "gene_expression"
+    maxTpm: Option[String]    // only for annotation_type == "gene_expression"
   ) extends RenderableJsonRow {
 
   import Json.toJValue
@@ -52,10 +61,10 @@ final case class BedRow(
       "method" -> toJValue(method),
       "source" -> toJValue(source),
       "assay" -> toJValue(assay),
-      "collection" -> toJValue(collection),
-      "chromosome" -> toJValue(chromosome),
-      "start" -> toJValue(start),
-      "end" -> toJValue(end)) ++ 
+      "collection" -> toJValue(collection)) ++
+      noJNull("chromosome", chromosome) ++
+      noJNull("start", start) ++
+      noJNull("end", end) ++
       noJNull("targetGene", targetGene) ++
       noJNull("targetGeneStart", targetGeneStart) ++
       noJNull("targetGeneEnd", targetGeneEnd) ++
@@ -63,7 +72,16 @@ final case class BedRow(
       noJNull("variant", variant) ++
       noJNull("gene", gene) ++
       noJNull("score", score) ++
-      noJNull("info", info)
+      noJNull("info", info) ++
+      noJNull("ensemblId", ensemblId) ++
+      noJNull("nSamples", nSamples) ++
+      noJNull("tpmForAllSamples", tpmForAllSamples) ++
+      noJNull("minTpm", minTpm) ++
+      noJNull("firstQuTpm", firstQuTpm) ++
+      noJNull("medianTpm", medianTpm) ++
+      noJNull("meanTpm", meanTpm) ++
+      noJNull("thirdQuTpm", thirdQuTpm) ++
+      noJNull("maxTpm", maxTpm)
       
     tuples.toList
   }

@@ -9,7 +9,8 @@ package loamstream.loam.intake.dga
 object AssemblyMap {
   
   val Assemblies: Map[String, String] = Map(
-    AssemblyIds.hg19 -> "GRCh37"
+    AssemblyIds.hg19 -> "GRCh37",
+    AssemblyIds.grch38 -> "GRCh38"
   )
   
   /**
@@ -20,7 +21,7 @@ object AssemblyMap {
     def mapAssemblyIdIfNeeded(assemblyId: String): String = {
       val loweredId = assemblyId.toLowerCase
       
-      if(loweredId.startsWith("hg")) {
+      if(loweredId.startsWith("hg") | (loweredId.startsWith("grch"))) {
         require(
             Assemblies.contains(loweredId), 
             s"No mapping found for assembly id '${loweredId}'.  Known mappings are: ${Assemblies.mkString(",")}")

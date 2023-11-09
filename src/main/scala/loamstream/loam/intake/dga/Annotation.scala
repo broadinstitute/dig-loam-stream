@@ -83,10 +83,11 @@ object Annotation {
   }
     
   private def filteredSortedFileDownloads(
-      annotationId: String, 
+      annotationId: String,
+      category: AnnotationCategory,
       json: JValue)(implicit ctx: LogContext): Try[Seq[Download]] = {
     
-    allFileDownloads(json).map(_.filter(isValidDownload(annotationId)).to(Seq).sortBy(_.md5Sum))
+    allFileDownloads(json).map(_.filter(isValidDownload(annotationId, category)).to(Seq).sortBy(_.md5Sum))
   }
   
   def fromJson(
@@ -96,7 +97,7 @@ object Annotation {
       annotationId <- json.tryAsString("annotation_id")
       annotationType <- json.tryAsString("annotation_type").flatMap(AnnotationType.tryFromString)
       category <- json.tryAsString("annotation_category").flatMap(AnnotationCategory.tryFromString)
-      fileDownloads <- filteredSortedFileDownloads(annotationId, json)
+      fileDownloads <- filteredSortedFileDownloads(annotationId, category, json)
       biosampleId = json.asStringOption("biosample_term_id")
       biosampleType = json.asStringOption("biosample_type")
       portalUsage = json.asStringOption("portal_usage")
@@ -131,7 +132,8 @@ object Annotation {
   
   //only keep files of the right format, assembly and have been released
   private[dga] def isValidDownload(
-      annotationId: String)(download: Annotation.Download)(implicit ctx: LogContext): Boolean = {
+      annotationId: String,
+      category: AnnotationCategory)(download: Annotation.Download)(implicit ctx: LogContext): Boolean = {
     
     def fileName: String = s"${annotationId}/${download.file}"
     
@@ -154,22 +156,36 @@ object Annotation {
       
       bed
     }
-    
-    def assemblyMatchesHg19: Boolean = {
+
+    def isTsv: Boolean = {
+      val tsv = File.isTsv(download.file)
+      
+      if(!tsv) {
+        ctx.warn(s"File ${fileName} is not a TSV file; skipping...")
+      }
+      
+      tsv
+    }
+
+    def assemblyIsValid: Boolean = {
       
       val hg19 = AssemblyIds.hg19
-      
-      val asmsMatch = AssemblyMap.matchAssemblies(download.assemblyId, hg19)
-      
+      val grch38 = AssemblyIds.grch38
+
+      val asmsMatch = Seq(AssemblyMap.matchAssemblies(download.assemblyId, hg19), AssemblyMap.matchAssemblies(download.assemblyId, grch38)).exists(y => y == true)
+
       if(!asmsMatch) {
         ctx.warn(s"File ${fileName} with assembly Id '${download.assemblyId}' " +
-                 s"does not match assembly ${hg19}; skipping...")
+                 s"does not match valid assemblies: ${hg19}, ${grch38}; skipping...")
       }
       
       asmsMatch
     }
-    
-    isReleased && isBed && assemblyMatchesHg19 
+
+    category match {
+      case AnnotationCategory.GeneExpressionLevels => isReleased && isTsv && assemblyIsValid
+      case _ => isReleased && isBed && assemblyIsValid
+    }
   }
   
   final case class Download private (assemblyId: String, url: URI, file: Path, status: Status, md5Sum: String) {
@@ -235,8 +251,14 @@ object Annotation {
       
       asString.endsWith(".bed") || asString.endsWith(".bed.gz")
     }
+    def isTsv(file: Path): Boolean = {
+      val asString = file.toString
+      
+      asString.endsWith(".tsv") || asString.endsWith(".tsv.gz")
+    }
     
     def notBed(file: Path): Boolean = !isBed(file)
+    def notTsv(file: Path): Boolean = !isTsv(file)
   }
   
   final case class Metadata(

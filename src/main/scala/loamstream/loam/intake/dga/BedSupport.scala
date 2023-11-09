@@ -98,7 +98,8 @@ trait BedSupport { self: Loggable =>
           debug(s"Closed reader for $url")
         }
       }
-      
+
+
       //TODO: Allow specifying a delimiter too - just pass in a CSVFormat?
       val formats = headers match {
         case Some(hs) => Source.Formats.tabDelimited.withHeader(hs: _*)

@@ -184,8 +184,9 @@ object Main extends Loggable {
       val lsDir =  wiring.config.executionConfig.loamstreamDir.toAbsolutePath
       
       info(s"Loamstream will create logs and metadata files under ${lsDir}")
-      
-      clearWorkDirs(wiring)
+
+      //turn off for now becuase needed info is often lost
+      //clearWorkDirs(wiring)
 
       addShutdownHook(wiring)
       

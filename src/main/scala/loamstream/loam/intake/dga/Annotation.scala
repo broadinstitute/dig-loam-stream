@@ -105,8 +105,8 @@ object Annotation {
       portalUsage = json.asStringOption("portal_usage")
       method = json.asStringOption("annotation_method")
       collections = json.tryAsStringArray("collection_tags").toOption
-      diseaseTermId = json.tryAsStringArray("disease_term_id").toOption
-      diseaseTermName = json.tryAsStringArray("disease_term_name").toOption
+      diseaseTermId = json.asStringOption("disease_term_id")
+      diseaseTermName = json.asStringOption("disease_term_name")
       assay = json.tryAsStringArray("underlying_assay").toOption //required?
       source = json.asStringOption("annotation_source")
       tissueId = json.asStringOption("portal_tissue_id")

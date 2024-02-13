@@ -110,6 +110,8 @@ object BedRowExpr {
     val biosample = LiteralColumnExpr(ann.biosample)
     val tissueId = LiteralColumnExpr(ann.tissueId)
     val tissue = LiteralColumnExpr(ann.tissue).spacesToUnderscores
+    val diseaseTermId = LiteralColumnExpr(ann.diseaseTermId)
+    val diseaseTermName = LiteralColumnExpr(ann.diseaseTermName)
     val annotation = LiteralColumnExpr(ann.annotationType)
     val method = LiteralColumnExpr(ann.method)
     val source = LiteralColumnExpr(ann.source)

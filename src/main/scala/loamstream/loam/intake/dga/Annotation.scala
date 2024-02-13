@@ -28,6 +28,8 @@ final case class Annotation private[dga] (
     source: Option[String],
     assay: Option[Seq[String]],
     collection: Option[Seq[String]],
+    diseaseTermId: Option[String],
+    diseaseTermName: Option[String],
     biosampleId: Option[String],
     biosampleType: Option[String],
     biosample: Option[String],
@@ -103,6 +105,8 @@ object Annotation {
       portalUsage = json.asStringOption("portal_usage")
       method = json.asStringOption("annotation_method")
       collections = json.tryAsStringArray("collection_tags").toOption
+      diseaseTermId = json.tryAsStringArray("disease_term_id").toOption
+      diseaseTermName = json.tryAsStringArray("disease_term_name").toOption
       assay = json.tryAsStringArray("underlying_assay").toOption //required?
       source = json.asStringOption("annotation_source")
       tissueId = json.asStringOption("portal_tissue_id")
@@ -120,6 +124,8 @@ object Annotation {
         assay = assay,
         collection = collections,
         biosampleId = biosampleId,
+        diseaseTermId = diseaseTermId,
+        diseaseTermName = diseaseTermName,
         biosampleType = biosampleType,
         biosample = biosample,
         method = method,

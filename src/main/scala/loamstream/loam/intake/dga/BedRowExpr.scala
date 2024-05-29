@@ -180,23 +180,22 @@ object BedRowExpr {
     //val targetGeneEnd: ColumnExpr[Option[Long]] = ifTargetGenePrediction(Regexes.targetGeneEnd).map(_.map(_.toLong))
     val targetGene: ColumnExpr[Option[String]] = {
       ann.annotationType match {
-        case AnnotationType.TargetGenePredictions => ColumnName("targetGene").asOptionWithNaValues.map(_.map(_.toString))
+        case AnnotationType.TargetGenePredictions => ColumnName("TargetGene").asOptionWithNaValues.map(_.map(_.toString))
         case _ => LiteralColumnExpr(None)
       }
     }
-    val targetGeneStart: ColumnExpr[Option[String]] = {
+    val targetGeneStart: ColumnExpr[Option[Long]] = {
       ann.annotationType match {
-        case AnnotationType.TargetGenePredictions => ColumnName("TargetGeneElementStart").asOptionWithNaValues.map(_.map(_.toString))
+        case AnnotationType.TargetGenePredictions => ColumnName("TargetGeneElementStart").asOptionWithNaValues.asLongOption.map(_.map(_.toLong))
         case _ => LiteralColumnExpr(None)
       }
     }
-    val targetGeneEnd: ColumnExpr[Option[String]] = {
+    val targetGeneEnd: ColumnExpr[Option[Long]] = {
       ann.annotationType match {
-        case AnnotationType.TargetGenePredictions => ColumnName("TargetGeneElementEnd").asOptionWithNaValues.map(_.map(_.toString))
+        case AnnotationType.TargetGenePredictions => ColumnName("TargetGeneElementEnd").asOptionWithNaValues.asLongOption.map(_.map(_.toLong))
         case _ => LiteralColumnExpr(None)
       }
     }
-
     val variant: ColumnExpr[Option[String]] = {
       ann.annotationType match {
         case AnnotationType.VariantToGene => ColumnName("variant").asOptionWithNaValues.map(_.map(_.toString))

@@ -64,6 +64,8 @@ final class BedRowExprTest extends FunSuite {
       assert(bedRow.biosample === ann.biosample)
       assert(bedRow.tissueId === ann.tissueId)
       assert(bedRow.tissue === ann.tissue.map(normalized))
+      assert(bedRow.diseaseTermId === ann.diseaseTermId)
+      assert(bedRow.diseaseTermName === ann.diseaseTermName)
       assert(bedRow.annotation === ann.annotationType.name)
       assert(bedRow.method === ann.method)
       assert(bedRow.source === ann.source)
@@ -144,6 +146,8 @@ final class BedRowExprTest extends FunSuite {
     doTest(_.biosample, _.biosample)
     doTest(_.tissueId, _.tissueId)
     doTest(_.tissue, _.tissue.map(normalized))
+    doTest(_.diseaseTermId, _.diseaseTermId)
+    doTest(_.diseaseTermName, _.diseaseTermName)
     doTest(_.annotation, _.annotationType)
     doTest(_.method, _.method)
     doTest(_.source, _.source)
@@ -353,6 +357,8 @@ final class BedRowExprTest extends FunSuite {
   private val biosampleId: String = "ldsfgkn b"
   private val biosampleType: String = "dlskjflsdfa1"
   private val biosample: Option[String] = Some(",mvn,vnmv,b")
+  private val diseaseTermId: String = "wefijeit39 4"
+  private val diseaseTermName: String = "l90ijf 0dfpoeferp 0"
   private val method: Option[String] = Some("lmvlfdtttt")
   private val portalUsage: String = "asdasdasdasdasd"
 
@@ -368,6 +374,8 @@ final class BedRowExprTest extends FunSuite {
     biosampleId = Some(biosampleId),
     biosampleType = Some(biosampleType),
     biosample = biosample,
+    diseaseTermId = Some(diseaseTermId),
+    diseaseTermName = Some(diseaseTermName),
     method = method,
     portalUsage = Some(portalUsage),
     harmonizedStates = None,
